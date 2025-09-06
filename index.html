@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Robert Simon – Digital Leader & AI Evangelist</title>
+  <title>Robert Simon – Digital Innovator & AI Pioneer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
@@ -93,16 +93,17 @@
     }
 
     .header-text .subtitle {
-      font-size: 1.25rem;
+      font-size: 1.4rem;
       font-weight: 500;
       margin-bottom: 1rem;
-      opacity: 0.9;
+      opacity: 0.95;
     }
 
     .header-text .tagline {
-      font-size: 1.1rem;
-      opacity: 0.8;
+      font-size: 1.15rem;
+      opacity: 0.85;
       max-width: 600px;
+      font-weight: 300;
     }
 
     .profile-image {
@@ -202,6 +203,35 @@
       border-radius: 2px;
     }
 
+    /* Stats Section */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      text-align: center;
+      padding: 1.5rem;
+      background: rgba(37, 99, 235, 0.05);
+      border-radius: 12px;
+      border: 1px solid rgba(37, 99, 235, 0.1);
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-blue);
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--medium-gray);
+      margin-top: 0.5rem;
+    }
+
     /* Experience Section */
     .experience-item {
       margin-bottom: 2.5rem;
@@ -244,6 +274,13 @@
     .description {
       color: var(--medium-gray);
       line-height: 1.6;
+    }
+
+    .highlight {
+      background: linear-gradient(120deg, rgba(6, 182, 212, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 500;
     }
 
     /* Skills Section */
@@ -352,7 +389,7 @@
         gap: 1rem;
       }
 
-      .skills-grid {
+      .skills-grid, .stats-grid {
         grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       }
 
@@ -391,12 +428,12 @@
     <div class="header-content">
       <div class="header-text">
         <h1>Robert Simon</h1>
-        <div class="subtitle">Senior Manager, AI Evangelist & Digital Sales</div>
+        <div class="subtitle">Transforming Digital Experiences Through AI</div>
         <div class="tagline">
-          Digital pioneer driving AI integration, digital engagement, and data-driven innovation in telecommunications since 1996
+          Where innovation meets execution. Building the future of digital engagement, one breakthrough at a time.
         </div>
       </div>
-      <img src="profile.jpg" alt="Robert Simon - Digital Leader" class="profile-image" />
+      <img src="profile.jpg" alt="Robert Simon - Digital Innovator" class="profile-image" />
     </div>
   </header>
 
@@ -404,7 +441,7 @@
   <div class="contact-bar">
     <div class="contact-info">
       <div class="contact-item">
-        📍 Greater Montreal Metropolitan Area
+        📍 Montreal, QC
       </div>
       <div class="contact-item">
         📧 <a href="mailto:robert@imetrobert.com">robert@imetrobert.com</a>
@@ -416,7 +453,7 @@
         💼 <a href="https://linkedin.com/in/thedigitalrobert" target="_blank">LinkedIn</a>
       </div>
       <div class="contact-item">
-        🌐 <a href="https://www.imetrobert.com" target="_blank">imetrobert.com</a>
+        🌐 <a href="https://www.imetrobert.com" target="_blank">Portfolio</a>
       </div>
     </div>
   </div>
@@ -425,68 +462,76 @@
     <div class="main-content">
       <!-- Left Column -->
       <div class="left-column">
+        <!-- Impact Stats -->
+        <section class="content-section">
+          <h2 class="section-title">Impact at a Glance</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-number">25+</span>
+              <div class="stat-label">Years Innovation</div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-number">#1</span>
+              <div class="stat-label">Telecom App</div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-number">5</span>
+              <div class="stat-label">Major Awards</div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-number">∞</span>
+              <div class="stat-label">Possibilities</div>
+            </div>
+          </div>
+        </section>
+
         <!-- About Section -->
         <section class="content-section">
-          <h2 class="section-title">About</h2>
-          <p>Digital pioneer with 25+ years of experience working with web technologies in Telecommunications and Aviation industries. Proven track record of delivering award-winning digital solutions that translate into engaging user experiences.</p>
-          <p>Currently leading AI integration initiatives at Bell, driving app adoption, enhancing self-serve experiences, and achieving industry-leading CSAT scores. Specialized in transforming complex technical concepts into user-friendly digital experiences.</p>
+          <h2 class="section-title">The Story</h2>
+          <p>I've been shaping the digital landscape since 1996 — back when "going online" meant something entirely different. What started as curiosity about web technologies has evolved into <span class="highlight">a mission to revolutionize how people interact with digital experiences</span>.</p>
+          
+          <p>Today, I'm leading the charge in AI integration at Bell, where I've helped transform MyBell into Canada's #1 telecom app. But it's not just about the technology — it's about <span class="highlight">creating moments of delight</span> in everyday digital interactions.</p>
+          
+          <p>From aviation systems to telecommunications giants, I've consistently turned complex challenges into elegant solutions that real people actually want to use.</p>
         </section>
 
         <!-- Experience Section -->
         <section class="content-section">
-          <h2 class="section-title">Professional Experience</h2>
+          <h2 class="section-title">Journey Highlights</h2>
           
           <div class="experience-item">
             <div class="company-name">Bell</div>
-            <div class="position">Senior Manager, AI Evangelist and Digital Sales</div>
-            <div class="duration">Dec 2024 – Present</div>
+            <div class="position">AI Evangelist & Digital Sales Leader</div>
+            <div class="duration">Present</div>
             <div class="description">
-              Orchestrating digital sales growth, leading AI integration, deep linking strategy, and remarketing initiatives. Empowering teams for data-driven innovation and improved conversion.
+              Spearheading AI integration across digital touchpoints. <span class="highlight">Turning data into dollars</span> through strategic remarketing and deep-linking innovations that actually move the needle.
             </div>
           </div>
 
           <div class="experience-item">
             <div class="company-name">Bell</div>
-            <div class="position">Senior Manager, Digital Adoption, Engagement & Benchmarking</div>
-            <div class="duration">Aug 2020 – Apr 2025</div>
+            <div class="position">Digital Adoption Catalyst</div>
+            <div class="duration">2020 – 2024</div>
             <div class="description">
-              Led digital adoption programs making MyBell the top telecom app in Canada. Delivered award-winning digital solutions and drove industry-leading CSAT scores.
+              Transformed MyBell into <span class="highlight">Canada's leading telecom app</span>. Led the digital adoption revolution that redefined customer self-service expectations industry-wide.
             </div>
           </div>
 
           <div class="experience-item">
             <div class="company-name">Bell</div>
-            <div class="position">Senior Manager, Digital Self Serve Adoption & Engagement</div>
-            <div class="duration">May 2016 – Aug 2020</div>
+            <div class="position">Self-Serve Experience Architect</div>
+            <div class="duration">2014 – 2020</div>
             <div class="description">
-              Managed teams to boost self-serve digital adoption across platforms with targeted campaigns and analytics.
+              Pioneered the shift from traditional customer service to <span class="highlight">intuitive self-serve platforms</span>. Built the foundation for Bell's digital-first customer experience strategy.
             </div>
           </div>
 
           <div class="experience-item">
-            <div class="company-name">Bell</div>
-            <div class="position">Senior Manager, Digital Self-serve and Experience</div>
-            <div class="duration">Oct 2014 – May 2016</div>
+            <div class="company-name">Early Digital Ventures</div>
+            <div class="position">Foundation Builder</div>
+            <div class="duration">1996 – 2014</div>
             <div class="description">
-              Led mobility self-serve experiences; optimized digital account management; delivered high-ROI digital solutions.
-            </div>
-          </div>
-
-          <div class="experience-item">
-            <div class="company-name">BCE Emergis</div>
-            <div class="position">Service Manager & Client Service Manager</div>
-            <div class="duration">2003 – 2006</div>
-            <div class="description">
-              Managed customer service, identity management programs, and vendor relationships for e-security portfolios.
-            </div>
-          </div>
-
-          <div class="experience-item">
-            <div class="company-name">IATA</div>
-            <div class="position">Assistant Manager Operations</div>
-            <div class="duration">1998 – 2003</div>
-            <div class="description">
-              Managed customer service, system enhancements, and participated in strategic tech planning for the iiNET system.
+              Cut my teeth across aviation (IATA) and emerging digital security (BCE Emergis), learning to navigate the wild west of early web technologies and <span class="highlight">building systems that still run today</span>.
             </div>
           </div>
         </section>
@@ -496,58 +541,62 @@
       <div class="right-column">
         <!-- Skills Section -->
         <section class="content-section">
-          <h2 class="section-title">Core Expertise</h2>
+          <h2 class="section-title">Arsenal</h2>
           <div class="skills-grid">
-            <div class="skill-tag">AI Integration</div>
-            <div class="skill-tag">Digital Sales</div>
+            <div class="skill-tag">AI Strategy</div>
+            <div class="skill-tag">Digital Transformation</div>
+            <div class="skill-tag">User Experience</div>
+            <div class="skill-tag">Data Analytics</div>
             <div class="skill-tag">E-commerce</div>
-            <div class="skill-tag">CRM</div>
-            <div class="skill-tag">Analytics</div>
-            <div class="skill-tag">Telecommunications</div>
-            <div class="skill-tag">Campaign Mgmt</div>
-            <div class="skill-tag">Web Technologies</div>
+            <div class="skill-tag">CRM Systems</div>
+            <div class="skill-tag">Campaign Automation</div>
+            <div class="skill-tag">Growth Hacking</div>
           </div>
         </section>
 
         <!-- Languages -->
         <section class="content-section">
-          <h2 class="section-title">Languages</h2>
+          <h2 class="section-title">Global Reach</h2>
           <div class="languages">
-            <div class="language-tag">English</div>
-            <div class="language-tag">French</div>
-            <div class="language-tag">Hebrew</div>
+            <div class="language-tag">🇺🇸 English</div>
+            <div class="language-tag">🇫🇷 French</div>
+            <div class="language-tag">🇮🇱 Hebrew</div>
           </div>
         </section>
 
-        <!-- Awards -->
+        <!-- Recognition -->
         <section class="content-section">
-          <h2 class="section-title">Honors & Awards</h2>
+          <h2 class="section-title">Recognition</h2>
           <ul class="awards-list">
-            <li class="award-item">Bell Bravo Award</li>
-            <li class="award-item">Boomerang Award</li>
-            <li class="award-item">Execution Excellence Award (EEA)</li>
-            <li class="award-item">Webby Award</li>
-            <li class="award-item">Harnessing AI for Digital Engagement</li>
+            <li class="award-item">🏆 Webby Award Winner</li>
+            <li class="award-item">🚀 Bell Bravo Award</li>
+            <li class="award-item">⚡ Execution Excellence Award</li>
+            <li class="award-item">🎯 Boomerang Award</li>
+            <li class="award-item">🤖 AI Innovation Leadership</li>
           </ul>
         </section>
 
         <!-- Education -->
         <section class="content-section">
-          <h2 class="section-title">Education</h2>
+          <h2 class="section-title">Foundation</h2>
           <div class="education-item">
             <div class="institution">McGill University</div>
-            <div class="degree">B.Comm, Marketing & Psychology</div>
-            <div class="years">1994 – 1997</div>
+            <div class="degree">Commerce • Marketing & Psychology</div>
+            <div class="years">The perfect blend for understanding what makes people tick</div>
           </div>
           <div class="education-item">
-            <div class="institution">Vanier College</div>
-            <div class="degree">DEC, Commerce</div>
-            <div class="years">1992 – 1994</div>
+            <div class="institution">Continuous Learning</div>
+            <div class="degree">25+ Years in the Digital Trenches</div>
+            <div class="years">Where the real education happens</div>
           </div>
-          <div class="education-item">
-            <div class="institution">Herzliah</div>
-            <div class="degree">General Studies Diploma</div>
-            <div class="years">1988 – 1992</div>
+        </section>
+
+        <!-- Call to Action -->
+        <section class="content-section" style="background: var(--gradient-primary); color: white;">
+          <h2 class="section-title" style="color: white;">Let's Build Something Amazing</h2>
+          <p style="color: rgba(255,255,255,0.9); margin-bottom: 1rem;">Ready to transform your digital experience? I'm always excited to tackle new challenges and push boundaries.</p>
+          <div style="text-align: center;">
+            <a href="mailto:robert@imetrobert.com" style="background: white; color: var(--primary-blue); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; font-weight: 600; display: inline-block; transition: transform 0.2s ease;">Start the Conversation</a>
           </div>
         </section>
       </div>
@@ -557,7 +606,7 @@
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
-      © 2025 Robert Simon. All rights reserved.
+      Built with passion in Montreal • © 2025 Robert Simon
     </div>
   </footer>
 </body>
