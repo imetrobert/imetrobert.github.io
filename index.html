@@ -6,216 +6,226 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    /* Reset and base */
+    /* Marble-inspired color palette and base reset */
+    :root {
+      --marble-white: #f7f7f5;
+      --marble-light-gray: #d9d7d4;
+      --marble-medium-gray: #a6a39d;
+      --marble-dark-gray: #615f5b;
+      --marble-vein-color: rgba(150, 147, 142, 0.3);
+      --primary-color: #5a5853;
+      --accent-color: #7b6f64;
+      --text-color: #333333;
+      --font-primary: 'Open Sans', Arial, sans-serif;
+      --font-mono: 'Roboto Mono', monospace;
+    }
+
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
     body {
-      margin: 0;
-      font-family: 'Open Sans', Arial, sans-serif;
-      background: linear-gradient(135deg, #001f3f, #0072ce);
-      color: #f0f0f0;
+      font-family: var(--font-primary);
+      background-color: var(--marble-white);
+      color: var(--text-color);
       min-height: 100vh;
+      padding: 2rem 1rem 3rem 1rem;
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      padding: 2rem;
+
+      /* Subtle marble texture with soft veins */
+      background-image:
+        linear-gradient(45deg, var(--marble-vein-color) 25%, transparent 25%),
+        linear-gradient(135deg, var(--marble-vein-color) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--marble-vein-color) 75%),
+        linear-gradient(135deg, transparent 75%, var(--marble-vein-color) 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
     }
 
     .container {
-      background-color: #121417; /* Dark Card */
+      background: #ffffffcc; /* semi-transparent white for elegance */
       max-width: 900px;
       width: 100%;
-      border-radius: 14px;
-      box-shadow: 0 15px 35px rgba(0, 0, 50, 0.7);
-      padding: 2.5rem 3rem 3rem 3rem;
+      border-radius: 20px;
+      box-shadow:
+        0 16px 32px rgba(0, 0, 0, 0.12),
+        inset 0 0 40px 5px var(--marble-vein-color);
+      padding: 3rem 4rem 4rem 4rem;
       position: relative;
       overflow: hidden;
+      backdrop-filter: saturate(180%) blur(15px);
+      border: 1px solid var(--marble-light-gray);
     }
 
-    /* Abstract AI-themed subtle background */
-    .container::before {
-      content: "";
-      position: absolute;
-      top: -50px;
-      right: -50px;
-      width: 250px;
-      height: 250px;
-      background: radial-gradient(circle at center, #ce1126, transparent 70%);
-      opacity: 0.15;
-      border-radius: 100%;
-      filter: blur(75px);
-      z-index: 0;
-    }
+    /* Remove old gradient background glow */
+    .container::before,
     .container::after {
-      content: "";
-      position: absolute;
-      bottom: -60px;
-      left: -60px;
-      width: 260px;
-      height: 260px;
-      background: radial-gradient(circle at center, #0066cc, transparent 70%);
-      opacity: 0.14;
-      border-radius: 100%;
-      filter: blur(80px);
-      z-index: 0;
+      display: none;
     }
 
+    /* Profile image with subtle marble border and shadow */
     img.profile {
       width: 160px;
       height: 160px;
       border-radius: 50%;
-      border: 4px solid #ce1126; /* Canadian red */
+      border: 6px solid var(--marble-light-gray);
+      box-shadow:
+        0 8px 16px rgba(130, 130, 120, 0.35),
+        inset 0 0 15px 3px var(--marble-white);
       object-fit: cover;
       float: right;
       margin-left: 2rem;
       margin-bottom: 1rem;
-      box-shadow: 0 12px 20px rgba(206, 17, 38, 0.7);
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
       position: relative;
       z-index: 10;
-      transition: transform 0.4s ease;
+      background-color: var(--marble-white);
     }
     img.profile:hover {
       transform: scale(1.05);
-      box-shadow: 0 18px 30px rgba(206, 17, 38, 0.9);
+      box-shadow:
+        0 18px 36px rgba(110, 110, 100, 0.6),
+        inset 0 0 20px 5px var(--marble-light-gray);
     }
 
+    /* Heading styles */
     h1 {
-      font-family: 'Roboto Mono', monospace;
-      font-size: 2.8rem;
-      margin-bottom: 0.3rem;
-      color: #ce1126;
-      letter-spacing: 1.3px;
-      z-index: 10;
+      font-family: var(--font-mono);
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      color: var(--primary-color);
+      letter-spacing: 0.15em;
       position: relative;
+      z-index: 10;
+      text-transform: uppercase;
+      text-shadow: 1px 1px 2px rgba(150, 150, 140, 0.4);
     }
 
     h2 {
-      font-family: 'Roboto Mono', monospace;
-      font-size: 1.6rem;
-      border-bottom: 2px solid #ce1126;
-      padding-bottom: 5px;
-      margin: 2.5rem 0 1rem 0;
-      color: #ffffffcc;
+      font-family: var(--font-mono);
+      font-size: 1.8rem;
+      border-bottom: 3px solid var(--marble-medium-gray);
+      padding-bottom: 8px;
+      margin: 3rem 0 1.5rem 0;
+      color: var(--marble-dark-gray);
       position: relative;
       z-index: 10;
+      letter-spacing: 0.03em;
     }
 
     /* Contact block */
     .contact {
-      font-size: 1.1rem;
-      color: #ddd;
-      line-height: 1.5;
-      margin-bottom: 1.6rem;
+      font-size: 1.125rem;
+      color: var(--marble-dark-gray);
+      line-height: 1.7;
+      margin-bottom: 2rem;
       position: relative;
       z-index: 10;
     }
 
     .contact strong {
-      color: #ff4e42;
+      color: var(--accent-color);
+      font-weight: 700;
     }
 
     a {
-      color: #ce1126;
+      color: var(--accent-color);
       font-weight: 600;
       text-decoration: none;
-      transition: color 0.3s ease;
+      border-bottom: 1.5px solid transparent;
+      transition: border-color 0.3s ease, color 0.3s ease;
     }
     a:hover,
     a:focus {
-      color: #ff8f87;
-      text-decoration: underline;
+      color: var(--primary-color);
+      border-bottom: 1.5px solid var(--primary-color);
+      text-decoration: none;
     }
 
-    /* Summary styling */
+    /* Summary and paragraphs */
     .summary {
-      font-size: 1.15rem;
-      line-height: 1.65;
-      color: #eee;
+      font-size: 1.2rem;
+      line-height: 1.7;
+      color: var(--marble-dark-gray);
       position: relative;
       z-index: 10;
-      max-width: 600px;
+      max-width: 650px;
     }
 
     p {
-      margin: 1rem 0;
-      line-height: 1.6;
-      color: #ccc;
+      margin: 1.25rem 0;
+      line-height: 1.75;
+      color: var(--marble-dark-gray);
       position: relative;
       z-index: 10;
+      font-weight: 400;
     }
 
-    /* Lists inline styling */
+    /* Lists styling */
     ul.inline-list {
       list-style: none;
       padding: 0;
       margin: 0.25rem 0 0 0;
       display: flex;
-      gap: 1.6rem;
+      gap: 1.8rem;
       flex-wrap: wrap;
-      color: #bbb;
+      color: var(--marble-medium-gray);
       font-weight: 600;
-      letter-spacing: 0.85px;
+      letter-spacing: 0.07em;
       position: relative;
       z-index: 10;
     }
 
-    /* Awards block */
-    .awards {
-      color: #aaa;
-      font-style: italic;
-      line-height: 1.5;
-      margin-bottom: 1.2rem;
-      position: relative;
-      z-index: 10;
-    }
-
-    /* Experience nested list styling */
     ul > li > ul {
       list-style: none;
       padding-left: 0;
-      margin-top: 0.5rem;
-      color: #ddd;
-      font-size: 0.96rem;
-      line-height: 1.5;
+      margin-top: 0.6rem;
+      color: var(--marble-dark-gray);
+      font-size: 1rem;
+      line-height: 1.6;
       position: relative;
       z-index: 10;
     }
 
-    /* Experience outer list style */
     ul > li {
-      margin-top: 1.4rem;
+      margin-top: 1.6rem;
       font-weight: 700;
-      color: #fff;
-      font-size: 1.1rem;
-      letter-spacing: 0.4px;
+      color: var(--primary-color);
+      font-size: 1.175rem;
+      letter-spacing: 0.05em;
       position: relative;
       z-index: 10;
     }
 
     ul > li > ul > li {
-      margin-top: 0.6rem;
+      margin-top: 0.8rem;
       font-weight: 500;
+      color: var(--marble-dark-gray);
+      font-size: 1rem;
     }
 
-    /* Education & Contact simple lists */
-    ul {
-      line-height: 1.7;
-      color: #ddd;
-      font-size: 1rem;
+    /* Awards block */
+    .awards {
+      color: var(--marble-medium-gray);
+      font-style: italic;
+      line-height: 1.6;
+      margin-bottom: 1.8rem;
       position: relative;
       z-index: 10;
-      padding-left: 1.2rem;
+      max-width: 600px;
     }
 
     /* Footer styling */
     .footer {
-      color: #666666aa;
+      color: var(--marble-medium-gray);
       text-align: center;
-      margin: 3rem 0 0 0;
-      font-size: 0.95rem;
-      letter-spacing: 0.8px;
+      margin: 4rem 0 0 0;
+      font-size: 1rem;
+      letter-spacing: 0.07em;
       position: relative;
       z-index: 10;
     }
@@ -227,19 +237,19 @@
       clear: both;
     }
 
-    /* Responsive tweaks */
+    /* Responsive adjustments */
     @media (max-width: 720px) {
       img.profile {
         float: none;
-        margin: 0 auto 1.8rem auto;
+        margin: 0 auto 2rem auto;
         display: block;
       }
       .container {
-        padding: 1.8rem 1.5rem;
+        padding: 2rem 2rem 3rem 2rem;
       }
       h1 {
         text-align: center;
-        font-size: 2.3rem;
+        font-size: 2.4rem;
       }
       .summary, .contact {
         text-align: center;
@@ -249,27 +259,26 @@
         justify-content: center;
       }
       ul > li {
-        font-size: 1rem;
+        font-size: 1.05rem;
       }
     }
 
-    /* Canadian Maple Leaf icon - SVG used in header */
+    /* SVG icon refinements */
     .canada-flag {
       vertical-align: middle;
-      width: 32px;
-      height: 32px;
-      margin-left: 12px;
-      filter: drop-shadow(0 0 1.2px #ce1126);
+      width: 34px;
+      height: 34px;
+      margin-left: 14px;
+      filter: drop-shadow(0 0 1.2px var(--accent-color));
     }
 
-    /* AI Icon style */
     .ai-icon {
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       vertical-align: middle;
-      margin-left: 8px;
-      fill: #0072ce;
-      filter: drop-shadow(0 0 1.8px #00bfff);
+      margin-left: 10px;
+      fill: var(--primary-color);
+      filter: drop-shadow(0 0 2px #4a90e2);
     }
   </style>
 </head>
@@ -287,8 +296,8 @@
 
       <!-- AI Circuit Icon SVG -->
       <svg class="ai-icon" viewBox="0 0 64 64" aria-label="AI Symbol" role="img" xmlns="http://www.w3.org/2000/svg" >
-        <circle cx="32" cy="32" r="30" fill="none" stroke="#0072ce" stroke-width="3"/>
-        <path d="M20 32h24M32 20v24M23 23l18 18M41 23l-18 18" stroke="#0072ce" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="32" cy="32" r="30" fill="none" stroke="var(--primary-color)" stroke-width="3"/>
+        <path d="M20 32h24M32 20v24M23 23l18 18M41 23l-18 18" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </h1>
 
