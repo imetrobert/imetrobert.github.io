@@ -1,156 +1,432 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Robert Simon – Digital Leader</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Robert Simon – Digital Leader & AI Evangelist</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f6f6f6; }
-    .container { max-width: 850px; margin: 30px auto; background: #fff; padding: 2.5em 2em 2em 2em; border-radius: 10px; box-shadow: 0 0 16px rgba(0,0,0,0.09); }
-    img.profile { width: 142px; border-radius: 50%; border: 3px solid #336699; float: right; margin-left: 30px; }
-    h1 { color: #236; margin-bottom: 8px; }
-    h2 { border-bottom: 1.5px solid #e1e1e1; padding-bottom: 6px; margin-top: 22px; font-size: 1.38em;}
-    a { color: #336699; text-decoration: none;}
-    ul, li { line-height: 1.6; }
-    .contact { font-size: 1.08em; margin-bottom: 12px;}
-    .summary { font-size: 1.11em; margin-bottom: 10px; }
-    .section { margin-top: 22px;}
-    .inline-list { list-style-type: none; padding: 0; margin: 0;}
-    .inline-list li { display: inline; margin-right: 13px;}
-    .awards { margin-bottom: 8px;}
-    .footer { text-align: center; color: #bbb; margin-top: 42px; font-size: 0.98em;}
-    @media (max-width: 600px) {
-      .container { padding: 1em;}
-      img.profile { float: none; display: block; margin: 0 auto 20px auto;}
+    /* Reset and base */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Open Sans', Arial, sans-serif;
+      background: linear-gradient(135deg, #001f3f, #0072ce);
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 2rem;
+    }
+
+    .container {
+      background-color: #121417; /* Dark Card */
+      max-width: 900px;
+      width: 100%;
+      border-radius: 14px;
+      box-shadow: 0 15px 35px rgba(0, 0, 50, 0.7);
+      padding: 2.5rem 3rem 3rem 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Abstract AI-themed subtle background */
+    .container::before {
+      content: "";
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle at center, #ce1126, transparent 70%);
+      opacity: 0.15;
+      border-radius: 100%;
+      filter: blur(75px);
+      z-index: 0;
+    }
+    .container::after {
+      content: "";
+      position: absolute;
+      bottom: -60px;
+      left: -60px;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle at center, #0066cc, transparent 70%);
+      opacity: 0.14;
+      border-radius: 100%;
+      filter: blur(80px);
+      z-index: 0;
+    }
+
+    img.profile {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      border: 4px solid #ce1126; /* Canadian red */
+      object-fit: cover;
+      float: right;
+      margin-left: 2rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 12px 20px rgba(206, 17, 38, 0.7);
+      position: relative;
+      z-index: 10;
+      transition: transform 0.4s ease;
+    }
+    img.profile:hover {
+      transform: scale(1.05);
+      box-shadow: 0 18px 30px rgba(206, 17, 38, 0.9);
+    }
+
+    h1 {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 2.8rem;
+      margin-bottom: 0.3rem;
+      color: #ce1126;
+      letter-spacing: 1.3px;
+      z-index: 10;
+      position: relative;
+    }
+
+    h2 {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 1.6rem;
+      border-bottom: 2px solid #ce1126;
+      padding-bottom: 5px;
+      margin: 2.5rem 0 1rem 0;
+      color: #ffffffcc;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Contact block */
+    .contact {
+      font-size: 1.1rem;
+      color: #ddd;
+      line-height: 1.5;
+      margin-bottom: 1.6rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    .contact strong {
+      color: #ff4e42;
+    }
+
+    a {
+      color: #ce1126;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    a:hover,
+    a:focus {
+      color: #ff8f87;
+      text-decoration: underline;
+    }
+
+    /* Summary styling */
+    .summary {
+      font-size: 1.15rem;
+      line-height: 1.65;
+      color: #eee;
+      position: relative;
+      z-index: 10;
+      max-width: 600px;
+    }
+
+    p {
+      margin: 1rem 0;
+      line-height: 1.6;
+      color: #ccc;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Lists inline styling */
+    ul.inline-list {
+      list-style: none;
+      padding: 0;
+      margin: 0.25rem 0 0 0;
+      display: flex;
+      gap: 1.6rem;
+      flex-wrap: wrap;
+      color: #bbb;
+      font-weight: 600;
+      letter-spacing: 0.85px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Awards block */
+    .awards {
+      color: #aaa;
+      font-style: italic;
+      line-height: 1.5;
+      margin-bottom: 1.2rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Experience nested list styling */
+    ul > li > ul {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 0.5rem;
+      color: #ddd;
+      font-size: 0.96rem;
+      line-height: 1.5;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Experience outer list style */
+    ul > li {
+      margin-top: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+      font-size: 1.1rem;
+      letter-spacing: 0.4px;
+      position: relative;
+      z-index: 10;
+    }
+
+    ul > li > ul > li {
+      margin-top: 0.6rem;
+      font-weight: 500;
+    }
+
+    /* Education & Contact simple lists */
+    ul {
+      line-height: 1.7;
+      color: #ddd;
+      font-size: 1rem;
+      position: relative;
+      z-index: 10;
+      padding-left: 1.2rem;
+    }
+
+    /* Footer styling */
+    .footer {
+      color: #666666aa;
+      text-align: center;
+      margin: 3rem 0 0 0;
+      font-size: 0.95rem;
+      letter-spacing: 0.8px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Clear float fix */
+    .container::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 720px) {
+      img.profile {
+        float: none;
+        margin: 0 auto 1.8rem auto;
+        display: block;
+      }
+      .container {
+        padding: 1.8rem 1.5rem;
+      }
+      h1 {
+        text-align: center;
+        font-size: 2.3rem;
+      }
+      .summary, .contact {
+        text-align: center;
+        max-width: 100%;
+      }
+      ul.inline-list {
+        justify-content: center;
+      }
+      ul > li {
+        font-size: 1rem;
+      }
+    }
+
+    /* Canadian Maple Leaf icon - SVG used in header */
+    .canada-flag {
+      vertical-align: middle;
+      width: 32px;
+      height: 32px;
+      margin-left: 12px;
+      filter: drop-shadow(0 0 1.2px #ce1126);
+    }
+
+    /* AI Icon style */
+    .ai-icon {
+      width: 32px;
+      height: 32px;
+      vertical-align: middle;
+      margin-left: 8px;
+      fill: #0072ce;
+      filter: drop-shadow(0 0 1.8px #00bfff);
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <img src="profile.jpg" alt="Robert Simon" class="profile">
-    <h1>Robert Simon</h1>
-    <div class="contact">
-      <strong>Location:</strong> Greater Montreal Metropolitan Area<br>
-      <strong>Contact:</strong> <a href="mailto:robert@imetrobert.com">robert@imetrobert.com</a> | 514-250-8491<br>
-      <strong>LinkedIn:</strong> <a href="https://linkedin.com/in/thedigitalrobert">thedigitalrobert</a><br>
-      <strong>Website:</strong> <a href="https://linkedin.imetrobert.com">imetrobert.com</a>
-    </div>
+  <div class="container" role="main" aria-label="Digital Leader Professional Profile">
 
-    <div class="summary">
-      Senior Manager, Digital<br>
-      Experienced leader in Campaign &amp; Project Management, Online Marketing, and Web analytics for mobile and web platforms in the telecommunications industry.<br>
-      Specializing in AI integration, digital engagement, and data-driven innovation.
-    </div>
+    <!-- Header with Name and icons -->
+    <h1>
+      Robert Simon
+      <!-- Canadian Flag SVG -->
+      <svg class="canada-flag" viewBox="0 0 64 64" aria-label="Canadian Flag" role="img" xmlns="http://www.w3.org/2000/svg" >
+        <circle cx="32" cy="32" r="30" fill="#fff"/>
+        <path fill="#ce1126" d="M20 10l3 14H17l-3 17 9-10h7l9 10-3-17h-6l3-14z"/>
+      </svg>
 
-    <h2>About</h2>
-    <p>
-      Digital pioneer, working with web technologies since 1996 within the Telecommunications and Aviation industry.<br>
-      Delivered award-winning digital solutions translating into engaging user experiences.<br>
-      Proven record of driving app adoption, enhancing self-serve experiences, and achieving industry-leading CSAT scores.
-    </p>
+      <!-- AI Circuit Icon SVG -->
+      <svg class="ai-icon" viewBox="0 0 64 64" aria-label="AI Symbol" role="img" xmlns="http://www.w3.org/2000/svg" >
+        <circle cx="32" cy="32" r="30" fill="none" stroke="#0072ce" stroke-width="3"/>
+        <path d="M20 32h24M32 20v24M23 23l18 18M41 23l-18 18" stroke="#0072ce" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </h1>
 
-    <h2>Top Skills</h2>
-    <ul class="inline-list">
-      <li>E-commerce</li>
-      <li>CRM</li>
-      <li>Telecommunications</li>
-    </ul>
+    <img src="profile.jpg" alt="Robert Simon" class="profile" />
 
-    <h2>Languages</h2>
-    <ul class="inline-list">
-      <li>French</li>
-      <li>Hebrew</li>
-      <li>English</li>
-    </ul>
+    <section class="contact" aria-label="Contact Information">
+      <strong>Location:</strong> Greater Montreal Metropolitan Area<br />
+      <strong>Contact:</strong> <a href="mailto:robert@imetrobert.com">robert@imetrobert.com</a> | 514-250-8491<br />
+      <strong>LinkedIn:</strong> <a href="https://linkedin.com/in/thedigitalrobert" target="_blank" rel="noopener noreferrer">thedigitalrobert</a><br />
+      <strong>Website:</strong> <a href="https://linkedin.imetrobert.com" target="_blank" rel="noopener noreferrer">imetrobert.com</a>
+    </section>
 
-    <h2>Honors &amp; Awards</h2>
-    <div class="awards">
-      Bell Bravo Award<br>
-      Boomerang Award<br>
-      Execution Excellence Award (EEA)<br>
-      Webby Award<br>
-      Harnessing AI for Digital Engagement and Adoption
-    </div>
+    <section class="summary" aria-label="Professional Summary">
+      <p>
+        Senior Manager, Digital<br />
+        Experienced leader in Campaign &amp; Project Management, Online Marketing, and Web analytics for mobile and web platforms in telecommunications.<br />
+        Specializing in AI integration, digital engagement, and data-driven innovation.
+      </p>
+    </section>
 
-    <h2>Experience</h2>
-    <ul>
-      <li>
-        <strong>Bell</strong><br>
-        <ul>
-          <li>
-            <strong>Senior Manager, AI Evangelist and Digital Sales</strong><br>
-            Dec 2024 – Present, Montreal, QC<br>
-            Orchestrating digital sales growth, leading AI integration, deep linking strategy, and remarketing initiatives. Empowering teams for data-driven innovation and improved conversion.
-          </li>
-          <li>
-            <strong>Senior Manager, Digital Adoption, Engagement &amp; Benchmarking</strong><br>
-            Aug 2020 – Apr 2025, Montreal, QC<br>
-            Led digital adoption programs making MyBell the top telecom app in Canada. Delivered award-winning digital solutions and drove industry-leading CSAT scores.
-          </li>
-          <li>
-            <strong>Senior Manager, Digital Self Serve Adoption &amp; Engagement</strong><br>
-            May 2016 – Aug 2020, Dorval, QC<br>
-            Managed teams to boost self-serve digital adoption across platforms with targeted campaigns and analytics.
-          </li>
-          <li>
-            <strong>Senior Manager, Digital Self-serve and Experience</strong><br>
-            Oct 2014 – May 2016, Dorval, QC<br>
-            Led mobility self-serve experiences; optimized digital account management; delivered high-ROI digital solutions.
-          </li>
-          <li>
-            <strong>Senior Manager, Digital Program Design and Delivery</strong><br>
-            Nov 2012 – Oct 2014<br>
-            Built analytics programs for Self Serve platforms. Led digital Care projects, data audits, and reporting.
-          </li>
-          <li>
-            <strong>Associate Director – Mobility Program Management</strong><br>
-            Dec 2009 – Nov 2012<br>
-            Managed Bell.ca eCommerce platforms. Improved customer experience and built implementation roadmaps.
-          </li>
-          <li>
-            <strong>Associate Director, Online Consumer Marketing</strong><br>
-            May 2008 – Dec 2009<br>
-            Met online sales targets, launched innovative web shopping features, and streamlined production processes.
-          </li>
-          <li>
-            <strong>Performance Analyst</strong><br>
-            Sep 2006 – May 2008<br>
-            Enhanced transaction performance, managed incident processes, and developed operations scorecards.
-          </li>
-        </ul>
-      </li>
-      <li>
-        <strong>BCE Emergis</strong><br>
-        Service Manager (2005–2006)<br>
-        Client Service Manager (2003–2005)<br>
-        Managed customer service, identity management programs, and vendor relationships for e-security portfolios.
-      </li>
-      <li>
-        <strong>IATA</strong><br>
-        Assistant Manager Operations (1998–2003)<br>
-        Managed customer service, system enhancements, and participated in strategic tech planning for the iiNET system.
-      </li>
-      <li>
-        <strong>Sitepak</strong><br>
-        Marketing Analyst (1996–1998)
-      </li>
-    </ul>
+    <section aria-label="About Me">
+      <h2>About</h2>
+      <p>
+        Digital pioneer, working with web technologies since 1996 within Telecommunications and Aviation industries.<br />
+        Delivered award-winning digital solutions translating into engaging user experiences.<br />
+        Proven record driving app adoption, enhancing self-serve experiences, and achieving industry-leading CSAT scores.
+      </p>
+    </section>
 
-    <h2>Education</h2>
-    <ul>
-      <li><strong>McGill University</strong> — B.Comm, Marketing &amp; Psychology (1994–1997)</li>
-      <li><strong>Vanier College</strong> — DEC, Commerce (1992–1994)</li>
-      <li><strong>Herzliah</strong> — General Studies Diploma (1988–1992)</li>
-    </ul>
+    <section aria-label="Skills and Languages">
+      <h2>Top Skills</h2>
+      <ul class="inline-list" role="list">
+        <li>E-commerce</li>
+        <li>CRM</li>
+        <li>Telecommunications</li>
+      </ul>
+      <h2>Languages</h2>
+      <ul class="inline-list" role="list">
+        <li>French</li>
+        <li>Hebrew</li>
+        <li>English</li>
+      </ul>
+    </section>
 
-    <h2>Contact</h2>
-    <ul>
-      <li>Email: <a href="mailto:robert@imetrobert.com">robert@imetrobert.com</a></li>
-      <li>LinkedIn: <a href="https://linkedin.com/in/thedigitalrobert">thedigitalrobert</a></li>
-      <li>Phone: 514-250-8491</li>
-    </ul>
+    <section aria-label="Honors and Awards">
+      <h2>Honors &amp; Awards</h2>
+      <div class="awards">
+        Bell Bravo Award<br />
+        Boomerang Award<br />
+        Execution Excellence Award (EEA)<br />
+        Webby Award<br />
+        Harnessing AI for Digital Engagement and Adoption
+      </div>
+    </section>
 
-    <div class="footer">
+    <section aria-label="Professional Experience">
+      <h2>Experience</h2>
+      <ul>
+        <li>
+          <strong>Bell</strong>
+          <ul>
+            <li>
+              <strong>Senior Manager, AI Evangelist and Digital Sales</strong><br />
+              Dec 2024 – Present, Montreal, QC<br />
+              Orchestrating digital sales growth, leading AI integration, deep linking strategy, and remarketing initiatives. Empowering teams for data-driven innovation and improved conversion.
+            </li>
+            <li>
+              <strong>Senior Manager, Digital Adoption, Engagement &amp; Benchmarking</strong><br />
+              Aug 2020 – Apr 2025, Montreal, QC<br />
+              Led digital adoption programs making MyBell the top telecom app in Canada. Delivered award-winning digital solutions and drove industry-leading CSAT scores.
+            </li>
+            <li>
+              <strong>Senior Manager, Digital Self Serve Adoption &amp; Engagement</strong><br />
+              May 2016 – Aug 2020, Dorval, QC<br />
+              Managed teams to boost self-serve digital adoption across platforms with targeted campaigns and analytics.
+            </li>
+            <li>
+              <strong>Senior Manager, Digital Self-serve and Experience</strong><br />
+              Oct 2014 – May 2016, Dorval, QC<br />
+              Led mobility self-serve experiences; optimized digital account management; delivered high-ROI digital solutions.
+            </li>
+            <li>
+              <strong>Senior Manager, Digital Program Design and Delivery</strong><br />
+              Nov 2012 – Oct 2014<br />
+              Built analytics programs for Self Serve platforms. Led digital Care projects, data audits, and reporting.
+            </li>
+            <li>
+              <strong>Associate Director – Mobility Program Management</strong><br />
+              Dec 2009 – Nov 2012<br />
+              Managed Bell.ca eCommerce platforms. Improved customer experience and built implementation roadmaps.
+            </li>
+            <li>
+              <strong>Associate Director, Online Consumer Marketing</strong><br />
+              May 2008 – Dec 2009<br />
+              Met online sales targets, launched innovative web shopping features, and streamlined production processes.
+            </li>
+            <li>
+              <strong>Performance Analyst</strong><br />
+              Sep 2006 – May 2008<br />
+              Enhanced transaction performance, managed incident processes, and developed operations scorecards.
+            </li>
+          </ul>
+        </li>
+        <li>
+          <strong>BCE Emergis</strong><br />
+          Service Manager (2005–2006)<br />
+          Client Service Manager (2003–2005)<br />
+          Managed customer service, identity management programs, and vendor relationships for e-security portfolios.
+        </li>
+        <li>
+          <strong>IATA</strong><br />
+          Assistant Manager Operations (1998–2003)<br />
+          Managed customer service, system enhancements, and participated in strategic tech planning for the iiNET system.
+        </li>
+        <li>
+          <strong>Sitepak</strong><br />
+          Marketing Analyst (1996–1998)
+        </li>
+      </ul>
+    </section>
+
+    <section aria-label="Education and Contact">
+      <h2>Education</h2>
+      <ul>
+        <li><strong>McGill University</strong> — B.Comm, Marketing &amp; Psychology (1994–1997)</li>
+        <li><strong>Vanier College</strong> — DEC, Commerce (1992–1994)</li>
+        <li><strong>Herzliah</strong> — General Studies Diploma (1988–1992)</li>
+      </ul>
+
+      <h2>Contact</h2>
+      <ul>
+        <li>Email: <a href="mailto:robert@imetrobert.com">robert@imetrobert.com</a></li>
+        <li>LinkedIn: <a href="https://linkedin.com/in/thedigitalrobert" target="_blank" rel="noopener noreferrer">thedigitalrobert</a></li>
+        <li>Phone: 514-250-8491</li>
+      </ul>
+    </section>
+
+    <div class="footer" role="contentinfo">
       &copy; 2025 Robert Simon. All rights reserved.
     </div>
   </div>
