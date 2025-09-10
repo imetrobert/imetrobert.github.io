@@ -1,0 +1,36 @@
+name: AI Blog Generator
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC (adjust time as needed)
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  generate-blog:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install requests python-dateutil
+
+    - name: Generate AI Blog Post
+      env:
+        PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+      run: python scripts/generate_blog.py
+    
+    - name: Commit and push new post
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "AI Blog Generator"
+        git add _posts/
+        git diff --staged --quiet || (git commit -m "🤖 Auto-generated AI weekly update" && git push)
