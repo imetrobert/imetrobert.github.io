@@ -488,6 +488,288 @@
       background: rgba(6, 182, 212, 0.15);
     }
 
+    /* Enhanced AI Chat Widget */
+    .ai-chat-widget {
+      background: var(--gradient-card);
+      border-radius: 20px;
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      border: 1px solid rgba(37, 99, 235, 0.1);
+      transition: all 0.3s ease;
+      position: relative;
+      backdrop-filter: blur(10px);
+    }
+
+    .ai-chat-widget:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 25px 50px rgba(37, 99, 235, 0.15);
+    }
+
+    .ai-widget-header {
+      background: var(--gradient-ai);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ai-widget-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255,255,255,0.05) 0%, transparent 50%);
+      animation: aiFlow 8s ease-in-out infinite;
+    }
+
+    .ai-widget-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      position: relative;
+      z-index: 2;
+    }
+
+    .ai-widget-subtitle {
+      opacity: 0.9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    .canada-flag {
+      width: 24px;
+      height: 16px;
+      background: linear-gradient(to right, #ff0000 0%, #ff0000 25%, #ffffff 25%, #ffffff 75%, #ff0000 75%);
+      position: relative;
+      border-radius: 3px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .canada-flag::after {
+      content: '🍁';
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+    }
+
+    .chat-container {
+      height: 450px;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 1.5rem;
+      overflow-y: auto;
+      background: linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%);
+      position: relative;
+    }
+
+    .chat-messages::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        radial-gradient(circle at 25% 25%, rgba(37, 99, 235, 0.02) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(6, 182, 212, 0.02) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .message {
+      margin-bottom: 1rem;
+      animation: messageSlide 0.5s ease-out;
+      position: relative;
+      z-index: 2;
+    }
+
+    @keyframes messageSlide {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .ai-message {
+      background: var(--gradient-primary);
+      color: white;
+      padding: 1rem 1.2rem;
+      border-radius: 18px 18px 18px 6px;
+      max-width: 85%;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      line-height: 1.5;
+    }
+
+    .ai-message::before {
+      content: '🤖';
+      position: absolute;
+      left: -35px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 24px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+
+    .user-message {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1rem 1.2rem;
+      border-radius: 18px 18px 6px 18px;
+      max-width: 85%;
+      margin-left: auto;
+      box-shadow: var(--shadow-md);
+      line-height: 1.5;
+    }
+
+    .quick-questions {
+      padding: 1.5rem;
+      background: rgba(37, 99, 235, 0.02);
+      border-top: 1px solid rgba(37, 99, 235, 0.1);
+    }
+
+    .quick-questions-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--medium-gray);
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .question-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .question-btn {
+      background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan));
+      color: white;
+      border: none;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .question-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+      background: linear-gradient(135deg, var(--accent-cyan), var(--ai-purple));
+    }
+
+    .input-area {
+      padding: 1.5rem;
+      background: white;
+      border-top: 1px solid rgba(37, 99, 235, 0.1);
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 1rem 1.5rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 25px;
+      outline: none;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+      background: #fafbfc;
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      background: white;
+    }
+
+    .send-btn {
+      background: var(--gradient-primary);
+      color: white;
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-md);
+      font-size: 1.2rem;
+    }
+
+    .send-btn:hover {
+      transform: scale(1.05);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .typing-indicator {
+      display: none;
+      padding: 1rem 1.2rem;
+      background: #f0f2f5;
+      border-radius: 18px 18px 18px 6px;
+      max-width: 100px;
+      margin-bottom: 1rem;
+      border: 1px solid #e2e8f0;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--medium-gray);
+      border-radius: 50%;
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .dot:nth-child(1) { animation-delay: -0.32s; }
+    .dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes typing {
+      0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+      40% { transform: scale(1.2); opacity: 1; }
+    }
+
+    .ai-credits {
+      text-align: center;
+      padding: 1rem;
+      background: rgba(37, 99, 235, 0.05);
+      color: var(--medium-gray);
+      font-size: 0.85rem;
+      border-top: 1px solid rgba(37, 99, 235, 0.1);
+    }
+
     /* Footer */
     .footer {
       text-align: center;
@@ -531,6 +813,15 @@
       .content-section {
         padding: 1.5rem;
       }
+
+      .chat-container {
+        height: 400px;
+      }
+
+      .question-buttons {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 0.5rem;
+      }
     }
 
     /* Scroll Animations */
@@ -567,7 +858,7 @@
           Where innovation meets execution. Building the future of digital engagement, one breakthrough at a time.
         </div>
       </div>
-      <img src="profile.jpg" alt="Robert Simon - Digital Innovator" class="profile-image" />
+" alt="Robert Simon - Digital Innovator" class="profile-image" />
     </div>
   </header>
 
@@ -648,430 +939,61 @@
           </div>
           <div class="ai-circuit"></div>
         </section>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Business Assistant Widget</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
 
-        .ai-widget {
-            max-width: 450px;
-            margin: 20px auto;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            animation: slideUp 0.8s ease-out;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .widget-header {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            padding: 25px;
-            text-align: center;
-            color: white;
-            position: relative;
-        }
-
-        .widget-title {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .widget-subtitle {
-            font-size: 14px;
-            opacity: 0.9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .canada-flag {
-            width: 20px;
-            height: 14px;
-            background: linear-gradient(to right, #ff0000 0%, #ff0000 25%, #ffffff 25%, #ffffff 75%, #ff0000 75%);
-            position: relative;
-            border-radius: 2px;
-        }
-
-        .canada-flag::after {
-            content: '🍁';
-            position: absolute;
-            top: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 12px;
-        }
-
-        .chat-container {
-            height: 400px;
-            background: white;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        }
-
-        .message {
-            margin-bottom: 15px;
-            animation: messageSlide 0.5s ease-out;
-        }
-
-        @keyframes messageSlide {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .ai-message {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            padding: 15px 18px;
-            border-radius: 18px 18px 18px 5px;
-            max-width: 80%;
-            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
-            position: relative;
-        }
-
-        .ai-message::before {
-            content: '🤖';
-            position: absolute;
-            left: -30px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 20px;
-        }
-
-        .user-message {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            color: white;
-            padding: 15px 18px;
-            border-radius: 18px 18px 5px 18px;
-            max-width: 80%;
-            margin-left: auto;
-            box-shadow: 0 4px 12px rgba(250, 112, 154, 0.3);
-        }
-
-        .quick-questions {
-            padding: 15px;
-            background: white;
-            border-top: 1px solid #eee;
-        }
-
-        .quick-questions-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: #666;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .question-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-        }
-
-        .question-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
-        }
-
-        .question-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-        }
-
-        .input-area {
-            padding: 15px;
-            background: white;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 10px;
-        }
-
-        .chat-input {
-            flex: 1;
-            padding: 12px 16px;
-            border: 2px solid #eee;
-            border-radius: 25px;
-            outline: none;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .chat-input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .send-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .send-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-        }
-
-        .typing-indicator {
-            display: none;
-            padding: 15px 18px;
-            background: #f0f0f0;
-            border-radius: 18px 18px 18px 5px;
-            max-width: 80px;
-            margin-bottom: 15px;
-        }
-
-        .typing-dots {
-            display: flex;
-            gap: 4px;
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            background: #999;
-            border-radius: 50%;
-            animation: typing 1.4s infinite ease-in-out;
-        }
-
-        .dot:nth-child(1) { animation-delay: -0.32s; }
-        .dot:nth-child(2) { animation-delay: -0.16s; }
-
-        @keyframes typing {
-            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-            40% { transform: scale(1.2); opacity: 1; }
-        }
-
-        .credits {
-            text-align: center;
-            padding: 10px;
-            background: rgba(255,255,255,0.05);
-            color: rgba(255,255,255,0.7);
-            font-size: 11px;
-        }
-    </style>
-</head>
-<body>
-  <!-- ai widget -->
-    <div class="ai-widget">
-        <div class="widget-header">
-            <div class="widget-title">AI Business Assistant</div>
-            <div class="widget-subtitle">
-                <div class="canada-flag"></div>
-                Helping Canadian Businesses with AI
+        <!-- Enhanced AI Chat Widget -->
+        <section class="ai-chat-widget fade-in">
+          <div class="ai-widget-header">
+            <div class="ai-widget-title">AI Business Assistant</div>
+            <div class="ai-widget-subtitle">
+              <div class="canada-flag"></div>
+              Helping Canadian Businesses with AI
             </div>
-        </div>
-        
-        <div class="chat-container">
+          </div>
+          
+          <div class="chat-container">
             <div class="chat-messages" id="chatMessages">
-                <div class="message ai-message">
-                    👋 Hi! I'm your AI Business Assistant. I can help with questions about implementing AI in Canadian businesses, ROI calculations, industry use cases, and more. What would you like to know?
-                </div>
+              <div class="message ai-message">
+                👋 Hi! I'm your AI Business Assistant. I can help with questions about implementing AI in Canadian businesses, ROI calculations, industry use cases, and more. What would you like to know?
+              </div>
             </div>
             
             <div class="typing-indicator" id="typingIndicator">
-                <div class="typing-dots">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                </div>
+              <div class="typing-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+              </div>
             </div>
             
             <div class="quick-questions">
-                <div class="quick-questions-title">Quick Questions</div>
-                <div class="question-buttons">
-                    <button class="question-btn" onclick="askQuestion('What are the benefits of AI for Canadian SMEs?')">AI Benefits</button>
-                    <button class="question-btn" onclick="askQuestion('How much does AI implementation cost?')">AI Costs</button>
-                    <button class="question-btn" onclick="askQuestion('Which industries in Canada use AI most?')">Industries</button>
-                    <button class="question-btn" onclick="askQuestion('What AI tools should I start with?')">Getting Started</button>
-                </div>
+              <div class="quick-questions-title">Quick Questions</div>
+              <div class="question-buttons">
+                <button class="question-btn" onclick="askQuestion('What are the benefits of AI for Canadian SMEs?')">AI Benefits</button>
+                <button class="question-btn" onclick="askQuestion('How much does AI implementation cost?')">AI Costs</button>
+                <button class="question-btn" onclick="askQuestion('Which industries in Canada use AI most?')">Industries</button>
+                <button class="question-btn" onclick="askQuestion('What AI tools should I start with?')">Getting Started</button>
+              </div>
             </div>
             
             <div class="input-area">
-                <input 
-                    type="text" 
-                    class="chat-input" 
-                    id="chatInput" 
-                    placeholder="Ask about AI for your business..."
-                    onkeypress="handleKeyPress(event)"
-                >
-                <button class="send-btn" onclick="sendMessage()">
-                    <span>➤</span>
-                </button>
+              <input 
+                type="text" 
+                class="chat-input" 
+                id="chatInput" 
+                placeholder="Ask about AI for your business..."
+                onkeypress="handleKeyPress(event)"
+              >
+              <button class="send-btn" onclick="sendMessage()">
+                <span>➤</span>
+              </button>
             </div>
-        </div>
-        
-        <div class="credits">
+          </div>
+          
+          <div class="ai-credits">
             Powered by AI • Built for imetrobert.com
-        </div>
-    </div>
+          </div>
+        </section>
 
-    <script>
-        const aiResponses = {
-            'benefits': [
-                "🚀 AI can help Canadian SMEs increase efficiency by 20-40%, reduce operational costs, and improve customer service through automation. Key benefits include better decision-making with data analytics, 24/7 customer support via chatbots, and competitive advantages in the market.",
-                "💡 For Canadian businesses, AI offers cost savings through automation, improved customer insights, faster processing times, and the ability to compete with larger companies by leveraging smart technology.",
-            ],
-            'costs': [
-                "💰 AI implementation costs for Canadian businesses typically range from $5,000-$50,000 for small businesses, depending on complexity. Cloud-based AI solutions can start as low as $50/month. Many Canadian government programs offer funding support for AI adoption.",
-                "📊 The ROI of AI for Canadian businesses often shows positive returns within 6-18 months. Start small with specific use cases like customer service automation or inventory management to minimize initial investment.",
-            ],
-            'industries': [
-                "🏭 In Canada, AI is heavily adopted in: Financial Services (fraud detection, robo-advisors), Healthcare (medical imaging, patient management), Manufacturing (predictive maintenance, quality control), Retail (recommendation engines, inventory optimization), and Agriculture (crop monitoring, precision farming).",
-                "🇨🇦 Canadian leaders in AI include Shopify (e-commerce AI), RBC (banking AI), Canadian Tire (retail analytics), and many tech startups in Toronto, Montreal, and Vancouver's AI ecosystems.",
-            ],
-            'start': [
-                "🎯 Start with these AI tools: 1) Chatbots for customer service (Intercom, Zendesk), 2) CRM with AI features (HubSpot, Salesforce), 3) Accounting automation (Xero, QuickBooks AI), 4) Social media management (Hootsuite AI), 5) Email marketing (Mailchimp AI). Begin with one tool and expand gradually.",
-                "⚡ For Canadian businesses starting with AI: Choose cloud-based solutions, start with your biggest pain point, ensure staff training, and consider Canadian AI service providers who understand local regulations and tax incentives.",
-            ],
-            'default': [
-                "🤖 Great question! AI can transform Canadian businesses through automation, better customer insights, cost reduction, and competitive advantages. Whether you're in Toronto, Vancouver, Montreal, or anywhere across Canada, there are AI solutions tailored for your industry and size.",
-                "📈 AI adoption in Canada is growing rapidly, with government support through programs like ISED's AI initiatives. I can help you understand specific applications for your industry, implementation strategies, or connect you with Canadian AI resources.",
-                "🍁 As a Canadian business, you have access to world-class AI research from universities like University of Toronto, McGill, and UBC, plus government incentives for AI adoption. What specific area would you like to explore?",
-                "💼 Canadian businesses are successfully using AI for customer service, inventory management, fraud detection, marketing automation, and predictive analytics. Each solution can be tailored to your specific needs and budget.",
-            ]
-        };
-
-        let messageCount = 0;
-
-        function getAIResponse(message) {
-            const lowerMessage = message.toLowerCase();
-            
-            if (lowerMessage.includes('benefit') || lowerMessage.includes('advantage') || lowerMessage.includes('sme')) {
-                return getRandomResponse('benefits');
-            } else if (lowerMessage.includes('cost') || lowerMessage.includes('price') || lowerMessage.includes('roi') || lowerMessage.includes('investment')) {
-                return getRandomResponse('costs');
-            } else if (lowerMessage.includes('industry') || lowerMessage.includes('sector') || lowerMessage.includes('canada') || lowerMessage.includes('canadian')) {
-                return getRandomResponse('industries');
-            } else if (lowerMessage.includes('start') || lowerMessage.includes('begin') || lowerMessage.includes('tool') || lowerMessage.includes('first')) {
-                return getRandomResponse('start');
-            } else {
-                return getRandomResponse('default');
-            }
-        }
-
-        function getRandomResponse(category) {
-            const responses = aiResponses[category];
-            return responses[Math.floor(Math.random() * responses.length)];
-        }
-
-        function addMessage(message, isUser = false) {
-            const messagesContainer = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
-            messageDiv.textContent = message;
-            messagesContainer.appendChild(messageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        function showTypingIndicator() {
-            document.getElementById('typingIndicator').style.display = 'block';
-            const messagesContainer = document.getElementById('chatMessages');
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        function hideTypingIndicator() {
-            document.getElementById('typingIndicator').style.display = 'none';
-        }
-
-        function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            
-            if (!message) return;
-            
-            addMessage(message, true);
-            input.value = '';
-            
-            showTypingIndicator();
-            
-            setTimeout(() => {
-                hideTypingIndicator();
-                const response = getAIResponse(message);
-                addMessage(response);
-                messageCount++;
-                
-                // Show engagement message after a few interactions
-                if (messageCount === 3) {
-                    setTimeout(() => {
-                        addMessage("💡 Impressed by what AI can do? Visit imetrobert.com to learn more about implementing AI solutions for your Canadian business!");
-                    }, 2000);
-                }
-            }, 1500 + Math.random() * 1000);
-        }
-
-        function askQuestion(question) {
-            const input = document.getElementById('chatInput');
-            input.value = question;
-            sendMessage();
-        }
-
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        }
-
-        // Add some initial engagement
-        setTimeout(() => {
-            addMessage("I have knowledge about AI implementation across various Canadian industries and can provide specific guidance for your business needs.");
-        }, 2000);
-    </script>
-</body>
-</html>
         <!-- Experience Section -->
         <section class="content-section fade-in">
           <h2 class="section-title">Journey Highlights</h2>
@@ -1189,6 +1111,112 @@
   </footer>
 
   <script>
+    // AI Chat Widget JavaScript
+    const aiResponses = {
+      'benefits': [
+        "🚀 AI can help Canadian SMEs increase efficiency by 20-40%, reduce operational costs, and improve customer service through automation. Key benefits include better decision-making with data analytics, 24/7 customer support via chatbots, and competitive advantages in the market.",
+        "💡 For Canadian businesses, AI offers cost savings through automation, improved customer insights, faster processing times, and the ability to compete with larger companies by leveraging smart technology.",
+      ],
+      'costs': [
+        "💰 AI implementation costs for Canadian businesses typically range from $5,000-$50,000 for small businesses, depending on complexity. Cloud-based AI solutions can start as low as $50/month. Many Canadian government programs offer funding support for AI adoption.",
+        "📊 The ROI of AI for Canadian businesses often shows positive returns within 6-18 months. Start small with specific use cases like customer service automation or inventory management to minimize initial investment.",
+      ],
+      'industries': [
+        "🏭 In Canada, AI is heavily adopted in: Financial Services (fraud detection, robo-advisors), Healthcare (medical imaging, patient management), Manufacturing (predictive maintenance, quality control), Retail (recommendation engines, inventory optimization), and Agriculture (crop monitoring, precision farming).",
+        "🇨🇦 Canadian leaders in AI include Shopify (e-commerce AI), RBC (banking AI), Canadian Tire (retail analytics), and many tech startups in Toronto, Montreal, and Vancouver's AI ecosystems.",
+      ],
+      'start': [
+        "🎯 Start with these AI tools: 1) Chatbots for customer service (Intercom, Zendesk), 2) CRM with AI features (HubSpot, Salesforce), 3) Accounting automation (Xero, QuickBooks AI), 4) Social media management (Hootsuite AI), 5) Email marketing (Mailchimp AI). Begin with one tool and expand gradually.",
+        "⚡ For Canadian businesses starting with AI: Choose cloud-based solutions, start with your biggest pain point, ensure staff training, and consider Canadian AI service providers who understand local regulations and tax incentives.",
+      ],
+      'default': [
+        "🤖 AI can transform Canadian businesses through automation, better customer insights, cost reduction, and competitive advantages. Whether you're in Toronto, Vancouver, Montreal, or anywhere across Canada, there are AI solutions tailored for your industry and size.",
+        "📈 AI adoption in Canada is growing rapidly, with government support through programs like ISED's AI initiatives. I can help you understand specific applications for your industry, implementation strategies, or connect you with Canadian AI resources.",
+        "🍁 As a Canadian business, you have access to world-class AI research from universities like University of Toronto, McGill, and UBC, plus government incentives for AI adoption. What specific area would you like to explore?",
+        "💼 Canadian businesses are successfully using AI for customer service, inventory management, fraud detection, marketing automation, and predictive analytics. Each solution can be tailored to your specific needs and budget.",
+      ]
+    };
+
+    let messageCount = 0;
+
+    function getAIResponse(message) {
+      const lowerMessage = message.toLowerCase();
+      
+      if (lowerMessage.includes('benefit') || lowerMessage.includes('advantage') || lowerMessage.includes('sme')) {
+        return getRandomResponse('benefits');
+      } else if (lowerMessage.includes('cost') || lowerMessage.includes('price') || lowerMessage.includes('roi') || lowerMessage.includes('investment')) {
+        return getRandomResponse('costs');
+      } else if (lowerMessage.includes('industry') || lowerMessage.includes('sector') || lowerMessage.includes('canada') || lowerMessage.includes('canadian')) {
+        return getRandomResponse('industries');
+      } else if (lowerMessage.includes('start') || lowerMessage.includes('begin') || lowerMessage.includes('tool') || lowerMessage.includes('first')) {
+        return getRandomResponse('start');
+      } else {
+        return getRandomResponse('default');
+      }
+    }
+
+    function getRandomResponse(category) {
+      const responses = aiResponses[category];
+      return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    function addMessage(message, isUser = false) {
+      const messagesContainer = document.getElementById('chatMessages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+      messageDiv.textContent = message;
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      document.getElementById('typingIndicator').style.display = 'block';
+      const messagesContainer = document.getElementById('chatMessages');
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      document.getElementById('typingIndicator').style.display = 'none';
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const message = input.value.trim();
+      
+      if (!message) return;
+      
+      addMessage(message, true);
+      input.value = '';
+      
+      showTypingIndicator();
+      
+      setTimeout(() => {
+        hideTypingIndicator();
+        const response = getAIResponse(message);
+        addMessage(response);
+        messageCount++;
+        
+        // Show engagement message after a few interactions
+        if (messageCount === 3) {
+          setTimeout(() => {
+            addMessage("💡 Impressed by what AI can do? Visit imetrobert.com to learn more about implementing AI solutions for your Canadian business!");
+          }, 2000);
+        }
+      }, 1500 + Math.random() * 1000);
+    }
+
+    function askQuestion(question) {
+      const input = document.getElementById('chatInput');
+      input.value = question;
+      sendMessage();
+    }
+
+    function handleKeyPress(event) {
+      if (event.key === 'Enter') {
+        sendMessage();
+      }
+    }
+
     // Parallax scrolling system
     let ticking = false;
 
@@ -1261,14 +1289,20 @@
       const contentSections = document.querySelectorAll('.content-section');
       contentSections.forEach(section => {
         section.addEventListener('mouseenter', function() {
-          this.style.transform = `translateY(-5px) scale(1.02)`;
+          if (!this.classList.contains('ai-chat-widget')) {
+            this.style.transform = `translateY(-5px) scale(1.02)`;
+          }
         });
 
         section.addEventListener('mouseleave', function() {
-          this.style.transform = '';
+          if (!this.classList.contains('ai-chat-widget')) {
+            this.style.transform = '';
+          }
         });
 
         section.addEventListener('mousemove', function(e) {
+          if (this.classList.contains('ai-chat-widget')) return;
+          
           const rect = this.getBoundingClientRect();
           const x = e.clientX - rect.left;
           const y = e.clientY - rect.top;
@@ -1296,6 +1330,11 @@
           this.style.boxShadow = '';
         });
       });
+
+      // Add some initial engagement after page load
+      setTimeout(() => {
+        addMessage("I have knowledge about AI implementation across various Canadian industries and can provide specific guidance for your business needs.");
+      }, 3000);
 
       // Initial parallax update
       updateParallax();
