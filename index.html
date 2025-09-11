@@ -917,18 +917,5 @@
       }
     });
   </script>
-  <!-- AI Chatbot Widget: Predictable Dialogs example -->
-<script type="module">
-  import Agent from 'https://cdn.jsdelivr.net/npm/@agent-embed/js@latest/dist/web.js'
-  Agent.initStandard({
-    agentName: "Chatbot-5e318",
-    filterResponse: function(response) {
-        const citationRegex = /【d+:d+†[^【】]+】/g;
-        return response.replace(citationRegex, "");
-      }
-  });
-</script>
-<agent-standard style="width: 100%; height: 600px; "></agent-standard>
-
 </body>
 </html>
