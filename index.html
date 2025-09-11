@@ -47,7 +47,7 @@
       padding: 2rem;
     }
 
-    /* Parallax Background Layers */
+    /* Parallax Background */
     .parallax-bg {
       position: fixed;
       top: 0;
@@ -56,8 +56,9 @@
       height: 120%;
       pointer-events: none;
       z-index: -1;
-      background: radial-gradient(circle at 30% 70%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
-                  radial-gradient(circle at 70% 30%, rgba(6, 182, 212, 0.03) 0%, transparent 50%);
+      background: 
+        radial-gradient(circle at 30% 70%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 70% 30%, rgba(6, 182, 212, 0.03) 0%, transparent 50%);
       animation: slowFloat 20s ease-in-out infinite;
     }
 
@@ -68,7 +69,7 @@
       75% { transform: translate(-3px, 8px) rotate(0.2deg); }
     }
 
-    /* AI Theme Elements Enhanced */
+    /* AI Circuit Effects */
     .ai-circuit {
       position: absolute;
       width: 100%;
@@ -103,31 +104,7 @@
       100% { background-position: 0% 50%; }
     }
 
-    .neural-network {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .neural-network::before {
-      content: '';
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 30px;
-      height: 30px;
-      background: radial-gradient(circle, var(--accent-cyan) 2px, transparent 2px);
-      background-size: 6px 6px;
-      border-radius: 50%;
-      animation: pulse 2s ease-in-out infinite;
-      z-index: 1;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 0.4; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.2); }
-    }
-
-    /* Header Section with Parallax */
+    /* Header */
     .header {
       background: var(--gradient-primary);
       color: white;
@@ -144,27 +121,11 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="80" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="60" r="1" fill="rgba(255,255,255,0.05)"/></svg>');
-      animation: float 20s ease-in-out infinite;
-    }
-
-    .header::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
       background: 
         radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.3) 0%, transparent 50%),
         radial-gradient(circle at 40% 40%, rgba(37, 99, 235, 0.2) 0%, transparent 50%);
       animation: aiFlow 12s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0px) rotate(0deg); }
-      50% { transform: translateY(-20px) rotate(180deg); }
     }
 
     .header-content {
@@ -272,12 +233,12 @@
       box-shadow: var(--shadow-md);
       margin-bottom: 2rem;
       border: 1px solid rgba(37, 99, 235, 0.1);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      transition: all 0.3s ease;
       position: relative;
     }
 
     .content-section:hover {
-      transform: translateY(-5px) scale(1.02);
+      transform: translateY(-5px);
       box-shadow: var(--shadow-xl);
     }
 
@@ -288,7 +249,6 @@
       margin-bottom: 1.5rem;
       position: relative;
       padding-left: 1rem;
-      z-index: 2;
     }
 
     .section-title::before {
@@ -302,7 +262,74 @@
       border-radius: 2px;
     }
 
-    /* Stats Section */
+    /* eBook Section */
+    .ebook-section {
+      background: var(--gradient-ai);
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ebook-content {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 2rem;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .ebook-cover {
+      width: 120px;
+      height: 160px;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      transition: transform 0.3s ease;
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      text-align: center;
+      color: white;
+      font-weight: 600;
+      padding: 1rem;
+    }
+
+    .ebook-cover:hover {
+      transform: scale(1.05) rotateY(5deg);
+    }
+
+    .ebook-text h3 {
+      font-size: 1.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .ebook-text p {
+      opacity: 0.9;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .ebook-link {
+      background: white;
+      color: var(--primary-blue);
+      padding: 0.75rem 2rem;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .ebook-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    /* Stats Grid */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -321,7 +348,6 @@
 
     .stat-card:hover {
       transform: translateY(-5px) scale(1.05);
-      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.15);
     }
 
     .stat-number {
@@ -337,16 +363,12 @@
       margin-top: 0.5rem;
     }
 
-    /* Experience Section */
+    /* Experience Items */
     .experience-item {
       margin-bottom: 2.5rem;
       position: relative;
       padding-left: 2rem;
       transition: transform 0.2s ease;
-    }
-
-    .experience-item:hover {
-      transform: translateX(5px);
     }
 
     .experience-item::before {
@@ -359,12 +381,6 @@
       background: var(--gradient-primary);
       border-radius: 50%;
       box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
-      transition: transform 0.3s ease;
-    }
-
-    .experience-item:hover::before {
-      transform: scale(1.3);
-      box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.15);
     }
 
     .company-name {
@@ -399,14 +415,12 @@
       font-weight: 500;
     }
 
-    /* Skills Section */
+    /* Skills Grid */
     .skills-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: 1rem;
       margin-bottom: 2rem;
-      position: relative;
-      z-index: 2;
     }
 
     .skill-tag {
@@ -422,73 +436,9 @@
 
     .skill-tag:hover {
       transform: translateY(-3px) scale(1.05);
-      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
     }
 
-    /* Awards Section */
-    .awards-list {
-      list-style: none;
-    }
-
-    .award-item {
-      background: rgba(37, 99, 235, 0.05);
-      padding: 1rem 1.5rem;
-      border-radius: 8px;
-      margin-bottom: 0.5rem;
-      border-left: 4px solid var(--primary-blue);
-      font-weight: 500;
-      transition: transform 0.2s ease, background 0.2s ease;
-    }
-
-    .award-item:hover {
-      transform: translateX(5px);
-      background: rgba(37, 99, 235, 0.1);
-    }
-
-    /* Education Section */
-    .education-item {
-      margin-bottom: 1.5rem;
-    }
-
-    .institution {
-      font-weight: 600;
-      color: var(--dark-navy);
-    }
-
-    .degree {
-      color: var(--medium-gray);
-      margin-top: 0.25rem;
-    }
-
-    .years {
-      font-size: 0.9rem;
-      color: var(--medium-gray);
-      font-family: var(--font-mono);
-    }
-
-    /* Languages */
-    .languages {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .language-tag {
-      background: rgba(6, 182, 212, 0.1);
-      color: var(--accent-cyan);
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-weight: 500;
-      border: 1px solid rgba(6, 182, 212, 0.2);
-      transition: transform 0.2s ease;
-    }
-
-    .language-tag:hover {
-      transform: translateY(-2px);
-      background: rgba(6, 182, 212, 0.15);
-    }
-
-    /* Enhanced AI Chat Widget */
+    /* AI Chat Widget */
     .ai-chat-widget {
       background: var(--gradient-card);
       border-radius: 20px;
@@ -497,12 +447,6 @@
       border: 1px solid rgba(37, 99, 235, 0.1);
       transition: all 0.3s ease;
       position: relative;
-      backdrop-filter: blur(10px);
-    }
-
-    .ai-chat-widget:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 25px 50px rgba(37, 99, 235, 0.15);
     }
 
     .ai-widget-header {
@@ -514,24 +458,10 @@
       overflow: hidden;
     }
 
-    .ai-widget-header::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(255,255,255,0.05) 0%, transparent 50%);
-      animation: aiFlow 8s ease-in-out infinite;
-    }
-
     .ai-widget-title {
       font-size: 1.5rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
       position: relative;
       z-index: 2;
     }
@@ -546,30 +476,11 @@
       z-index: 2;
     }
 
-    .canada-flag {
-      width: 24px;
-      height: 16px;
-      background: linear-gradient(to right, #ff0000 0%, #ff0000 25%, #ffffff 25%, #ffffff 75%, #ff0000 75%);
-      position: relative;
-      border-radius: 3px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-
-    .canada-flag::after {
-      content: '🍁';
-      position: absolute;
-      top: -2px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 12px;
-    }
-
     .chat-container {
       height: 450px;
       background: white;
       display: flex;
       flex-direction: column;
-      position: relative;
     }
 
     .chat-messages {
@@ -577,38 +488,16 @@
       padding: 1.5rem;
       overflow-y: auto;
       background: linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%);
-      position: relative;
-    }
-
-    .chat-messages::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-image: 
-        radial-gradient(circle at 25% 25%, rgba(37, 99, 235, 0.02) 0%, transparent 50%),
-        radial-gradient(circle at 75% 75%, rgba(6, 182, 212, 0.02) 0%, transparent 50%);
-      pointer-events: none;
     }
 
     .message {
       margin-bottom: 1rem;
       animation: messageSlide 0.5s ease-out;
-      position: relative;
-      z-index: 2;
     }
 
     @keyframes messageSlide {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .ai-message {
@@ -618,18 +507,7 @@
       border-radius: 18px 18px 18px 6px;
       max-width: 85%;
       box-shadow: var(--shadow-md);
-      position: relative;
       line-height: 1.5;
-    }
-
-    .ai-message::before {
-      content: '🤖';
-      position: absolute;
-      left: -35px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 24px;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
     }
 
     .user-message {
@@ -649,14 +527,6 @@
       border-top: 1px solid rgba(37, 99, 235, 0.1);
     }
 
-    .quick-questions-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--medium-gray);
-      margin-bottom: 1rem;
-      text-align: center;
-    }
-
     .question-buttons {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -673,13 +543,10 @@
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s ease;
-      box-shadow: var(--shadow-sm);
     }
 
     .question-btn:hover {
       transform: translateY(-2px);
-      box-shadow: var(--shadow-lg);
-      background: linear-gradient(135deg, var(--accent-cyan), var(--ai-purple));
     }
 
     .input-area {
@@ -704,7 +571,6 @@
 
     .chat-input:focus {
       border-color: var(--primary-blue);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
       background: white;
     }
 
@@ -719,64 +585,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s ease;
-      box-shadow: var(--shadow-md);
+      transition: transform 0.3s ease;
       font-size: 1.2rem;
     }
 
     .send-btn:hover {
       transform: scale(1.05);
-      box-shadow: var(--shadow-lg);
-    }
-
-    .typing-indicator {
-      display: none;
-      padding: 1rem 1.2rem;
-      background: #f0f2f5;
-      border-radius: 18px 18px 18px 6px;
-      max-width: 100px;
-      margin-bottom: 1rem;
-      border: 1px solid #e2e8f0;
-    }
-
-    .typing-dots {
-      display: flex;
-      gap: 4px;
-      justify-content: center;
-    }
-
-    .dot {
-      width: 8px;
-      height: 8px;
-      background: var(--medium-gray);
-      border-radius: 50%;
-      animation: typing 1.4s infinite ease-in-out;
-    }
-
-    .dot:nth-child(1) { animation-delay: -0.32s; }
-    .dot:nth-child(2) { animation-delay: -0.16s; }
-
-    @keyframes typing {
-      0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-      40% { transform: scale(1.2); opacity: 1; }
-    }
-
-    .ai-credits {
-      text-align: center;
-      padding: 1rem;
-      background: rgba(37, 99, 235, 0.05);
-      color: var(--medium-gray);
-      font-size: 0.85rem;
-      border-top: 1px solid rgba(37, 99, 235, 0.1);
-    }
-
-    /* Footer */
-    .footer {
-      text-align: center;
-      padding: 3rem 0;
-      color: var(--medium-gray);
-      border-top: 1px solid rgba(37, 99, 235, 0.1);
-      margin-top: 4rem;
     }
 
     /* Responsive Design */
@@ -814,17 +628,13 @@
         padding: 1.5rem;
       }
 
-      .chat-container {
-        height: 400px;
-      }
-
-      .question-buttons {
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: 0.5rem;
+      .ebook-content {
+        grid-template-columns: 1fr;
+        text-align: center;
       }
     }
 
-    /* Scroll Animations */
+    /* Animations */
     .fade-in {
       opacity: 0;
       transform: translateY(30px);
@@ -845,10 +655,8 @@
   </style>
 </head>
 <body>
-  <!-- Global Parallax Background -->
   <div class="parallax-bg"></div>
 
-  <!-- Header Section -->
   <header class="header">
     <div class="header-content">
       <div class="header-text">
@@ -858,36 +666,23 @@
           Where innovation meets execution. Building the future of digital engagement, one breakthrough at a time.
         </div>
       </div>
-<img src="https://imetrobert.github.io/profile.jpg" alt="Robert Simon - Digital Innovator" class="profile-image" />
+      <img src="https://imetrobert.github.io/profile.jpg" alt="Robert Simon - Digital Innovator" class="profile-image" />
     </div>
   </header>
 
-  <!-- Contact Bar -->
   <div class="contact-bar">
     <div class="contact-info">
-      <div class="contact-item">
-        📍 Montreal, QC
-      </div>
-      <div class="contact-item">
-        📧 <a href="mailto:robert@imetrobert.com">robert@imetrobert.com</a>
-      </div>
-      <div class="contact-item">
-        📞 514-250-8491
-      </div>
-      <div class="contact-item">
-        💼 <a href="https://linkedin.com/in/thedigitalrobert" target="_blank">LinkedIn</a>
-      </div>
-      <div class="contact-item">
-        🌐 <a href="https://www.imetrobert.com" target="_blank">Portfolio</a>
-      </div>
+      <div class="contact-item">📍 Montreal, QC</div>
+      <div class="contact-item">📧 <a href="mailto:robert@imetrobert.com">robert@imetrobert.com</a></div>
+      <div class="contact-item">📞 514-250-8491</div>
+      <div class="contact-item">💼 <a href="https://linkedin.com/in/thedigitalrobert" target="_blank">LinkedIn</a></div>
+      <div class="contact-item">🌐 <a href="https://www.imetrobert.com" target="_blank">Portfolio</a></div>
     </div>
   </div>
 
   <div class="container">
     <div class="main-content">
-      <!-- Left Column -->
       <div class="left-column">
-        <!-- Impact Stats -->
         <section class="content-section fade-in">
           <h2 class="section-title">Impact at a Glance</h2>
           <div class="stats-grid">
@@ -910,7 +705,22 @@
           </div>
         </section>
 
-        <!-- About Section -->
+        <section class="content-section ebook-section fade-in">
+          <div class="ebook-content">
+            <div class="ebook-cover">
+              <div>AI Business Guide</div>
+            </div>
+            <div class="ebook-text">
+              <h3>AI Business Guide</h3>
+              <p>Get my comprehensive guide on implementing AI in Canadian businesses at an affordable price. Learn practical strategies, real-world case studies, and actionable insights from 25+ years in digital innovation.</p>
+              <a href="https://ai.imetrobert.com" target="_blank" class="ebook-link">
+                💰 Get Your Copy Now
+              </a>
+            </div>
+          </div>
+          <div class="ai-circuit"></div>
+        </section>
+
         <section class="content-section fade-in">
           <h2 class="section-title">The Story</h2>
           <p>I've been shaping the digital landscape since 1996 — back when "going online" meant something entirely different. What started as curiosity about web technologies has evolved into <span class="highlight">a mission to revolutionize how people interact with digital experiences</span>.</p>
@@ -920,16 +730,15 @@
           <p>From aviation systems to telecommunications giants, I've consistently turned complex challenges into elegant solutions that real people actually want to use.</p>
         </section>
 
-        <!-- Featured AI Insights -->
-        <section class="content-section neural-network fade-in" style="background: var(--gradient-ai); color: white;">
-          <h2 class="section-title" style="color: white;">💡 AI Thought Leadership</h2>
-          <div style="background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 12px; backdrop-filter: blur(10px);">
+        <section class="content-section" style="background: var(--gradient-ai); color: white;">
+          <h2 class="section-title" style="color: white;">AI Thought Leadership</h2>
+          <div style="background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 12px;">
             <h3 style="color: white; margin-bottom: 1rem; font-size: 1.3rem;">Transforming Business Through AI Integration</h3>
             <p style="color: rgba(255,255,255,0.9); margin-bottom: 1.5rem; line-height: 1.7;">
               Watch me dive deep into the practical realities of AI implementation in enterprise environments. From strategy to execution, I share insights on how organizations can harness AI to drive meaningful digital transformation.
             </p>
             <div style="text-align: center;">
-              <a href="https://m.youtube.com/watch?v=rMWiuGpjfAE" target="_blank" style="background: white; color: var(--primary-blue); padding: 1rem 2.5rem; border-radius: 50px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; transition: transform 0.2s ease, box-shadow 0.2s ease;">
+              <a href="https://m.youtube.com/watch?v=rMWiuGpjfAE" target="_blank" style="background: white; color: var(--primary-blue); padding: 1rem 2.5rem; border-radius: 50px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem;">
                 🎥 Watch the Full Discussion
               </a>
             </div>
@@ -940,61 +749,6 @@
           <div class="ai-circuit"></div>
         </section>
 
-        <!-- Enhanced AI Chat Widget -->
-        <section class="ai-chat-widget fade-in">
-          <div class="ai-widget-header">
-            <div class="ai-widget-title">AI Business Assistant</div>
-            <div class="ai-widget-subtitle">
-              <div class="canada-flag"></div>
-              Helping Canadian Businesses with AI
-            </div>
-          </div>
-          
-          <div class="chat-container">
-            <div class="chat-messages" id="chatMessages">
-              <div class="message ai-message">
-                👋 Hi! I'm your AI Business Assistant. I can help with questions about implementing AI in Canadian businesses, ROI calculations, industry use cases, and more. What would you like to know?
-              </div>
-            </div>
-            
-            <div class="typing-indicator" id="typingIndicator">
-              <div class="typing-dots">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-              </div>
-            </div>
-            
-            <div class="quick-questions">
-              <div class="quick-questions-title">Quick Questions</div>
-              <div class="question-buttons">
-                <button class="question-btn" onclick="askQuestion('What are the benefits of AI for Canadian SMEs?')">AI Benefits</button>
-                <button class="question-btn" onclick="askQuestion('How much does AI implementation cost?')">AI Costs</button>
-                <button class="question-btn" onclick="askQuestion('Which industries in Canada use AI most?')">Industries</button>
-                <button class="question-btn" onclick="askQuestion('What AI tools should I start with?')">Getting Started</button>
-              </div>
-            </div>
-            
-            <div class="input-area">
-              <input 
-                type="text" 
-                class="chat-input" 
-                id="chatInput" 
-                placeholder="Ask about AI for your business..."
-                onkeypress="handleKeyPress(event)"
-              >
-              <button class="send-btn" onclick="sendMessage()">
-                <span>➤</span>
-              </button>
-            </div>
-          </div>
-          
-          <div class="ai-credits">
-            Powered by AI • Built for imetrobert.com
-          </div>
-        </section>
-
-        <!-- Experience Section -->
         <section class="content-section fade-in">
           <h2 class="section-title">Journey Highlights</h2>
           
@@ -1036,10 +790,8 @@
         </section>
       </div>
 
-      <!-- Right Column -->
       <div class="right-column">
-        <!-- Skills Section -->
-        <section class="content-section neural-network fade-in">
+        <section class="content-section fade-in">
           <h2 class="section-title">Arsenal</h2>
           <div class="skills-grid">
             <div class="skill-tag ai-accent">AI Strategy</div>
@@ -1051,333 +803,9 @@
             <div class="skill-tag">Campaign Automation</div>
             <div class="skill-tag ai-accent">Growth Hacking</div>
           </div>
-          <div class="ai-circuit"></div>
-        </section>
-
-        <!-- Languages -->
-        <section class="content-section fade-in">
-          <h2 class="section-title">Global Reach</h2>
-          <div class="languages">
-            <div class="language-tag">🇺🇸 English</div>
-            <div class="language-tag">⚜️ French</div>
-            <div class="language-tag">🇮🇱 Hebrew</div>
-          </div>
-        </section>
-
-        <!-- Recognition -->
-        <section class="content-section fade-in">
-          <h2 class="section-title">Recognition</h2>
-          <ul class="awards-list">
-            <li class="award-item">🏆 Webby Award Winner</li>
-            <li class="award-item">🚀 Bell Bravo Award</li>
-            <li class="award-item">⚡ Execution Excellence Award</li>
-            <li class="award-item">🎯 Boomerang Award</li>
-            <li class="award-item">🤖 AI Innovation Leadership</li>
-          </ul>
-        </section>
-
-        <!-- Education -->
-        <section class="content-section fade-in">
-          <h2 class="section-title">Foundation</h2>
-          <div class="education-item">
-            <div class="institution">McGill University</div>
-            <div class="degree">Commerce • Marketing & Psychology</div>
-            <div class="years">The perfect blend for understanding what makes people tick</div>
-          </div>
-          <div class="education-item">
-            <div class="institution">Continuous Learning</div>
-            <div class="degree">25+ Years in the Digital Trenches</div>
-            <div class="years">Where the real education happens</div>
-          </div>
-        </section>
-
-        <!-- Call to Action -->
-        <section class="content-section fade-in" style="background: var(--gradient-primary); color: white;">
-          <h2 class="section-title" style="color: white;">Let's Build Something Amazing</h2>
-          <p style="color: rgba(255,255,255,0.9); margin-bottom: 1rem;">Ready to transform your digital experience? I'm always excited to tackle new challenges and push boundaries.</p>
-          <div style="text-align: center;">
-            <a href="mailto:robert@imetrobert.com" style="background: white; color: var(--primary-blue); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; font-weight: 600; display: inline-block; transition: transform 0.2s ease;">Start the Conversation</a>
-          </div>
         </section>
       </div>
     </div>
   </div>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container">
-      Built with passion in Montreal • © 2025 Robert Simon
-    </div>
-  </footer>
-
-  <script>
-    // AI Chat Widget JavaScript
-    const aiResponses = {
-      'benefits': [
-        "🚀 AI can help Canadian SMEs increase efficiency by 20-40%, reduce operational costs, and improve customer service through automation. Key benefits include better decision-making with data analytics, 24/7 customer support via chatbots, and competitive advantages in the market.",
-        "💡 For Canadian businesses, AI offers cost savings through automation, improved customer insights, faster processing times, and the ability to compete with larger companies by leveraging smart technology.",
-      ],
-      'costs': [
-        "💰 AI implementation costs for Canadian businesses typically range from $5,000-$50,000 for small businesses, depending on complexity. Cloud-based AI solutions can start as low as $50/month. Many Canadian government programs offer funding support for AI adoption.",
-        "📊 The ROI of AI for Canadian businesses often shows positive returns within 6-18 months. Start small with specific use cases like customer service automation or inventory management to minimize initial investment.",
-      ],
-      'industries': [
-        "🏭 In Canada, AI is heavily adopted in: Financial Services (fraud detection, robo-advisors), Healthcare (medical imaging, patient management), Manufacturing (predictive maintenance, quality control), Retail (recommendation engines, inventory optimization), and Agriculture (crop monitoring, precision farming).",
-        "🇨🇦 Canadian leaders in AI include Shopify (e-commerce AI), RBC (banking AI), Canadian Tire (retail analytics), and many tech startups in Toronto, Montreal, and Vancouver's AI ecosystems.",
-      ],
-      'start': [
-        "🎯 Start with these AI tools: 1) Chatbots for customer service (Intercom, Zendesk), 2) CRM with AI features (HubSpot, Salesforce), 3) Accounting automation (Xero, QuickBooks AI), 4) Social media management (Hootsuite AI), 5) Email marketing (Mailchimp AI). Begin with one tool and expand gradually.",
-        "⚡ For Canadian businesses starting with AI: Choose cloud-based solutions, start with your biggest pain point, ensure staff training, and consider Canadian AI service providers who understand local regulations and tax incentives.",
-      ],
-      'default': [
-        "🤖 AI can transform Canadian businesses through automation, better customer insights, cost reduction, and competitive advantages. Whether you're in Toronto, Vancouver, Montreal, or anywhere across Canada, there are AI solutions tailored for your industry and size.",
-        "📈 AI adoption in Canada is growing rapidly, with government support through programs like ISED's AI initiatives. I can help you understand specific applications for your industry, implementation strategies, or connect you with Canadian AI resources.",
-        "🍁 As a Canadian business, you have access to world-class AI research from universities like University of Toronto, McGill, and UBC, plus government incentives for AI adoption. What specific area would you like to explore?",
-        "💼 Canadian businesses are successfully using AI for customer service, inventory management, fraud detection, marketing automation, and predictive analytics. Each solution can be tailored to your specific needs and budget.",
-      ]
-    };
-
-    let messageCount = 0;
-
-    function getAIResponse(message) {
-      const lowerMessage = message.toLowerCase();
-      
-      if (lowerMessage.includes('benefit') || lowerMessage.includes('advantage') || lowerMessage.includes('sme')) {
-        return getRandomResponse('benefits');
-      } else if (lowerMessage.includes('cost') || lowerMessage.includes('price') || lowerMessage.includes('roi') || lowerMessage.includes('investment')) {
-        return getRandomResponse('costs');
-      } else if (lowerMessage.includes('industry') || lowerMessage.includes('sector') || lowerMessage.includes('canada') || lowerMessage.includes('canadian')) {
-        return getRandomResponse('industries');
-      } else if (lowerMessage.includes('start') || lowerMessage.includes('begin') || lowerMessage.includes('tool') || lowerMessage.includes('first')) {
-        return getRandomResponse('start');
-      } else {
-        return getRandomResponse('default');
-      }
-    }
-
-    function getRandomResponse(category) {
-      const responses = aiResponses[category];
-      return responses[Math.floor(Math.random() * responses.length)];
-    }
-
-    function addMessage(message, isUser = false) {
-      const messagesContainer = document.getElementById('chatMessages');
-      const messageDiv = document.createElement('div');
-      messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
-      messageDiv.textContent = message;
-      messagesContainer.appendChild(messageDiv);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    function showTypingIndicator() {
-      document.getElementById('typingIndicator').style.display = 'block';
-      const messagesContainer = document.getElementById('chatMessages');
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    function hideTypingIndicator() {
-      document.getElementById('typingIndicator').style.display = 'none';
-    }
-
-    function sendMessage() {
-      const input = document.getElementById('chatInput');
-      const message = input.value.trim();
-      
-      if (!message) return;
-      
-      addMessage(message, true);
-      input.value = '';
-      
-      showTypingIndicator();
-      
-      setTimeout(() => {
-        hideTypingIndicator();
-        const response = getAIResponse(message);
-        addMessage(response);
-        messageCount++;
-        
-        // Show engagement message after a few interactions
-        if (messageCount === 3) {
-          setTimeout(() => {
-            addMessage("💡 Impressed by what AI can do? Visit imetrobert.com to learn more about implementing AI solutions for your Canadian business!");
-          }, 2000);
-        }
-      }, 1500 + Math.random() * 1000);
-    }
-
-    function askQuestion(question) {
-      const input = document.getElementById('chatInput');
-      input.value = question;
-      sendMessage();
-    }
-
-    function handleKeyPress(event) {
-      if (event.key === 'Enter') {
-        sendMessage();
-      }
-    }
-
-    // Parallax scrolling system
-    let ticking = false;
-
-    function updateParallax() {
-      const scrollY = window.pageYOffset;
-      
-      // Header parallax effect
-      const header = document.querySelector('.header');
-      if (header) {
-        header.style.transform = `translateY(${scrollY * 0.5}px)`;
-      }
-
-      // Background parallax
-      const parallaxBg = document.querySelector('.parallax-bg');
-      if (parallaxBg) {
-        parallaxBg.style.transform = `translateY(${scrollY * 0.1}px)`;
-      }
-
-      // Content sections subtle parallax
-      const contentSections = document.querySelectorAll('.content-section');
-      contentSections.forEach((section, index) => {
-        const rect = section.getBoundingClientRect();
-        if (rect.bottom > 0 && rect.top < window.innerHeight) {
-          const speed = 0.02 + (index * 0.01);
-          section.style.transform = `translateY(${scrollY * speed}px)`;
-        }
-      });
-
-      // AI circuits scroll-based movement
-      const circuits = document.querySelectorAll('.ai-circuit');
-      circuits.forEach(circuit => {
-        circuit.style.transform = `translateX(${scrollY * 0.03}px) translateY(${scrollY * 0.02}px)`;
-      });
-
-      ticking = false;
-    }
-
-    function requestTick() {
-      if (!ticking) {
-        requestAnimationFrame(updateParallax);
-        ticking = true;
-      }
-    }
-
-    // Optimized scroll listener
-    window.addEventListener('scroll', requestTick, { passive: true });
-
-    // Intersection Observer for fade-in animations
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.opacity = '1';
-          entry.target.style.transform = 'translateY(0)';
-        }
-      });
-    }, observerOptions);
-
-    // Enhanced hover effects for interactive elements
-    document.addEventListener('DOMContentLoaded', function() {
-      // Observe fade-in elements
-      const fadeElements = document.querySelectorAll('.fade-in');
-      fadeElements.forEach(el => observer.observe(el));
-
-      // Enhanced content section hover effects
-      const contentSections = document.querySelectorAll('.content-section');
-      contentSections.forEach(section => {
-        section.addEventListener('mouseenter', function() {
-          if (!this.classList.contains('ai-chat-widget')) {
-            this.style.transform = `translateY(-5px) scale(1.02)`;
-          }
-        });
-
-        section.addEventListener('mouseleave', function() {
-          if (!this.classList.contains('ai-chat-widget')) {
-            this.style.transform = '';
-          }
-        });
-
-        section.addEventListener('mousemove', function(e) {
-          if (this.classList.contains('ai-chat-widget')) return;
-          
-          const rect = this.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          
-          const centerX = rect.width / 2;
-          const centerY = rect.height / 2;
-          
-          const rotateX = (y - centerY) / centerY * 1;
-          const rotateY = (x - centerX) / centerX * 1;
-          
-          this.style.transform = `translateY(-5px) scale(1.02) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-        });
-      });
-
-      // Skill tag enhanced interactions
-      const skillTags = document.querySelectorAll('.skill-tag');
-      skillTags.forEach(tag => {
-        tag.addEventListener('mouseenter', function() {
-          this.style.transform = 'translateY(-3px) scale(1.05) rotate(2deg)';
-          this.style.boxShadow = '0 10px 20px rgba(37, 99, 235, 0.4)';
-        });
-
-        tag.addEventListener('mouseleave', function() {
-          this.style.transform = '';
-          this.style.boxShadow = '';
-        });
-      });
-
-      // Add some initial engagement after page load
-      setTimeout(() => {
-        addMessage("I have knowledge about AI implementation across various Canadian industries and can provide specific guidance for your business needs.");
-      }, 3000);
-
-      // Initial parallax update
-      updateParallax();
-
-      // Smooth page load
-      document.body.style.opacity = '0';
-      document.body.style.transition = 'opacity 0.5s ease';
-      
-      setTimeout(() => {
-        document.body.style.opacity = '1';
-      }, 100);
-    });
-
-    // Performance optimization for mobile
-    function handleResize() {
-      if (window.innerWidth <= 768) {
-        // Reduce parallax effects on mobile
-        const elements = document.querySelectorAll('.content-section');
-        elements.forEach(el => {
-          el.style.transform = '';
-        });
-      }
-    }
-
-    window.addEventListener('resize', handleResize);
-
-    // Pause animations when page is not visible
-    document.addEventListener('visibilitychange', () => {
-      const elements = document.querySelectorAll('*');
-      if (document.hidden) {
-        elements.forEach(el => {
-          if (el.style.animationPlayState !== undefined) {
-            el.style.animationPlayState = 'paused';
-          }
-        });
-      } else {
-        elements.forEach(el => {
-          if (el.style.animationPlayState !== undefined) {
-            el.style.animationPlayState = 'running';
-          }
-        });
-      }
-    });
-  </script>
 </body>
 </html>
