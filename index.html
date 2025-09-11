@@ -917,5 +917,15 @@
       }
     });
   </script>
+  <!-- AI Chatbot Widget: Predictable Dialogs example -->
+<script type="module">
+  import Agent from 'https://cdn.jsdelivr.net/npm/@agent-embed/js/dist/web.js';
+  Agent.initStandard({
+    agentName: 'Assistant OpenAI-18452', // Customize with your agent name
+    apiHost: 'https://app.predictabledialogs.com/web/incoming',
+  });
+</script>
+<agent-standard style="width: 100%; height: 400px;"></agent-standard>
+
 </body>
 </html>
