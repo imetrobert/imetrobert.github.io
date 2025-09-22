@@ -3,17 +3,22 @@ import os
 import requests
 
 def generate_blog(model_name, api_key):
-    url = "https://api.gemini.google/v1beta/generateContent"
-    headers = {"Authorization": f"Bearer {api_key}"}
+    url = f"https://generativelanguage.googleapis.com/v1beta2/models/{model_name}:generateText"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
     payload = {
-        "model": model_name,
-        "prompt": "Write a blog post about using AI in business.",
-        "maxTokens": 1024,
+        "prompt": {
+            "text": "Write a blog post about using AI in business."
+        },
+        "maxTokens": 1024
     }
 
     response = requests.post(url, json=payload, headers=headers)
     if response.status_code == 200:
-        return response.json()["content"]
+        # Extract generated content from response
+        return response.json()["candidates"][0]["output"]
     else:
         raise Exception(f"Gemini API error {response.status_code}: {response.text}")
 
