@@ -1,10 +1,9 @@
 name: Generate AI Blog Post
 
 on:
+  workflow_dispatch: # Manual triggering only for now
   schedule:
-    # Runs at 6 AM UTC on the first Sunday of every month
     - cron: '0 6 1-7 * 0'
-  workflow_dispatch: # Allows manual triggering
 
 jobs:
   generate-blog:
@@ -13,35 +12,52 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
     
+    - name: Create directories
+      run: |
+        mkdir -p blog/staging
+        mkdir -p blog/posts  
+        ls -la blog/
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests feedparser beautifulsoup4
+        pip install -r scripts/requirements.txt
+    
+    - name: Test script exists
+      run: |
+        ls -la scripts/
+        if [ ! -f "scripts/generate-blog.py" ]; then
+          echo "ERROR: Script not found!"
+          exit 1
+        fi
     
     - name: Generate blog post
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
       run: |
         python scripts/generate-blog.py
+    
+    - name: Check results
+      run: |
+        echo "Contents of blog/staging:"
+        ls -la blog/staging/ || echo "Directory empty"
+        find blog/staging/ -name "*.html" || echo "No HTML files found"
     
     - name: Check if new post was generated
       id: check-post
       run: |
-        if [ -n "$(ls -A blog/staging/ 2>/dev/null)" ]; then
+        if [ -n "$(find blog/staging/ -name '*.html' 2>/dev/null)" ]; then
           echo "new_post=true" >> $GITHUB_OUTPUT
-          echo "New blog post generated!"
+          echo "✅ New blog post generated!"
         else
           echo "new_post=false" >> $GITHUB_OUTPUT
-          echo "No new post generated"
+          echo "❌ No new post generated"
         fi
     
     - name: Create Pull Request
@@ -56,26 +72,11 @@ jobs:
           
           A new AI insights blog post has been automatically generated and is ready for your review.
           
-          ### What's included:
-          - ✅ Latest AI technological advances
-          - ✅ Business applications and use cases  
-          - ✅ Implementation guidance
-          - ✅ Properly formatted HTML
-          
-          ### Next steps:
+          **Next steps:**
           1. Review the post content in the staging folder
-          2. Make any necessary edits
-          3. Approve this PR to publish
+          2. Make any necessary edits  
+          3. Merge this PR to publish
           
-          The post will automatically go live when you merge this PR!
-          
-          ---
-          *Generated on $(date)*
-        branch: ai-blog-post-$(date +%Y-%m)
+          The post will go live when you merge this PR!
+        branch: ai-blog-post-${{ github.run_number }}
         delete-branch: true
-    
-    - name: Send notification (optional)
-      if: steps.check-post.outputs.new_post == 'true'
-      run: |
-        echo "Blog post ready for review at: ${{ github.server_url }}/${{ github.repository }}/pulls"
-        # You could add email notifications or other alerts here
