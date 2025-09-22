@@ -322,6 +322,93 @@
       box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     }
 
+    /* Blog Section Styles */
+    .blog-preview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .blog-card {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .blog-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .blog-card h4 {
+      color: white;
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .blog-date {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      font-family: var(--font-mono);
+    }
+
+    .blog-excerpt {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .blog-read-more {
+      color: white;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 0.5rem 1.2rem;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .blog-read-more:hover {
+      background: white;
+      color: var(--primary-blue);
+      transform: translateY(-2px);
+    }
+
+    .view-all-link {
+      text-align: center;
+      margin-top: 2rem;
+    }
+
+    .view-all-btn {
+      background: white;
+      color: var(--primary-blue);
+      padding: 1rem 2.5rem;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.8rem;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+    }
+
+    .view-all-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    }
+
     /* Stats Grid */
     .stats-grid {
       display: grid;
@@ -625,6 +712,10 @@
         grid-template-columns: 1fr;
         text-align: center;
       }
+
+      .blog-preview {
+        grid-template-columns: 1fr;
+      }
     }
 
     /* Animations */
@@ -739,6 +830,37 @@
           <div class="ai-circuit"></div>
         </section>
 
+        <!-- NEW AI INSIGHTS BLOG SECTION -->
+        <section class="content-section" style="background: var(--gradient-ai); color: white;">
+          <h2 class="section-title" style="color: white;">📝 Latest AI Insights</h2>
+          <div style="background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 12px;">
+            <h3 style="color: white; margin-bottom: 1rem; font-size: 1.3rem;">Monthly AI Innovation Deep-Dives</h3>
+            <p style="color: rgba(255,255,255,0.9); margin-bottom: 1.5rem; line-height: 1.7;">
+              Stay ahead of the curve with expert analysis of the latest AI breakthroughs, practical business applications, and step-by-step implementation strategies. Published every first Monday of the month.
+            </p>
+            
+            <!-- Blog preview area -->
+            <div class="blog-preview" id="blog-preview">
+              <div class="blog-card">
+                <h4>🚀 Coming Soon: AI Innovation Series</h4>
+                <div class="blog-date">First post: December 2024</div>
+                <p class="blog-excerpt">Monthly insights into cutting-edge AI advances with practical implementation strategies for business leaders. Each post covers technological breakthroughs, business applications, real-world use cases, and actionable guidance.</p>
+                <a href="#" class="blog-read-more">
+                  ⏰ Subscribe for Updates
+                </a>
+              </div>
+            </div>
+            
+            <div class="view-all-link">
+              <a href="/blog/" class="view-all-btn">
+                🤖 View All AI Insights
+                <span>→</span>
+              </a>
+            </div>
+          </div>
+          <div class="ai-circuit"></div>
+        </section>
+
         <section class="content-section fade-in">
           <h2 class="section-title">Journey Highlights</h2>
           
@@ -797,5 +919,16 @@
       </div>
     </div>
   </div>
+
+  <script>
+    // Blog preview functionality - will be populated by the automation system
+    function updateBlogPreview() {
+      // This will automatically load and display the latest blog posts
+      // The automation system will update this section when new posts are published
+    }
+
+    // Call on page load
+    document.addEventListener('DOMContentLoaded', updateBlogPreview);
+  </script>
 </body>
 </html>
