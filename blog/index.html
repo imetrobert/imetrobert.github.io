@@ -5,171 +5,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Robert Simon - AI Expert & Digital Transformation Leader</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #333;
+            line-height: 1.6; color: #333;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }
-        
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            margin-top: 2rem;
-            margin-bottom: 2rem;
+            max-width: 1200px; margin: 0 auto; padding: 2rem;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            border-radius: 20px; margin-top: 2rem; margin-bottom: 2rem;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
-        
-        header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-        
+        header { text-align: center; margin-bottom: 3rem; }
         h1 {
-            font-size: 3rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
+            font-size: 3rem; font-weight: 700; margin-bottom: 1rem;
             background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
-        .subtitle {
-            font-size: 1.2rem;
-            color: #666;
-            margin-bottom: 2rem;
-        }
-        
-        .section {
-            margin-bottom: 3rem;
-            padding: 2rem;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-        
-        .section h2 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: #333;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .section h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: #555;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
+        .subtitle { font-size: 1.2rem; color: #666; margin-bottom: 2rem; }
+        .section { margin-bottom: 3rem; padding: 2rem; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .section h2 { font-size: 2rem; margin-bottom: 1rem; color: #333; display: flex; align-items: center; gap: 10px; }
+        .section h3 { font-size: 1.5rem; margin-bottom: 1rem; color: #555; display: flex; align-items: center; gap: 10px; }
         .blog-preview {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem; margin-top: 2rem;
         }
-        
         .blog-card {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            border-radius: 15px;
-            padding: 2rem;
+            border-radius: 15px; padding: 2rem;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        
-        .blog-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        }
-        
-        .blog-card h4 {
-            color: #333;
-            margin-bottom: 0.5rem;
-            font-size: 1.2rem;
-        }
-        
-        .blog-date {
-            color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-        }
-        
-        .blog-excerpt {
-            color: #555;
-            line-height: 1.6;
-        }
-        
+        .blog-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .blog-card h4 { color: #333; margin-bottom: 0.5rem; font-size: 1.2rem; }
+        .blog-date { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
+        .blog-excerpt { color: #555; line-height: 1.6; }
         .read-more {
-            display: inline-block;
-            margin-top: 1rem;
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.3s ease;
+            display: inline-block; margin-top: 1rem; color: #667eea; text-decoration: none;
+            font-weight: 600; transition: color 0.3s ease;
         }
-        
-        .read-more:hover {
-            color: #764ba2;
-        }
-        
+        .read-more:hover { color: #764ba2; }
         .awards {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-top: 2rem;
+            display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; margin-top: 2rem;
         }
-        
         .award {
             background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
-            padding: 0.5rem 1rem;
-            border-radius: 25px;
-            color: #333;
-            font-weight: 600;
+            padding: 0.5rem 1rem; border-radius: 25px; color: #333; font-weight: 600;
         }
-        
         .cta {
-            text-align: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 3rem;
-            border-radius: 15px;
-            margin-top: 3rem;
+            text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 3rem; border-radius: 15px; margin-top: 3rem;
         }
-        
-        .cta h2 {
-            color: white;
-            margin-bottom: 1rem;
-        }
-        
+        .cta h2 { color: white; margin-bottom: 1rem; }
         @media (max-width: 768px) {
-            .container {
-                margin: 1rem;
-                padding: 1rem;
-            }
-            
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .section {
-                padding: 1.5rem;
-            }
+            .container { margin: 1rem; padding: 1rem; }
+            h1 { font-size: 2rem; }
+            .section { padding: 1.5rem; }
         }
     </style>
 </head>
@@ -184,9 +77,7 @@
             <h2>💡 AI Thought Leadership</h2>
             <h3>Impact at a Glance</h3>
             <p>I've been shaping the digital landscape since 1996 — back when "going online" meant something entirely different. What started as curiosity about web technologies has evolved into a mission to revolutionize how people interact with digital experiences.</p>
-            
             <p>Today, I'm leading the charge in AI integration at Bell, where I've helped transform MyBell into Canada's #1 telecom app. But it's not just about the technology — it's about creating moments of delight in everyday digital interactions.</p>
-            
             <p>From aviation systems to telecommunications giants, I've consistently turned complex challenges into elegant solutions that real people actually want to use.</p>
         </section>
 
@@ -195,9 +86,15 @@
             <p>Stay ahead of the curve with monthly deep-dives into the latest AI innovations and their practical business applications.</p>
             
             <div class="blog-preview" id="blog-preview">
-                <!-- Latest post will be injected here -->
+                <!-- Latest blog post -->
+                <div class="blog-card">
+                    <h4>Latest AI Insights</h4>
+                    <div class="blog-date">September 26, 2025</div>
+                    <p class="blog-excerpt">Click below to read the latest AI insights blog post, including key technological breakthroughs, business applications, real-world use cases, and step-by-step implementation guidance.</p>
+                    <a href="/blog/posts/latest.html" class="read-more">Read Full Post →</a>
+                </div>
             </div>
-            
+
             <div style="text-align: center; margin-top: 2rem;">
                 <a href="/blog/posts/" class="read-more" style="font-size: 1.1rem;">View All AI Insights →</a>
             </div>
@@ -205,7 +102,6 @@
 
         <section class="section">
             <h2>🎯 Journey Highlights</h2>
-            
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
                 <div>
                     <h3>🏆 Recognition</h3>
@@ -217,12 +113,10 @@
                         <div class="award">AI Innovation Leadership</div>
                     </div>
                 </div>
-                
                 <div>
                     <h3>🚀 Arsenal</h3>
                     <p>Transforming Business Through AI Integration. From strategy to execution, I share insights on how organizations can harness AI to drive meaningful digital transformation.</p>
                 </div>
-                
                 <div>
                     <h3>🌍 Global Reach</h3>
                     <p>Watch me dive deep into the practical realities of AI implementation in enterprise environments, delivering solutions that scale across industries and borders.</p>
@@ -235,59 +129,5 @@
             <p>Ready to transform your digital experience? I'm always excited to tackle new challenges and push boundaries.</p>
         </div>
     </div>
-
-    <script>
-        async function updateBlogPreview() {
-            const previewContainer = document.getElementById('blog-preview');
-
-            try {
-                // Fetch the list of posts
-                const response = await fetch('/blog/posts/');
-                if (!response.ok) throw new Error('Cannot fetch blog posts');
-
-                const text = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'text/html');
-
-                const links = Array.from(doc.querySelectorAll('a'))
-                    .map(a => a.getAttribute('href'))
-                    .filter(href => href.endsWith('.html'))
-                    .sort()
-                    .reverse();
-
-                if (links.length === 0) {
-                    previewContainer.innerHTML = `
-                        <div class="blog-card">
-                            <h4>No blog posts yet</h4>
-                            <div class="blog-date">Stay tuned!</div>
-                            <p class="blog-excerpt">New AI insights will appear here when generated.</p>
-                        </div>`;
-                    return;
-                }
-
-                const latest = links[0];
-                const match = latest.match(/(\d{4}-\d{2}-\d{2})-(.+)\.html$/);
-                const date = match ? match[1] : 'Unknown date';
-                const title = match ? match[2].replace(/-/g, ' ') : 'AI Insights';
-
-                previewContainer.innerHTML = `
-                    <div class="blog-card">
-                        <h4>${title}</h4>
-                        <div class="blog-date">${date}</div>
-                        <p class="blog-excerpt">Click below to read the latest AI insights blog post.</p>
-                        <a href="/blog/posts/${latest}" class="read-more">Read Full Post →</a>
-                    </div>`;
-            } catch (error) {
-                console.error('Error loading latest blog post:', error);
-                previewContainer.innerHTML = `
-                    <div class="blog-card">
-                        <h4>Error loading blog</h4>
-                        <p class="blog-excerpt">Could not fetch latest post. Try again later.</p>
-                    </div>`;
-            }
-        }
-
-        updateBlogPreview();
-    </script>
 </body>
 </html>
