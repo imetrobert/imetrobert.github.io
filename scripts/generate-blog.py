@@ -31,73 +31,66 @@ def generate_blog_with_perplexity(api_key, topic=None):
         "Content-Type": "application/json"
     }
     
+    # Simplified payload - removing potentially unsupported parameters
     payload = {
-        "model": "llama-3.1-sonar-large-128k-online",  # Using online model for current info
+        "model": "llama-3.1-sonar-small-128k-online",  # Using smaller model first
         "messages": [
             {
                 "role": "system",
-                "content": """You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience. You write authoritative, insightful blog posts about AI innovations and their practical business applications. 
-
-Your writing style is:
-- Professional but approachable
-- Focuses on practical implementation
-- Uses real-world examples
-- Provides actionable insights
-- Maintains thought leadership authority
-
-Write comprehensive blog posts with clear structure including:
-1. Engaging title
-2. Brief excerpt (2-3 sentences)
-3. Main content organized into clear sections
-4. Practical takeaways and implementation steps
-5. Forward-looking insights
-
-Format your response as a structured blog post that would be appropriate for a business executive's website."""
+                "content": "You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience. Write authoritative, insightful blog posts about AI innovations and their practical business applications. Your writing is professional but approachable, focuses on practical implementation, and provides actionable insights."
             },
             {
                 "role": "user",
-                "content": f"""Write a comprehensive blog post about: {topic}
-
-The blog post should cover:
-- Key technological advances (what's new and important)
-- Business applications (how companies can use these advances)
-- Real-world use cases and benefits
-- Step-by-step implementation guidance
-- Future outlook and recommendations
-
-Target audience: Business leaders, executives, and decision-makers interested in practical AI implementation.
-
-Please structure the content to be informative, authoritative, and actionable."""
+                "content": f"Write a comprehensive blog post about: {topic}. Include key technological advances, business applications, real-world use cases, and implementation guidance. Target audience: business leaders and executives."
             }
         ],
-        "max_tokens": 3000,
-        "temperature": 0.7,
-        "top_p": 0.9,
-        "return_citations": True,
-        "return_related_questions": False,
-        "search_recency_filter": "month"  # Get recent information
+        "max_tokens": 2000,
+        "temperature": 0.7
     }
     
     try:
+        print(f"Making request to: {url}")
+        print(f"Using model: {payload['model']}")
+        
         response = requests.post(url, json=payload, headers=headers, timeout=60)
-        response.raise_for_status()
+        
+        print(f"Response status: {response.status_code}")
+        
+        if response.status_code != 200:
+            print(f"Response content: {response.text}")
+            response.raise_for_status()
         
         data = response.json()
-        content = data['choices'][0]['message']['content']
+        print("✅ Successfully received response from Perplexity")
         
-        # Extract citations if available
+        # Handle response structure
+        if 'choices' in data and len(data['choices']) > 0:
+            content = data['choices'][0]['message']['content']
+        else:
+            print(f"Unexpected response structure: {data}")
+            raise Exception("No content found in API response")
+        
+        # Extract additional data if available
         citations = data.get('citations', [])
+        usage = data.get('usage', {})
         
         return {
             'content': content,
             'citations': citations,
-            'usage': data.get('usage', {})
+            'usage': usage
         }
         
     except requests.exceptions.RequestException as e:
+        print(f"Request error details: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Response content: {e.response.text}")
         raise Exception(f"Perplexity API request failed: {e}")
     except KeyError as e:
+        print(f"Response data: {data}")
         raise Exception(f"Unexpected API response structure: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        raise
 
 def extract_title_and_excerpt(content):
     """Extract title and excerpt from generated content"""
