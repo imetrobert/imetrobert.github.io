@@ -146,7 +146,7 @@ def update_homepage_preview():
                 <h4>{post['title']}</h4>
                 <div class="blog-date">{post['date']}</div>
                 <p class="blog-excerpt">{post['excerpt']}</p>
-                <a href="/blog/posts/{post['filename']}" class="read-more">Read Full Post →</a>
+                <a href="/blog/posts/{post['filename']}" class="blog-read-more">Read Full Post →</a>
             </div>'''
 
         # Clear and update
