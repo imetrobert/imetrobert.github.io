@@ -47,6 +47,17 @@ jobs:
         run: |
           python scripts/generate-blog.py --output staging
 
+      - name: Fail if no blog post generated
+        run: |
+          files=$(find blog/staging/ -name "*.html" -o -name "*.md")
+          if [ -z "$files" ]; then
+            echo "❌ No files generated in blog/staging!"
+            exit 1
+          else
+            echo "✅ Files generated:"
+            echo "$files"
+          fi
+
       - name: Check results
         run: |
           echo "Contents of blog/staging:"
