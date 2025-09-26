@@ -6,93 +6,96 @@ on:
   schedule:
     - cron: '0 6 1-7 * 0'  # First Sunday of each month at 6 AM
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   generate-blog:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-    - name: Create directories
-      run: |
-        mkdir -p blog/staging
-        mkdir -p blog/posts  
-        ls -la blog/
+      - name: Create directories
+        run: |
+          mkdir -p blog/staging
+          mkdir -p blog/posts  
+          ls -la blog/
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r scripts/requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
 
-    - name: Test script exists
-      run: |
-        ls -la scripts/
-        if [ ! -f "scripts/generate-blog.py" ]; then
-          echo "ERROR: Script not found!"
-          exit 1
-        fi
+      - name: Test script exists
+        run: |
+          ls -la scripts/
+          if [ ! -f "scripts/generate-blog.py" ]; then
+            echo "ERROR: Script not found!"
+            exit 1
+          fi
 
-    - name: Generate blog post
-      env:
-        PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
-      run: |
-        python scripts/generate-blog.py --output staging
+      - name: Generate blog post
+        env:
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+        run: |
+          python scripts/generate-blog.py --output staging
 
-    - name: Check results
-      run: |
-        echo "Contents of blog/staging:"
-        ls -la blog/staging/ || echo "Directory empty"
-        find blog/staging/ -name "*.html" || echo "No HTML files found"
-        find blog/staging/ -name "*.md" || echo "No Markdown files found"
+      - name: Check results
+        run: |
+          echo "Contents of blog/staging:"
+          ls -la blog/staging/ || echo "Directory empty"
+          find blog/staging/ -name "*.html" || echo "No HTML files found"
+          find blog/staging/ -name "*.md" || echo "No Markdown files found"
 
-    - name: Check if new post was generated
-      id: check-post
-      run: |
-        if [ -n "$(find blog/staging/ -name '*.html' 2>/dev/null)" ]; then
-          echo "new_post=true" >> $GITHUB_OUTPUT
-          echo "✅ New blog post generated!"
-          # Show a preview of the generated content
-          echo "📄 Generated files:"
-          ls -la blog/staging/
-        else
-          echo "new_post=false" >> $GITHUB_OUTPUT
-          echo "❌ No new post generated"
-        fi
+      - name: Check if new post was generated
+        id: check-post
+        run: |
+          if [ -n "$(find blog/staging/ -name '*.html' 2>/dev/null)" ]; then
+            echo "new_post=true" >> $GITHUB_OUTPUT
+            echo "✅ New blog post generated!"
+            echo "📄 Generated files:"
+            ls -la blog/staging/
+          else
+            echo "new_post=false" >> $GITHUB_OUTPUT
+            echo "❌ No new post generated"
+          fi
 
-    - name: Create Pull Request
-      if: steps.check-post.outputs.new_post == 'true'
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: "Add new AI insights blog post"
-        title: "🤖 New AI Insights Post Ready for Review"
-        body: |
-          ## New AI Blog Post Generated! 🚀
-          
-          A new AI insights blog post has been automatically generated using **Perplexity AI** and is ready for your review.
-          
-          **What's New:**
-          - 🔥 **Latest AI Information**: Generated using Perplexity's online model with recent data
-          - 📊 **Business-Focused**: Practical applications and implementation strategies
-          - 🎯 **Structured Content**: Organized sections for easy reading
-          - 📚 **Cited Sources**: Includes references to recent developments
-          - 🔧 **Ready to Publish**: Formatted and optimized for your blog
-          
-          **Next steps:**
-          1. 👀 Review the post content in the `blog/staging/` folder
-          2. ✏️ Make any necessary edits or adjustments
-          3. 📁 Move approved content from `staging/` to `posts/` folder  
-          4. ✅ Merge this PR to publish the post live
-          
-          **Files generated:**
-          - HTML version (ready for web publishing)
-          - Markdown version (for easy editing)
-          
-          The post will go live on your website when you merge this PR! 🌐
-        branch: ai-blog-post-${{ github.run_number }}
-        delete-branch: true
+      - name: Create Pull Request
+        if: steps.check-post.outputs.new_post == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Add new AI insights blog post"
+          title: "🤖 New AI Insights Post Ready for Review"
+          body: |
+            ## New AI Blog Post Generated! 🚀
+            
+            A new AI insights blog post has been automatically generated using **Perplexity AI** and is ready for your review.
+            
+            **What's New:**
+            - 🔥 **Latest AI Information**: Generated using Perplexity's online model with recent data
+            - 📊 **Business-Focused**: Practical applications and implementation strategies
+            - 🎯 **Structured Content**: Organized sections for easy reading
+            - 📚 **Cited Sources**: Includes references to recent developments
+            - 🔧 **Ready to Publish**: Formatted and optimized for your blog
+            
+            **Next steps:**
+            1. 👀 Review the post content in the `blog/staging/` folder
+            2. ✏️ Make any necessary edits or adjustments
+            3. 📁 Move approved content from `staging/` to `posts/` folder  
+            4. ✅ Merge this PR to publish the post live
+            
+            **Files generated:**
+            - HTML version (ready for web publishing)
+            - Markdown version (for easy editing)
+            
+            The post will go live on your website when you merge this PR! 🌐
+          branch: ai-blog-post-${{ github.run_number }}
+          delete-branch: true
