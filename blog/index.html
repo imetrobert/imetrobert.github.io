@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robert Simon - AI Expert & Digital Transformation Leader</title>
+    <title>AI Insights Blog - Robert Simon | Digital Innovation & AI Strategy</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
         :root {
@@ -98,6 +98,45 @@
             100% { background-position: 0% 50%; }
         }
 
+        /* Navigation */
+        .nav-bar {
+            background: var(--white);
+            padding: 1rem 0;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.75rem 2rem;
+            border-radius: 25px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan));
+            color: white;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -106,7 +145,7 @@
 
         /* Header */
         header {
-            background: var(--gradient-primary);
+            background: var(--gradient-ai);
             color: white;
             padding: 4rem 0;
             text-align: center;
@@ -148,6 +187,99 @@
             opacity: 0.95;
             position: relative;
             z-index: 1;
+            margin-bottom: 1rem;
+        }
+
+        .header-description {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Featured Post Section */
+        .featured-post {
+            background: var(--gradient-ai);
+            color: white;
+            padding: 3rem;
+            border-radius: 20px;
+            margin-bottom: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .featured-post::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.2) 0%, transparent 50%);
+            animation: aiFlow 15s ease-in-out infinite;
+        }
+
+        .featured-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .featured-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .featured-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .featured-date {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 1rem;
+        }
+
+        .featured-excerpt {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        .featured-btn {
+            background: white;
+            color: var(--primary-blue);
+            padding: 1rem 2.5rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.8rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .featured-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
         }
 
         /* Section Styling */
@@ -187,30 +319,15 @@
             border-radius: 2px;
         }
 
-        .section h3 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: var(--primary-blue);
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--accent-cyan);
-            padding-left: 15px;
-        }
-
-        .section p {
-            color: var(--medium-gray);
-            line-height: 1.7;
-            margin-bottom: 1.2rem;
-        }
-
-        /* Blog Preview */
-        .blog-preview {
+        /* Archive Grid */
+        .archive-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 2rem;
             margin-top: 2rem;
         }
 
-        .blog-card {
+        .archive-item {
             background: rgba(255, 255, 255, 0.8);
             border-radius: 12px;
             padding: 2rem;
@@ -219,33 +336,43 @@
             backdrop-filter: blur(10px);
         }
 
-        .blog-card:hover {
+        .archive-item:hover {
             transform: translateY(-5px);
             box-shadow: var(--shadow-xl);
             background: rgba(255, 255, 255, 0.95);
         }
 
-        .blog-card h4 {
-            color: var(--dark-navy);
-            margin-bottom: 0.5rem;
+        .archive-title {
             font-size: 1.2rem;
             font-weight: 600;
+            color: var(--dark-navy);
+            margin-bottom: 0.5rem;
         }
 
-        .blog-date {
+        .archive-title a {
+            color: var(--dark-navy);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .archive-title a:hover {
+            color: var(--primary-blue);
+        }
+
+        .archive-date {
             color: var(--medium-gray);
             font-size: 0.9rem;
             margin-bottom: 1rem;
             font-family: var(--font-mono);
         }
 
-        .blog-excerpt {
+        .archive-excerpt {
             color: var(--medium-gray);
             line-height: 1.6;
             margin-bottom: 1.5rem;
         }
 
-        .read-more {
+        .archive-link {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
@@ -253,124 +380,12 @@
             text-decoration: none;
             font-weight: 600;
             transition: all 0.3s ease;
-            padding: 0.75rem 1.5rem;
-            border: 2px solid var(--primary-blue);
-            border-radius: 25px;
-            background: transparent;
+            font-size: 0.95rem;
         }
 
-        .read-more:hover {
-            background: var(--primary-blue);
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        /* Journey Highlights Grid */
-        .journey-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .journey-item {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 2rem;
-            border-radius: 12px;
-            border: 1px solid rgba(37, 99, 235, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .journey-item:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        /* Awards */
-        .awards {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-
-        .award {
-            background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan));
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 25px;
-            font-weight: 500;
-            font-size: 0.9rem;
-            transition: transform 0.3s ease;
-        }
-
-        .award:hover {
-            transform: translateY(-3px) scale(1.05);
-        }
-
-        /* CTA Section */
-        .cta {
-            text-align: center;
-            background: var(--gradient-ai);
-            color: white;
-            padding: 3rem;
-            border-radius: 16px;
-            margin-top: 3rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .cta::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.2) 0%, transparent 50%);
-            animation: aiFlow 15s ease-in-out infinite;
-        }
-
-        .cta h2 {
-            color: white;
-            margin-bottom: 1rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        .cta p {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1.1rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* View All Link */
-        .view-all-link {
-            text-align: center;
-            margin-top: 2rem;
-        }
-
-        .view-all-btn {
-            background: var(--gradient-primary);
-            color: white;
-            padding: 1rem 2.5rem;
-            border-radius: 30px;
-            text-decoration: none;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.8rem;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-
-        .view-all-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-xl);
+        .archive-link:hover {
+            color: var(--accent-cyan);
+            transform: translateX(5px);
         }
 
         /* Responsive Design */
@@ -387,16 +402,21 @@
                 padding: 1.5rem;
             }
             
-            .blog-preview {
-                grid-template-columns: 1fr;
+            .featured-post {
+                padding: 2rem;
             }
             
-            .journey-grid {
-                grid-template-columns: 1fr;
+            .featured-title {
+                font-size: 1.5rem;
             }
             
-            .awards {
-                justify-content: flex-start;
+            .archive-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .nav-content {
+                padding: 0 1rem;
             }
         }
 
@@ -410,7 +430,6 @@
         .fade-in:nth-child(1) { animation-delay: 0.1s; }
         .fade-in:nth-child(2) { animation-delay: 0.2s; }
         .fade-in:nth-child(3) { animation-delay: 0.3s; }
-        .fade-in:nth-child(4) { animation-delay: 0.4s; }
 
         @keyframes fadeInUp {
             to {
@@ -418,76 +437,144 @@
                 transform: translateY(0);
             }
         }
+
+        /* Loading state for dynamic content */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--medium-gray);
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <div class="parallax-bg"></div>
     
+    <nav class="nav-bar">
+        <div class="nav-content">
+            <a href="/" class="nav-link">
+                ← Back to Robert Simon's Portfolio
+            </a>
+        </div>
+    </nav>
+    
     <div class="container">
         <header>
-            <h1>Robert Simon</h1>
-            <p class="subtitle">AI Expert & Digital Transformation Leader</p>
+            <h1>AI Insights Blog</h1>
+            <p class="subtitle">Strategic Intelligence for Digital Leaders</p>
+            <p class="header-description">Monthly deep-dives into AI innovations, practical business applications, and strategic implementation guidance from 25+ years of digital transformation experience.</p>
             <div class="ai-circuit"></div>
         </header>
 
-        <section class="section fade-in">
-            <h2>AI Thought Leadership</h2>
-            <h3>Impact at a Glance</h3>
-            <p>I've been shaping the digital landscape since 1996 — back when "going online" meant something entirely different. What started as curiosity about web technologies has evolved into a mission to revolutionize how people interact with digital experiences.</p>
-            <p>Today, I'm leading the charge in AI integration at Bell, where I've helped transform MyBell into Canada's #1 telecom app. But it's not just about the technology — it's about creating moments of delight in everyday digital interactions.</p>
-            <p>From aviation systems to telecommunications giants, I've consistently turned complex challenges into elegant solutions that real people actually want to use.</p>
-        </section>
-
-        <section class="section fade-in">
-            <h2>Latest AI Insights</h2>
-            <p>Stay ahead of the curve with monthly deep-dives into the latest AI innovations and their practical business applications.</p>
-            
-            <div class="blog-preview" id="blog-preview">
-                <div class="blog-card">
-                    <h4>Latest AI Insights</h4>
-                    <div class="blog-date">September 26, 2025</div>
-                    <p class="blog-excerpt">Click below to read the latest AI insights blog post, including key technological breakthroughs, business applications, real-world use cases, and step-by-step implementation guidance.</p>
-                    <a href="/blog/posts/latest.html" class="read-more">Read Full Post →</a>
+        <!-- Featured Latest Post -->
+        <section class="featured-post fade-in" id="featured-post">
+            <div class="featured-content">
+                <div class="featured-badge">
+                    Latest Post
                 </div>
-            </div>
-
-            <div class="view-all-link">
-                <a href="/blog/posts/" class="view-all-btn">
-                    View All AI Insights
+                <h2 class="featured-title" id="featured-title">Loading Latest Post...</h2>
+                <div class="featured-date" id="featured-date">...</div>
+                <p class="featured-excerpt" id="featured-excerpt">Loading excerpt...</p>
+                <a href="#" class="featured-btn" id="featured-link">
+                    Read Full Article
                     <span>→</span>
                 </a>
             </div>
+            <div class="ai-circuit"></div>
         </section>
 
+        <!-- Archive Section -->
         <section class="section fade-in">
-            <h2>Journey Highlights</h2>
-            <div class="journey-grid">
-                <div class="journey-item">
-                    <h3>Recognition</h3>
-                    <div class="awards">
-                        <div class="award">Webby Award Winner</div>
-                        <div class="award">Bell Bravo Award</div>
-                        <div class="award">Execution Excellence</div>
-                        <div class="award">Boomerang Award</div>
-                        <div class="award">AI Innovation Leadership</div>
-                    </div>
-                </div>
-                <div class="journey-item">
-                    <h3>Arsenal</h3>
-                    <p>Transforming Business Through AI Integration. From strategy to execution, I share insights on how organizations can harness AI to drive meaningful digital transformation.</p>
-                </div>
-                <div class="journey-item">
-                    <h3>Global Reach</h3>
-                    <p>Watch me dive deep into the practical realities of AI implementation in enterprise environments, delivering solutions that scale across industries and borders.</p>
-                </div>
+            <h2>Previous Posts</h2>
+            <div class="archive-grid" id="archive-grid">
+                <div class="loading">Loading previous posts...</div>
             </div>
         </section>
-
-        <div class="cta">
-            <h2>Let's Build Something Amazing</h2>
-            <p>Ready to transform your digital experience? I'm always excited to tackle new challenges and push boundaries.</p>
-            <div class="ai-circuit"></div>
-        </div>
     </div>
+
+    <script>
+        // Function to load and display blog posts
+        async function loadBlogPosts() {
+            try {
+                // This will be populated by your workflow automation
+                const posts = await fetchBlogPosts();
+                
+                if (posts && posts.length > 0) {
+                    // Display featured post (latest)
+                    displayFeaturedPost(posts[0]);
+                    
+                    // Display archive (all posts except latest)
+                    displayArchivePosts(posts.slice(1));
+                } else {
+                    displayNoPostsMessage();
+                }
+            } catch (error) {
+                console.error('Error loading blog posts:', error);
+                displayErrorMessage();
+            }
+        }
+
+        // Function to fetch blog posts (will be updated by your workflow)
+        async function fetchBlogPosts() {
+            // This function will be automatically updated by your workflow
+            // with the actual post data when new posts are generated
+            return [
+                {
+                    title: "AI Insights: Latest Innovations",
+                    date: "September 25, 2025",
+                    excerpt: "Explore the latest AI innovations and their practical applications in business transformation.",
+                    filename: "latest.html"
+                }
+                // Additional posts will be automatically added here
+            ];
+        }
+
+        function displayFeaturedPost(post) {
+            document.getElementById('featured-title').textContent = post.title;
+            document.getElementById('featured-date').textContent = post.date;
+            document.getElementById('featured-excerpt').textContent = post.excerpt;
+            document.getElementById('featured-link').href = `/blog/posts/${post.filename}`;
+        }
+
+        function displayArchivePosts(posts) {
+            const archiveGrid = document.getElementById('archive-grid');
+            
+            if (posts.length === 0) {
+                archiveGrid.innerHTML = '<div class="loading">No previous posts yet. Check back soon!</div>';
+                return;
+            }
+
+            archiveGrid.innerHTML = posts.map(post => `
+                <div class="archive-item">
+                    <h3 class="archive-title">
+                        <a href="/blog/posts/${post.filename}">${post.title}</a>
+                    </h3>
+                    <div class="archive-date">${post.date}</div>
+                    <p class="archive-excerpt">${post.excerpt}</p>
+                    <a href="/blog/posts/${post.filename}" class="archive-link">
+                        Read More →
+                    </a>
+                </div>
+            `).join('');
+        }
+
+        function displayNoPostsMessage() {
+            document.getElementById('featured-title').textContent = 'Coming Soon';
+            document.getElementById('featured-date').textContent = 'Stay Tuned';
+            document.getElementById('featured-excerpt').textContent = 'AI insights and strategic guidance coming soon. Subscribe for updates.';
+            document.getElementById('featured-link').style.display = 'none';
+            
+            document.getElementById('archive-grid').innerHTML = 
+                '<div class="loading">Blog posts will appear here automatically as they are published.</div>';
+        }
+
+        function displayErrorMessage() {
+            document.getElementById('archive-grid').innerHTML = 
+                '<div class="loading">Unable to load posts at this time. Please try again later.</div>';
+        }
+
+        // Load posts when page loads
+        document.addEventListener('DOMContentLoaded', loadBlogPosts);
+    </script>
 </body>
 </html>
