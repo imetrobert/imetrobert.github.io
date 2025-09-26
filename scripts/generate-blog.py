@@ -31,31 +31,38 @@ def generate_blog_with_perplexity(api_key, topic=None):
         "Content-Type": "application/json"
     }
     
-    # Simplified payload - removing potentially unsupported parameters
-    payload = {
-        "model": "llama-3.1-sonar-small-128k-online",  # Using smaller model first
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience. Write authoritative, insightful blog posts about AI innovations and their practical business applications. Your writing is professional but approachable, focuses on practical implementation, and provides actionable insights."
-            },
-            {
-                "role": "user",
-                "content": f"Write a comprehensive blog post about: {topic}. Include key technological advances, business applications, real-world use cases, and implementation guidance. Target audience: business leaders and executives."
-            }
-        ],
-        "max_tokens": 2000,
-        "temperature": 0.7
-    }
+    # Try current available Perplexity models (as of 2024/2025)
+    models_to_try = [
+        "sonar-pro",           # Flagship model with advanced search
+        "sonar-medium-online", # Search-enhanced medium model  
+        "sonar-small-online",  # Search-enhanced small model
+        "sonar-medium-chat",   # Medium model without search
+        "sonar-small-chat",    # Small model without search
+        "llama-3.1-sonar-small-128k-chat",  # Alternative naming
+        "llama-3.1-sonar-large-128k-chat"   # Alternative naming
+    ]
     
+    for model in models_to_try:
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience. Write authoritative, insightful blog posts about AI innovations and their practical business applications. Your writing is professional but approachable, focuses on practical implementation, and provides actionable insights."
+                },
+                {
+                    "role": "user",
+                    "content": f"Write a comprehensive blog post about: {topic}. Include key technological advances, business applications, real-world use cases, and implementation guidance. Target audience: business leaders and executives."
+                }
+            ],
+            "max_tokens": 2000,
+            "temperature": 0.7
+        }
+        
     try:
         print(f"Making request to: {url}")
-        print(f"Using model: {payload['model']}")
         
-        response = requests.post(url, json=payload, headers=headers, timeout=60)
-        
-        print(f"Response status: {response.status_code}")
-        
+        # Response handling after successful request
         if response.status_code != 200:
             print(f"Response content: {response.text}")
             response.raise_for_status()
