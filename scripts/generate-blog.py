@@ -14,7 +14,7 @@ def clean_filename(title):
     return clean_title.lower()
 
 def generate_blog_with_perplexity(api_key, topic=None):
-    """Generate blog content using Perplexity API"""
+    """Generate blog content using Perplexity API with structured format"""
     current_date = datetime.now().strftime("%B %Y")
     if not topic:
         topic = f"Latest AI innovations and breakthroughs in business applications for {current_date}"
@@ -26,36 +26,45 @@ def generate_blog_with_perplexity(api_key, topic=None):
     }
     
     models_to_try = [
-        "sonar-pro",
-        "sonar-medium-online", 
-        "sonar-small-online",
-        "sonar-medium-chat",
-        "sonar-small-chat"
+        "llama-3.1-sonar-large-128k-online",
+        "llama-3.1-sonar-small-128k-online",
+        "llama-3.1-8b-instruct"
     ]
+    
+    # Enhanced prompt for structured content
+    system_prompt = """You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience. Write authoritative, insightful blog posts about AI innovations and practical business applications.
+
+IMPORTANT: Structure your response in exactly these sections:
+1. INTRODUCTION: Brief overview paragraph
+2. KEY TECHNOLOGICAL ADVANCES: 3-4 major technological developments
+3. BUSINESS APPLICATIONS: 4-5 real-world business use cases
+4. IMPLEMENTATION GUIDANCE: 5 numbered steps for business leaders
+5. INSIGHTS FOR EXECUTIVES: 3 key strategic insights
+6. CONCLUSION: Final strategic imperative paragraph
+
+For each section, use clear bullet points or numbered lists. Be specific about companies, technologies, and actionable advice."""
+    
+    user_prompt = f"""Write a comprehensive blog post about: {topic}
+
+Structure the content with these exact sections:
+- Introduction paragraph
+- Key Technological Advances (3-4 items with specific examples)
+- Business Applications and Real-World Use Cases (4-5 specific examples)
+- Implementation Guidance for Business Leaders (5 numbered actionable steps)  
+- Insights for Executives (3 strategic insights)
+- Conclusion (strategic imperative)
+
+Focus on practical, actionable insights for business leaders. Include specific company examples and technologies where possible."""
     
     for model in models_to_try:
         print(f"Trying Perplexity model: {model}")
         payload = {
             "model": model,
             "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are Robert Simon, an AI expert and digital transformation leader "
-                        "with 25+ years of experience. Write authoritative, insightful blog posts "
-                        "about AI innovations and practical business applications."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"Write a comprehensive blog post about: {topic}. "
-                        "Include key technological advances, business applications, real-world use cases, "
-                        "and implementation guidance. Target audience: business leaders and executives."
-                    )
-                }
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
             ],
-            "max_tokens": 2000,
+            "max_tokens": 2500,
             "temperature": 0.7
         }
         
@@ -64,97 +73,666 @@ def generate_blog_with_perplexity(api_key, topic=None):
             print(f"API status code: {response.status_code}")
             
             if response.status_code != 200:
-                print(f"❌ Failed model {model}: {response.text}")
+                print(f"Failed model {model}: {response.text}")
                 continue
             
             data = response.json()
             if 'choices' in data and len(data['choices']) > 0:
                 content = data['choices'][0]['message']['content'].strip()
                 if not content:
-                    print("❌ API returned empty content")
+                    print("API returned empty content")
                     continue
                 
-                print(f"✅ Content received from model {model} ({len(content)} characters)")
+                print(f"Content received from model {model} ({len(content)} characters)")
                 return {
                     "content": content,
                     "citations": data.get("citations", []),
                     "usage": data.get("usage", {})
                 }
             else:
-                print(f"❌ Unexpected response structure: {data}")
+                print(f"Unexpected response structure: {data}")
                 continue
         
         except requests.exceptions.RequestException as e:
-            print(f"❌ Request exception with model {model}: {e}")
+            print(f"Request exception with model {model}: {e}")
             continue
         except Exception as e:
-            print(f"❌ Unexpected error with model {model}: {e}")
+            print(f"Unexpected error with model {model}: {e}")
             continue
     
     raise Exception("All Perplexity models failed to generate content")
 
-def extract_title_and_excerpt(content):
-    """Extract title and excerpt from generated content"""
-    lines = content.split("\n")
-    title = "AI Insights"
-    excerpt = ""
-    for line in lines:
-        line = line.strip()
-        if line and not title.startswith("AI Insights"):
-            if line.startswith("#") or (len(line) < 100 and not line.endswith(".")):
-                title = line.lstrip("# ").strip()
-        if line and len(line) > 50 and not excerpt:
-            excerpt = line[:200] + "..." if len(line) > 200 else line
-            break
-    if not excerpt:
-        excerpt = "Insights into the latest AI innovations and their practical business applications."
-    return title, excerpt
+def parse_structured_content(content):
+    """Parse the structured content into sections"""
+    sections = {
+        'introduction': '',
+        'tech_advances': [],
+        'business_apps': [],
+        'implementation': [],
+        'insights': [],
+        'conclusion': ''
+    }
+    
+    # Split content into paragraphs
+    paragraphs = [p.strip() for p in content.split('\n\n') if p.strip()]
+    current_section = 'introduction'
+    
+    for para in paragraphs:
+        para_lower = para.lower()
+        
+        # Detect section headers
+        if 'key technological' in para_lower or 'technological advance' in para_lower:
+            current_section = 'tech_advances'
+            continue
+        elif 'business application' in para_lower or 'real-world use' in para_lower:
+            current_section = 'business_apps'
+            continue
+        elif 'implementation' in para_lower or 'guidance' in para_lower:
+            current_section = 'implementation'
+            continue
+        elif 'insight' in para_lower and 'executive' in para_lower:
+            current_section = 'insights'
+            continue
+        elif 'conclusion' in para_lower or 'strategic imperative' in para_lower:
+            current_section = 'conclusion'
+            continue
+        
+        # Add content to appropriate section
+        if current_section == 'introduction' and not sections['introduction']:
+            sections['introduction'] = para
+        elif current_section == 'conclusion' and not sections['conclusion']:
+            sections['conclusion'] = para
+        elif current_section in ['tech_advances', 'business_apps', 'insights']:
+            if para.startswith('-') or para.startswith('•') or para.startswith('*'):
+                sections[current_section].append(para.lstrip('-•* '))
+            elif ':' in para and len(para) > 50:  # Looks like a bullet point
+                sections[current_section].append(para)
+        elif current_section == 'implementation':
+            if para[0].isdigit() or para.startswith('-') or para.startswith('•'):
+                sections[current_section].append(para.lstrip('0123456789.-•* '))
+    
+    return sections
 
-def create_html_blog_post(content, title, excerpt, citations=None):
-    """Convert content to HTML format using the blog template"""
+def create_html_blog_post(content, title, excerpt):
+    """Convert content to HTML format using the new template structure"""
     current_date = datetime.now().strftime("%B %d, %Y")
-    template_path = "blog/templates/blog-template.html"
     
-    try:
-        with open(template_path, "r", encoding="utf-8") as f:
-            template = f.read()
-    except FileNotFoundError:
-        template = create_basic_template()
+    # Parse the structured content
+    sections = parse_structured_content(content)
     
-    def format_content(text):
-        text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
-        text = re.sub(r'\*(.*?)\*', r'<em>\1</em>', text)
-        text = re.sub(r'\n\n', '</p><p>', text)
-        return f"<p>{text}</p>"
-    
-    html_content = template.replace("{{TITLE}}", title)
-    html_content = html_content.replace("{{DATE}}", current_date)
-    html_content = html_content.replace("{{EXCERPT}}", excerpt)
-    html_content = html_content.replace("{{TECH_ADVANCES}}", format_content(content))
-    html_content = html_content.replace("{{BUSINESS_APPS}}", format_content(content))
-    html_content = html_content.replace("{{USE_CASES}}", format_content(content))
-    html_content = html_content.replace("{{IMPLEMENTATION}}", format_content(content))
-    
-    return html_content
-
-def create_basic_template():
-    return """<!DOCTYPE html>
+    # Create the full HTML structure
+    html_template = '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{TITLE}} - Robert Simon AI Insights</title>
+    <title>AI Insights - Latest Post | Robert Simon</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --primary-blue: #2563eb;
+            --secondary-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --ai-purple: #8b5cf6;
+            --dark-navy: #1e293b;
+            --medium-gray: #64748b;
+            --light-gray: #f1f5f9;
+            --white: #ffffff;
+            --gradient-primary: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+            --gradient-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            --gradient-ai: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%);
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: var(--dark-navy);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Parallax Background */
+        .parallax-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 120%;
+            height: 120%;
+            pointer-events: none;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 30% 70%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 70% 30%, rgba(6, 182, 212, 0.03) 0%, transparent 50%);
+            animation: slowFloat 20s ease-in-out infinite;
+        }
+
+        @keyframes slowFloat {
+            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+            25% { transform: translate(-5px, -10px) rotate(0.5deg); }
+            50% { transform: translate(5px, -5px) rotate(-0.3deg); }
+            75% { transform: translate(-3px, 8px) rotate(0.2deg); }
+        }
+
+        /* AI Circuit Effects */
+        .ai-circuit {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.08;
+            background-image: 
+                radial-gradient(circle at 25% 25%, #06b6d4 2px, transparent 2px),
+                radial-gradient(circle at 75% 75%, #2563eb 1px, transparent 1px),
+                linear-gradient(45deg, transparent 48%, rgba(6, 182, 212, 0.1) 49%, rgba(6, 182, 212, 0.1) 51%, transparent 52%),
+                linear-gradient(-45deg, transparent 48%, rgba(37, 99, 235, 0.1) 49%, rgba(37, 99, 235, 0.1) 51%, transparent 52%);
+            background-size: 50px 50px, 30px 30px, 20px 20px, 20px 20px;
+            animation: aiFlow 15s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes aiFlow {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            25% { transform: translateX(10px) translateY(-5px); }
+            50% { transform: translateX(-5px) translateY(10px); }
+            75% { transform: translateX(5px) translateY(-10px); }
+        }
+
+        /* Navigation */
+        .nav-bar {
+            background: var(--white);
+            padding: 1rem 0;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.75rem 2rem;
+            border-radius: 25px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan));
+            color: white;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .blog-meta {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--medium-gray);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Header */
+        .header {
+            background: var(--gradient-ai);
+            color: white;
+            padding: 4rem 0 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(37, 99, 235, 0.2) 0%, transparent 50%);
+            animation: aiFlow 12s ease-in-out infinite;
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #ffffff, #e0f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+        }
+
+        .header .intro {
+            font-size: 1.05rem;
+            opacity: 0.85;
+            max-width: 800px;
+            margin: 0 auto;
+            font-weight: 300;
+            line-height: 1.7;
+        }
+
+        /* Main Content Container */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 3rem 2rem 4rem;
+        }
+
+        /* Article Container */
+        .article-container {
+            background: var(--gradient-card);
+            border-radius: 20px;
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            border: 1px solid rgba(37, 99, 235, 0.1);
+            position: relative;
+        }
+
+        /* Article Content */
+        .article-content {
+            padding: 3rem;
+            background: white;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: var(--dark-navy);
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            position: relative;
+            padding-left: 1.5rem;
+            line-height: 1.3;
+        }
+
+        .section-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--gradient-primary);
+            border-radius: 2px;
+        }
+
+        h3 {
+            color: var(--primary-blue);
+            font-size: 1.3rem;
+            margin: 2rem 0 1rem 0;
+            font-weight: 600;
+            border-left: 4px solid var(--accent-cyan);
+            padding-left: 15px;
+            line-height: 1.4;
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+            text-align: justify;
+            word-spacing: normal;
+            line-height: 1.7;
+            color: var(--medium-gray);
+            font-size: 1rem;
+        }
+
+        ul {
+            margin-bottom: 1.5rem;
+            padding-left: 0;
+        }
+
+        li {
+            margin-bottom: 1.2rem;
+            line-height: 1.7;
+            color: var(--medium-gray);
+            list-style: none;
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--primary-blue);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        ol {
+            margin-bottom: 1.5rem;
+            padding-left: 0;
+            counter-reset: list-counter;
+        }
+
+        ol li {
+            counter-increment: list-counter;
+            padding-left: 3rem;
+            position: relative;
+        }
+
+        ol li::before {
+            content: counter(list-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: var(--gradient-primary);
+            color: white;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        ol li ul li {
+            margin-bottom: 0.8rem;
+            padding-left: 1.5rem;
+            counter-increment: none;
+        }
+
+        ol li ul li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--accent-cyan);
+            font-weight: bold;
+            background: none;
+            width: auto;
+            height: auto;
+            border-radius: 0;
+            font-size: 1.2rem;
+        }
+
+        strong {
+            color: var(--dark-navy);
+            font-weight: 600;
+        }
+
+        /* Conclusion section */
+        .conclusion {
+            background: var(--gradient-ai);
+            color: white;
+            padding: 2.5rem;
+            border-radius: 15px;
+            margin-top: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .conclusion::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.2) 0%, transparent 50%);
+            animation: aiFlow 15s ease-in-out infinite;
+        }
+
+        .conclusion p {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 1.1rem;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 0;
+            text-align: left;
+        }
+
+        .conclusion strong {
+            color: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+
+            .header .subtitle {
+                font-size: 1.1rem;
+            }
+
+            .header .intro {
+                font-size: 1rem;
+            }
+
+            .container {
+                padding: 2rem 1rem 3rem;
+            }
+
+            .article-content {
+                padding: 2rem 1.5rem;
+            }
+
+            .header {
+                padding: 3rem 0 2rem;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .nav-content {
+                padding: 0 1rem;
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+        }
+
+        /* Animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>{{TITLE}}</h1>
-    <p>Published on {{DATE}}</p>
-    <p><em>{{EXCERPT}}</em></p>
-    <div>{{TECH_ADVANCES}}</div>
-    <div>{{BUSINESS_APPS}}</div>
-    <div>{{USE_CASES}}</div>
-    <div>{{IMPLEMENTATION}}</div>
+    <div class="parallax-bg"></div>
+
+    <nav class="nav-bar">
+        <div class="nav-content">
+            <a href="/" class="nav-link">
+                ← Back to Portfolio
+            </a>
+            <div class="blog-meta">
+                <span>AI Innovation Series</span>
+                <span>•</span>
+                <span>{current_date}</span>
+            </div>
+        </div>
+    </nav>
+
+    <header class="header">
+        <div class="header-content">
+            <h1>{title}</h1>
+            <div class="subtitle">{current_date} Business Intelligence Report</div>
+            <div class="intro">
+                {excerpt}
+            </div>
+        </div>
+        <div class="ai-circuit"></div>
+    </header>
+
+    <div class="container">
+        <article class="article-container fade-in">
+            <div class="article-content">
+                {content_sections}
+
+                <div class="conclusion">
+                    <p><strong>Strategic Imperative:</strong> {conclusion}</p>
+                </div>
+            </div>
+        </article>
+    </div>
 </body>
-</html>"""
+</html>'''
+    
+    # Format content sections
+    content_html = []
+    
+    # Introduction
+    if sections['introduction']:
+        content_html.append(f'''
+                <div class="section">
+                    <h2 class="section-title">Key Technological Advances</h2>
+                    <p>{sections['introduction']}</p>
+                </div>''')
+    
+    # Tech Advances
+    if sections['tech_advances']:
+        tech_items = '\n'.join([f'<li><strong>{item.split(":")[0]}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
+                               for item in sections['tech_advances'] if ':' in item])
+        if tech_items:
+            content_html.append(f'''
+                <div class="section">
+                    <h3>Key Technological Advances</h3>
+                    <ul>
+                        {tech_items}
+                    </ul>
+                </div>''')
+    
+    # Business Applications
+    if sections['business_apps']:
+        business_items = '\n'.join([f'<li><strong>{item.split(":")[0]}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
+                                   for item in sections['business_apps'] if ':' in item])
+        if business_items:
+            content_html.append(f'''
+                <div class="section">
+                    <h2 class="section-title">Business Applications and Real-World Use Cases</h2>
+                    <ul>
+                        {business_items}
+                    </ul>
+                </div>''')
+    
+    # Implementation Guidance
+    if sections['implementation']:
+        impl_items = '\n'.join([f'<li><strong>{item.split(":")[0] if ":" in item else f"Step {i+1}"}:</strong> {item.split(":", 1)[1].strip() if ":" in item else item}</li>' 
+                               for i, item in enumerate(sections['implementation'])])
+        if impl_items:
+            content_html.append(f'''
+                <div class="section">
+                    <h2 class="section-title">Implementation Guidance for Business Leaders</h2>
+                    <ol>
+                        {impl_items}
+                    </ol>
+                </div>''')
+    
+    # Executive Insights
+    if sections['insights']:
+        insight_items = '\n'.join([f'<li><strong>{item.split(":")[0]}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
+                                  for item in sections['insights'] if ':' in item])
+        if insight_items:
+            content_html.append(f'''
+                <div class="section">
+                    <h2 class="section-title">Insights for Executives</h2>
+                    <ul>
+                        {insight_items}
+                    </ul>
+                </div>''')
+    
+    # Fill in the template
+    conclusion_text = sections['conclusion'] if sections['conclusion'] else "Business leaders must act decisively to harness AI breakthroughs and drive strategic innovation."
+    
+    final_html = html_template.format(
+        current_date=current_date,
+        title=title,
+        excerpt=excerpt,
+        content_sections='\n'.join(content_html),
+        conclusion=conclusion_text
+    )
+    
+    return final_html
+
+def extract_title_and_excerpt(content):
+    """Extract title and excerpt from generated content"""
+    lines = [line.strip() for line in content.split("\n") if line.strip()]
+    title = "AI Insights"
+    excerpt = ""
+    
+    for line in lines:
+        # Look for title
+        if line and not title.startswith("AI Insights"):
+            if line.startswith("#") or (len(line) < 100 and not line.endswith(".")):
+                title = line.lstrip("# ").strip()
+                break
+    
+    # Find first substantial paragraph for excerpt
+    for line in lines:
+        if line and len(line) > 100 and not line.startswith("#"):
+            excerpt = line[:250] + "..." if len(line) > 250 else line
+            break
+    
+    if not excerpt:
+        excerpt = "Transforming business through AI-driven innovation. Key technological advances, real-world applications, and strategic implementation guidance for digital leaders."
+    
+    return title, excerpt
 
 def main():
     parser = argparse.ArgumentParser(description="Generate blog using Perplexity API")
@@ -165,7 +743,7 @@ def main():
     
     api_key = os.getenv("PERPLEXITY_API_KEY")
     if not api_key:
-        print("❌ PERPLEXITY_API_KEY environment variable not set")
+        print("PERPLEXITY_API_KEY environment variable not set")
         sys.exit(1)
     
     try:
@@ -175,26 +753,27 @@ def main():
         title, excerpt = extract_title_and_excerpt(result["content"])
         print(f"Title extracted: {title}")
         
-        html_content = create_html_blog_post(result["content"], title, excerpt, result.get("citations"))
+        html_content = create_html_blog_post(result["content"], title, excerpt)
         
         current_date = datetime.now().strftime("%Y-%m-%d")
         filename_html = f"{current_date}-{clean_filename(title)}.html"
-        filename_md = f"{current_date}-{clean_filename(title)}.md"
         
         output_dir = os.path.join("blog", args.output)
         os.makedirs(output_dir, exist_ok=True)
         
         path_html = os.path.join(output_dir, filename_html)
-        path_md = os.path.join(output_dir, filename_md)
         
         with open(path_html, "w", encoding="utf-8") as f:
             f.write(html_content)
         
-        with open(path_md, "w", encoding="utf-8") as f:
-            f.write(f"# {title}\n\n{excerpt}\n\n{result['content']}")
+        # Also save to latest.html for your current setup
+        latest_path = os.path.join("blog", "posts", "latest.html")
+        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
+        with open(latest_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
         
-        print(f"✅ Blog post HTML saved to: {path_html}")
-        print(f"✅ Blog post Markdown saved to: {path_md}")
+        print(f"Blog post HTML saved to: {path_html}")
+        print(f"Latest post updated at: {latest_path}")
         
         if result.get("citations"):
             print(f"Sources cited: {len(result['citations'])}")
@@ -202,7 +781,7 @@ def main():
         print("Blog post generation complete!")
     
     except Exception as e:
-        print(f"❌ Failed to generate blog post: {e}")
+        print(f"Failed to generate blog post: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
