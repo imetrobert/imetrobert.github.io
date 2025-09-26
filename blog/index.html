@@ -4,89 +4,445 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Robert Simon - AI Expert & Digital Transformation Leader</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary-blue: #2563eb;
+            --secondary-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --ai-purple: #8b5cf6;
+            --dark-navy: #1e293b;
+            --medium-gray: #64748b;
+            --light-gray: #f1f5f9;
+            --white: #ffffff;
+            --gradient-primary: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+            --gradient-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            --gradient-ai: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%);
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6; color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: var(--font-primary);
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: var(--dark-navy);
+            line-height: 1.6;
             min-height: 100vh;
+            overflow-x: hidden;
         }
+
+        /* Parallax Background */
+        .parallax-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 120%;
+            height: 120%;
+            pointer-events: none;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 30% 70%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 70% 30%, rgba(6, 182, 212, 0.03) 0%, transparent 50%);
+            animation: slowFloat 20s ease-in-out infinite;
+        }
+
+        @keyframes slowFloat {
+            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+            25% { transform: translate(-5px, -10px) rotate(0.5deg); }
+            50% { transform: translate(5px, -5px) rotate(-0.3deg); }
+            75% { transform: translate(-3px, 8px) rotate(0.2deg); }
+        }
+
+        /* AI Circuit Effects */
+        .ai-circuit {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.08;
+            background-image: 
+                radial-gradient(circle at 25% 25%, #06b6d4 2px, transparent 2px),
+                radial-gradient(circle at 75% 75%, #2563eb 1px, transparent 1px),
+                linear-gradient(45deg, transparent 48%, rgba(6, 182, 212, 0.1) 49%, rgba(6, 182, 212, 0.1) 51%, transparent 52%),
+                linear-gradient(-45deg, transparent 48%, rgba(37, 99, 235, 0.1) 49%, rgba(37, 99, 235, 0.1) 51%, transparent 52%);
+            background-size: 50px 50px, 30px 30px, 20px 20px, 20px 20px;
+            animation: aiFlow 15s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes aiFlow {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            25% { transform: translateX(10px) translateY(-5px); }
+            50% { transform: translateX(-5px) translateY(10px); }
+            75% { transform: translateX(5px) translateY(-10px); }
+        }
+
+        .ai-accent {
+            background: var(--gradient-ai) !important;
+            background-size: 200% 200% !important;
+            animation: aiGradient 4s ease infinite;
+        }
+
+        @keyframes aiGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         .container {
-            max-width: 1200px; margin: 0 auto; padding: 2rem;
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
-            border-radius: 20px; margin-top: 2rem; margin-bottom: 2rem;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
         }
-        header { text-align: center; margin-bottom: 3rem; }
+
+        /* Header */
+        header {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(37, 99, 235, 0.2) 0%, transparent 50%);
+            animation: aiFlow 12s ease-in-out infinite;
+        }
+
         h1 {
-            font-size: 3rem; font-weight: 700; margin-bottom: 1rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #ffffff, #e0f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             background-clip: text;
+            position: relative;
+            z-index: 1;
         }
-        .subtitle { font-size: 1.2rem; color: #666; margin-bottom: 2rem; }
-        .section { margin-bottom: 3rem; padding: 2rem; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .section h2 { font-size: 2rem; margin-bottom: 1rem; color: #333; display: flex; align-items: center; gap: 10px; }
-        .section h3 { font-size: 1.5rem; margin-bottom: 1rem; color: #555; display: flex; align-items: center; gap: 10px; }
+
+        .subtitle {
+            font-size: 1.4rem;
+            font-weight: 500;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Section Styling */
+        .section {
+            background: var(--gradient-card);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 2rem;
+            border: 1px solid rgba(37, 99, 235, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .section:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .section h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--dark-navy);
+            margin-bottom: 1.5rem;
+            position: relative;
+            padding-left: 1rem;
+        }
+
+        .section h2::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--gradient-primary);
+            border-radius: 2px;
+        }
+
+        .section h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--primary-blue);
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent-cyan);
+            padding-left: 15px;
+        }
+
+        .section p {
+            color: var(--medium-gray);
+            line-height: 1.7;
+            margin-bottom: 1.2rem;
+        }
+
+        /* Blog Preview */
         .blog-preview {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem; margin-top: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
         }
+
         .blog-card {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            border-radius: 15px; padding: 2rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid rgba(37, 99, 235, 0.1);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
-        .blog-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        .blog-card h4 { color: #333; margin-bottom: 0.5rem; font-size: 1.2rem; }
-        .blog-date { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
-        .blog-excerpt { color: #555; line-height: 1.6; }
+
+        .blog-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-xl);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .blog-card h4 {
+            color: var(--dark-navy);
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .blog-date {
+            color: var(--medium-gray);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            font-family: var(--font-mono);
+        }
+
+        .blog-excerpt {
+            color: var(--medium-gray);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
         .read-more {
-            display: inline-block; margin-top: 1rem; color: #667eea; text-decoration: none;
-            font-weight: 600; transition: color 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--primary-blue);
+            border-radius: 25px;
+            background: transparent;
         }
-        .read-more:hover { color: #764ba2; }
+
+        .read-more:hover {
+            background: var(--primary-blue);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Journey Highlights Grid */
+        .journey-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .journey-item {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid rgba(37, 99, 235, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .journey-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Awards */
         .awards {
-            display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; margin-top: 2rem;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1.5rem;
         }
+
         .award {
-            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
-            padding: 0.5rem 1rem; border-radius: 25px; color: #333; font-weight: 600;
+            background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: transform 0.3s ease;
         }
+
+        .award:hover {
+            transform: translateY(-3px) scale(1.05);
+        }
+
+        /* CTA Section */
         .cta {
-            text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; padding: 3rem; border-radius: 15px; margin-top: 3rem;
+            text-align: center;
+            background: var(--gradient-ai);
+            color: white;
+            padding: 3rem;
+            border-radius: 16px;
+            margin-top: 3rem;
+            position: relative;
+            overflow: hidden;
         }
-        .cta h2 { color: white; margin-bottom: 1rem; }
+
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.2) 0%, transparent 50%);
+            animation: aiFlow 15s ease-in-out infinite;
+        }
+
+        .cta h2 {
+            color: white;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* View All Link */
+        .view-all-link {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .view-all-btn {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.8rem;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .view-all-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        /* Responsive Design */
         @media (max-width: 768px) {
-            .container { margin: 1rem; padding: 1rem; }
-            h1 { font-size: 2rem; }
-            .section { padding: 1.5rem; }
+            .container {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .section {
+                padding: 1.5rem;
+            }
+            
+            .blog-preview {
+                grid-template-columns: 1fr;
+            }
+            
+            .journey-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .awards {
+                justify-content: flex-start;
+            }
+        }
+
+        /* Animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .fade-in:nth-child(1) { animation-delay: 0.1s; }
+        .fade-in:nth-child(2) { animation-delay: 0.2s; }
+        .fade-in:nth-child(3) { animation-delay: 0.3s; }
+        .fade-in:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
 <body>
+    <div class="parallax-bg"></div>
+    
     <div class="container">
         <header>
             <h1>Robert Simon</h1>
             <p class="subtitle">AI Expert & Digital Transformation Leader</p>
+            <div class="ai-circuit"></div>
         </header>
 
-        <section class="section">
-            <h2>💡 AI Thought Leadership</h2>
+        <section class="section fade-in">
+            <h2>AI Thought Leadership</h2>
             <h3>Impact at a Glance</h3>
             <p>I've been shaping the digital landscape since 1996 — back when "going online" meant something entirely different. What started as curiosity about web technologies has evolved into a mission to revolutionize how people interact with digital experiences.</p>
             <p>Today, I'm leading the charge in AI integration at Bell, where I've helped transform MyBell into Canada's #1 telecom app. But it's not just about the technology — it's about creating moments of delight in everyday digital interactions.</p>
             <p>From aviation systems to telecommunications giants, I've consistently turned complex challenges into elegant solutions that real people actually want to use.</p>
         </section>
 
-        <section class="section">
-            <h2>🤖 Latest AI Insights</h2>
+        <section class="section fade-in">
+            <h2>Latest AI Insights</h2>
             <p>Stay ahead of the curve with monthly deep-dives into the latest AI innovations and their practical business applications.</p>
             
             <div class="blog-preview" id="blog-preview">
-                <!-- Latest blog post -->
                 <div class="blog-card">
                     <h4>Latest AI Insights</h4>
                     <div class="blog-date">September 26, 2025</div>
@@ -95,16 +451,19 @@
                 </div>
             </div>
 
-            <div style="text-align: center; margin-top: 2rem;">
-                <a href="/blog/posts/" class="read-more" style="font-size: 1.1rem;">View All AI Insights →</a>
+            <div class="view-all-link">
+                <a href="/blog/posts/" class="view-all-btn">
+                    View All AI Insights
+                    <span>→</span>
+                </a>
             </div>
         </section>
 
-        <section class="section">
-            <h2>🎯 Journey Highlights</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
-                <div>
-                    <h3>🏆 Recognition</h3>
+        <section class="section fade-in">
+            <h2>Journey Highlights</h2>
+            <div class="journey-grid">
+                <div class="journey-item">
+                    <h3>Recognition</h3>
                     <div class="awards">
                         <div class="award">Webby Award Winner</div>
                         <div class="award">Bell Bravo Award</div>
@@ -113,12 +472,12 @@
                         <div class="award">AI Innovation Leadership</div>
                     </div>
                 </div>
-                <div>
-                    <h3>🚀 Arsenal</h3>
+                <div class="journey-item">
+                    <h3>Arsenal</h3>
                     <p>Transforming Business Through AI Integration. From strategy to execution, I share insights on how organizations can harness AI to drive meaningful digital transformation.</p>
                 </div>
-                <div>
-                    <h3>🌍 Global Reach</h3>
+                <div class="journey-item">
+                    <h3>Global Reach</h3>
                     <p>Watch me dive deep into the practical realities of AI implementation in enterprise environments, delivering solutions that scale across industries and borders.</p>
                 </div>
             </div>
@@ -127,6 +486,7 @@
         <div class="cta">
             <h2>Let's Build Something Amazing</h2>
             <p>Ready to transform your digital experience? I'm always excited to tackle new challenges and push boundaries.</p>
+            <div class="ai-circuit"></div>
         </div>
     </div>
 </body>
