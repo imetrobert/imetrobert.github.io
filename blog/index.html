@@ -195,16 +195,11 @@
             <p>Stay ahead of the curve with monthly deep-dives into the latest AI innovations and their practical business applications.</p>
             
             <div class="blog-preview" id="blog-preview">
-                <!-- Blog posts will be automatically inserted here -->
-                <div class="blog-card">
-                    <h4>Coming Soon: AI Innovation Series</h4>
-                    <div class="blog-date">First post: October 2025</div>
-                    <p class="blog-excerpt">Monthly insights into cutting-edge AI advances with practical implementation strategies for business leaders. Each post covers key technological breakthroughs, business applications, real-world use cases, and step-by-step implementation guidance.</p>
-                </div>
+                <!-- Latest post will be injected here -->
             </div>
             
             <div style="text-align: center; margin-top: 2rem;">
-                <a href="/blog/" class="read-more" style="font-size: 1.1rem;">View All AI Insights →</a>
+                <a href="/blog/posts/" class="read-more" style="font-size: 1.1rem;">View All AI Insights →</a>
             </div>
         </section>
 
@@ -242,11 +237,57 @@
     </div>
 
     <script>
-        // This will be updated automatically by the blog system
-        function updateBlogPreview() {
-            // Fetch latest blog posts and update the preview section
-            // This will be handled by the automated system
+        async function updateBlogPreview() {
+            const previewContainer = document.getElementById('blog-preview');
+
+            try {
+                // Fetch the list of posts
+                const response = await fetch('/blog/posts/');
+                if (!response.ok) throw new Error('Cannot fetch blog posts');
+
+                const text = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+
+                const links = Array.from(doc.querySelectorAll('a'))
+                    .map(a => a.getAttribute('href'))
+                    .filter(href => href.endsWith('.html'))
+                    .sort()
+                    .reverse();
+
+                if (links.length === 0) {
+                    previewContainer.innerHTML = `
+                        <div class="blog-card">
+                            <h4>No blog posts yet</h4>
+                            <div class="blog-date">Stay tuned!</div>
+                            <p class="blog-excerpt">New AI insights will appear here when generated.</p>
+                        </div>`;
+                    return;
+                }
+
+                const latest = links[0];
+                const match = latest.match(/(\d{4}-\d{2}-\d{2})-(.+)\.html$/);
+                const date = match ? match[1] : 'Unknown date';
+                const title = match ? match[2].replace(/-/g, ' ') : 'AI Insights';
+
+                previewContainer.innerHTML = `
+                    <div class="blog-card">
+                        <h4>${title}</h4>
+                        <div class="blog-date">${date}</div>
+                        <p class="blog-excerpt">Click below to read the latest AI insights blog post.</p>
+                        <a href="/blog/posts/${latest}" class="read-more">Read Full Post →</a>
+                    </div>`;
+            } catch (error) {
+                console.error('Error loading latest blog post:', error);
+                previewContainer.innerHTML = `
+                    <div class="blog-card">
+                        <h4>Error loading blog</h4>
+                        <p class="blog-excerpt">Could not fetch latest post. Try again later.</p>
+                    </div>`;
+            }
         }
+
+        updateBlogPreview();
     </script>
 </body>
 </html>
