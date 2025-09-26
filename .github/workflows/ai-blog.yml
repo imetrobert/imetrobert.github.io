@@ -1,3 +1,4 @@
+# Updated .github/workflows/ai-blog.yml
 name: ai-blog
 
 on:
@@ -9,7 +10,7 @@ jobs:
   generate-blog:
     runs-on: ubuntu-latest
     env:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
 
     steps:
       - name: Checkout repository
@@ -25,8 +26,47 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
 
-      - name: Run blog generation script with Gemini 2.5 Flash-Lite model
+      - name: Run blog generation script with Perplexity
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
         run: |
-          python scripts/generate-blog.py --model gemini-2.5-flash-lite
+          python scripts/generate-blog.py --output staging
+
+      - name: Check if new post was generated
+        id: check-post
+        run: |
+          if [ -n "$(find blog/staging/ -name '*.html' -newer scripts/generate-blog.py 2>/dev/null)" ]; then
+            echo "new_post=true" >> $GITHUB_OUTPUT
+            echo "✅ New blog post generated!"
+          else
+            echo "new_post=false" >> $GITHUB_OUTPUT
+            echo "❌ No new post generated"
+          fi
+
+      - name: Create Pull Request
+        if: steps.check-post.outputs.new_post == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Add new AI insights blog post"
+          title: "🤖 New AI Insights Post Ready for Review"
+          body: |
+            ## New AI Blog Post Generated! 🚀
+            
+            A new AI insights blog post has been automatically generated using Perplexity AI and is ready for your review.
+            
+            **Features:**
+            - ✅ Generated with latest AI information (Perplexity online model)
+            - ✅ Structured content with business applications
+            - ✅ Implementation guidance included
+            - ✅ Citations from recent sources
+            
+            **Next steps:**
+            1. Review the post content in the staging folder
+            2. Make any necessary edits  
+            3. Move from staging to posts folder
+            4. Merge this PR to publish
+            
+            The post will go live when you merge this PR!
+          branch: ai-blog-post-${{ github.run_number }}
+          delete-branch: 
