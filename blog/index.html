@@ -3,191 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Insights</title>
+    <title>Robert Simon - AI Expert & Digital Transformation Leader</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            color: #333;
-            background-color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6; color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 20px;
+        .container {
+            max-width: 1200px; margin: 0 auto; padding: 2rem;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            border-radius: 20px; margin-top: 2rem; margin-bottom: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
-        
-        .section {
-            margin-bottom: 40px;
+        header { text-align: center; margin-bottom: 3rem; }
+        h1 {
+            font-size: 3rem; font-weight: 700; margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        
-        .section-title {
-            font-size: 1.8em;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .subtitle { font-size: 1.2rem; color: #666; margin-bottom: 2rem; }
+        .section { margin-bottom: 3rem; padding: 2rem; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .section h2 { font-size: 2rem; margin-bottom: 1rem; color: #333; display: flex; align-items: center; gap: 10px; }
+        .section h3 { font-size: 1.5rem; margin-bottom: 1rem; color: #555; display: flex; align-items: center; gap: 10px; }
+        .blog-preview {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem; margin-top: 2rem;
         }
-        
-        h3 {
-            color: #34495e;
-            font-size: 1.3em;
-            margin-top: 30px;
-            margin-bottom: 15px;
-            border-left: 4px solid #3498db;
-            padding-left: 15px;
+        .blog-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px; padding: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        
-        p {
-            margin-bottom: 15px;
-            text-align: justify;
-            word-spacing: normal;
+        .blog-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .blog-card h4 { color: #333; margin-bottom: 0.5rem; font-size: 1.2rem; }
+        .blog-date { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
+        .blog-excerpt { color: #555; line-height: 1.6; }
+        .read-more {
+            display: inline-block; margin-top: 1rem; color: #667eea; text-decoration: none;
+            font-weight: 600; transition: color 0.3s ease;
         }
-        
-        ul {
-            margin-bottom: 20px;
+        .read-more:hover { color: #764ba2; }
+        .awards {
+            display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; margin-top: 2rem;
         }
-        
-        li {
-            margin-bottom: 12px;
-            line-height: 1.7;
+        .award {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 0.5rem 1rem; border-radius: 25px; color: #333; font-weight: 600;
         }
-        
-        ol {
-            margin-bottom: 20px;
+        .cta {
+            text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 3rem; border-radius: 15px; margin-top: 3rem;
         }
-        
-        ol li {
-            margin-bottom: 15px;
-            line-height: 1.7;
-        }
-        
-        .highlight {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-left: 4px solid #17a2b8;
-            margin: 20px 0;
-        }
-        
-        .conclusion {
-            background-color: #f1f3f4;
-            padding: 25px;
-            border-radius: 8px;
-            margin-top: 30px;
-            font-weight: 500;
-        }
-        
-        hr {
-            border: none;
-            height: 1px;
-            background-color: #e0e0e0;
-            margin: 30px 0;
-        }
-        
-        strong {
-            color: #2c3e50;
+        .cta h2 { color: white; margin-bottom: 1rem; }
+        @media (max-width: 768px) {
+            .container { margin: 1rem; padding: 1rem; }
+            h1 { font-size: 2rem; }
+            .section { padding: 1.5rem; }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>AI Insights</h1>
-        <p>September 2025 Business Intelligence Report</p>
-    </div>
+    <div class="container">
+        <header>
+            <h1>Robert Simon</h1>
+            <p class="subtitle">AI Expert & Digital Transformation Leader</p>
+        </header>
 
-    <div class="section">
-        <h2 class="section-title">🚀 Key Technological Advances</h2>
-        
-        <p>September 2025 marks a pivotal moment for AI-driven business transformation, with innovations spanning core infrastructure, sector-specific applications, and real-world operational enhancements. Business leaders must grasp the latest breakthroughs to maintain competitive advantage and drive strategic, scalable adoption.</p>
+        <section class="section">
+            <h2>💡 AI Thought Leadership</h2>
+            <h3>Impact at a Glance</h3>
+            <p>I've been shaping the digital landscape since 1996 — back when "going online" meant something entirely different. What started as curiosity about web technologies has evolved into a mission to revolutionize how people interact with digital experiences.</p>
+            <p>Today, I'm leading the charge in AI integration at Bell, where I've helped transform MyBell into Canada's #1 telecom app. But it's not just about the technology — it's about creating moments of delight in everyday digital interactions.</p>
+            <p>From aviation systems to telecommunications giants, I've consistently turned complex challenges into elegant solutions that real people actually want to use.</p>
+        </section>
 
-        <h3>Key Technological Advances</h3>
-        <ul>
-            <li><strong>Distributed AI Infrastructure:</strong> Equinix unveiled a distributed AI platform, shifting away from centralized AI training toward real-time inference at the edge. This enables scalable, low-latency AI workloads for use cases like predictive maintenance, retail optimization, and fraud detection, with deployment flexibility across regions and proximity to users. Such distributed models are vital for organizations requiring instant insights where data is generated, not just in the cloud.</li>
+        <section class="section">
+            <h2>🤖 Latest AI Insights</h2>
+            <p>Stay ahead of the curve with monthly deep-dives into the latest AI innovations and their practical business applications.</p>
             
-            <li><strong>AI-Enhanced Communication and Collaboration:</strong> Enterprise Connect AI highlighted advanced workplace tools powered by AI, including smarter virtual assistants, automated meeting transcriptions, and contextual knowledge surfacing for remote teams. This boosts productivity and allows seamless collaboration regardless of location.</li>
-            
-            <li><strong>Contextual AI in Consumer Applications:</strong> Google's Gemini 2.5 powers a natural-language flight search tool, allowing users to specify travel preferences conversationally and receive tailored, real-time results. Magic Cue, a contextual AI feature for Pixel 10, proactively presents travel information when relevant, reducing friction and enhancing user experience.</li>
-            
-            <li><strong>AI in Cybersecurity:</strong> At the Cyber AI Summit, leaders discussed sophisticated AI models for real-time threat detection, secure model management, and automated incident response—crucial for safeguarding enterprise systems and data integrity.</li>
-        </ul>
-    </div>
+            <div class="blog-preview" id="blog-preview">
+                <!-- Latest blog post -->
+                <div class="blog-card">
+                    <h4>Latest AI Insights</h4>
+                    <div class="blog-date">September 26, 2025</div>
+                    <p class="blog-excerpt">Click below to read the latest AI insights blog post, including key technological breakthroughs, business applications, real-world use cases, and step-by-step implementation guidance.</p>
+                    <a href="/blog/posts/latest.html" class="read-more">Read Full Post →</a>
+                </div>
+            </div>
 
-    <div class="section">
-        <h2 class="section-title">💼 Business Applications and Real-World Use Cases</h2>
-        
-        <ul>
-            <li><strong>Predictive Maintenance in Manufacturing:</strong> Distributed AI enables manufacturing plants to deploy predictive models directly on the factory floor, identifying equipment failures before they occur and reducing downtime.</li>
-            
-            <li><strong>Dynamic Retail Optimization:</strong> Retailers leverage edge AI for inventory management, personalized marketing, and fraud detection, offering immediate insights and actions based on in-store data streams.</li>
-            
-            <li><strong>Financial Services – Fraud Detection:</strong> Real-time AI inference at the edge accelerates fraud recognition, allowing financial institutions to respond instantly to suspicious activity and comply with evolving regulatory requirements.</li>
-            
-            <li><strong>Travel and Hospitality:</strong> Airlines like United are using AI-driven tools to monitor social media in real time, identify culturally relevant marketing opportunities, and deploy targeted campaigns that ride the wave of current events, rather than static, scheduled advertising.</li>
-            
-            <li><strong>Healthcare and Education:</strong> AI-powered translation tools, personalized chatbots, and tutoring systems are improving accessibility, tailoring services to individual needs, and expanding reach to marginalized populations.</li>
-        </ul>
-    </div>
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="/blog/posts/" class="read-more" style="font-size: 1.1rem;">View All AI Insights →</a>
+            </div>
+        </section>
 
-    <div class="section">
-        <h2 class="section-title">🎯 Implementation Guidance for Business Leaders</h2>
-        
-        <ol>
-            <li><strong>Assess and Modernize Infrastructure</strong>
-                <ul>
-                    <li>Evaluate existing data center and edge capabilities</li>
-                    <li>Prioritize platforms like Equinix's distributed AI infrastructure for scalable, low-latency deployments</li>
-                </ul>
-            </li>
-            
-            <li><strong>Focus on Responsible AI Adoption</strong>
-                <ul>
-                    <li>Invest in talent, governance, and risk management</li>
-                    <li>Ensure ethical deployment, transparency, and compliance, particularly in regulated sectors</li>
-                </ul>
-            </li>
-            
-            <li><strong>Drive Business Value through Use Case Prioritization</strong>
-                <ul>
-                    <li>Map AI initiatives to strategic business objectives—e.g., operational efficiency, customer experience, risk reduction</li>
-                    <li>Pilot high-impact applications such as predictive maintenance, real-time fraud detection, or contextual marketing before scaling organization-wide</li>
-                </ul>
-            </li>
-            
-            <li><strong>Foster Cross-Functional Collaboration</strong>
-                <ul>
-                    <li>Engage IT, operations, and business units in AI adoption strategies</li>
-                    <li>Encourage ongoing education on emerging AI tools and platforms</li>
-                </ul>
-            </li>
-            
-            <li><strong>Leverage AI Ecosystem Partnerships</strong>
-                <ul>
-                    <li>Tap into partner networks and solution labs to accelerate validation and deployment (e.g., Equinix Solution Validation Center)</li>
-                </ul>
-            </li>
-        </ol>
-    </div>
+        <section class="section">
+            <h2>🎯 Journey Highlights</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
+                <div>
+                    <h3>🏆 Recognition</h3>
+                    <div class="awards">
+                        <div class="award">Webby Award Winner</div>
+                        <div class="award">Bell Bravo Award</div>
+                        <div class="award">Execution Excellence</div>
+                        <div class="award">Boomerang Award</div>
+                        <div class="award">AI Innovation Leadership</div>
+                    </div>
+                </div>
+                <div>
+                    <h3>🚀 Arsenal</h3>
+                    <p>Transforming Business Through AI Integration. From strategy to execution, I share insights on how organizations can harness AI to drive meaningful digital transformation.</p>
+                </div>
+                <div>
+                    <h3>🌍 Global Reach</h3>
+                    <p>Watch me dive deep into the practical realities of AI implementation in enterprise environments, delivering solutions that scale across industries and borders.</p>
+                </div>
+            </div>
+        </section>
 
-    <div class="section">
-        <h2 class="section-title">✅ Insights for Executives</h2>
-        
-        <ul>
-            <li><strong>AI Investment Is Accelerating:</strong> Global technology spending will exceed $375 billion in 2025, with a significant share allocated to AI-powered productivity and transformation. Early adopters are integrating AI across core business functions, not just as point solutions.</li>
-            
-            <li><strong>AI Is Moving to the Physical World:</strong> Robotics and spatial intelligence tools are transitioning from research labs to manufacturing and transportation, introducing new operational efficiencies and workforce considerations.</li>
-            
-            <li><strong>Real-Time, Contextual Engagement Is Now Possible:</strong> AI's ability to surface information and opportunities in real time—whether for travelers, marketers, or customer service—is becoming the new standard for leading enterprises.</li>
-        </ul>
-    </div>
-
-    <div class="conclusion">
-        <p><strong>Conclusion:</strong> Business leaders must act decisively: invest in distributed AI infrastructure, prioritize high-value use cases, and foster a culture of responsible, strategic innovation. The organizations that harness these breakthroughs will define the next wave of intelligent, automated business.</p>
+        <div class="cta">
+            <h2>Let's Build Something Amazing</h2>
+            <p>Ready to transform your digital experience? I'm always excited to tackle new challenges and push boundaries.</p>
+        </div>
     </div>
 </body>
 </html>
