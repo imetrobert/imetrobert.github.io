@@ -1,4 +1,4 @@
-yamlname: Test Perplexity API
+name: Test Perplexity API
 on:
   workflow_dispatch:
 
