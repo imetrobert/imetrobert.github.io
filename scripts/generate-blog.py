@@ -33,16 +33,18 @@ def generate_blog_with_perplexity(api_key, topic=None):
     
     # Try current available Perplexity models (as of 2024/2025)
     models_to_try = [
-        "sonar-pro",           # Flagship model with advanced search
-        "sonar-medium-online", # Search-enhanced medium model  
-        "sonar-small-online",  # Search-enhanced small model
-        "sonar-medium-chat",   # Medium model without search
-        "sonar-small-chat",    # Small model without search
-        "llama-3.1-sonar-small-128k-chat",  # Alternative naming
-        "llama-3.1-sonar-large-128k-chat"   # Alternative naming
+        "sonar-pro",
+        "sonar-medium-online", 
+        "sonar-small-online",
+        "sonar-medium-chat",
+        "sonar-small-chat"
     ]
     
+    print(f"Making request to: {url}")
+    
     for model in models_to_try:
+        print(f"Trying model: {model}")
+        
         payload = {
             "model": model,
             "messages": [
@@ -59,45 +61,56 @@ def generate_blog_with_perplexity(api_key, topic=None):
             "temperature": 0.7
         }
         
-    try:
-        print(f"Making request to: {url}")
-        
-        # Response handling after successful request
-        if response.status_code != 200:
-            print(f"Response content: {response.text}")
-            response.raise_for_status()
-        
-        data = response.json()
-        print("✅ Successfully received response from Perplexity")
-        
-        # Handle response structure
-        if 'choices' in data and len(data['choices']) > 0:
-            content = data['choices'][0]['message']['content']
-        else:
-            print(f"Unexpected response structure: {data}")
-            raise Exception("No content found in API response")
-        
-        # Extract additional data if available
-        citations = data.get('citations', [])
-        usage = data.get('usage', {})
-        
-        return {
-            'content': content,
-            'citations': citations,
-            'usage': usage
-        }
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Request error details: {e}")
-        if hasattr(e, 'response') and e.response is not None:
-            print(f"Response content: {e.response.text}")
-        raise Exception(f"Perplexity API request failed: {e}")
-    except KeyError as e:
-        print(f"Response data: {data}")
-        raise Exception(f"Unexpected API response structure: {e}")
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        raise
+        try:
+            api_response = requests.post(url, json=payload, headers=headers, timeout=60)
+            
+            print(f"Response status: {api_response.status_code}")
+            
+            if api_response.status_code == 200:
+                print(f"✅ Success with model: {model}")
+                
+                # Parse the response
+                try:
+                    data = api_response.json()
+                    print("✅ Successfully parsed JSON response")
+                    
+                    # Handle response structure
+                    if 'choices' in data and len(data['choices']) > 0:
+                        content = data['choices'][0]['message']['content']
+                        print(f"✅ Extracted content ({len(content)} characters)")
+                        
+                        # Extract additional data if available
+                        citations = data.get('citations', [])
+                        usage = data.get('usage', {})
+                        
+                        return {
+                            'content': content,
+                            'citations': citations,
+                            'usage': usage
+                        }
+                    else:
+                        print(f"Unexpected response structure: {data}")
+                        continue
+                        
+                except json.JSONDecodeError as e:
+                    print(f"JSON decode error: {e}")
+                    print(f"Raw response: {api_response.text}")
+                    continue
+                    
+            else:
+                print(f"❌ Failed with model {model}: {api_response.status_code}")
+                print(f"Response content: {api_response.text}")
+                continue
+                
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Request failed with model {model}: {e}")
+            continue
+        except Exception as e:
+            print(f"❌ Unexpected error with model {model}: {e}")
+            continue
+    
+    # If we get here, all models failed
+    raise Exception(f"All {len(models_to_try)} models failed to generate content")
 
 def extract_title_and_excerpt(content):
     """Extract title and excerpt from generated content"""
@@ -105,6 +118,7 @@ def extract_title_and_excerpt(content):
     
     title = "AI Insights"  # Default title
     excerpt = ""
+    title_found = False
     
     for line in lines:
         line = line.strip()
@@ -143,7 +157,6 @@ def create_html_blog_post(content, title, excerpt, citations=None):
         template = create_basic_template()
     
     # Split content into sections - this is a simple implementation
-    # You might want to enhance this based on how Perplexity structures the content
     sections = content.split('\n\n')
     
     tech_advances = ""
@@ -151,7 +164,6 @@ def create_html_blog_post(content, title, excerpt, citations=None):
     use_cases = ""
     implementation = ""
     
-    current_section = ""
     for section in sections:
         section = section.strip()
         if not section:
