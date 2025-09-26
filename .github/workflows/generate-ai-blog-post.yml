@@ -1,9 +1,10 @@
+# Updated .github/workflows/generate-ai-blog-post.yml
 name: Generate AI Blog Post
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 6 1-7 * 0'
+    - cron: '0 6 1-7 * 0'  # First Sunday of each month at 6 AM
 
 jobs:
   generate-blog:
@@ -38,15 +39,16 @@ jobs:
 
     - name: Generate blog post
       env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
       run: |
-        python scripts/generate-blog.py
+        python scripts/generate-blog.py --output staging
 
     - name: Check results
       run: |
         echo "Contents of blog/staging:"
         ls -la blog/staging/ || echo "Directory empty"
         find blog/staging/ -name "*.html" || echo "No HTML files found"
+        find blog/staging/ -name "*.md" || echo "No Markdown files found"
 
     - name: Check if new post was generated
       id: check-post
@@ -54,6 +56,9 @@ jobs:
         if [ -n "$(find blog/staging/ -name '*.html' 2>/dev/null)" ]; then
           echo "new_post=true" >> $GITHUB_OUTPUT
           echo "✅ New blog post generated!"
+          # Show a preview of the generated content
+          echo "📄 Generated files:"
+          ls -la blog/staging/
         else
           echo "new_post=false" >> $GITHUB_OUTPUT
           echo "❌ No new post generated"
@@ -69,13 +74,25 @@ jobs:
         body: |
           ## New AI Blog Post Generated! 🚀
           
-          A new AI insights blog post has been automatically generated and is ready for your review.
+          A new AI insights blog post has been automatically generated using **Perplexity AI** and is ready for your review.
+          
+          **What's New:**
+          - 🔥 **Latest AI Information**: Generated using Perplexity's online model with recent data
+          - 📊 **Business-Focused**: Practical applications and implementation strategies
+          - 🎯 **Structured Content**: Organized sections for easy reading
+          - 📚 **Cited Sources**: Includes references to recent developments
+          - 🔧 **Ready to Publish**: Formatted and optimized for your blog
           
           **Next steps:**
-          1. Review the post content in the staging folder
-          2. Make any necessary edits  
-          3. Merge this PR to publish
+          1. 👀 Review the post content in the `blog/staging/` folder
+          2. ✏️ Make any necessary edits or adjustments
+          3. 📁 Move approved content from `staging/` to `posts/` folder  
+          4. ✅ Merge this PR to publish the post live
           
-          The post will go live when you merge this PR!
+          **Files generated:**
+          - HTML version (ready for web publishing)
+          - Markdown version (for easy editing)
+          
+          The post will go live on your website when you merge this PR! 🌐
         branch: ai-blog-post-${{ github.run_number }}
         delete-branch: true
