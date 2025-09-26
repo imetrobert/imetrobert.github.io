@@ -2,9 +2,10 @@ import argparse
 import os
 import requests
 import json
-from datetime import datetime
 import re
 import sys
+from datetime import datetime
+from bs4 import BeautifulSoup
 
 def clean_filename(title):
     """Convert title to a clean filename"""
@@ -57,7 +58,176 @@ Structure the content with these exact sections:
 Focus on practical, actionable insights for business leaders. Include specific company examples and technologies where possible."""
     
     for model in models_to_try:
-        print(f"Trying Perplexity model: {model}")
+        print(f"Found {len(html_files)} HTML files in posts directory")
+
+    # Sort by filename (which should include date) in reverse order for newest first
+    for file in sorted(html_files, reverse=True):
+        file_path = os.path.join(posts_dir, file)
+        try:
+            post_info = extract_post_info(file_path)
+            posts.append(post_info)
+            print(f"Processed: {file} -> {post_info['title']}")
+        except Exception as e:
+            print(f"Error processing {file}: {e}")
+            continue
+
+    if not posts:
+        print("No valid posts could be processed")
+        return
+
+    # Generate JavaScript data
+    posts_js = json.dumps(posts, indent=8)
+    
+    # Read the blog index template
+    try:
+        with open(index_file, "r", encoding="utf-8") as f:
+            content = f.read()
+    except Exception as e:
+        print(f"Error reading blog index: {e}")
+        return
+    
+    # Replace the fetchBlogPosts function with real data
+    new_function = f'''async function fetchBlogPosts() {{
+            return {posts_js};
+        }}'''
+    
+    # Find and replace the fetchBlogPosts function
+    pattern = r'async function fetchBlogPosts\(\) \{[^}]+\}[^}]+\}'
+    content = re.sub(pattern, new_function, content, flags=re.DOTALL)
+    
+    # Write updated file
+    try:
+        with open(index_file, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"Blog index updated with {len(posts)} posts")
+    except Exception as e:
+        print(f"Error writing blog index: {e}")
+
+def update_homepage_preview():
+    """Update homepage blog preview section"""
+    posts_dir = "blog/posts"
+    homepage_file = "index.html"
+    
+    if not os.path.exists(posts_dir) or not os.path.exists(homepage_file):
+        print("Posts directory or homepage not found")
+        return
+
+    # Get posts
+    posts = []
+    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html")]
+    
+    for file in sorted(html_files, reverse=True)[:3]:  # Get latest 3 posts
+        file_path = os.path.join(posts_dir, file)
+        try:
+            posts.append(extract_post_info(file_path))
+        except Exception as e:
+            print(f"Error processing {file} for homepage: {e}")
+            continue
+
+    if not posts:
+        return
+
+    # Read homepage
+    try:
+        with open(homepage_file, "r", encoding="utf-8") as f:
+            soup = BeautifulSoup(f, "html.parser")
+    except Exception as e:
+        print(f"Error reading homepage: {e}")
+        return
+
+    # Find blog-preview div
+    preview_div = soup.find("div", {"id": "blog-preview"})
+    if preview_div:
+        # Build blog cards HTML
+        cards_html = ""
+        for post in posts:
+            cards_html += f'''
+            <div class="blog-card">
+                <h4>{post['title']}</h4>
+                <div class="blog-date">{post['date']}</div>
+                <p class="blog-excerpt">{post['excerpt']}</p>
+                <a href="/blog/posts/{post['filename']}" class="read-more">Read Full Post →</a>
+            </div>'''
+
+        # Clear and update
+        preview_div.clear()
+        preview_div.append(BeautifulSoup(cards_html, "html.parser"))
+        
+        # Save updated homepage
+        try:
+            with open(homepage_file, "w", encoding="utf-8") as f:
+                f.write(str(soup.prettify(formatter="html")))
+            print(f"Homepage preview updated with {len(posts)} posts")
+        except Exception as e:
+            print(f"Error writing homepage: {e}")
+    else:
+        print("Could not find blog-preview div in homepage")
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate blog using Perplexity API")
+    parser.add_argument("--topic", help="Custom topic for the blog post")
+    parser.add_argument("--output", default="staging", choices=["staging", "posts"],
+                        help="Output directory (staging for review, posts for direct publish)")
+    args = parser.parse_args()
+    
+    api_key = os.getenv("PERPLEXITY_API_KEY")
+    if not api_key:
+        print("PERPLEXITY_API_KEY environment variable not set")
+        sys.exit(1)
+    
+    try:
+        print("Generating blog post with Perplexity AI...")
+        result = generate_blog_with_perplexity(api_key, args.topic)
+        
+        title, excerpt = extract_title_and_excerpt(result["content"])
+        print(f"Title extracted: {title}")
+        
+        html_content = create_html_blog_post(result["content"], title, excerpt)
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        filename_html = f"{current_date}-{clean_filename(title)}.html"
+        
+        output_dir = os.path.join("blog", args.output)
+        os.makedirs(output_dir, exist_ok=True)
+        
+        path_html = os.path.join(output_dir, filename_html)
+        
+        with open(path_html, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        
+        # Also save to latest.html for your current setup
+        latest_path = os.path.join("blog", "posts", "latest.html")
+        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
+        with open(latest_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        
+        print(f"Blog post HTML saved to: {path_html}")
+        print(f"Latest post updated at: {latest_path}")
+        
+        if result.get("citations"):
+            print(f"Sources cited: {len(result['citations'])}")
+        
+        # Update blog index and homepage
+        try:
+            update_blog_index()
+            print("Blog index page updated")
+        except Exception as e:
+            print(f"Failed to update blog index: {e}")
+        
+        try:
+            update_homepage_preview()
+            print("Homepage preview updated")
+        except Exception as e:
+            print(f"Failed to update homepage preview: {e}")
+        
+        print("Blog post generation complete!")
+    
+    except Exception as e:
+        print(f"Failed to generate blog post: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()"Trying Perplexity model: {model}")
         payload = {
             "model": model,
             "messages": [
@@ -154,13 +324,13 @@ def parse_structured_content(content):
     return sections
 
 def create_html_blog_post(content, title, excerpt):
-    """Convert content to HTML format using the new template structure"""
+    """Convert content to HTML format using the complete template structure"""
     current_date = datetime.now().strftime("%B %d, %Y")
     
     # Parse the structured content
     sections = parse_structured_content(content)
     
-    # Create the full HTML structure
+    # Create the full HTML structure with embedded CSS
     html_template = '''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -204,7 +374,6 @@ def create_html_blog_post(content, title, excerpt):
             overflow-x: hidden;
         }
 
-        /* Parallax Background */
         .parallax-bg {
             position: fixed;
             top: 0;
@@ -226,7 +395,6 @@ def create_html_blog_post(content, title, excerpt):
             75% { transform: translate(-3px, 8px) rotate(0.2deg); }
         }
 
-        /* AI Circuit Effects */
         .ai-circuit {
             position: absolute;
             width: 100%;
@@ -249,7 +417,6 @@ def create_html_blog_post(content, title, excerpt):
             75% { transform: translateX(5px) translateY(-10px); }
         }
 
-        /* Navigation */
         .nav-bar {
             background: var(--white);
             padding: 1rem 0;
@@ -297,7 +464,6 @@ def create_html_blog_post(content, title, excerpt):
             gap: 1rem;
         }
 
-        /* Header */
         .header {
             background: var(--gradient-ai);
             color: white;
@@ -355,14 +521,12 @@ def create_html_blog_post(content, title, excerpt):
             line-height: 1.7;
         }
 
-        /* Main Content Container */
         .container {
             max-width: 1000px;
             margin: 0 auto;
             padding: 3rem 2rem 4rem;
         }
 
-        /* Article Container */
         .article-container {
             background: var(--gradient-card);
             border-radius: 20px;
@@ -372,7 +536,6 @@ def create_html_blog_post(content, title, excerpt):
             position: relative;
         }
 
-        /* Article Content */
         .article-content {
             padding: 3rem;
             background: white;
@@ -498,7 +661,6 @@ def create_html_blog_post(content, title, excerpt):
             font-weight: 600;
         }
 
-        /* Conclusion section */
         .conclusion {
             background: var(--gradient-ai);
             color: white;
@@ -536,7 +698,6 @@ def create_html_blog_post(content, title, excerpt):
             color: white;
         }
 
-        /* Responsive Design */
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 2.2rem;
@@ -578,7 +739,6 @@ def create_html_blog_post(content, title, excerpt):
             }
         }
 
-        /* Animations */
         .fade-in {
             opacity: 0;
             transform: translateY(30px);
@@ -734,55 +894,109 @@ def extract_title_and_excerpt(content):
     
     return title, excerpt
 
-def main():
-    parser = argparse.ArgumentParser(description="Generate blog using Perplexity API")
-    parser.add_argument("--topic", help="Custom topic for the blog post")
-    parser.add_argument("--output", default="staging", choices=["staging", "posts"],
-                        help="Output directory (staging for review, posts for direct publish)")
-    args = parser.parse_args()
-    
-    api_key = os.getenv("PERPLEXITY_API_KEY")
-    if not api_key:
-        print("PERPLEXITY_API_KEY environment variable not set")
-        sys.exit(1)
-    
-    try:
-        print("Generating blog post with Perplexity AI...")
-        result = generate_blog_with_perplexity(api_key, args.topic)
-        
-        title, excerpt = extract_title_and_excerpt(result["content"])
-        print(f"Title extracted: {title}")
-        
-        html_content = create_html_blog_post(result["content"], title, excerpt)
-        
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        filename_html = f"{current_date}-{clean_filename(title)}.html"
-        
-        output_dir = os.path.join("blog", args.output)
-        os.makedirs(output_dir, exist_ok=True)
-        
-        path_html = os.path.join(output_dir, filename_html)
-        
-        with open(path_html, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        
-        # Also save to latest.html for your current setup
-        latest_path = os.path.join("blog", "posts", "latest.html")
-        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
-        with open(latest_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        
-        print(f"Blog post HTML saved to: {path_html}")
-        print(f"Latest post updated at: {latest_path}")
-        
-        if result.get("citations"):
-            print(f"Sources cited: {len(result['citations'])}")
-        
-        print("Blog post generation complete!")
-    
-    except Exception as e:
-        print(f"Failed to generate blog post: {e}")
-        sys.exit(1)
+def extract_post_info(html_file):
+    """Extract title, date, and excerpt from an HTML blog post using new template structure"""
+    with open(html_file, "r", encoding="utf-8") as f:
+        soup = BeautifulSoup(f, "html.parser")
 
-if __name__ == "__main__":
-    main()
+    # Title: look for header h1 in the new template structure
+    title_tag = None
+    header_content = soup.find("div", class_="header-content")
+    if header_content:
+        title_tag = header_content.find("h1")
+    else:
+        title_tag = soup.find("h1")
+    
+    title = title_tag.get_text(strip=True) if title_tag else "AI Insights"
+
+    # Date: look for blog-meta span in nav, then try other locations
+    date_text = None
+    
+    # Try blog-meta in navigation
+    blog_meta = soup.find("div", class_="blog-meta")
+    if blog_meta:
+        meta_text = blog_meta.get_text()
+        # Extract date from "AI Innovation Series • September 26, 2025" format
+        if "•" in meta_text:
+            date_text = meta_text.split("•")[-1].strip()
+    
+    # Try subtitle in header
+    if not date_text:
+        subtitle = soup.find("div", class_="subtitle")
+        if subtitle:
+            subtitle_text = subtitle.get_text()
+            # Extract date from "September 26, 2025 Business Intelligence Report" format
+            date_match = re.search(r'([A-Za-z]+ \d{1,2}, \d{4})', subtitle_text)
+            if date_match:
+                date_text = date_match.group(1)
+    
+    # Fallback to filename parsing
+    if not date_text:
+        basename = os.path.basename(html_file)
+        match = re.match(r"(\d{4}-\d{2}-\d{2})-", basename)
+        if match:
+            # Convert YYYY-MM-DD to readable format
+            date_obj = datetime.strptime(match.group(1), "%Y-%m-%d")
+            date_text = date_obj.strftime("%B %d, %Y")
+        else:
+            date_text = datetime.now().strftime("%B %d, %Y")
+
+    # Excerpt: look for header intro div first, then fallback
+    excerpt = None
+    
+    # Try header intro
+    intro_div = soup.find("div", class_="intro")
+    if intro_div:
+        excerpt = re.sub(r'\s+', ' ', intro_div.get_text()).strip()
+    
+    # Try first paragraph in article content
+    if not excerpt:
+        article_content = soup.find("div", class_="article-content")
+        if article_content:
+            p_tag = article_content.find("p")
+            if p_tag:
+                excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
+    
+    # Generic fallback to any paragraph
+    if not excerpt:
+        p_tag = soup.find("p")
+        if p_tag:
+            excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
+    
+    # Final fallback
+    if not excerpt:
+        excerpt = "Read the latest AI insights and business applications."
+
+    # Truncate excerpt if too long
+    if len(excerpt) > 200:
+        excerpt = excerpt[:200] + "..."
+
+    return {
+        "title": title,
+        "date": date_text,
+        "excerpt": excerpt,
+        "filename": os.path.basename(html_file)
+    }
+
+def update_blog_index():
+    """Update the blog index page with current posts"""
+    posts_dir = "blog/posts"
+    index_file = "blog/index.html"
+    
+    if not os.path.exists(posts_dir):
+        print(f"Posts directory {posts_dir} does not exist")
+        return
+    
+    if not os.path.exists(index_file):
+        print(f"Blog index file {index_file} not found")
+        return
+    
+    # Get all blog posts
+    posts = []
+    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html"]
+    
+    if not html_files:
+        print("No HTML files found in posts directory")
+        return
+
+    print(f
