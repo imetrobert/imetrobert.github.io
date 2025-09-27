@@ -178,14 +178,57 @@ def parse_structured_content(content):
     return sections
 
 def create_html_blog_post(content, title, excerpt):
-    """Convert content to HTML format using the complete template structure"""
+    """Convert content to HTML format - COMPLETE template with proper closing tags"""
     current_date = datetime.now()
     formatted_date = current_date.strftime("%B %d, %Y")
     month_year = current_date.strftime("%B %Y")
     
     sections = parse_structured_content(content)
     
-    html_template = '''<!DOCTYPE html>
+    content_html = []
+    
+    if sections['introduction']:
+        content_html.append(f'''
+                <div class="section">
+                    <p>{sections['introduction']}</p>
+                </div>''')
+    
+    if sections['developments']:
+        dev_items = '\n'.join([f'<li><strong>{item.split(":")[0].strip()}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
+                              for item in sections['developments'] if ':' in item] or 
+                             [f'<li>{item}</li>' for item in sections['developments']])
+        if dev_items:
+            content_html.append(f'''
+                <div class="section">
+                    <h2 class="section-title">Key AI Developments This Month</h2>
+                    <ul>
+                        {dev_items}
+                    </ul>
+                </div>''')
+    
+    if sections['canadian_impact']:
+        content_html.append(f'''
+                <div class="section">
+                    <h2 class="section-title">Impact on Canadian Businesses</h2>
+                    <p>{sections['canadian_impact']}</p>
+                </div>''')
+    
+    if sections['recommendations']:
+        rec_items = '\n'.join([f'<li><strong>{item.split(":")[0].strip() if ":" in item else f"Action {i+1}"}:</strong> {item.split(":", 1)[1].strip() if ":" in item else item}</li>' 
+                              for i, item in enumerate(sections['recommendations'])])
+        if rec_items:
+            content_html.append(f'''
+                <div class="section">
+                    <h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2>
+                    <ol>
+                        {rec_items}
+                    </ol>
+                </div>''')
+    
+    conclusion_text = sections['conclusion'] if sections['conclusion'] else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
+    
+    # COMPLETE HTML template with all closing tags
+    html_template = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -596,10 +639,10 @@ def create_html_blog_post(content, title, excerpt):
     <div class="container">
         <article class="article-container fade-in">
             <div class="article-content">
-                {content_sections}
+                {'\n'.join(content_html)}
 
                 <div class="conclusion">
-                    <p><strong>Strategic Imperative for Canadian Businesses:</strong> {conclusion}</p>
+                    <p><strong>Strategic Imperative for Canadian Businesses:</strong> {conclusion_text}</p>
                 </div>
             </div>
         </article>
@@ -607,58 +650,7 @@ def create_html_blog_post(content, title, excerpt):
 </body>
 </html>'''
     
-    content_html = []
-    
-    if sections['introduction']:
-        content_html.append(f'''
-                <div class="section">
-                    <p>{sections['introduction']}</p>
-                </div>''')
-    
-    if sections['developments']:
-        dev_items = '\n'.join([f'<li><strong>{item.split(":")[0].strip()}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
-                              for item in sections['developments'] if ':' in item] or 
-                             [f'<li>{item}</li>' for item in sections['developments']])
-        if dev_items:
-            content_html.append(f'''
-                <div class="section">
-                    <h2 class="section-title">Key AI Developments This Month</h2>
-                    <ul>
-                        {dev_items}
-                    </ul>
-                </div>''')
-    
-    if sections['canadian_impact']:
-        content_html.append(f'''
-                <div class="section">
-                    <h2 class="section-title">Impact on Canadian Businesses</h2>
-                    <p>{sections['canadian_impact']}</p>
-                </div>''')
-    
-    if sections['recommendations']:
-        rec_items = '\n'.join([f'<li><strong>{item.split(":")[0].strip() if ":" in item else f"Action {i+1}"}:</strong> {item.split(":", 1)[1].strip() if ":" in item else item}</li>' 
-                              for i, item in enumerate(sections['recommendations'])])
-        if rec_items:
-            content_html.append(f'''
-                <div class="section">
-                    <h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2>
-                    <ol>
-                        {rec_items}
-                    </ol>
-                </div>''')
-    
-    conclusion_text = sections['conclusion'] if sections['conclusion'] else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
-    
-    final_html = html_template.format(
-        title=title,
-        formatted_date=formatted_date,
-        month_year=month_year,
-        excerpt=excerpt,
-        content_sections='\n'.join(content_html),
-        conclusion=conclusion_text
-    )
-    
-    return final_html
+    return html_template
 
 def extract_title_and_excerpt(content):
     """Extract title and excerpt from generated content"""
@@ -750,50 +742,56 @@ def extract_post_info(html_file):
     }
 
 def update_blog_index():
-    """Update ONLY the blog index page with current posts - NO homepage changes"""
+    """Update ONLY the blog index page - FIXED VERSION"""
     posts_dir = "blog/posts"
     index_file = "blog/index.html"
     
+    print(f"DEBUG: Checking posts directory: {posts_dir}")
+    print(f"DEBUG: Checking blog index file: {index_file}")
+    
     if not os.path.exists(posts_dir):
-        print(f"Posts directory {posts_dir} does not exist")
+        print(f"ERROR: Posts directory {posts_dir} does not exist")
         return []
     
     if not os.path.exists(index_file):
-        print(f"Blog index file {index_file} not found")
+        print(f"ERROR: Blog index file {index_file} not found")
         return []
     
     posts = []
     html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html"]
     
+    print(f"DEBUG: Found HTML files: {html_files}")
+    
     if not html_files:
-        print("No HTML files found in posts directory")
+        print("WARNING: No HTML files found in posts directory")
         return []
 
-    print(f"Found {len(html_files)} HTML files in posts directory")
+    print(f"Processing {len(html_files)} HTML files in posts directory")
 
     for file in sorted(html_files, reverse=True):
         file_path = os.path.join(posts_dir, file)
         try:
             post_info = extract_post_info(file_path)
             posts.append(post_info)
-            print(f"Processed: {file} -> {post_info['title']}")
+            print(f"✅ Processed: {file} -> {post_info['title']}")
         except Exception as e:
-            print(f"Error processing {file}: {e}")
+            print(f"❌ Error processing {file}: {e}")
             continue
 
     if not posts:
-        print("No valid posts could be processed")
+        print("ERROR: No valid posts could be processed")
         return []
 
-    # Update blog index with the coming soon section removed and posts displayed
+    # Read current blog index
     try:
         with open(index_file, "r", encoding="utf-8") as f:
             content = f.read()
+        print(f"✅ Read blog index file ({len(content)} characters)")
     except Exception as e:
-        print(f"Error reading blog index: {e}")
+        print(f"ERROR reading blog index: {e}")
         return posts
     
-    # Replace the "coming soon" section with actual posts
+    # Create posts HTML section
     posts_html = '''<section class="blog-posts fade-in">
             <div class="posts-container">'''
     
@@ -814,17 +812,47 @@ def update_blog_index():
             </div>
         </section>'''
     
-    # Replace coming soon section
-    coming_soon_pattern = r'<section class="coming-soon[^>]*>.*?</section>'
-    if re.search(coming_soon_pattern, content, re.DOTALL):
-        content = re.sub(coming_soon_pattern, posts_html, content, flags=re.DOTALL)
-    else:
-        # Insert before closing div
-        container_close_pattern = r'(</div>\s*</body>)'
-        if re.search(container_close_pattern, content):
-            content = re.sub(container_close_pattern, posts_html + r'\n    \1', content)
+    print(f"✅ Generated posts HTML section with {len(posts)} posts")
     
-    # Add CSS for posts if not present
+    # Look for and replace "coming soon" section with more specific patterns
+    patterns_to_try = [
+        r'<section[^>]*class="coming-soon[^"]*"[^>]*>.*?</section>',
+        r'<section[^>]*coming-soon[^>]*>.*?</section>',
+        r'<div[^>]*class="coming-soon[^"]*"[^>]*>.*?</div>',
+        r'(?s)<section[^>]*>.*?coming.*?soon.*?</section>',
+        r'(?s)<div[^>]*>.*?coming.*?soon.*?</div>'
+    ]
+    
+    replaced = False
+    for i, pattern in enumerate(patterns_to_try):
+        if re.search(pattern, content, re.DOTALL | re.IGNORECASE):
+            content = re.sub(pattern, posts_html, content, flags=re.DOTALL | re.IGNORECASE)
+            print(f"✅ Replaced coming soon section using pattern {i+1}")
+            replaced = True
+            break
+    
+    if not replaced:
+        print("⚠️ Could not find coming soon section, trying container insertion")
+        # Try to insert before closing container div
+        container_patterns = [
+            r'(</div>\s*</body>)',
+            r'(</main>\s*</body>)',
+            r'(<footer)',
+            r'(</body>)'
+        ]
+        
+        for pattern in container_patterns:
+            if re.search(pattern, content):
+                content = re.sub(pattern, posts_html + r'\n    \1', content)
+                print(f"✅ Inserted posts section using container pattern")
+                replaced = True
+                break
+    
+    if not replaced:
+        print("❌ Could not find suitable location to insert posts")
+        return posts
+    
+    # Add CSS for posts if not already present
     posts_css = '''
         .blog-posts {
             margin-bottom: 3rem;
@@ -903,42 +931,75 @@ def update_blog_index():
             }
         }'''
     
+    # Add CSS if not present
     if '.blog-posts {' not in content:
-        style_close_pattern = r'(</style>)'
-        if re.search(style_close_pattern, content):
-            content = re.sub(style_close_pattern, posts_css + r'\n        \1', content)
+        style_patterns = [
+            r'(</style>)',
+            r'(</head>)',
+        ]
+        
+        css_added = False
+        for pattern in style_patterns:
+            if re.search(pattern, content):
+                content = re.sub(pattern, posts_css + r'\n        \1', content)
+                print("✅ Added blog posts CSS")
+                css_added = True
+                break
+        
+        if not css_added:
+            print("⚠️ Could not add CSS - may affect styling")
+    else:
+        print("✅ CSS already present")
     
+    # Write updated content
     try:
         with open(index_file, "w", encoding="utf-8") as f:
             f.write(content)
-        print(f"Blog index updated with {len(posts)} posts")
+        print(f"✅ Blog index updated successfully with {len(posts)} posts")
     except Exception as e:
-        print(f"Error writing blog index: {e}")
+        print(f"❌ Error writing blog index: {e}")
     
     return posts
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate blog using Perplexity API - BLOG UPDATES ONLY")
+    parser = argparse.ArgumentParser(description="FIXED Blog Generator - Debug Version")
     parser.add_argument("--topic", help="Custom topic for the blog post")
     parser.add_argument("--output", default="posts", choices=["staging", "posts"],
                         help="Output directory (staging for review, posts for direct publish)")
+    parser.add_argument("--debug-only", action="store_true", 
+                        help="Only run blog index update (skip content generation)")
     args = parser.parse_args()
+    
+    print("🔧 RUNNING FIXED BLOG GENERATOR")
+    print("=" * 50)
+    
+    # If debug-only, just update the blog index
+    if args.debug_only:
+        print("🐛 DEBUG MODE: Only updating blog index...")
+        try:
+            posts = update_blog_index()
+            print(f"✅ Debug completed: {len(posts)} posts processed")
+            return
+        except Exception as e:
+            print(f"❌ Debug failed: {e}")
+            return
     
     api_key = os.getenv("PERPLEXITY_API_KEY")
     if not api_key:
-        print("PERPLEXITY_API_KEY environment variable not set")
+        print("❌ PERPLEXITY_API_KEY environment variable not set")
         sys.exit(1)
     
     try:
-        print("Generating monthly AI insights blog post with Canadian business focus...")
-        print("NOTE: This script will ONLY update blog pages, NOT the homepage")
+        print("🤖 Generating monthly AI insights blog post...")
+        print("📍 SCOPE: Blog pages only (NO homepage changes)")
         
         result = generate_blog_with_perplexity(api_key, args.topic)
         
         title, excerpt = extract_title_and_excerpt(result["content"])
-        print(f"Title extracted: {title}")
+        print(f"✅ Title extracted: {title}")
         
         html_content = create_html_blog_post(result["content"], title, excerpt)
+        print(f"✅ HTML content generated ({len(html_content)} characters)")
         
         current_date = datetime.now().strftime("%Y-%m-%d")
         filename_html = f"{current_date}-{clean_filename(title)}.html"
@@ -948,33 +1009,40 @@ def main():
         
         path_html = os.path.join(output_dir, filename_html)
         
+        # Write the individual post file
         with open(path_html, "w", encoding="utf-8") as f:
             f.write(html_content)
+        print(f"✅ Blog post saved: {path_html}")
         
-        # Always update latest.html
+        # Always update latest.html with COMPLETE content
         latest_path = os.path.join("blog", "posts", "latest.html")
         os.makedirs(os.path.dirname(latest_path), exist_ok=True)
         with open(latest_path, "w", encoding="utf-8") as f:
             f.write(html_content)
-        
-        print(f"Blog post HTML saved to: {path_html}")
-        print(f"Latest post updated at: {latest_path}")
+        print(f"✅ Latest post updated: {latest_path}")
         
         if result.get("citations"):
-            print(f"Sources cited: {len(result['citations'])}")
+            print(f"📚 Sources processed: {len(result['citations'])} (citations cleaned)")
         
+        # Update blog index with improved error handling
         try:
             posts = update_blog_index()
-            print(f"Blog index page updated with {len(posts)} posts")
-            print("NOTE: Homepage is NOT updated - only blog pages are modified")
+            print(f"✅ Blog index updated with {len(posts)} total posts")
+            print("📍 NOTE: Homepage unchanged (as requested)")
             
         except Exception as e:
-            print(f"Failed to update blog index: {e}")
+            print(f"❌ Failed to update blog index: {e}")
+            import traceback
+            traceback.print_exc()
         
-        print("Blog post generation complete! Only blog pages were updated.")
-    
+        print("🎉 Blog generation completed successfully!")
+        print("🔗 Check your blog at: /blog/")
+        print("🔗 Latest post at: /blog/posts/latest.html")
+        
     except Exception as e:
-        print(f"Failed to generate blog post: {e}")
+        print(f"💥 Blog generation failed: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":
