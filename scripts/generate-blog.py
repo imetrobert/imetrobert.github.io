@@ -28,11 +28,10 @@ def generate_blog_with_perplexity(api_key, topic=None):
     
     models_to_try = [
         "llama-3.1-sonar-large-128k-online",
-        "llama-3.1-sonar-small-128k-online", 
+        "llama-3.1-sonar-small-128k-online",
         "llama-3.1-sonar-huge-128k-online"
     ]
     
-    # Enhanced prompt for structured content
     system_prompt = """You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience. Write authoritative, insightful blog posts about AI innovations and practical business applications.
 
 IMPORTANT: Structure your response in exactly these sections:
@@ -58,176 +57,7 @@ Structure the content with these exact sections:
 Focus on practical, actionable insights for business leaders. Include specific company examples and technologies where possible."""
     
     for model in models_to_try:
-        print(f"Found {len(html_files)} HTML files in posts directory")
-
-    # Sort by filename (which should include date) in reverse order for newest first
-    for file in sorted(html_files, reverse=True):
-        file_path = os.path.join(posts_dir, file)
-        try:
-            post_info = extract_post_info(file_path)
-            posts.append(post_info)
-            print(f"Processed: {file} -> {post_info['title']}")
-        except Exception as e:
-            print(f"Error processing {file}: {e}")
-            continue
-
-    if not posts:
-        print("No valid posts could be processed")
-        return
-
-    # Generate JavaScript data
-    posts_js = json.dumps(posts, indent=8)
-    
-    # Read the blog index template
-    try:
-        with open(index_file, "r", encoding="utf-8") as f:
-            content = f.read()
-    except Exception as e:
-        print(f"Error reading blog index: {e}")
-        return
-    
-    # Replace the fetchBlogPosts function with real data
-    new_function = f'''async function fetchBlogPosts() {{
-            return {posts_js};
-        }}'''
-    
-    # Find and replace the fetchBlogPosts function
-    pattern = r'async function fetchBlogPosts\(\) \{[^}]+\}[^}]+\}'
-    content = re.sub(pattern, new_function, content, flags=re.DOTALL)
-    
-    # Write updated file
-    try:
-        with open(index_file, "w", encoding="utf-8") as f:
-            f.write(content)
-        print(f"Blog index updated with {len(posts)} posts")
-    except Exception as e:
-        print(f"Error writing blog index: {e}")
-
-def update_homepage_preview():
-    """Update homepage blog preview section"""
-    posts_dir = "blog/posts"
-    homepage_file = "index.html"
-    
-    if not os.path.exists(posts_dir) or not os.path.exists(homepage_file):
-        print("Posts directory or homepage not found")
-        return
-
-    # Get posts
-    posts = []
-    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html")]
-    
-    for file in sorted(html_files, reverse=True)[:3]:  # Get latest 3 posts
-        file_path = os.path.join(posts_dir, file)
-        try:
-            posts.append(extract_post_info(file_path))
-        except Exception as e:
-            print(f"Error processing {file} for homepage: {e}")
-            continue
-
-    if not posts:
-        return
-
-    # Read homepage
-    try:
-        with open(homepage_file, "r", encoding="utf-8") as f:
-            soup = BeautifulSoup(f, "html.parser")
-    except Exception as e:
-        print(f"Error reading homepage: {e}")
-        return
-
-    # Find blog-preview div
-    preview_div = soup.find("div", {"id": "blog-preview"})
-    if preview_div:
-        # Build blog cards HTML
-        cards_html = ""
-        for post in posts:
-            cards_html += f'''
-            <div class="blog-card">
-                <h4>{post['title']}</h4>
-                <div class="blog-date">{post['date']}</div>
-                <p class="blog-excerpt">{post['excerpt']}</p>
-                <a href="/blog/posts/{post['filename']}" class="blog-read-more">Read Full Post →</a>
-            </div>'''
-
-        # Clear and update
-        preview_div.clear()
-        preview_div.append(BeautifulSoup(cards_html, "html.parser"))
-        
-        # Save updated homepage
-        try:
-            with open(homepage_file, "w", encoding="utf-8") as f:
-                f.write(str(soup.prettify(formatter="html")))
-            print(f"Homepage preview updated with {len(posts)} posts")
-        except Exception as e:
-            print(f"Error writing homepage: {e}")
-    else:
-        print("Could not find blog-preview div in homepage")
-
-def main():
-    parser = argparse.ArgumentParser(description="Generate blog using Perplexity API")
-    parser.add_argument("--topic", help="Custom topic for the blog post")
-    parser.add_argument("--output", default="staging", choices=["staging", "posts"],
-                        help="Output directory (staging for review, posts for direct publish)")
-    args = parser.parse_args()
-    
-    api_key = os.getenv("PERPLEXITY_API_KEY")
-    if not api_key:
-        print("PERPLEXITY_API_KEY environment variable not set")
-        sys.exit(1)
-    
-    try:
-        print("Generating blog post with Perplexity AI...")
-        result = generate_blog_with_perplexity(api_key, args.topic)
-        
-        title, excerpt = extract_title_and_excerpt(result["content"])
-        print(f"Title extracted: {title}")
-        
-        html_content = create_html_blog_post(result["content"], title, excerpt)
-        
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        filename_html = f"{current_date}-{clean_filename(title)}.html"
-        
-        output_dir = os.path.join("blog", args.output)
-        os.makedirs(output_dir, exist_ok=True)
-        
-        path_html = os.path.join(output_dir, filename_html)
-        
-        with open(path_html, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        
-        # Also save to latest.html for your current setup
-        latest_path = os.path.join("blog", "posts", "latest.html")
-        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
-        with open(latest_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        
-        print(f"Blog post HTML saved to: {path_html}")
-        print(f"Latest post updated at: {latest_path}")
-        
-        if result.get("citations"):
-            print(f"Sources cited: {len(result['citations'])}")
-        
-        # Update blog index and homepage
-        try:
-            update_blog_index()
-            print("Blog index page updated")
-        except Exception as e:
-            print(f"Failed to update blog index: {e}")
-        
-        try:
-            update_homepage_preview()
-            print("Homepage preview updated")
-        except Exception as e:
-            print(f"Failed to update homepage preview: {e}")
-        
-        print("Blog post generation complete!")
-    
-    except Exception as e:
-        print(f"Failed to generate blog post: {e}")
-        sys.exit(1)
-
-if __name__ == "__main__":
-    print(f"Trying Perplexity model: {model}")
+        print(f"Trying Perplexity model: {model}")
         payload = {
             "model": model,
             "messages": [
@@ -283,14 +113,12 @@ def parse_structured_content(content):
         'conclusion': ''
     }
     
-    # Split content into paragraphs
     paragraphs = [p.strip() for p in content.split('\n\n') if p.strip()]
     current_section = 'introduction'
     
     for para in paragraphs:
         para_lower = para.lower()
         
-        # Detect section headers
         if 'key technological' in para_lower or 'technological advance' in para_lower:
             current_section = 'tech_advances'
             continue
@@ -307,7 +135,6 @@ def parse_structured_content(content):
             current_section = 'conclusion'
             continue
         
-        # Add content to appropriate section
         if current_section == 'introduction' and not sections['introduction']:
             sections['introduction'] = para
         elif current_section == 'conclusion' and not sections['conclusion']:
@@ -315,7 +142,7 @@ def parse_structured_content(content):
         elif current_section in ['tech_advances', 'business_apps', 'insights']:
             if para.startswith('-') or para.startswith('•') or para.startswith('*'):
                 sections[current_section].append(para.lstrip('-•* '))
-            elif ':' in para and len(para) > 50:  # Looks like a bullet point
+            elif ':' in para and len(para) > 50:
                 sections[current_section].append(para)
         elif current_section == 'implementation':
             if para[0].isdigit() or para.startswith('-') or para.startswith('•'):
@@ -327,10 +154,8 @@ def create_html_blog_post(content, title, excerpt):
     """Convert content to HTML format using the complete template structure"""
     current_date = datetime.now().strftime("%B %d, %Y")
     
-    # Parse the structured content
     sections = parse_structured_content(content)
     
-    # Create the full HTML structure with embedded CSS
     html_template = '''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -339,7 +164,7 @@ def create_html_blog_post(content, title, excerpt):
     <title>AI Insights - Latest Post | Robert Simon</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-        :root {
+        :root {{
             --primary-blue: #2563eb;
             --secondary-blue: #3b82f6;
             --accent-cyan: #06b6d4;
@@ -357,24 +182,24 @@ def create_html_blog_post(content, title, excerpt):
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
             --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-        }
+        }}
 
-        * {
+        * {{
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
+        }}
 
-        body {
+        body {{
             font-family: var(--font-primary);
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             color: var(--dark-navy);
             line-height: 1.6;
             min-height: 100vh;
             overflow-x: hidden;
-        }
+        }}
 
-        .parallax-bg {
+        .parallax-bg {{
             position: fixed;
             top: 0;
             left: 0;
@@ -386,16 +211,16 @@ def create_html_blog_post(content, title, excerpt):
                 radial-gradient(circle at 30% 70%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
                 radial-gradient(circle at 70% 30%, rgba(6, 182, 212, 0.03) 0%, transparent 50%);
             animation: slowFloat 20s ease-in-out infinite;
-        }
+        }}
 
-        @keyframes slowFloat {
-            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
-            25% { transform: translate(-5px, -10px) rotate(0.5deg); }
-            50% { transform: translate(5px, -5px) rotate(-0.3deg); }
-            75% { transform: translate(-3px, 8px) rotate(0.2deg); }
-        }
+        @keyframes slowFloat {{
+            0%, 100% {{ transform: translate(0px, 0px) rotate(0deg); }}
+            25% {{ transform: translate(-5px, -10px) rotate(0.5deg); }}
+            50% {{ transform: translate(5px, -5px) rotate(-0.3deg); }}
+            75% {{ transform: translate(-3px, 8px) rotate(0.2deg); }}
+        }}
 
-        .ai-circuit {
+        .ai-circuit {{
             position: absolute;
             width: 100%;
             height: 100%;
@@ -408,16 +233,16 @@ def create_html_blog_post(content, title, excerpt):
             background-size: 50px 50px, 30px 30px, 20px 20px, 20px 20px;
             animation: aiFlow 15s ease-in-out infinite;
             pointer-events: none;
-        }
+        }}
 
-        @keyframes aiFlow {
-            0%, 100% { transform: translateX(0) translateY(0); }
-            25% { transform: translateX(10px) translateY(-5px); }
-            50% { transform: translateX(-5px) translateY(10px); }
-            75% { transform: translateX(5px) translateY(-10px); }
-        }
+        @keyframes aiFlow {{
+            0%, 100% {{ transform: translateX(0) translateY(0); }}
+            25% {{ transform: translateX(10px) translateY(-5px); }}
+            50% {{ transform: translateX(-5px) translateY(10px); }}
+            75% {{ transform: translateX(5px) translateY(-10px); }}
+        }}
 
-        .nav-bar {
+        .nav-bar {{
             background: var(--white);
             padding: 1rem 0;
             box-shadow: var(--shadow-sm);
@@ -425,18 +250,18 @@ def create_html_blog_post(content, title, excerpt):
             top: 0;
             z-index: 100;
             backdrop-filter: blur(10px);
-        }
+        }}
 
-        .nav-content {
+        .nav-content {{
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
+        }}
 
-        .nav-link {
+        .nav-link {{
             color: var(--primary-blue);
             text-decoration: none;
             font-weight: 600;
@@ -448,31 +273,31 @@ def create_html_blog_post(content, title, excerpt):
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-        }
+        }}
 
-        .nav-link:hover {
+        .nav-link:hover {{
             transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
-        }
+        }}
 
-        .blog-meta {
+        .blog-meta {{
             font-family: var(--font-mono);
             font-size: 0.85rem;
             color: var(--medium-gray);
             display: flex;
             align-items: center;
             gap: 1rem;
-        }
+        }}
 
-        .header {
+        .header {{
             background: var(--gradient-ai);
             color: white;
             padding: 4rem 0 3rem;
             position: relative;
             overflow: hidden;
-        }
+        }}
 
-        .header::before {
+        .header::before {{
             content: '';
             position: absolute;
             top: 0;
@@ -484,18 +309,18 @@ def create_html_blog_post(content, title, excerpt):
                 radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.3) 0%, transparent 50%),
                 radial-gradient(circle at 40% 40%, rgba(37, 99, 235, 0.2) 0%, transparent 50%);
             animation: aiFlow 12s ease-in-out infinite;
-        }
+        }}
 
-        .header-content {
+        .header-content {{
             max-width: 1000px;
             margin: 0 auto;
             padding: 0 2rem;
             text-align: center;
             position: relative;
             z-index: 1;
-        }
+        }}
 
-        .header h1 {
+        .header h1 {{
             font-size: 3rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
@@ -503,49 +328,49 @@ def create_html_blog_post(content, title, excerpt):
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-        }
+        }}
 
-        .header .subtitle {
+        .header .subtitle {{
             font-size: 1.2rem;
             font-weight: 500;
             opacity: 0.9;
             margin-bottom: 1.5rem;
-        }
+        }}
 
-        .header .intro {
+        .header .intro {{
             font-size: 1.05rem;
             opacity: 0.85;
             max-width: 800px;
             margin: 0 auto;
             font-weight: 300;
             line-height: 1.7;
-        }
+        }}
 
-        .container {
+        .container {{
             max-width: 1000px;
             margin: 0 auto;
             padding: 3rem 2rem 4rem;
-        }
+        }}
 
-        .article-container {
+        .article-container {{
             background: var(--gradient-card);
             border-radius: 20px;
             box-shadow: var(--shadow-xl);
             overflow: hidden;
             border: 1px solid rgba(37, 99, 235, 0.1);
             position: relative;
-        }
+        }}
 
-        .article-content {
+        .article-content {{
             padding: 3rem;
             background: white;
-        }
+        }}
 
-        .section {
+        .section {{
             margin-bottom: 3rem;
-        }
+        }}
 
-        .section-title {
+        .section-title {{
             font-size: 1.8rem;
             color: var(--dark-navy);
             margin-bottom: 1.5rem;
@@ -553,9 +378,9 @@ def create_html_blog_post(content, title, excerpt):
             position: relative;
             padding-left: 1.5rem;
             line-height: 1.3;
-        }
+        }}
 
-        .section-title::before {
+        .section-title::before {{
             content: '';
             position: absolute;
             left: 0;
@@ -564,9 +389,9 @@ def create_html_blog_post(content, title, excerpt):
             width: 4px;
             background: var(--gradient-primary);
             border-radius: 2px;
-        }
+        }}
 
-        h3 {
+        h3 {{
             color: var(--primary-blue);
             font-size: 1.3rem;
             margin: 2rem 0 1rem 0;
@@ -574,53 +399,53 @@ def create_html_blog_post(content, title, excerpt):
             border-left: 4px solid var(--accent-cyan);
             padding-left: 15px;
             line-height: 1.4;
-        }
+        }}
 
-        p {
+        p {{
             margin-bottom: 1.2rem;
             text-align: justify;
             word-spacing: normal;
             line-height: 1.7;
             color: var(--medium-gray);
             font-size: 1rem;
-        }
+        }}
 
-        ul {
+        ul {{
             margin-bottom: 1.5rem;
             padding-left: 0;
-        }
+        }}
 
-        li {
+        li {{
             margin-bottom: 1.2rem;
             line-height: 1.7;
             color: var(--medium-gray);
             list-style: none;
             position: relative;
             padding-left: 2rem;
-        }
+        }}
 
-        li::before {
+        li::before {{
             content: '▸';
             position: absolute;
             left: 0;
             color: var(--primary-blue);
             font-weight: 600;
             font-size: 1.1rem;
-        }
+        }}
 
-        ol {
+        ol {{
             margin-bottom: 1.5rem;
             padding-left: 0;
             counter-reset: list-counter;
-        }
+        }}
 
-        ol li {
+        ol li {{
             counter-increment: list-counter;
             padding-left: 3rem;
             position: relative;
-        }
+        }}
 
-        ol li::before {
+        ol li::before {{
             content: counter(list-counter);
             position: absolute;
             left: 0;
@@ -635,15 +460,15 @@ def create_html_blog_post(content, title, excerpt):
             justify-content: center;
             font-weight: 600;
             font-size: 0.9rem;
-        }
+        }}
 
-        ol li ul li {
+        ol li ul li {{
             margin-bottom: 0.8rem;
             padding-left: 1.5rem;
             counter-increment: none;
-        }
+        }}
 
-        ol li ul li::before {
+        ol li ul li::before {{
             content: '•';
             position: absolute;
             left: 0;
@@ -654,14 +479,14 @@ def create_html_blog_post(content, title, excerpt):
             height: auto;
             border-radius: 0;
             font-size: 1.2rem;
-        }
+        }}
 
-        strong {
+        strong {{
             color: var(--dark-navy);
             font-weight: 600;
-        }
+        }}
 
-        .conclusion {
+        .conclusion {{
             background: var(--gradient-ai);
             color: white;
             padding: 2.5rem;
@@ -669,9 +494,9 @@ def create_html_blog_post(content, title, excerpt):
             margin-top: 3rem;
             position: relative;
             overflow: hidden;
-        }
+        }}
 
-        .conclusion::before {
+        .conclusion::before {{
             content: '';
             position: absolute;
             top: 0;
@@ -682,9 +507,9 @@ def create_html_blog_post(content, title, excerpt):
                 radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
                 radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.2) 0%, transparent 50%);
             animation: aiFlow 15s ease-in-out infinite;
-        }
+        }}
 
-        .conclusion p {
+        .conclusion p {{
             color: rgba(255, 255, 255, 0.95);
             font-size: 1.1rem;
             font-weight: 500;
@@ -692,65 +517,65 @@ def create_html_blog_post(content, title, excerpt):
             z-index: 1;
             margin-bottom: 0;
             text-align: left;
-        }
+        }}
 
-        .conclusion strong {
+        .conclusion strong {{
             color: white;
-        }
+        }}
 
-        @media (max-width: 768px) {
-            .header h1 {
+        @media (max-width: 768px) {{
+            .header h1 {{
                 font-size: 2.2rem;
-            }
+            }}
 
-            .header .subtitle {
+            .header .subtitle {{
                 font-size: 1.1rem;
-            }
+            }}
 
-            .header .intro {
+            .header .intro {{
                 font-size: 1rem;
-            }
+            }}
 
-            .container {
+            .container {{
                 padding: 2rem 1rem 3rem;
-            }
+            }}
 
-            .article-content {
+            .article-content {{
                 padding: 2rem 1.5rem;
-            }
+            }}
 
-            .header {
+            .header {{
                 padding: 3rem 0 2rem;
-            }
+            }}
 
-            .section-title {
+            .section-title {{
                 font-size: 1.5rem;
-            }
+            }}
 
-            h3 {
+            h3 {{
                 font-size: 1.2rem;
-            }
+            }}
 
-            .nav-content {
+            .nav-content {{
                 padding: 0 1rem;
                 flex-direction: column;
                 gap: 1rem;
                 text-align: center;
-            }
-        }
+            }}
+        }}
 
-        .fade-in {
+        .fade-in {{
             opacity: 0;
             transform: translateY(30px);
             animation: fadeInUp 0.8s ease forwards;
-        }
+        }}
 
-        @keyframes fadeInUp {
-            to {
+        @keyframes fadeInUp {{
+            to {{
                 opacity: 1;
                 transform: translateY(0);
-            }
-        }
+            }}
+        }}
     </style>
 </head>
 <body>
@@ -794,10 +619,8 @@ def create_html_blog_post(content, title, excerpt):
 </body>
 </html>'''
     
-    # Format content sections
     content_html = []
     
-    # Introduction
     if sections['introduction']:
         content_html.append(f'''
                 <div class="section">
@@ -805,7 +628,6 @@ def create_html_blog_post(content, title, excerpt):
                     <p>{sections['introduction']}</p>
                 </div>''')
     
-    # Tech Advances
     if sections['tech_advances']:
         tech_items = '\n'.join([f'<li><strong>{item.split(":")[0]}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
                                for item in sections['tech_advances'] if ':' in item])
@@ -818,7 +640,6 @@ def create_html_blog_post(content, title, excerpt):
                     </ul>
                 </div>''')
     
-    # Business Applications
     if sections['business_apps']:
         business_items = '\n'.join([f'<li><strong>{item.split(":")[0]}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
                                    for item in sections['business_apps'] if ':' in item])
@@ -831,7 +652,6 @@ def create_html_blog_post(content, title, excerpt):
                     </ul>
                 </div>''')
     
-    # Implementation Guidance
     if sections['implementation']:
         impl_items = '\n'.join([f'<li><strong>{item.split(":")[0] if ":" in item else f"Step {i+1}"}:</strong> {item.split(":", 1)[1].strip() if ":" in item else item}</li>' 
                                for i, item in enumerate(sections['implementation'])])
@@ -844,7 +664,6 @@ def create_html_blog_post(content, title, excerpt):
                     </ol>
                 </div>''')
     
-    # Executive Insights
     if sections['insights']:
         insight_items = '\n'.join([f'<li><strong>{item.split(":")[0]}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
                                   for item in sections['insights'] if ':' in item])
@@ -857,7 +676,6 @@ def create_html_blog_post(content, title, excerpt):
                     </ul>
                 </div>''')
     
-    # Fill in the template
     conclusion_text = sections['conclusion'] if sections['conclusion'] else "Business leaders must act decisively to harness AI breakthroughs and drive strategic innovation."
     
     final_html = html_template.format(
@@ -877,13 +695,11 @@ def extract_title_and_excerpt(content):
     excerpt = ""
     
     for line in lines:
-        # Look for title
         if line and not title.startswith("AI Insights"):
             if line.startswith("#") or (len(line) < 100 and not line.endswith(".")):
                 title = line.lstrip("# ").strip()
                 break
     
-    # Find first substantial paragraph for excerpt
     for line in lines:
         if line and len(line) > 100 and not line.startswith("#"):
             excerpt = line[:250] + "..." if len(line) > 250 else line
@@ -899,7 +715,6 @@ def extract_post_info(html_file):
     with open(html_file, "r", encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
 
-    # Title: look for header h1 in the new template structure
     title_tag = None
     header_content = soup.find("div", class_="header-content")
     if header_content:
@@ -909,47 +724,37 @@ def extract_post_info(html_file):
     
     title = title_tag.get_text(strip=True) if title_tag else "AI Insights"
 
-    # Date: look for blog-meta span in nav, then try other locations
     date_text = None
     
-    # Try blog-meta in navigation
     blog_meta = soup.find("div", class_="blog-meta")
     if blog_meta:
         meta_text = blog_meta.get_text()
-        # Extract date from "AI Innovation Series • September 26, 2025" format
         if "•" in meta_text:
             date_text = meta_text.split("•")[-1].strip()
     
-    # Try subtitle in header
     if not date_text:
         subtitle = soup.find("div", class_="subtitle")
         if subtitle:
             subtitle_text = subtitle.get_text()
-            # Extract date from "September 26, 2025 Business Intelligence Report" format
             date_match = re.search(r'([A-Za-z]+ \d{1,2}, \d{4})', subtitle_text)
             if date_match:
                 date_text = date_match.group(1)
     
-    # Fallback to filename parsing
     if not date_text:
         basename = os.path.basename(html_file)
         match = re.match(r"(\d{4}-\d{2}-\d{2})-", basename)
         if match:
-            # Convert YYYY-MM-DD to readable format
             date_obj = datetime.strptime(match.group(1), "%Y-%m-%d")
             date_text = date_obj.strftime("%B %d, %Y")
         else:
             date_text = datetime.now().strftime("%B %d, %Y")
 
-    # Excerpt: look for header intro div first, then fallback
     excerpt = None
     
-    # Try header intro
     intro_div = soup.find("div", class_="intro")
     if intro_div:
         excerpt = re.sub(r'\s+', ' ', intro_div.get_text()).strip()
     
-    # Try first paragraph in article content
     if not excerpt:
         article_content = soup.find("div", class_="article-content")
         if article_content:
@@ -957,17 +762,14 @@ def extract_post_info(html_file):
             if p_tag:
                 excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
     
-    # Generic fallback to any paragraph
     if not excerpt:
         p_tag = soup.find("p")
         if p_tag:
             excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
     
-    # Final fallback
     if not excerpt:
         excerpt = "Read the latest AI insights and business applications."
 
-    # Truncate excerpt if too long
     if len(excerpt) > 200:
         excerpt = excerpt[:200] + "..."
 
@@ -991,7 +793,6 @@ def update_blog_index():
         print(f"Blog index file {index_file} not found")
         return
     
-    # Get all blog posts
     posts = []
     html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html"]
     
@@ -999,4 +800,159 @@ def update_blog_index():
         print("No HTML files found in posts directory")
         return
 
-    print(f
+    print(f"Found {len(html_files)} HTML files in posts directory")
+
+    for file in sorted(html_files, reverse=True):
+        file_path = os.path.join(posts_dir, file)
+        try:
+            post_info = extract_post_info(file_path)
+            posts.append(post_info)
+            print(f"Processed: {file} -> {post_info['title']}")
+        except Exception as e:
+            print(f"Error processing {file}: {e}")
+            continue
+
+    if not posts:
+        print("No valid posts could be processed")
+        return
+
+    posts_js = json.dumps(posts, indent=8)
+    
+    try:
+        with open(index_file, "r", encoding="utf-8") as f:
+            content = f.read()
+    except Exception as e:
+        print(f"Error reading blog index: {e}")
+        return
+    
+    new_function = f'''async function fetchBlogPosts() {{
+            return {posts_js};
+        }}'''
+    
+    pattern = r'async function fetchBlogPosts\(\) \{[^}]+\}[^}]+\}'
+    content = re.sub(pattern, new_function, content, flags=re.DOTALL)
+    
+    try:
+        with open(index_file, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"Blog index updated with {len(posts)} posts")
+    except Exception as e:
+        print(f"Error writing blog index: {e}")
+
+def update_homepage_preview():
+    """Update homepage blog preview section"""
+    posts_dir = "blog/posts"
+    homepage_file = "index.html"
+    
+    if not os.path.exists(posts_dir) or not os.path.exists(homepage_file):
+        print("Posts directory or homepage not found")
+        return
+
+    posts = []
+    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html")]
+    
+    for file in sorted(html_files, reverse=True)[:3]:
+        file_path = os.path.join(posts_dir, file)
+        try:
+            posts.append(extract_post_info(file_path))
+        except Exception as e:
+            print(f"Error processing {file} for homepage: {e}")
+            continue
+
+    if not posts:
+        return
+
+    try:
+        with open(homepage_file, "r", encoding="utf-8") as f:
+            soup = BeautifulSoup(f, "html.parser")
+    except Exception as e:
+        print(f"Error reading homepage: {e}")
+        return
+
+    preview_div = soup.find("div", {"id": "blog-preview"})
+    if preview_div:
+        cards_html = ""
+        for post in posts:
+            cards_html += f'''
+            <div class="blog-card">
+                <h4>{post['title']}</h4>
+                <div class="blog-date">{post['date']}</div>
+                <p class="blog-excerpt">{post['excerpt']}</p>
+                <a href="/blog/posts/{post['filename']}" class="blog-read-more">Read Full Post →</a>
+            </div>'''
+
+        preview_div.clear()
+        preview_div.append(BeautifulSoup(cards_html, "html.parser"))
+        
+        try:
+            with open(homepage_file, "w", encoding="utf-8") as f:
+                f.write(str(soup.prettify(formatter="html")))
+            print(f"Homepage preview updated with {len(posts)} posts")
+        except Exception as e:
+            print(f"Error writing homepage: {e}")
+    else:
+        print("Could not find blog-preview div in homepage")
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate blog using Perplexity API")
+    parser.add_argument("--topic", help="Custom topic for the blog post")
+    parser.add_argument("--output", default="staging", choices=["staging", "posts"],
+                        help="Output directory (staging for review, posts for direct publish)")
+    args = parser.parse_args()
+    
+    api_key = os.getenv("PERPLEXITY_API_KEY")
+    if not api_key:
+        print("PERPLEXITY_API_KEY environment variable not set")
+        sys.exit(1)
+    
+    try:
+        print("Generating blog post with Perplexity AI...")
+        result = generate_blog_with_perplexity(api_key, args.topic)
+        
+        title, excerpt = extract_title_and_excerpt(result["content"])
+        print(f"Title extracted: {title}")
+        
+        html_content = create_html_blog_post(result["content"], title, excerpt)
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        filename_html = f"{current_date}-{clean_filename(title)}.html"
+        
+        output_dir = os.path.join("blog", args.output)
+        os.makedirs(output_dir, exist_ok=True)
+        
+        path_html = os.path.join(output_dir, filename_html)
+        
+        with open(path_html, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        
+        latest_path = os.path.join("blog", "posts", "latest.html")
+        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
+        with open(latest_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        
+        print(f"Blog post HTML saved to: {path_html}")
+        print(f"Latest post updated at: {latest_path}")
+        
+        if result.get("citations"):
+            print(f"Sources cited: {len(result['citations'])}")
+        
+        try:
+            update_blog_index()
+            print("Blog index page updated")
+        except Exception as e:
+            print(f"Failed to update blog index: {e}")
+        
+        try:
+            update_homepage_preview()
+            print("Homepage preview updated")
+        except Exception as e:
+            print(f"Failed to update homepage preview: {e}")
+        
+        print("Blog post generation complete!")
+    
+    except Exception as e:
+        print(f"Failed to generate blog post: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
