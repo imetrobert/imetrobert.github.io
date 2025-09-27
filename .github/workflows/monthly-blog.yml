@@ -15,10 +15,10 @@ on:
       output:
         description: 'Output directory'
         required: false
-        default: 'posts'
+        default: 'blog/posts'
         type: choice
         options:
-        - posts
+        - blog/posts
         - staging
 
 jobs:
@@ -48,9 +48,9 @@ jobs:
           PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
         run: |
           if [ -n "${{ github.event.inputs.topic }}" ]; then
-            python scripts/generate-blog.py --topic "${{ github.event.inputs.topic }}" --output ${{ github.event.inputs.output || 'posts' }}
+            python scripts/generate-blog.py --topic "${{ github.event.inputs.topic }}" --output ${{ github.event.inputs.output || 'blog/posts' }}
           else
-            python scripts/generate-blog.py --output ${{ github.event.inputs.output || 'posts' }}
+            python scripts/generate-blog.py --output ${{ github.event.inputs.output || 'blog/posts' }}
           fi
       
       - name: Configure Git
@@ -96,7 +96,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**📅 Date:** $(date)" >> $GITHUB_STEP_SUMMARY
           echo "**🎯 Focus:** Canadian Business Impact Analysis" >> $GITHUB_STEP_SUMMARY
-          echo "**📂 Output:** ${{ github.event.inputs.output || 'posts' }} directory" >> $GITHUB_STEP_SUMMARY
+          echo "**📂 Output:** ${{ github.event.inputs.output || 'blog/posts' }} directory" >> $GITHUB_STEP_SUMMARY
           if [ -n "${{ github.event.inputs.topic }}" ]; then
             echo "**🔖 Custom Topic:** ${{ github.event.inputs.topic }}" >> $GITHUB_STEP_SUMMARY
           fi
