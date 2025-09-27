@@ -18,7 +18,7 @@ on:
         default: 'blog/posts'
         type: choice
         options:
-        - blog/posts
+        - posts
         - staging
 
 jobs:
