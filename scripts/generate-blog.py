@@ -1214,13 +1214,18 @@ def create_blog_index_html(posts):
             <div class="ai-circuit"></div>
         </section>
 
-        <!-- Older Posts Section -->
-        {f'''<section class="older-posts-section fade-in">
+        # Older Posts Section (conditional)
+        older_posts_section = ""
+        if older_posts:
+            older_posts_section = f'''<section class="older-posts-section fade-in">
             <h3 class="older-posts-title">Previous Insights</h3>
             <div class="older-posts-grid">
                 {older_posts_html}
             </div>
-        </section>''' if older_posts else ''}
+        </section>'''
+
+        <!-- Older Posts Section -->
+        {older_posts_section}
     </div>
 </body>
 </html>'''
