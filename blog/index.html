@@ -41,7 +41,6 @@
             overflow-x: hidden;
         }
 
-        /* Parallax Background */
         .parallax-bg {
             position: fixed;
             top: 0;
@@ -63,7 +62,6 @@
             75% { transform: translate(-3px, 8px) rotate(0.2deg); }
         }
 
-        /* AI Circuit Effects */
         .ai-circuit {
             position: absolute;
             width: 100%;
@@ -98,7 +96,6 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* Navigation */
         .nav-bar {
             background: var(--white);
             padding: 1rem 0;
@@ -133,7 +130,7 @@
         }
 
         .nav-link:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
             box-shadow: var(--shadow-lg);
         }
 
@@ -143,7 +140,6 @@
             padding: 2rem;
         }
 
-        /* Header */
         header {
             background: var(--gradient-ai);
             color: white;
@@ -199,8 +195,7 @@
             margin: 0 auto;
         }
 
-        /* Featured Post Section */
-        .featured-post {
+        .coming-soon {
             background: var(--gradient-ai);
             color: white;
             padding: 3rem;
@@ -208,9 +203,10 @@
             margin-bottom: 3rem;
             position: relative;
             overflow: hidden;
+            text-align: center;
         }
 
-        .featured-post::before {
+        .coming-soon::before {
             content: '';
             position: absolute;
             top: 0;
@@ -223,172 +219,26 @@
             animation: aiFlow 15s ease-in-out infinite;
         }
 
-        .featured-content {
+        .coming-soon-content {
             position: relative;
             z-index: 1;
         }
 
-        .featured-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .featured-title {
+        .coming-soon-title {
             font-size: 2rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 1rem;
             color: white;
         }
 
-        .featured-date {
-            font-family: var(--font-mono);
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-bottom: 1rem;
-        }
-
-        .featured-excerpt {
+        .coming-soon-text {
             font-size: 1.1rem;
             line-height: 1.7;
-            margin-bottom: 2rem;
             opacity: 0.95;
+            max-width: 600px;
+            margin: 0 auto;
         }
 
-        .featured-btn {
-            background: white;
-            color: var(--primary-blue);
-            padding: 1rem 2.5rem;
-            border-radius: 30px;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 1.1rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.8rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        .featured-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-        }
-
-        /* Section Styling */
-        .section {
-            background: var(--gradient-card);
-            padding: 2.5rem;
-            border-radius: 16px;
-            box-shadow: var(--shadow-md);
-            margin-bottom: 2rem;
-            border: 1px solid rgba(37, 99, 235, 0.1);
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .section:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-xl);
-        }
-
-        .section h2 {
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: var(--dark-navy);
-            margin-bottom: 1.5rem;
-            position: relative;
-            padding-left: 1rem;
-        }
-
-        .section h2::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: var(--gradient-primary);
-            border-radius: 2px;
-        }
-
-        /* Archive Grid */
-        .archive-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .archive-item {
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 12px;
-            padding: 2rem;
-            border: 1px solid rgba(37, 99, 235, 0.1);
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .archive-item:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-xl);
-            background: rgba(255, 255, 255, 0.95);
-        }
-
-        .archive-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--dark-navy);
-            margin-bottom: 0.5rem;
-        }
-
-        .archive-title a {
-            color: var(--dark-navy);
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .archive-title a:hover {
-            color: var(--primary-blue);
-        }
-
-        .archive-date {
-            color: var(--medium-gray);
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-            font-family: var(--font-mono);
-        }
-
-        .archive-excerpt {
-            color: var(--medium-gray);
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-        }
-
-        .archive-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--primary-blue);
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-        }
-
-        .archive-link:hover {
-            color: var(--accent-cyan);
-            transform: translateX(5px);
-        }
-
-        /* Responsive Design */
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -398,21 +248,12 @@
                 font-size: 2.5rem;
             }
             
-            .section {
-                padding: 1.5rem;
-            }
-            
-            .featured-post {
+            .coming-soon {
                 padding: 2rem;
             }
             
-            .featured-title {
+            .coming-soon-title {
                 font-size: 1.5rem;
-            }
-            
-            .archive-grid {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
             }
             
             .nav-content {
@@ -420,30 +261,17 @@
             }
         }
 
-        /* Animations */
         .fade-in {
             opacity: 0;
             transform: translateY(30px);
             animation: fadeInUp 0.8s ease forwards;
         }
 
-        .fade-in:nth-child(1) { animation-delay: 0.1s; }
-        .fade-in:nth-child(2) { animation-delay: 0.2s; }
-        .fade-in:nth-child(3) { animation-delay: 0.3s; }
-
         @keyframes fadeInUp {
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
-        }
-
-        /* Loading state for dynamic content */
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--medium-gray);
-            font-style: italic;
         }
     </style>
 </head>
@@ -466,126 +294,13 @@
             <div class="ai-circuit"></div>
         </header>
 
-        <!-- Featured Latest Post -->
-        <section class="featured-post fade-in" id="featured-post">
-            <div class="featured-content">
-                <div class="featured-badge">
-                    Latest Post
-                </div>
-                <h2 class="featured-title" id="featured-title">Loading Latest Post...</h2>
-                <div class="featured-date" id="featured-date">...</div>
-                <p class="featured-excerpt" id="featured-excerpt">Loading excerpt...</p>
-                <a href="#" class="featured-btn" id="featured-link">
-                    Read Full Article
-                    <span>→</span>
-                </a>
+        <section class="coming-soon fade-in">
+            <div class="coming-soon-content">
+                <h2 class="coming-soon-title">Blog Posts Coming Soon</h2>
+                <p class="coming-soon-text">Stay tuned for cutting-edge AI insights and strategic guidance for business leaders. New posts will be published soon, featuring the latest innovations and actionable advice.</p>
             </div>
             <div class="ai-circuit"></div>
         </section>
-
-        <!-- Archive Section -->
-        <section class="section fade-in">
-            <h2>Previous Posts</h2>
-            <div class="archive-grid" id="archive-grid">
-                <div class="loading">Loading previous posts...</div>
-            </div>
-        </section>
     </div>
-
-    <script>
-        // Function to load and display blog posts
-        async function loadBlogPosts() {
-            try {
-                // This will be populated by your workflow automation
-                const posts = await fetchBlogPosts();
-                
-                if (posts && posts.length > 0) {
-                    // Display featured post (latest)
-                    displayFeaturedPost(posts[0]);
-                    
-                    // Display archive (all posts except latest)
-                    displayArchivePosts(posts.slice(1));
-                } else {
-                    displayNoPostsMessage();
-                }
-            } catch (error) {
-                console.error('Error loading blog posts:', error);
-                displayErrorMessage();
-            }
-        }
-
-        // Function to fetch blog posts (will be updated by your workflow)
-        async function fetchBlogPosts() {
-            return [
-        {
-                "title": "AI Insights",
-                "date": "September 27, 2025",
-                "excerpt": "The launch of **ChatGPT Pulse** in September 2025 marks a pivotal evolution in AI-driven productivity tools, with unique implications for Canadian businesses. Pulse transforms the traditional chatbot ...",
-                "filename": "latest.html"
-        },
-        {
-                "title": "AI Insights",
-                "date": "September 27, 2025",
-                "excerpt": "The launch of **ChatGPT Pulse** in September 2025 marks a pivotal evolution in AI-driven productivity tools, with unique implications for Canadian businesses. Pulse transforms the traditional chatbot ...",
-                "filename": "2025-09-27-ai-insights.html"
-        },
-        {
-                "title": "AI Insights",
-                "date": "September 26, 2025",
-                "excerpt": "September 2025 marks a pivotal moment in the evolution of artificial intelligence, with breakthroughs fundamentally reshaping business operations, customer engagement, and competitive strategy. Busine...",
-                "filename": "2025-09-26-ai-insights.html"
-        }
-];
-        }
-];
-        }
-
-        function displayFeaturedPost(post) {
-            document.getElementById('featured-title').textContent = post.title;
-            document.getElementById('featured-date').textContent = post.date;
-            document.getElementById('featured-excerpt').textContent = post.excerpt;
-            document.getElementById('featured-link').href = `/blog/posts/${post.filename}`;
-        }
-
-        function displayArchivePosts(posts) {
-            const archiveGrid = document.getElementById('archive-grid');
-            
-            if (posts.length === 0) {
-                archiveGrid.innerHTML = '<div class="loading">No previous posts yet. Check back soon!</div>';
-                return;
-            }
-
-            archiveGrid.innerHTML = posts.map(post => `
-                <div class="archive-item">
-                    <h3 class="archive-title">
-                        <a href="/blog/posts/${post.filename}">${post.title}</a>
-                    </h3>
-                    <div class="archive-date">${post.date}</div>
-                    <p class="archive-excerpt">${post.excerpt}</p>
-                    <a href="/blog/posts/${post.filename}" class="archive-link">
-                        Read More →
-                    </a>
-                </div>
-            `).join('');
-        }
-
-        function displayNoPostsMessage() {
-            document.getElementById('featured-title').textContent = 'Coming Soon';
-            document.getElementById('featured-date').textContent = 'Stay Tuned';
-            document.getElementById('featured-excerpt').textContent = 'AI insights and strategic guidance coming soon. Subscribe for updates.';
-            document.getElementById('featured-link').style.display = 'none';
-            
-            document.getElementById('archive-grid').innerHTML = 
-                '<div class="loading">Blog posts will appear here automatically as they are published.</div>';
-        }
-
-        function displayErrorMessage() {
-            document.getElementById('archive-grid').innerHTML = 
-                '<div class="loading">Unable to load posts at this time. Please try again later.</div>';
-        }
-
-        // Load posts when page loads
-        document.addEventListener('DOMContentLoaded', loadBlogPosts);
-    </script>
 </body>
 </html>
