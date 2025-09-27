@@ -28,8 +28,8 @@ def generate_blog_with_perplexity(api_key, topic=None):
     
     models_to_try = [
         "llama-3.1-sonar-large-128k-online",
-        "llama-3.1-sonar-small-128k-online",
-        "llama-3.1-8b-instruct"
+        "llama-3.1-sonar-small-128k-online", 
+        "llama-3.1-sonar-huge-128k-online"
     ]
     
     # Enhanced prompt for structured content
