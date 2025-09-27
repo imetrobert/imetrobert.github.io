@@ -681,125 +681,301 @@ def extract_title_and_excerpt(content):
     
     return title, excerpt
 
-def update_homepage_blog_section(posts):
-    """Update the main portfolio homepage with latest blog post"""
-    homepage_file = "index.html"
+def extract_post_info(html_file):
+    """Extract title, date, and excerpt from an HTML blog post"""
+    with open(html_file, "r", encoding="utf-8") as f:
+        soup = BeautifulSoup(f, "html.parser")
+
+    # Extract title
+    title_tag = None
+    header_content = soup.find("div", class_="header-content")
+    if header_content:
+        title_tag = header_content.find("h1")
+    else:
+        title_tag = soup.find("h1")
     
-    if not os.path.exists(homepage_file):
-        print("Homepage file not found")
-        return
+    title = title_tag.get_text(strip=True) if title_tag else "AI Insights"
+
+    # Extract date
+    date_text = None
     
+    blog_meta = soup.find("div", class_="blog-meta")
+    if blog_meta:
+        meta_text = blog_meta.get_text()
+        if "•" in meta_text:
+            date_text = meta_text.split("•")[-1].strip()
+    
+    if not date_text:
+        subtitle = soup.find("div", class_="subtitle")
+        if subtitle:
+            subtitle_text = subtitle.get_text()
+            date_match = re.search(r'([A-Za-z]+ \d{1,2}, \d{4})', subtitle_text)
+            if date_match:
+                date_text = date_match.group(1)
+    
+    if not date_text:
+        basename = os.path.basename(html_file)
+        match = re.match(r"(\d{4}-\d{2}-\d{2})-", basename)
+        if match:
+            date_obj = datetime.strptime(match.group(1), "%Y-%m-%d")
+            date_text = date_obj.strftime("%B %d, %Y")
+        else:
+            date_text = datetime.now().strftime("%B %d, %Y")
+
+    # Extract excerpt
+    excerpt = None
+    
+    intro_div = soup.find("div", class_="intro")
+    if intro_div:
+        excerpt = re.sub(r'\s+', ' ', intro_div.get_text()).strip()
+    
+    if not excerpt:
+        article_content = soup.find("div", class_="article-content")
+        if article_content:
+            p_tag = article_content.find("p")
+            if p_tag:
+                excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
+    
+    if not excerpt:
+        excerpt = "Read the latest AI insights and business applications."
+
+    if len(excerpt) > 200:
+        excerpt = excerpt[:200] + "..."
+
+    return {
+        "title": title,
+        "date": date_text,
+        "excerpt": excerpt,
+        "filename": os.path.basename(html_file)
+    }
+
+def update_blog_index():
+    """Update ONLY the blog index page with current posts - NO homepage changes"""
+    posts_dir = "blog/posts"
+    index_file = "blog/index.html"
+    
+    if not os.path.exists(posts_dir):
+        print(f"Posts directory {posts_dir} does not exist")
+        return []
+    
+    if not os.path.exists(index_file):
+        print(f"Blog index file {index_file} not found")
+        return []
+    
+    posts = []
+    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html"]
+    
+    if not html_files:
+        print("No HTML files found in posts directory")
+        return []
+
+    print(f"Found {len(html_files)} HTML files in posts directory")
+
+    for file in sorted(html_files, reverse=True):
+        file_path = os.path.join(posts_dir, file)
+        try:
+            post_info = extract_post_info(file_path)
+            posts.append(post_info)
+            print(f"Processed: {file} -> {post_info['title']}")
+        except Exception as e:
+            print(f"Error processing {file}: {e}")
+            continue
+
     if not posts:
-        print("No posts to update homepage with")
-        return
-        
+        print("No valid posts could be processed")
+        return []
+
+    # Update blog index with the coming soon section removed and posts displayed
     try:
-        with open(homepage_file, "r", encoding="utf-8") as f:
+        with open(index_file, "r", encoding="utf-8") as f:
             content = f.read()
     except Exception as e:
-        print(f"Error reading homepage: {e}")
-        return
+        print(f"Error reading blog index: {e}")
+        return posts
     
-    latest_post = posts[0]
-    other_posts = posts[1:4] if len(posts) > 1 else []
+    # Replace the "coming soon" section with actual posts
+    posts_html = '''<section class="blog-posts fade-in">
+            <div class="posts-container">'''
     
-    # Create the blog section HTML
-    blog_section_html = f'''
-        <section id="ai-insights" class="section">
-            <div class="section-content">
-                <h2>AI Insights Blog</h2>
-                <p class="section-description">Monthly strategic intelligence for digital leaders. Deep-dives into AI innovations, business applications, and implementation guidance.</p>
-                
-                <!-- Latest Post Highlight -->
-                <div class="latest-post-highlight">
-                    <div class="latest-post-badge">Latest Post</div>
-                    <h3 class="latest-post-title">{latest_post['title']}</h3>
-                    <div class="latest-post-date">{latest_post['date']}</div>
-                    <p class="latest-post-excerpt">{latest_post['excerpt']}</p>
-                    <a href="/blog/posts/{latest_post['filename']}" class="cta-button primary">
+    for post in posts:
+        posts_html += f'''
+                <article class="post-card">
+                    <div class="post-header">
+                        <h2 class="post-title">{post['title']}</h2>
+                        <div class="post-date">{post['date']}</div>
+                    </div>
+                    <p class="post-excerpt">{post['excerpt']}</p>
+                    <a href="/blog/posts/{post['filename']}" class="read-more-btn">
                         Read Full Analysis →
                     </a>
-                </div>
-                
-                <!-- Previous Posts -->
-                <div class="previous-posts">
-                    <h4>Previous Insights</h4>
-                    <div class="previous-posts-grid">'''
+                </article>'''
     
-    # Add previous posts
-    for post in other_posts:
-        blog_section_html += f'''
-                        <div class="previous-post-item">
-                            <h5><a href="/blog/posts/{post['filename']}">{post['title']}</a></h5>
-                            <div class="previous-post-date">{post['date']}</div>
-                        </div>'''
-    
-    blog_section_html += '''
-                    </div>
-                    <div class="blog-actions">
-                        <a href="/blog/" class="cta-button secondary">View All Posts</a>
-                    </div>
-                </div>
+    posts_html += '''
             </div>
         </section>'''
     
-    # Find and replace the AI insights section or add it
-    ai_insights_pattern = r'<section[^>]*id="ai-insights"[^>]*>.*?</section>'
-    
-    if re.search(ai_insights_pattern, content, re.DOTALL):
-        # Replace existing section
-        content = re.sub(ai_insights_pattern, blog_section_html, content, flags=re.DOTALL)
-        print("Updated existing AI insights section")
+    # Replace coming soon section
+    coming_soon_pattern = r'<section class="coming-soon[^>]*>.*?</section>'
+    if re.search(coming_soon_pattern, content, re.DOTALL):
+        content = re.sub(coming_soon_pattern, posts_html, content, flags=re.DOTALL)
     else:
-        # Find a good place to insert it (after skills/experience but before contact)
-        contact_pattern = r'(<section[^>]*id="contact"[^>]*>)'
-        if re.search(contact_pattern, content):
-            content = re.sub(contact_pattern, blog_section_html + r'\n        \1', content)
-            print("Inserted AI insights section before contact")
-        else:
-            # Insert before closing main tag
-            main_close_pattern = r'(</main>)'
-            if re.search(main_close_pattern, content):
-                content = re.sub(main_close_pattern, blog_section_html + r'\n    \1', content)
-                print("Inserted AI insights section before main close")
-            else:
-                print("Could not find suitable location to insert blog section")
-                return
+        # Insert before closing div
+        container_close_pattern = r'(</div>\s*</body>)'
+        if re.search(container_close_pattern, content):
+            content = re.sub(container_close_pattern, posts_html + r'\n    \1', content)
     
-    # Add CSS for the blog section if not present
-    blog_css = '''
-        /* AI Insights Blog Section */
-        .latest-post-highlight {
-            background: var(--gradient-ai);
-            color: white;
-            padding: 2.5rem;
+    # Add CSS for posts if not present
+    posts_css = '''
+        .blog-posts {
+            margin-bottom: 3rem;
+        }
+        
+        .posts-container {
+            display: grid;
+            gap: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .post-card {
+            background: var(--gradient-card);
             border-radius: 15px;
-            margin-bottom: 2rem;
-            position: relative;
-            overflow: hidden;
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(37, 99, 235, 0.1);
+            transition: all 0.3s ease;
         }
         
-        .latest-post-highlight::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.2) 0%, transparent 50%);
-            animation: aiFlow 15s ease-in-out infinite;
+        .post-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-xl);
         }
         
-        .latest-post-badge {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
+        .post-header {
+            margin-bottom: 1.5rem;
+        }
+        
+        .post-title {
+            color: var(--dark-navy);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+        
+        .post-date {
+            color: var(--medium-gray);
             font-size: 0.9rem;
+            font-family: var(--font-mono);
+        }
+        
+        .post-excerpt {
+            color: var(--medium-gray);
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+        
+        .read-more-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--gradient-primary);
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
             font-weight: 600;
-            display: inline-block;
-            margin-bottom: 1rem;
-            position: relative;
-            z-
+            transition: all 0.3s ease;
+        }
+        
+        .read-more-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        @media (max-width: 768px) {
+            .post-card {
+                padding: 2rem;
+            }
+            
+            .post-title {
+                font-size: 1.5rem;
+            }
+        }'''
+    
+    if '.blog-posts {' not in content:
+        style_close_pattern = r'(</style>)'
+        if re.search(style_close_pattern, content):
+            content = re.sub(style_close_pattern, posts_css + r'\n        \1', content)
+    
+    try:
+        with open(index_file, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"Blog index updated with {len(posts)} posts")
+    except Exception as e:
+        print(f"Error writing blog index: {e}")
+    
+    return posts
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate blog using Perplexity API - BLOG UPDATES ONLY")
+    parser.add_argument("--topic", help="Custom topic for the blog post")
+    parser.add_argument("--output", default="posts", choices=["staging", "posts"],
+                        help="Output directory (staging for review, posts for direct publish)")
+    args = parser.parse_args()
+    
+    api_key = os.getenv("PERPLEXITY_API_KEY")
+    if not api_key:
+        print("PERPLEXITY_API_KEY environment variable not set")
+        sys.exit(1)
+    
+    try:
+        print("Generating monthly AI insights blog post with Canadian business focus...")
+        print("NOTE: This script will ONLY update blog pages, NOT the homepage")
+        
+        result = generate_blog_with_perplexity(api_key, args.topic)
+        
+        title, excerpt = extract_title_and_excerpt(result["content"])
+        print(f"Title extracted: {title}")
+        
+        html_content = create_html_blog_post(result["content"], title, excerpt)
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        filename_html = f"{current_date}-{clean_filename(title)}.html"
+        
+        output_dir = os.path.join("blog", args.output)
+        os.makedirs(output_dir, exist_ok=True)
+        
+        path_html = os.path.join(output_dir, filename_html)
+        
+        with open(path_html, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        
+        # Always update latest.html
+        latest_path = os.path.join("blog", "posts", "latest.html")
+        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
+        with open(latest_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        
+        print(f"Blog post HTML saved to: {path_html}")
+        print(f"Latest post updated at: {latest_path}")
+        
+        if result.get("citations"):
+            print(f"Sources cited: {len(result['citations'])}")
+        
+        try:
+            posts = update_blog_index()
+            print(f"Blog index page updated with {len(posts)} posts")
+            print("NOTE: Homepage is NOT updated - only blog pages are modified")
+            
+        except Exception as e:
+            print(f"Failed to update blog index: {e}")
+        
+        print("Blog post generation complete! Only blog pages were updated.")
+    
+    except Exception as e:
+        print(f"Failed to generate blog post: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
