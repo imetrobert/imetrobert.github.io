@@ -807,6 +807,16 @@ def create_blog_index_html(posts):
                     </a>
                 </div>'''
     
+    # Create older posts section HTML if needed
+    older_posts_section = ""
+    if older_posts:
+        older_posts_section = f'''<section class="older-posts-section fade-in">
+            <h3 class="older-posts-title">Previous Insights</h3>
+            <div class="older-posts-grid">
+                {older_posts_html}
+            </div>
+        </section>'''
+
     blog_index_html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1214,21 +1224,41 @@ def create_blog_index_html(posts):
             <div class="ai-circuit"></div>
         </section>
 
-        # Older Posts Section (conditional)
-        older_posts_section = ""
-        if older_posts:
-            older_posts_section = f'''<section class="older-posts-section fade-in">
-            <h3 class="older-posts-title">Previous Insights</h3>
-            <div class="older-posts-grid">
-                {older_posts_html}
+        <!-- Older Posts Section -->
+        {older_posts_section}
+    </div>
+</body>
+</html>'''-badge">Latest</div>
+                <h2 class="latest-post-title">{latest_post['title']}</h2>
+                <div class="latest-post-date">{latest_post['date']}</div>
+                <p class="latest-post-excerpt">{latest_post['excerpt']}</p>
+                <a href="/blog/posts/{latest_post['filename']}" class="read-latest-btn">
+                    Read Full Analysis →
+                </a>
             </div>
-        </section>'''
+            <div class="ai-circuit"></div>
+        </section>
+
+        <section class="latest-post-section fade-in">
+            <div class="latest-post-content">
+                <div class="latest-badge">Latest</div>
+                <h2 class="latest-post-title">{latest_post['title']}</h2>
+                <div class="latest-post-date">{latest_post['date']}</div>
+                <p class="latest-post-excerpt">{latest_post['excerpt']}</p>
+                <a href="/blog/posts/{latest_post['filename']}" class="read-latest-btn">
+                    Read Full Analysis →
+                </a>
+            </div>
+            <div class="ai-circuit"></div>
+        </section>
 
         <!-- Older Posts Section -->
         {older_posts_section}
     </div>
 </body>
 </html>'''
+
+    return blog_index_html
 
     return blog_index_html
 
