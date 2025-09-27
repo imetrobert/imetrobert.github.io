@@ -14,11 +14,29 @@ def clean_filename(title):
     clean_title = re.sub(r'\s+', '-', clean_title.strip())
     return clean_title.lower()
 
+def clean_perplexity_content(content):
+    """Remove citation numbers and clean up Perplexity response formatting"""
+    # Remove citation markers like [1], [2], etc.
+    content = re.sub(r'\[\d+\]', '', content)
+    
+    # Remove standalone citation references at end of sentences
+    content = re.sub(r'\s*\(\d+\)\s*', ' ', content)
+    
+    # Clean up multiple spaces
+    content = re.sub(r'\s+', ' ', content)
+    
+    # Clean up bullet points and formatting
+    content = re.sub(r'^\s*[-*•]\s*', '• ', content, flags=re.MULTILINE)
+    
+    return content.strip()
+
 def generate_blog_with_perplexity(api_key, topic=None):
-    """Generate blog content using Perplexity API with structured format"""
-    current_date = datetime.now().strftime("%B %Y")
+    """Generate blog content using Perplexity API with Canadian business focus"""
+    current_date = datetime.now()
+    month_year = current_date.strftime("%B %Y")
+    
     if not topic:
-        topic = f"Latest AI innovations and breakthroughs in business applications for {current_date}"
+        topic = f"Latest AI developments and technology launches since last month - {month_year} focus on Canadian business impact"
     
     url = "https://api.perplexity.ai/chat/completions"
     headers = {
@@ -28,34 +46,42 @@ def generate_blog_with_perplexity(api_key, topic=None):
     
     models_to_try = [
         "sonar-pro",
-        "sonar-medium-online",
+        "sonar-medium-online", 
         "sonar-small-online"
     ]
     
-    system_prompt = """You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience. Write authoritative, insightful blog posts about AI innovations and practical business applications.
+    system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
 
-IMPORTANT: Structure your response in exactly these sections:
-1. INTRODUCTION: Brief overview paragraph
-2. KEY TECHNOLOGICAL ADVANCES: 3-4 major technological developments
-3. BUSINESS APPLICATIONS: 4-5 real-world business use cases
-4. IMPLEMENTATION GUIDANCE: 5 numbered steps for business leaders
-5. INSIGHTS FOR EXECUTIVES: 3 key strategic insights
-6. CONCLUSION: Final strategic imperative paragraph
+Create a monthly AI insights post for {month_year} following this EXACT structure:
 
-For each section, use clear bullet points or numbered lists. Be specific about companies, technologies, and actionable advice."""
-    
-    user_prompt = f"""Write a comprehensive blog post about: {topic}
+1. INTRODUCTION: Brief overview of the month's key AI developments (1 paragraph)
 
-Structure the content with these exact sections:
-- Introduction paragraph
-- Key Technological Advances (3-4 items with specific examples)
-- Business Applications and Real-World Use Cases (4-5 specific examples)
-- Implementation Guidance for Business Leaders (5 numbered actionable steps)  
-- Insights for Executives (3 strategic insights)
-- Conclusion (strategic imperative)
+2. KEY AI DEVELOPMENTS: List 4-5 major AI technology launches, updates, or breakthroughs from the past month with specific company names, product names, and dates
 
-Focus on practical, actionable insights for business leaders. Include specific company examples and technologies where possible."""
-    
+3. CANADIAN BUSINESS IMPACT: Analyze how these developments specifically affect Canadian businesses, considering:
+   - Canadian market conditions
+   - Regulatory environment (PIPEDA, AIDA considerations)
+   - Cross-border business implications
+   - Currency and economic factors
+   - Competitive positioning vs US/global markets
+
+4. STRATEGIC RECOMMENDATIONS: Provide 5 specific, actionable recommendations for Canadian business leaders
+
+5. CONCLUSION: Strategic imperative for Canadian businesses (1 paragraph)
+
+Write in a professional, authoritative tone. Be specific about companies, technologies, and dates. Focus on practical, actionable insights."""
+
+    user_prompt = f"""Write an AI insights blog post for Canadian business leaders covering the latest developments in {month_year}.
+
+Structure:
+- Introduction: Overview of this month's key AI developments 
+- Key AI Developments: 4-5 specific technology launches/updates from major companies (OpenAI, Google, Microsoft, Anthropic, etc.) with dates and details
+- Canadian Business Impact: How these affect Canadian businesses specifically
+- Strategic Recommendations: 5 actionable steps for Canadian business leaders
+- Conclusion: Strategic imperative for Canadian businesses
+
+Focus on developments from the past 30 days. Include specific company names, product launches, and real dates."""
+
     for model in models_to_try:
         print(f"Trying Perplexity model: {model}")
         payload = {
@@ -64,7 +90,7 @@ Focus on practical, actionable insights for business leaders. Include specific c
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            "max_tokens": 2500,
+            "max_tokens": 3000,
             "temperature": 0.7
         }
         
@@ -83,9 +109,12 @@ Focus on practical, actionable insights for business leaders. Include specific c
                     print("API returned empty content")
                     continue
                 
-                print(f"Content received from model {model} ({len(content)} characters)")
+                # Clean the content
+                cleaned_content = clean_perplexity_content(content)
+                
+                print(f"Content received from model {model} ({len(cleaned_content)} characters)")
                 return {
-                    "content": content,
+                    "content": cleaned_content,
                     "citations": data.get("citations", []),
                     "usage": data.get("usage", {})
                 }
@@ -106,10 +135,9 @@ def parse_structured_content(content):
     """Parse the structured content into sections"""
     sections = {
         'introduction': '',
-        'tech_advances': [],
-        'business_apps': [],
-        'implementation': [],
-        'insights': [],
+        'developments': [],
+        'canadian_impact': '',
+        'recommendations': [],
         'conclusion': ''
     }
     
@@ -119,17 +147,14 @@ def parse_structured_content(content):
     for para in paragraphs:
         para_lower = para.lower()
         
-        if 'key technological' in para_lower or 'technological advance' in para_lower:
-            current_section = 'tech_advances'
+        if 'key ai development' in para_lower or 'ai development' in para_lower or 'major development' in para_lower:
+            current_section = 'developments'
             continue
-        elif 'business application' in para_lower or 'real-world use' in para_lower:
-            current_section = 'business_apps'
+        elif 'canadian business impact' in para_lower or 'impact' in para_lower and 'canadian' in para_lower:
+            current_section = 'canadian_impact'
             continue
-        elif 'implementation' in para_lower or 'guidance' in para_lower:
-            current_section = 'implementation'
-            continue
-        elif 'insight' in para_lower and 'executive' in para_lower:
-            current_section = 'insights'
+        elif 'strategic recommendation' in para_lower or 'recommendation' in para_lower:
+            current_section = 'recommendations'
             continue
         elif 'conclusion' in para_lower or 'strategic imperative' in para_lower:
             current_section = 'conclusion'
@@ -139,20 +164,24 @@ def parse_structured_content(content):
             sections['introduction'] = para
         elif current_section == 'conclusion' and not sections['conclusion']:
             sections['conclusion'] = para
-        elif current_section in ['tech_advances', 'business_apps', 'insights']:
-            if para.startswith('-') or para.startswith('•') or para.startswith('*'):
-                sections[current_section].append(para.lstrip('-•* '))
-            elif ':' in para and len(para) > 50:
-                sections[current_section].append(para)
-        elif current_section == 'implementation':
-            if para[0].isdigit() or para.startswith('-') or para.startswith('•'):
-                sections[current_section].append(para.lstrip('0123456789.-•* '))
+        elif current_section == 'canadian_impact' and not sections['canadian_impact']:
+            sections['canadian_impact'] = para
+        elif current_section == 'developments':
+            if para.startswith(('•', '-', '*', '1.', '2.', '3.', '4.', '5.')):
+                clean_item = re.sub(r'^[•\-*\d.]\s*', '', para)
+                sections['developments'].append(clean_item)
+        elif current_section == 'recommendations':
+            if para.startswith(('•', '-', '*', '1.', '2.', '3.', '4.', '5.')):
+                clean_item = re.sub(r'^[•\-*\d.]\s*', '', para)
+                sections['recommendations'].append(clean_item)
     
     return sections
 
 def create_html_blog_post(content, title, excerpt):
     """Convert content to HTML format using the complete template structure"""
-    current_date = datetime.now().strftime("%B %d, %Y")
+    current_date = datetime.now()
+    formatted_date = current_date.strftime("%B %d, %Y")
+    month_year = current_date.strftime("%B %Y")
     
     sections = parse_structured_content(content)
     
@@ -161,7 +190,7 @@ def create_html_blog_post(content, title, excerpt):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Insights - Latest Post | Robert Simon</title>
+    <title>{title} | Robert Simon - AI Insights</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
         :root {{
@@ -321,7 +350,7 @@ def create_html_blog_post(content, title, excerpt):
         }}
 
         .header h1 {{
-            font-size: 3rem;
+            font-size: 2.8rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
             background: linear-gradient(45deg, #ffffff, #e0f2fe);
@@ -391,16 +420,6 @@ def create_html_blog_post(content, title, excerpt):
             border-radius: 2px;
         }}
 
-        h3 {{
-            color: var(--primary-blue);
-            font-size: 1.3rem;
-            margin: 2rem 0 1rem 0;
-            font-weight: 600;
-            border-left: 4px solid var(--accent-cyan);
-            padding-left: 15px;
-            line-height: 1.4;
-        }}
-
         p {{
             margin-bottom: 1.2rem;
             text-align: justify;
@@ -462,25 +481,6 @@ def create_html_blog_post(content, title, excerpt):
             font-size: 0.9rem;
         }}
 
-        ol li ul li {{
-            margin-bottom: 0.8rem;
-            padding-left: 1.5rem;
-            counter-increment: none;
-        }}
-
-        ol li ul li::before {{
-            content: '•';
-            position: absolute;
-            left: 0;
-            color: var(--accent-cyan);
-            font-weight: bold;
-            background: none;
-            width: auto;
-            height: auto;
-            border-radius: 0;
-            font-size: 1.2rem;
-        }}
-
         strong {{
             color: var(--dark-navy);
             font-weight: 600;
@@ -532,10 +532,6 @@ def create_html_blog_post(content, title, excerpt):
                 font-size: 1.1rem;
             }}
 
-            .header .intro {{
-                font-size: 1rem;
-            }}
-
             .container {{
                 padding: 2rem 1rem 3rem;
             }}
@@ -544,16 +540,8 @@ def create_html_blog_post(content, title, excerpt):
                 padding: 2rem 1.5rem;
             }}
 
-            .header {{
-                padding: 3rem 0 2rem;
-            }}
-
             .section-title {{
                 font-size: 1.5rem;
-            }}
-
-            h3 {{
-                font-size: 1.2rem;
             }}
 
             .nav-content {{
@@ -587,17 +575,17 @@ def create_html_blog_post(content, title, excerpt):
                 ← Back to Portfolio
             </a>
             <div class="blog-meta">
-                <span>AI Innovation Series</span>
+                <span>AI Insights for Canadian Business</span>
                 <span>•</span>
-                <span>{current_date}</span>
+                <span>{formatted_date}</span>
             </div>
         </div>
     </nav>
 
     <header class="header">
         <div class="header-content">
-            <h1>{title}</h1>
-            <div class="subtitle">{current_date} Business Intelligence Report</div>
+            <h1>AI Insights for {month_year}</h1>
+            <div class="subtitle">Key AI Developments & Canadian Business Impact</div>
             <div class="intro">
                 {excerpt}
             </div>
@@ -611,7 +599,7 @@ def create_html_blog_post(content, title, excerpt):
                 {content_sections}
 
                 <div class="conclusion">
-                    <p><strong>Strategic Imperative:</strong> {conclusion}</p>
+                    <p><strong>Strategic Imperative for Canadian Businesses:</strong> {conclusion}</p>
                 </div>
             </div>
         </article>
@@ -624,63 +612,47 @@ def create_html_blog_post(content, title, excerpt):
     if sections['introduction']:
         content_html.append(f'''
                 <div class="section">
-                    <h2 class="section-title">Key Technological Advances</h2>
                     <p>{sections['introduction']}</p>
                 </div>''')
     
-    if sections['tech_advances']:
-        tech_items = '\n'.join([f'<li><strong>{item.split(":")[0]}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
-                               for item in sections['tech_advances'] if ':' in item])
-        if tech_items:
+    if sections['developments']:
+        dev_items = '\n'.join([f'<li><strong>{item.split(":")[0].strip()}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
+                              for item in sections['developments'] if ':' in item] or 
+                             [f'<li>{item}</li>' for item in sections['developments']])
+        if dev_items:
             content_html.append(f'''
                 <div class="section">
-                    <h3>Key Technological Advances</h3>
+                    <h2 class="section-title">Key AI Developments This Month</h2>
                     <ul>
-                        {tech_items}
+                        {dev_items}
                     </ul>
                 </div>''')
     
-    if sections['business_apps']:
-        business_items = '\n'.join([f'<li><strong>{item.split(":")[0]}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
-                                   for item in sections['business_apps'] if ':' in item])
-        if business_items:
-            content_html.append(f'''
+    if sections['canadian_impact']:
+        content_html.append(f'''
                 <div class="section">
-                    <h2 class="section-title">Business Applications and Real-World Use Cases</h2>
-                    <ul>
-                        {business_items}
-                    </ul>
+                    <h2 class="section-title">Impact on Canadian Businesses</h2>
+                    <p>{sections['canadian_impact']}</p>
                 </div>''')
     
-    if sections['implementation']:
-        impl_items = '\n'.join([f'<li><strong>{item.split(":")[0] if ":" in item else f"Step {i+1}"}:</strong> {item.split(":", 1)[1].strip() if ":" in item else item}</li>' 
-                               for i, item in enumerate(sections['implementation'])])
-        if impl_items:
+    if sections['recommendations']:
+        rec_items = '\n'.join([f'<li><strong>{item.split(":")[0].strip() if ":" in item else f"Action {i+1}"}:</strong> {item.split(":", 1)[1].strip() if ":" in item else item}</li>' 
+                              for i, item in enumerate(sections['recommendations'])])
+        if rec_items:
             content_html.append(f'''
                 <div class="section">
-                    <h2 class="section-title">Implementation Guidance for Business Leaders</h2>
+                    <h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2>
                     <ol>
-                        {impl_items}
+                        {rec_items}
                     </ol>
                 </div>''')
     
-    if sections['insights']:
-        insight_items = '\n'.join([f'<li><strong>{item.split(":")[0]}:</strong> {":".join(item.split(":")[1:]).strip()}</li>' 
-                                  for item in sections['insights'] if ':' in item])
-        if insight_items:
-            content_html.append(f'''
-                <div class="section">
-                    <h2 class="section-title">Insights for Executives</h2>
-                    <ul>
-                        {insight_items}
-                    </ul>
-                </div>''')
-    
-    conclusion_text = sections['conclusion'] if sections['conclusion'] else "Business leaders must act decisively to harness AI breakthroughs and drive strategic innovation."
+    conclusion_text = sections['conclusion'] if sections['conclusion'] else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
     
     final_html = html_template.format(
-        current_date=current_date,
         title=title,
+        formatted_date=formatted_date,
+        month_year=month_year,
         excerpt=excerpt,
         content_sections='\n'.join(content_html),
         conclusion=conclusion_text
@@ -690,269 +662,144 @@ def create_html_blog_post(content, title, excerpt):
 
 def extract_title_and_excerpt(content):
     """Extract title and excerpt from generated content"""
+    current_date = datetime.now()
+    month_year = current_date.strftime("%B %Y")
+    
+    title = f"AI Insights for {month_year}"
+    
     lines = [line.strip() for line in content.split("\n") if line.strip()]
-    title = "AI Insights"
     excerpt = ""
     
+    # Look for introduction paragraph
     for line in lines:
-        if line and not title.startswith("AI Insights"):
-            if line.startswith("#") or (len(line) < 100 and not line.endswith(".")):
-                title = line.lstrip("# ").strip()
-                break
-    
-    for line in lines:
-        if line and len(line) > 100 and not line.startswith("#"):
-            excerpt = line[:250] + "..." if len(line) > 250 else line
+        if line and len(line) > 100 and not line.startswith(('#', '1.', '2.', '3.', '4.', '5.', '•', '-', '*')):
+            excerpt = line[:200] + "..." if len(line) > 200 else line
             break
     
     if not excerpt:
-        excerpt = "Transforming business through AI-driven innovation. Key technological advances, real-world applications, and strategic implementation guidance for digital leaders."
+        excerpt = f"Monthly analysis of key AI developments and their strategic impact on Canadian businesses for {month_year}."
     
     return title, excerpt
 
-def extract_post_info(html_file):
-    """Extract title, date, and excerpt from an HTML blog post using new template structure"""
-    with open(html_file, "r", encoding="utf-8") as f:
-        soup = BeautifulSoup(f, "html.parser")
-
-    title_tag = None
-    header_content = soup.find("div", class_="header-content")
-    if header_content:
-        title_tag = header_content.find("h1")
-    else:
-        title_tag = soup.find("h1")
-    
-    title = title_tag.get_text(strip=True) if title_tag else "AI Insights"
-
-    date_text = None
-    
-    blog_meta = soup.find("div", class_="blog-meta")
-    if blog_meta:
-        meta_text = blog_meta.get_text()
-        if "•" in meta_text:
-            date_text = meta_text.split("•")[-1].strip()
-    
-    if not date_text:
-        subtitle = soup.find("div", class_="subtitle")
-        if subtitle:
-            subtitle_text = subtitle.get_text()
-            date_match = re.search(r'([A-Za-z]+ \d{1,2}, \d{4})', subtitle_text)
-            if date_match:
-                date_text = date_match.group(1)
-    
-    if not date_text:
-        basename = os.path.basename(html_file)
-        match = re.match(r"(\d{4}-\d{2}-\d{2})-", basename)
-        if match:
-            date_obj = datetime.strptime(match.group(1), "%Y-%m-%d")
-            date_text = date_obj.strftime("%B %d, %Y")
-        else:
-            date_text = datetime.now().strftime("%B %d, %Y")
-
-    excerpt = None
-    
-    intro_div = soup.find("div", class_="intro")
-    if intro_div:
-        excerpt = re.sub(r'\s+', ' ', intro_div.get_text()).strip()
-    
-    if not excerpt:
-        article_content = soup.find("div", class_="article-content")
-        if article_content:
-            p_tag = article_content.find("p")
-            if p_tag:
-                excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
-    
-    if not excerpt:
-        p_tag = soup.find("p")
-        if p_tag:
-            excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
-    
-    if not excerpt:
-        excerpt = "Read the latest AI insights and business applications."
-
-    if len(excerpt) > 200:
-        excerpt = excerpt[:200] + "..."
-
-    return {
-        "title": title,
-        "date": date_text,
-        "excerpt": excerpt,
-        "filename": os.path.basename(html_file)
-    }
-
-def update_blog_index():
-    """Update the blog index page with current posts"""
-    posts_dir = "blog/posts"
-    index_file = "blog/index.html"
-    
-    if not os.path.exists(posts_dir):
-        print(f"Posts directory {posts_dir} does not exist")
-        return
-    
-    if not os.path.exists(index_file):
-        print(f"Blog index file {index_file} not found")
-        return
-    
-    posts = []
-    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html"]
-    
-    if not html_files:
-        print("No HTML files found in posts directory")
-        return
-
-    print(f"Found {len(html_files)} HTML files in posts directory")
-
-    for file in sorted(html_files, reverse=True):
-        file_path = os.path.join(posts_dir, file)
-        try:
-            post_info = extract_post_info(file_path)
-            posts.append(post_info)
-            print(f"Processed: {file} -> {post_info['title']}")
-        except Exception as e:
-            print(f"Error processing {file}: {e}")
-            continue
-
-    if not posts:
-        print("No valid posts could be processed")
-        return
-
-    posts_js = json.dumps(posts, indent=8)
-    
-    try:
-        with open(index_file, "r", encoding="utf-8") as f:
-            content = f.read()
-    except Exception as e:
-        print(f"Error reading blog index: {e}")
-        return
-    
-    new_function = f'''async function fetchBlogPosts() {{
-            return {posts_js};
-        }}'''
-    
-    pattern = r'async function fetchBlogPosts\(\) \{[^}]+\}[^}]+\}'
-    content = re.sub(pattern, new_function, content, flags=re.DOTALL)
-    
-    try:
-        with open(index_file, "w", encoding="utf-8") as f:
-            f.write(content)
-        print(f"Blog index updated with {len(posts)} posts")
-    except Exception as e:
-        print(f"Error writing blog index: {e}")
-
-def update_homepage_preview():
-    """Update homepage blog preview section"""
-    posts_dir = "blog/posts"
+def update_homepage_blog_section(posts):
+    """Update the main portfolio homepage with latest blog post"""
     homepage_file = "index.html"
     
-    if not os.path.exists(posts_dir) or not os.path.exists(homepage_file):
-        print("Posts directory or homepage not found")
+    if not os.path.exists(homepage_file):
+        print("Homepage file not found")
         return
-
-    posts = []
-    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html")]
     
-    for file in sorted(html_files, reverse=True)[:3]:
-        file_path = os.path.join(posts_dir, file)
-        try:
-            posts.append(extract_post_info(file_path))
-        except Exception as e:
-            print(f"Error processing {file} for homepage: {e}")
-            continue
-
     if not posts:
+        print("No posts to update homepage with")
         return
-
+        
     try:
         with open(homepage_file, "r", encoding="utf-8") as f:
-            soup = BeautifulSoup(f, "html.parser")
+            content = f.read()
     except Exception as e:
         print(f"Error reading homepage: {e}")
         return
-
-    preview_div = soup.find("div", {"id": "blog-preview"})
-    if preview_div:
-        cards_html = ""
-        for post in posts:
-            cards_html += f'''
-            <div class="blog-card">
-                <h4>{post['title']}</h4>
-                <div class="blog-date">{post['date']}</div>
-                <p class="blog-excerpt">{post['excerpt']}</p>
-                <a href="/blog/posts/{post['filename']}" class="blog-read-more">Read Full Post →</a>
-            </div>'''
-
-        preview_div.clear()
-        preview_div.append(BeautifulSoup(cards_html, "html.parser"))
-        
-        try:
-            with open(homepage_file, "w", encoding="utf-8") as f:
-                f.write(str(soup.prettify(formatter="html")))
-            print(f"Homepage preview updated with {len(posts)} posts")
-        except Exception as e:
-            print(f"Error writing homepage: {e}")
+    
+    latest_post = posts[0]
+    other_posts = posts[1:4] if len(posts) > 1 else []
+    
+    # Create the blog section HTML
+    blog_section_html = f'''
+        <section id="ai-insights" class="section">
+            <div class="section-content">
+                <h2>AI Insights Blog</h2>
+                <p class="section-description">Monthly strategic intelligence for digital leaders. Deep-dives into AI innovations, business applications, and implementation guidance.</p>
+                
+                <!-- Latest Post Highlight -->
+                <div class="latest-post-highlight">
+                    <div class="latest-post-badge">Latest Post</div>
+                    <h3 class="latest-post-title">{latest_post['title']}</h3>
+                    <div class="latest-post-date">{latest_post['date']}</div>
+                    <p class="latest-post-excerpt">{latest_post['excerpt']}</p>
+                    <a href="/blog/posts/{latest_post['filename']}" class="cta-button primary">
+                        Read Full Analysis →
+                    </a>
+                </div>
+                
+                <!-- Previous Posts -->
+                <div class="previous-posts">
+                    <h4>Previous Insights</h4>
+                    <div class="previous-posts-grid">'''
+    
+    # Add previous posts
+    for post in other_posts:
+        blog_section_html += f'''
+                        <div class="previous-post-item">
+                            <h5><a href="/blog/posts/{post['filename']}">{post['title']}</a></h5>
+                            <div class="previous-post-date">{post['date']}</div>
+                        </div>'''
+    
+    blog_section_html += '''
+                    </div>
+                    <div class="blog-actions">
+                        <a href="/blog/" class="cta-button secondary">View All Posts</a>
+                    </div>
+                </div>
+            </div>
+        </section>'''
+    
+    # Find and replace the AI insights section or add it
+    ai_insights_pattern = r'<section[^>]*id="ai-insights"[^>]*>.*?</section>'
+    
+    if re.search(ai_insights_pattern, content, re.DOTALL):
+        # Replace existing section
+        content = re.sub(ai_insights_pattern, blog_section_html, content, flags=re.DOTALL)
+        print("Updated existing AI insights section")
     else:
-        print("Could not find blog-preview div in homepage")
-
-def main():
-    parser = argparse.ArgumentParser(description="Generate blog using Perplexity API")
-    parser.add_argument("--topic", help="Custom topic for the blog post")
-    parser.add_argument("--output", default="staging", choices=["staging", "posts"],
-                        help="Output directory (staging for review, posts for direct publish)")
-    args = parser.parse_args()
+        # Find a good place to insert it (after skills/experience but before contact)
+        contact_pattern = r'(<section[^>]*id="contact"[^>]*>)'
+        if re.search(contact_pattern, content):
+            content = re.sub(contact_pattern, blog_section_html + r'\n        \1', content)
+            print("Inserted AI insights section before contact")
+        else:
+            # Insert before closing main tag
+            main_close_pattern = r'(</main>)'
+            if re.search(main_close_pattern, content):
+                content = re.sub(main_close_pattern, blog_section_html + r'\n    \1', content)
+                print("Inserted AI insights section before main close")
+            else:
+                print("Could not find suitable location to insert blog section")
+                return
     
-    api_key = os.getenv("PERPLEXITY_API_KEY")
-    if not api_key:
-        print("PERPLEXITY_API_KEY environment variable not set")
-        sys.exit(1)
-    
-    try:
-        print("Generating blog post with Perplexity AI...")
-        result = generate_blog_with_perplexity(api_key, args.topic)
+    # Add CSS for the blog section if not present
+    blog_css = '''
+        /* AI Insights Blog Section */
+        .latest-post-highlight {
+            background: var(--gradient-ai);
+            color: white;
+            padding: 2.5rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
         
-        title, excerpt = extract_title_and_excerpt(result["content"])
-        print(f"Title extracted: {title}")
+        .latest-post-highlight::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.2) 0%, transparent 50%);
+            animation: aiFlow 15s ease-in-out infinite;
+        }
         
-        html_content = create_html_blog_post(result["content"], title, excerpt)
-        
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        filename_html = f"{current_date}-{clean_filename(title)}.html"
-        
-        output_dir = os.path.join("blog", args.output)
-        os.makedirs(output_dir, exist_ok=True)
-        
-        path_html = os.path.join(output_dir, filename_html)
-        
-        with open(path_html, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        
-        latest_path = os.path.join("blog", "posts", "latest.html")
-        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
-        with open(latest_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        
-        print(f"Blog post HTML saved to: {path_html}")
-        print(f"Latest post updated at: {latest_path}")
-        
-        if result.get("citations"):
-            print(f"Sources cited: {len(result['citations'])}")
-        
-        try:
-            update_blog_index()
-            print("Blog index page updated")
-        except Exception as e:
-            print(f"Failed to update blog index: {e}")
-        
-        try:
-            update_homepage_preview()
-            print("Homepage preview updated")
-        except Exception as e:
-            print(f"Failed to update homepage preview: {e}")
-        
-        print("Blog post generation complete!")
-    
-    except Exception as e:
-        print(f"Failed to generate blog post: {e}")
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
+        .latest-post-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 1rem;
+            position: relative;
+            z-
