@@ -27,9 +27,9 @@ def generate_blog_with_perplexity(api_key, topic=None):
     }
     
     models_to_try = [
-        "llama-3.1-sonar-large-128k-online",
-        "llama-3.1-sonar-small-128k-online",
-        "llama-3.1-sonar-huge-128k-online"
+        "sonar-pro",
+        "sonar-medium-online",
+        "sonar-small-online"
     ]
     
     system_prompt = """You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience. Write authoritative, insightful blog posts about AI innovations and practical business applications.
