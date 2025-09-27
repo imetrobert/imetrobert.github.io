@@ -227,8 +227,11 @@ def create_html_blog_post(content, title, excerpt):
     
     conclusion_text = sections['conclusion'] if sections['conclusion'] else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
     
-    # COMPLETE HTML template with all closing tags
-    html_template = f'''<!DOCTYPE html>
+    # Build content sections first
+    content_sections = '\n'.join(content_html)
+    
+    # COMPLETE HTML template - avoiding f-string with backslashes
+    html_template = '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -639,7 +642,7 @@ def create_html_blog_post(content, title, excerpt):
     <div class="container">
         <article class="article-container fade-in">
             <div class="article-content">
-                {'\n'.join(content_html)}
+                {content_sections}
 
                 <div class="conclusion">
                     <p><strong>Strategic Imperative for Canadian Businesses:</strong> {conclusion_text}</p>
@@ -650,7 +653,15 @@ def create_html_blog_post(content, title, excerpt):
 </body>
 </html>'''
     
-    return html_template
+    # Format the template with all variables
+    return html_template.format(
+        title=title,
+        formatted_date=formatted_date,
+        month_year=month_year,
+        excerpt=excerpt,
+        content_sections=content_sections,
+        conclusion_text=conclusion_text
+    )
 
 def extract_title_and_excerpt(content):
     """Extract title and excerpt from generated content"""
