@@ -141,58 +141,137 @@ def parse_structured_content(content):
         'conclusion': ''
     }
     
-    # Split content into paragraphs and lines for better parsing
-    lines = content.split('\n')
-    paragraphs = [p.strip() for p in content.split('\n\n') if p.strip()]
+    # Clean up the content first - remove asterisks and format properly
+    content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)  # Remove bold asterisks
+    content = re.sub(r'\*(.*?)\*', r'\1', content)      # Remove italic asterisks
     
+    # Split into sections based on headers
     current_section = 'introduction'
+    current_text = []
     
-    print("DEBUG: Parsing content sections...")
+    lines = content.split('\n')
     
-    # First pass: identify sections by headers
-    for i, line in enumerate(lines):
-        line_lower = line.lower().strip()
+    print("DEBUG: Starting content parsing...")
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        line_lower = line.lower()
         
+        # Detect section headers
         if any(phrase in line_lower for phrase in ['key ai development', 'ai development', 'major development', 'technological advance']):
+            # Save previous section
+            if current_section == 'introduction' and current_text:
+                sections['introduction'] = ' '.join(current_text).strip()
             current_section = 'developments'
-            print(f"Found developments section at line {i}: {line[:50]}")
+            current_text = []
+            print(f"Found developments section: {line[:50]}")
             continue
         elif any(phrase in line_lower for phrase in ['canadian business impact', 'impact on canadian', 'canadian impact']):
+            # Save previous section
+            if current_section == 'developments' and current_text:
+                # Parse development items
+                dev_text = ' '.join(current_text)
+                sections['developments'] = parse_development_items(dev_text)
             current_section = 'canadian_impact'
-            print(f"Found canadian impact section at line {i}: {line[:50]}")
+            current_text = []
+            print(f"Found canadian impact section: {line[:50]}")
             continue
-        elif any(phrase in line_lower for phrase in ['strategic recommendation', 'recommendation', 'action', 'step']):
+        elif any(phrase in line_lower for phrase in ['strategic recommendation', 'recommendation', 'action step']):
+            # Save previous section
+            if current_section == 'canadian_impact' and current_text:
+                sections['canadian_impact'] = ' '.join(current_text).strip()
             current_section = 'recommendations'
-            print(f"Found recommendations section at line {i}: {line[:50]}")
+            current_text = []
+            print(f"Found recommendations section: {line[:50]}")
             continue
-        elif any(phrase in line_lower for phrase in ['conclusion', 'strategic imperative', 'final', 'summary']):
+        elif any(phrase in line_lower for phrase in ['conclusion', 'strategic imperative', 'final thought']):
+            # Save previous section
+            if current_section == 'recommendations' and current_text:
+                # Parse recommendation items
+                rec_text = ' '.join(current_text)
+                sections['recommendations'] = parse_recommendation_items(rec_text)
             current_section = 'conclusion'
-            print(f"Found conclusion section at line {i}: {line[:50]}")
+            current_text = []
+            print(f"Found conclusion section: {line[:50]}")
             continue
         
-        # Process content based on current section
-        if line.strip():  # Non-empty line
-            if current_section == 'introduction' and not sections['introduction'] and len(line) > 50:
-                sections['introduction'] = line.strip()
-            elif current_section == 'conclusion' and not sections['conclusion'] and len(line) > 50:
-                sections['conclusion'] = line.strip()
-            elif current_section == 'canadian_impact' and not sections['canadian_impact'] and len(line) > 50:
-                sections['canadian_impact'] = line.strip()
-            elif current_section == 'developments' and (line.startswith(('•', '-', '*', '1.', '2.', '3.', '4.', '5.')) or ':' in line):
-                clean_item = re.sub(r'^[•\-*\d.]\s*', '', line).strip()
-                if clean_item and len(clean_item) > 20:
-                    sections['developments'].append(clean_item)
-            elif current_section == 'recommendations' and (line.startswith(('•', '-', '*', '1.', '2.', '3.', '4.', '5.')) or ':' in line):
-                clean_item = re.sub(r'^[•\-*\d.]\s*', '', line).strip()
-                if clean_item and len(clean_item) > 20:
-                    sections['recommendations'].append(clean_item)
+        # Add content to current section
+        if not any(phrase in line_lower for phrase in ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion']):
+            current_text.append(line)
     
-    print(f"DEBUG: Parsed sections: intro={bool(sections['introduction'])}, dev={len(sections['developments'])}, impact={bool(sections['canadian_impact'])}, rec={len(sections['recommendations'])}, conc={bool(sections['conclusion'])}")
+    # Handle the last section
+    if current_section == 'conclusion' and current_text:
+        sections['conclusion'] = ' '.join(current_text).strip()
+    elif current_section == 'recommendations' and current_text:
+        rec_text = ' '.join(current_text)
+        sections['recommendations'] = parse_recommendation_items(rec_text)
+    elif current_section == 'canadian_impact' and current_text:
+        sections['canadian_impact'] = ' '.join(current_text).strip()
+    elif current_section == 'developments' and current_text:
+        dev_text = ' '.join(current_text)
+        sections['developments'] = parse_development_items(dev_text)
+    elif current_section == 'introduction' and current_text:
+        sections['introduction'] = ' '.join(current_text).strip()
+    
+    print(f"DEBUG: Parsed sections - intro: {bool(sections['introduction'])}, dev: {len(sections['developments'])}, impact: {bool(sections['canadian_impact'])}, rec: {len(sections['recommendations'])}, conc: {bool(sections['conclusion'])}")
     
     return sections
 
+def parse_development_items(text):
+    """Parse development items from text"""
+    items = []
+    
+    # Split by common patterns
+    potential_items = re.split(r'[-•]\s*(?=[A-Z])', text)
+    
+    for item in potential_items:
+        item = item.strip()
+        if len(item) > 30:  # Only keep substantial items
+            # Clean up formatting
+            item = re.sub(r'^[-•*]\s*', '', item)
+            items.append(item)
+    
+    # If that didn't work well, try splitting by sentences with company names
+    if len(items) < 3:
+        sentences = re.split(r'[.!?]+', text)
+        items = []
+        for sentence in sentences:
+            sentence = sentence.strip()
+            # Look for sentences with company names and dates
+            if any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta']) and len(sentence) > 50:
+                items.append(sentence)
+    
+    return items[:5]  # Limit to 5 items
+
+def parse_recommendation_items(text):
+    """Parse recommendation items from text"""
+    items = []
+    
+    # Split by numbered items first
+    numbered_items = re.findall(r'\d+\.\s*([^0-9]*?)(?=\d+\.|$)', text, re.DOTALL)
+    
+    if numbered_items and len(numbered_items) >= 3:
+        for item in numbered_items:
+            item = item.strip()
+            if len(item) > 20:
+                items.append(item)
+    else:
+        # Fall back to bullet points or dashes
+        potential_items = re.split(r'[-•]\s*(?=[A-Z])', text)
+        
+        for item in potential_items:
+            item = item.strip()
+            if len(item) > 30:
+                item = re.sub(r'^[-•*]\s*', '', item)
+                items.append(item)
+    
+    return items[:5]  # Limit to 5 items
+
 def create_html_blog_post(content, title, excerpt):
-    """Create complete HTML blog post with FULL content sections"""
+    """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
     current_date = datetime.now()
     formatted_date = current_date.strftime("%B %d, %Y")
     month_year = current_date.strftime("%B %Y")
@@ -200,7 +279,7 @@ def create_html_blog_post(content, title, excerpt):
     # Parse all content sections
     sections = parse_structured_content(content)
     
-    # Build content HTML with ALL sections
+    # Build content HTML with ALL sections PROPERLY FORMATTED
     content_html = []
     
     # Introduction section
@@ -214,27 +293,57 @@ def create_html_blog_post(content, title, excerpt):
     if sections['developments']:
         dev_items = []
         for item in sections['developments']:
+            # Check if item has a title/company name
             if ':' in item:
                 parts = item.split(':', 1)
                 dev_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
             else:
-                dev_items.append(f'<li>{item}</li>')
+                # Try to extract company name for bolding
+                words = item.split()
+                if len(words) > 0:
+                    first_part = ' '.join(words[:3])  # First few words as title
+                    rest_part = ' '.join(words[3:]) if len(words) > 3 else ''
+                    if rest_part:
+                        dev_items.append(f'<li><strong>{first_part}:</strong> {rest_part}</li>')
+                    else:
+                        dev_items.append(f'<li>{item}</li>')
         
         if dev_items:
             content_html.append(f'''
                 <div class="section">
                     <h2 class="section-title">Key AI Developments This Month</h2>
                     <ul>
-                        {chr(10).join(dev_items)}
+                        {chr(10).join(['                        ' + item for item in dev_items])}
                     </ul>
                 </div>''')
     
     # Canadian business impact section
     if sections['canadian_impact']:
+        # Split into paragraphs if it's very long
+        impact_text = sections['canadian_impact']
+        if len(impact_text) > 800:
+            # Try to split into logical paragraphs
+            sentences = impact_text.split('. ')
+            paragraphs = []
+            current_para = []
+            
+            for sentence in sentences:
+                current_para.append(sentence)
+                if len('. '.join(current_para)) > 400:
+                    paragraphs.append('. '.join(current_para) + '.')
+                    current_para = []
+            
+            if current_para:
+                paragraphs.append('. '.join(current_para))
+            
+            para_html = ''.join([f'<p>{para}</p>' for para in paragraphs])
+        else:
+            para_html = f'<p>{impact_text}</p>'
+        
         content_html.append(f'''
                 <div class="section">
                     <h2 class="section-title">Impact on Canadian Businesses</h2>
-                    <p>{sections['canadian_impact']}</p>
+                    {para_html}
                 </div>''')
     
     # Strategic recommendations section
@@ -245,23 +354,27 @@ def create_html_blog_post(content, title, excerpt):
                 parts = item.split(':', 1)
                 rec_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
             else:
-                rec_items.append(f'<li><strong>Action {i+1}:</strong> {item}</li>')
+                rec_items.append(f'<li><strong>Strategic Action {i+1}:</strong> {item}</li>')
         
         if rec_items:
             content_html.append(f'''
                 <div class="section">
                     <h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2>
                     <ol>
-                        {chr(10).join(rec_items)}
+                        {chr(10).join(['                        ' + item for item in rec_items])}
                     </ol>
                 </div>''')
     
-    # If we don't have structured content, use the raw content
-    if not any([sections['introduction'], sections['developments'], sections['canadian_impact'], sections['recommendations']]):
-        print("WARNING: Structured parsing failed, using raw content")
+    # If we don't have enough structured content, fall back to paragraphs
+    if len(content_html) < 3:
+        print("WARNING: Insufficient structured parsing, using paragraph fallback")
         # Split content into paragraphs and create basic structure
-        paragraphs = [p.strip() for p in content.split('\n\n') if p.strip() and len(p.strip()) > 50]
-        for para in paragraphs[:8]:  # Limit to avoid overwhelming
+        clean_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content)
+        clean_content = re.sub(r'\*(.*?)\*', r'<em>\1</em>', clean_content)
+        
+        paragraphs = [p.strip() for p in clean_content.split('\n\n') if p.strip() and len(p.strip()) > 50]
+        content_html = []
+        for para in paragraphs[:6]:  # Limit to avoid overwhelming
             content_html.append(f'''
                 <div class="section">
                     <p>{para}</p>
@@ -274,7 +387,7 @@ def create_html_blog_post(content, title, excerpt):
     
     print(f"DEBUG: Generated {len(content_html)} content sections, total length: {len(all_content)}")
     
-    # Complete HTML template
+    # Complete HTML template (unchanged)
     html_template = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -706,14 +819,20 @@ def extract_title_and_excerpt(content):
     
     title = f"AI Insights for {month_year}"
     
-    lines = [line.strip() for line in content.split("\n") if line.strip()]
+    # Clean content first
+    clean_content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)
+    clean_content = re.sub(r'\*(.*?)\*', r'\1', clean_content)
+    
+    lines = [line.strip() for line in clean_content.split("\n") if line.strip()]
     excerpt = ""
     
     # Look for introduction paragraph
     for line in lines:
         if line and len(line) > 100 and not line.startswith(('#', '1.', '2.', '3.', '4.', '5.', '•', '-', '*')):
-            excerpt = line[:200] + "..." if len(line) > 200 else line
-            break
+            # Make sure it's not a header
+            if not any(header in line.lower() for header in ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion']):
+                excerpt = line[:200] + "..." if len(line) > 200 else line
+                break
     
     if not excerpt:
         excerpt = f"Monthly analysis of key AI developments and their strategic impact on Canadian businesses for {month_year}."
@@ -1303,7 +1422,7 @@ def main():
         print(f"✅ Title extracted: {title}")
         
         html_content = create_html_blog_post(result["content"], title, excerpt)
-        print(f"✅ HTML content generated with FULL article content ({len(html_content)} characters)")
+        print(f"✅ HTML content generated with PROPERLY FORMATTED content ({len(html_content)} characters)")
         
         current_date = datetime.now().strftime("%Y-%m-%d")
         filename_html = f"{current_date}-{clean_filename(title)}.html"
@@ -1341,7 +1460,7 @@ def main():
         
         print("🎉 COMPLETE SCRIPT EXECUTED SUCCESSFULLY!")
         print("🔗 Check your blog at: /blog/ (now with beautiful styling)")
-        print("🔗 Latest post at: /blog/posts/latest.html (now with full content)")
+        print("🔗 Latest post at: /blog/posts/latest.html (now with properly structured content)")
         
     except Exception as e:
         print(f"💥 Blog generation failed: {e}")
