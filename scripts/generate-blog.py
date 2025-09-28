@@ -293,76 +293,106 @@ def create_html_blog_post(content, title, excerpt):
     if sections['developments']:
         dev_items = []
         for item in sections['developments']:
-            # Check if item has a title/company name
-            if ':' in item:
-                parts = item.split(':', 1)
+            # Clean up the item and format as bullet point
+            clean_item = item.strip()
+            if ':' in clean_item:
+                parts = clean_item.split(':', 1)
                 dev_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
             else:
                 # Try to extract company name for bolding
-                words = item.split()
+                words = clean_item.split()
                 if len(words) > 0:
-                    first_part = ' '.join(words[:3])  # First few words as title
-                    rest_part = ' '.join(words[3:]) if len(words) > 3 else ''
-                    if rest_part:
-                        dev_items.append(f'<li><strong>{first_part}:</strong> {rest_part}</li>')
-                    else:
-                        dev_items.append(f'<li>{item}</li>')
+                    # Look for company names to bold
+                    company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']
+                    for company in company_names:
+                        if company in clean_item:
+                            clean_item = clean_item.replace(company, f'<strong>{company}</strong>')
+                            break
+                    dev_items.append(f'<li>{clean_item}</li>')
         
         if dev_items:
             content_html.append(f'''
                 <div class="section">
                     <h2 class="section-title">Key AI Developments This Month</h2>
-                    <ul>
+                    <ul class="bullet-list">
                         {chr(10).join(['                        ' + item for item in dev_items])}
                     </ul>
                 </div>''')
     
-    # Canadian business impact section
+    # Canadian business impact section - convert to bullet points if it contains multiple points
     if sections['canadian_impact']:
-        # Split into paragraphs if it's very long
         impact_text = sections['canadian_impact']
-        if len(impact_text) > 800:
-            # Try to split into logical paragraphs
-            sentences = impact_text.split('. ')
-            paragraphs = []
-            current_para = []
-            
-            for sentence in sentences:
-                current_para.append(sentence)
-                if len('. '.join(current_para)) > 400:
-                    paragraphs.append('. '.join(current_para) + '.')
-                    current_para = []
-            
-            if current_para:
-                paragraphs.append('. '.join(current_para))
-            
-            para_html = ''.join([f'<p>{para}</p>' for para in paragraphs])
-        else:
-            para_html = f'<p>{impact_text}</p>'
         
-        content_html.append(f'''
+        # Check if the text contains natural bullet points or can be split into points
+        if any(marker in impact_text for marker in ['-', '•', 'First', 'Second', 'Additionally', 'Furthermore', 'Moreover']):
+            # Try to split into bullet points
+            # Split by sentences and look for logical breaks
+            sentences = [s.strip() + '.' for s in impact_text.split('.') if s.strip()]
+            impact_items = []
+            
+            current_point = []
+            for sentence in sentences:
+                current_point.append(sentence)
+                # If we have a substantial point (100+ chars), make it a bullet
+                if len(' '.join(current_point)) > 100:
+                    point_text = ' '.join(current_point).strip()
+                    if point_text:
+                        impact_items.append(f'<li>{point_text}</li>')
+                    current_point = []
+            
+            # Add any remaining content
+            if current_point:
+                point_text = ' '.join(current_point).strip()
+                if point_text:
+                    impact_items.append(f'<li>{point_text}</li>')
+            
+            if len(impact_items) >= 2:  # Use bullets if we have multiple points
+                content_html.append(f'''
                 <div class="section">
                     <h2 class="section-title">Impact on Canadian Businesses</h2>
-                    {para_html}
+                    <ul class="bullet-list">
+                        {chr(10).join(['                        ' + item for item in impact_items])}
+                    </ul>
+                </div>''')
+            else:
+                # Fall back to paragraph format
+                content_html.append(f'''
+                <div class="section">
+                    <h2 class="section-title">Impact on Canadian Businesses</h2>
+                    <p>{impact_text}</p>
+                </div>''')
+        else:
+            # Use paragraph format for single coherent text
+            content_html.append(f'''
+                <div class="section">
+                    <h2 class="section-title">Impact on Canadian Businesses</h2>
+                    <p>{impact_text}</p>
                 </div>''')
     
     # Strategic recommendations section
     if sections['recommendations']:
         rec_items = []
         for i, item in enumerate(sections['recommendations']):
-            if ':' in item:
-                parts = item.split(':', 1)
+            clean_item = item.strip()
+            if ':' in clean_item:
+                parts = clean_item.split(':', 1)
                 rec_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
             else:
-                rec_items.append(f'<li><strong>Strategic Action {i+1}:</strong> {item}</li>')
+                # Add a generic title if none exists
+                if not clean_item.startswith(('1.', '2.', '3.', '4.', '5.')):
+                    rec_items.append(f'<li><strong>Strategic Action {i+1}:</strong> {clean_item}</li>')
+                else:
+                    # Remove numbering and use as bullet
+                    clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
+                    rec_items.append(f'<li>{clean_item}</li>')
         
         if rec_items:
             content_html.append(f'''
                 <div class="section">
                     <h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2>
-                    <ol>
+                    <ul class="bullet-list numbered">
                         {chr(10).join(['                        ' + item for item in rec_items])}
-                    </ol>
+                    </ul>
                 </div>''')
     
     # If we don't have enough structured content, fall back to paragraphs
@@ -603,13 +633,17 @@ def create_html_blog_post(content, title, excerpt):
         }}
 
         .section-title {{
-            font-size: 1.8rem;
+            font-size: 2rem;
             color: var(--dark-navy);
             margin-bottom: 1.5rem;
-            font-weight: 600;
+            margin-top: 2rem;
+            font-weight: 700;
             position: relative;
             padding-left: 1.5rem;
-            line-height: 1.3;
+            line-height: 1.2;
+            border-bottom: 3px solid var(--primary-blue);
+            padding-bottom: 0.5rem;
+            display: block;
         }}
 
         .section-title::before {{
@@ -617,10 +651,58 @@ def create_html_blog_post(content, title, excerpt):
             position: absolute;
             left: 0;
             top: 0;
-            bottom: 0;
+            bottom: 0.5rem;
             width: 4px;
             background: var(--gradient-primary);
             border-radius: 2px;
+        }}
+
+        .bullet-list {{
+            margin-bottom: 2rem;
+            padding-left: 0;
+            list-style: none;
+        }}
+
+        .bullet-list li {{
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+            color: var(--medium-gray);
+            position: relative;
+            padding-left: 2.5rem;
+            font-size: 1.05rem;
+        }}
+
+        .bullet-list li::before {{
+            content: '●';
+            position: absolute;
+            left: 0;
+            color: var(--primary-blue);
+            font-weight: bold;
+            font-size: 1.2rem;
+            top: 0.1rem;
+        }}
+
+        .bullet-list.numbered li {{
+            counter-increment: list-counter;
+        }}
+
+        .bullet-list.numbered li::before {{
+            content: counter(list-counter) '.';
+            background: var(--gradient-primary);
+            color: white;
+            width: 1.8rem;
+            height: 1.8rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            top: 0.1rem;
+        }}
+
+        .bullet-list.numbered {{
+            counter-reset: list-counter;
         }}
 
         p {{
