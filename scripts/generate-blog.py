@@ -145,103 +145,206 @@ def parse_structured_content(content):
     content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)  # Remove bold asterisks
     content = re.sub(r'\*(.*?)\*', r'\1', content)      # Remove italic asterisks
     
-    # Split into sections based on headers
-    current_section = 'introduction'
-    current_text = []
+    # Split by sections using regex to find section headers
+    print("DEBUG: Starting enhanced content parsing...")
+    print(f"DEBUG: Content length: {len(content)}")
     
-    lines = content.split('\n')
+    # Try to split content into logical sections
+    content_lower = content.lower()
     
-    print("DEBUG: Starting content parsing...")
+    # Find section boundaries
+    intro_end = -1
+    dev_start = -1
+    dev_end = -1
+    impact_start = -1
+    impact_end = -1
+    rec_start = -1
+    rec_end = -1
+    conclusion_start = -1
     
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-            
-        line_lower = line.lower()
-        
-        # Detect section headers
-        if any(phrase in line_lower for phrase in ['key ai development', 'ai development', 'major development', 'technological advance']):
-            # Save previous section
-            if current_section == 'introduction' and current_text:
-                sections['introduction'] = ' '.join(current_text).strip()
-            current_section = 'developments'
-            current_text = []
-            print(f"Found developments section: {line[:50]}")
-            continue
-        elif any(phrase in line_lower for phrase in ['canadian business impact', 'impact on canadian', 'canadian impact']):
-            # Save previous section
-            if current_section == 'developments' and current_text:
-                # Parse development items
-                dev_text = ' '.join(current_text)
-                sections['developments'] = parse_development_items(dev_text)
-            current_section = 'canadian_impact'
-            current_text = []
-            print(f"Found canadian impact section: {line[:50]}")
-            continue
-        elif any(phrase in line_lower for phrase in ['strategic recommendation', 'recommendation', 'action step']):
-            # Save previous section
-            if current_section == 'canadian_impact' and current_text:
-                sections['canadian_impact'] = ' '.join(current_text).strip()
-            current_section = 'recommendations'
-            current_text = []
-            print(f"Found recommendations section: {line[:50]}")
-            continue
-        elif any(phrase in line_lower for phrase in ['conclusion', 'strategic imperative', 'final thought']):
-            # Save previous section
-            if current_section == 'recommendations' and current_text:
-                # Parse recommendation items
-                rec_text = ' '.join(current_text)
-                sections['recommendations'] = parse_recommendation_items(rec_text)
-            current_section = 'conclusion'
-            current_text = []
-            print(f"Found conclusion section: {line[:50]}")
-            continue
-        
-        # Add content to current section
-        if not any(phrase in line_lower for phrase in ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion']):
-            current_text.append(line)
+    # Look for development section
+    dev_patterns = [
+        'key ai development', 'ai development', 'major development', 
+        'technological advance', 'key developments', 'major ai'
+    ]
+    for pattern in dev_patterns:
+        pos = content_lower.find(pattern)
+        if pos != -1:
+            dev_start = pos
+            break
     
-    # Handle the last section
-    if current_section == 'conclusion' and current_text:
-        sections['conclusion'] = ' '.join(current_text).strip()
-    elif current_section == 'recommendations' and current_text:
-        rec_text = ' '.join(current_text)
-        sections['recommendations'] = parse_recommendation_items(rec_text)
-    elif current_section == 'canadian_impact' and current_text:
-        sections['canadian_impact'] = ' '.join(current_text).strip()
-    elif current_section == 'developments' and current_text:
-        dev_text = ' '.join(current_text)
+    # Look for Canadian impact section
+    impact_patterns = [
+        'canadian business impact', 'impact on canadian', 'canadian impact',
+        'canadian business', 'impact on canada'
+    ]
+    for pattern in impact_patterns:
+        pos = content_lower.find(pattern)
+        if pos != -1 and pos > dev_start:
+            impact_start = pos
+            dev_end = pos
+            break
+    
+    # Look for recommendations section
+    rec_patterns = [
+        'strategic recommendation', 'recommendation', 'strategic action',
+        'action step', 'strategic step', 'recommendations for'
+    ]
+    for pattern in rec_patterns:
+        pos = content_lower.find(pattern)
+        if pos != -1 and pos > impact_start:
+            rec_start = pos
+            impact_end = pos
+            break
+    
+    # Look for conclusion section
+    conclusion_patterns = [
+        'conclusion', 'strategic imperative', 'final thought',
+        'in conclusion', 'finally'
+    ]
+    for pattern in conclusion_patterns:
+        pos = content_lower.find(pattern)
+        if pos != -1 and pos > rec_start:
+            conclusion_start = pos
+            rec_end = pos
+            break
+    
+    print(f"DEBUG: Section positions - dev:{dev_start}, impact:{impact_start}, rec:{rec_start}, conclusion:{conclusion_start}")
+    
+    # Extract sections based on found positions
+    if dev_start > 0:
+        sections['introduction'] = content[:dev_start].strip()
+    
+    if dev_start != -1 and dev_end != -1:
+        dev_text = content[dev_start:dev_end].strip()
         sections['developments'] = parse_development_items(dev_text)
-    elif current_section == 'introduction' and current_text:
-        sections['introduction'] = ' '.join(current_text).strip()
     
-    print(f"DEBUG: Parsed sections - intro: {bool(sections['introduction'])}, dev: {len(sections['developments'])}, impact: {bool(sections['canadian_impact'])}, rec: {len(sections['recommendations'])}, conc: {bool(sections['conclusion'])}")
+    if impact_start != -1 and impact_end != -1:
+        impact_text = content[impact_start:impact_end].strip()
+        # Remove the section header
+        for pattern in impact_patterns:
+            if pattern in impact_text.lower():
+                impact_text = re.sub(re.escape(pattern), '', impact_text, flags=re.IGNORECASE).strip()
+                break
+        sections['canadian_impact'] = impact_text
+    
+    if rec_start != -1 and rec_end != -1:
+        rec_text = content[rec_start:rec_end].strip()
+        sections['recommendations'] = parse_recommendation_items(rec_text)
+    
+    if conclusion_start != -1:
+        conclusion_text = content[conclusion_start:].strip()
+        # Remove the section header
+        for pattern in conclusion_patterns:
+            if pattern in conclusion_text.lower():
+                conclusion_text = re.sub(re.escape(pattern), '', conclusion_text, flags=re.IGNORECASE).strip()
+                break
+        sections['conclusion'] = conclusion_text
+    
+    # If we couldn't parse properly, try a different approach
+    if not any([sections['developments'], sections['canadian_impact'], sections['recommendations']]):
+        print("WARNING: Primary parsing failed, trying paragraph-based parsing")
+        
+        # Split into paragraphs and try to categorize them
+        paragraphs = [p.strip() for p in content.split('\n\n') if p.strip() and len(p.strip()) > 50]
+        
+        current_section = 'introduction'
+        for para in paragraphs:
+            para_lower = para.lower()
+            
+            # Check if this paragraph is a section header
+            if any(pattern in para_lower for pattern in dev_patterns):
+                current_section = 'developments'
+                continue
+            elif any(pattern in para_lower for pattern in impact_patterns):
+                current_section = 'canadian_impact'
+                continue
+            elif any(pattern in para_lower for pattern in rec_patterns):
+                current_section = 'recommendations'
+                continue
+            elif any(pattern in para_lower for pattern in conclusion_patterns):
+                current_section = 'conclusion'
+                continue
+            
+            # Add content to current section
+            if current_section == 'introduction' and not sections['introduction']:
+                sections['introduction'] = para
+            elif current_section == 'developments':
+                # Try to extract bullet points from paragraph
+                bullet_items = extract_bullets_from_paragraph(para)
+                sections['developments'].extend(bullet_items)
+            elif current_section == 'canadian_impact' and not sections['canadian_impact']:
+                sections['canadian_impact'] = para
+            elif current_section == 'recommendations':
+                # Try to extract bullet points from paragraph
+                rec_items = extract_bullets_from_paragraph(para)
+                sections['recommendations'].extend(rec_items)
+            elif current_section == 'conclusion' and not sections['conclusion']:
+                sections['conclusion'] = para
+    
+    print(f"DEBUG: Final parsed sections - intro: {bool(sections['introduction'])}, dev: {len(sections['developments'])}, impact: {bool(sections['canadian_impact'])}, rec: {len(sections['recommendations'])}, conc: {bool(sections['conclusion'])}")
     
     return sections
+
+def extract_bullets_from_paragraph(paragraph):
+    """Extract bullet points from a paragraph that contains dashes or bullets"""
+    items = []
+    
+    # Look for items that start with bullet markers
+    lines = paragraph.split('. ')
+    for line in lines:
+        line = line.strip()
+        
+        # Skip if too short
+        if len(line) < 30:
+            continue
+            
+        # Look for patterns that suggest bullet points
+        if any(marker in line for marker in ['-', '•', 'Microsoft', 'Google', 'OpenAI', 'Anthropic', 'NVIDIA']):
+            # Clean up the line
+            clean_line = re.sub(r'^[-•*]\s*', '', line)
+            clean_line = re.sub(r'^\d+\.\s*', '', clean_line)
+            
+            if clean_line and len(clean_line) > 20:
+                items.append(clean_line)
+    
+    return items
 
 def parse_development_items(text):
     """Parse development items from text"""
     items = []
     
-    # Split by common patterns
-    potential_items = re.split(r'[-•]\s*(?=[A-Z])', text)
+    # First try to split by common patterns
+    # Look for dashes followed by content
+    dash_items = re.split(r'\s*-\s*(?=[A-Z])', text)
     
-    for item in potential_items:
+    for item in dash_items:
         item = item.strip()
-        if len(item) > 30:  # Only keep substantial items
-            # Clean up formatting
-            item = re.sub(r'^[-•*]\s*', '', item)
+        if len(item) > 50 and any(company in item for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta']):
             items.append(item)
     
-    # If that didn't work well, try splitting by sentences with company names
+    # If that didn't work, try sentences with dates
     if len(items) < 3:
-        sentences = re.split(r'[.!?]+', text)
         items = []
+        # Split by periods and look for substantial items
+        sentences = re.split(r'[.!?]+', text)
         for sentence in sentences:
             sentence = sentence.strip()
-            # Look for sentences with company names and dates
-            if any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta']) and len(sentence) > 50:
+            
+            # Look for sentences that mention companies and have dates or specific info
+            if (len(sentence) > 50 and 
+                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta']) and
+                (re.search(r'September|october|november|2025|\d+', sentence) or 
+                 any(word in sentence.lower() for word in ['launch', 'announce', 'release', 'integrate', 'partner']))):
+                items.append(sentence)
+    
+    # If still nothing, try to extract any substantial sentences
+    if len(items) < 2:
+        items = []
+        sentences = re.split(r'[.!?]+', text)
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if len(sentence) > 80:  # Longer sentences likely to be substantial
                 items.append(sentence)
     
     return items[:5]  # Limit to 5 items
@@ -250,23 +353,36 @@ def parse_recommendation_items(text):
     """Parse recommendation items from text"""
     items = []
     
-    # Split by numbered items first
-    numbered_items = re.findall(r'\d+\.\s*([^0-9]*?)(?=\d+\.|$)', text, re.DOTALL)
+    # First try numbered items
+    numbered_pattern = r'(\d+)\.\s*([^0-9]*?)(?=\d+\.|$)'
+    numbered_matches = re.findall(numbered_pattern, text, re.DOTALL)
     
-    if numbered_items and len(numbered_items) >= 3:
-        for item in numbered_items:
-            item = item.strip()
-            if len(item) > 20:
-                items.append(item)
+    if numbered_matches and len(numbered_matches) >= 3:
+        for num, item_text in numbered_matches:
+            item_text = item_text.strip()
+            if len(item_text) > 30:
+                items.append(item_text)
     else:
-        # Fall back to bullet points or dashes
-        potential_items = re.split(r'[-•]\s*(?=[A-Z])', text)
+        # Try dash/bullet separated items
+        dash_items = re.split(r'\s*[-•]\s*(?=[A-Z])', text)
         
-        for item in potential_items:
+        for item in dash_items:
             item = item.strip()
-            if len(item) > 30:
-                item = re.sub(r'^[-•*]\s*', '', item)
+            if len(item) > 50:
+                # Clean up the item
+                item = re.sub(r'^\d+\.\s*', '', item)  # Remove leading numbers
                 items.append(item)
+        
+        # If still no good items, split by sentences and look for action words
+        if len(items) < 3:
+            items = []
+            sentences = re.split(r'[.!?]+', text)
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if (len(sentence) > 50 and 
+                    any(action_word in sentence.lower() for action_word in 
+                        ['evaluate', 'assess', 'implement', 'develop', 'establish', 'monitor', 'review', 'ensure', 'invest', 'leverage'])):
+                    items.append(sentence)
     
     return items[:5]  # Limit to 5 items
 
