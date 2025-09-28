@@ -386,6 +386,54 @@ def parse_recommendation_items(text):
     
     return items[:5]  # Limit to 5 items
 
+def clean_perplexity_content(content):
+    """Remove citation numbers and clean up Perplexity response formatting"""
+    # Remove citation markers like [1], [2], etc.
+    content = re.sub(r'\[\d+\]', '', content)
+    
+    # Remove standalone citation references at end of sentences
+    content = re.sub(r'\s*\(\d+\)\s*', ' ', content)
+    
+    # Remove unwanted dashes next to bullet points
+    content = re.sub(r'[-•*]\s*[-•*]\s*', '• ', content)  # Double dashes/bullets
+    content = re.sub(r'^\s*[-•*]\s*[-•*]\s*', '• ', content, flags=re.MULTILINE)  # Line start double dashes
+    
+    # Clean up multiple spaces
+    content = re.sub(r'\s+', ' ', content)
+    
+    # Clean up bullet points and formatting - remove extra dashes
+    content = re.sub(r'^\s*[-*•]\s*-\s*', '• ', content, flags=re.MULTILINE)
+    content = re.sub(r'^\s*[-*•]\s*', '• ', content, flags=re.MULTILINE)
+    
+    return content.strip()
+
+def extract_bullets_from_paragraph(paragraph):
+    """Extract bullet points from a paragraph that contains dashes or bullets"""
+    items = []
+    
+    # Look for items that start with bullet markers
+    lines = paragraph.split('. ')
+    for line in lines:
+        line = line.strip()
+        
+        # Skip if too short
+        if len(line) < 30:
+            continue
+            
+        # Remove unwanted dashes at the start
+        line = re.sub(r'^[-•*]\s*[-•*]\s*', '', line)
+        line = re.sub(r'^[-•*]\s*', '', line)
+            
+        # Look for patterns that suggest bullet points
+        if any(marker in line for marker in ['Microsoft', 'Google', 'OpenAI', 'Anthropic', 'NVIDIA']):
+            # Clean up the line further
+            clean_line = re.sub(r'^\d+\.\s*', '', line)
+            
+            if clean_line and len(clean_line) > 20:
+                items.append(clean_line)
+    
+    return items
+
 def create_html_blog_post(content, title, excerpt):
     """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
     current_date = datetime.now()
@@ -400,17 +448,23 @@ def create_html_blog_post(content, title, excerpt):
     
     # Introduction section
     if sections['introduction']:
+        # Clean up any unwanted dashes in introduction
+        intro_clean = re.sub(r'[-•*]\s*[-•*]\s*', '', sections['introduction'])
+        intro_clean = re.sub(r'^\s*[-•*]\s*', '', intro_clean)
         content_html.append(f'''
                 <div class="section">
-                    <p>{sections['introduction']}</p>
+                    <p>{intro_clean}</p>
                 </div>''')
     
     # Key developments section
     if sections['developments']:
         dev_items = []
         for item in sections['developments']:
-            # Clean up the item and format as bullet point
+            # Clean up the item and remove unwanted dashes
             clean_item = item.strip()
+            clean_item = re.sub(r'^[-•*]\s*[-•*]\s*', '', clean_item)
+            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
+            
             if ':' in clean_item:
                 parts = clean_item.split(':', 1)
                 dev_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
@@ -438,6 +492,9 @@ def create_html_blog_post(content, title, excerpt):
     # Canadian business impact section - convert to bullet points if it contains multiple points
     if sections['canadian_impact']:
         impact_text = sections['canadian_impact']
+        # Clean unwanted dashes
+        impact_text = re.sub(r'[-•*]\s*[-•*]\s*', '', impact_text)
+        impact_text = re.sub(r'^\s*[-•*]\s*', '', impact_text)
         
         # Check if the text contains natural bullet points or can be split into points
         if any(marker in impact_text for marker in ['-', '•', 'First', 'Second', 'Additionally', 'Furthermore', 'Moreover']):
@@ -453,6 +510,8 @@ def create_html_blog_post(content, title, excerpt):
                 if len(' '.join(current_point)) > 100:
                     point_text = ' '.join(current_point).strip()
                     if point_text:
+                        # Remove any remaining unwanted dashes
+                        point_text = re.sub(r'^[-•*]\s*', '', point_text)
                         impact_items.append(f'<li>{point_text}</li>')
                     current_point = []
             
@@ -460,6 +519,7 @@ def create_html_blog_post(content, title, excerpt):
             if current_point:
                 point_text = ' '.join(current_point).strip()
                 if point_text:
+                    point_text = re.sub(r'^[-•*]\s*', '', point_text)
                     impact_items.append(f'<li>{point_text}</li>')
             
             if len(impact_items) >= 2:  # Use bullets if we have multiple points
@@ -490,6 +550,10 @@ def create_html_blog_post(content, title, excerpt):
         rec_items = []
         for i, item in enumerate(sections['recommendations']):
             clean_item = item.strip()
+            # Remove unwanted dashes
+            clean_item = re.sub(r'^[-•*]\s*[-•*]\s*', '', clean_item)
+            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
+            
             if ':' in clean_item:
                 parts = clean_item.split(':', 1)
                 rec_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
@@ -517,6 +581,9 @@ def create_html_blog_post(content, title, excerpt):
         # Split content into paragraphs and create basic structure
         clean_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content)
         clean_content = re.sub(r'\*(.*?)\*', r'<em>\1</em>', clean_content)
+        # Remove unwanted dashes from fallback content too
+        clean_content = re.sub(r'[-•*]\s*[-•*]\s*', '• ', clean_content)
+        clean_content = re.sub(r'^\s*[-•*]\s*[-•*]\s*', '• ', clean_content, flags=re.MULTILINE)
         
         paragraphs = [p.strip() for p in clean_content.split('\n\n') if p.strip() and len(p.strip()) > 50]
         content_html = []
@@ -527,6 +594,10 @@ def create_html_blog_post(content, title, excerpt):
                 </div>''')
     
     conclusion_text = sections['conclusion'] if sections['conclusion'] else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
+    
+    # Clean conclusion text too
+    conclusion_text = re.sub(r'[-•*]\s*[-•*]\s*', '', conclusion_text)
+    conclusion_text = re.sub(r'^\s*[-•*]\s*', '', conclusion_text)
     
     # Combine all content sections
     all_content = '\n'.join(content_html)
