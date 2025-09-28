@@ -39,8 +39,8 @@ jobs:
         id: check
         run: |
           # Get current date info
-          CURRENT_DAY=$(date +%d)
-          CURRENT_MONTH=$(date +%m)
+          CURRENT_DAY=$(date +%-d)  # %-d removes leading zero
+          CURRENT_MONTH=$(date +%-m)  # %-m removes leading zero
           CURRENT_YEAR=$(date +%Y)
           MONTH_YEAR=$(date +"%B %Y")
           CURRENT_DATE=$(date +"%Y-%m-%d")
@@ -56,19 +56,25 @@ jobs:
           fi
           
           # Get last day of current month (day before first day of next month)
-          LAST_DAY=$(date -d "${NEXT_YEAR}-$(printf "%02d" $NEXT_MONTH)-01 -1 day" +%d)
+          LAST_DAY=$(date -d "${NEXT_YEAR}-$(printf "%02d" $NEXT_MONTH)-01 -1 day" +%-d)
           
           echo "Current day: $CURRENT_DAY"
           echo "Last day of month: $LAST_DAY"
           echo "Month/Year: $MONTH_YEAR"
+          echo "Force run requested: ${{ github.event.inputs.force_run }}"
           
           # Check if today is last day OR if manual run with force_run=true
           if [ "$CURRENT_DAY" = "$LAST_DAY" ] || [ "${{ github.event.inputs.force_run }}" = "true" ]; then
             echo "is_last_day=true" >> $GITHUB_OUTPUT
-            echo "✅ Today IS the last day of the month (or forced run)!"
+            if [ "${{ github.event.inputs.force_run }}" = "true" ]; then
+              echo "✅ FORCE RUN: Proceeding with blog generation (bypassing date check)!"
+            else
+              echo "✅ Today IS the last day of the month!"
+            fi
           else
             echo "is_last_day=false" >> $GITHUB_OUTPUT
             echo "❌ Today is NOT the last day of the month. Skipping blog generation."
+            echo "💡 Use 'Force run' = true to override this check."
           fi
           
           echo "current_date=$CURRENT_DATE" >> $GITHUB_OUTPUT
