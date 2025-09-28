@@ -1,9 +1,9 @@
-name: Generate Monthly AI Blog Post - Blog Updates Only
+name: Generate Monthly AI Blog Post - Last Day of Month
 
 on:
   schedule:
-    # Run on the 1st of every month at 9:00 AM UTC
-    - cron: '0 9 1 * *'
+    # Run daily from 28th-31st at 9:00 AM UTC, but only execute on last day
+    - cron: '0 9 28-31 * *'
   
   # Allow manual triggering for testing
   workflow_dispatch:
@@ -15,15 +15,69 @@ on:
       output:
         description: 'Output directory'
         required: false
-        default: 'posts'  # ✅ FIXED: Changed from 'blog/posts' to 'posts'
+        default: 'posts'
         type: choice
         options:
         - posts
         - staging
+      force_run:
+        description: 'Force run regardless of date (for testing)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
+  check-last-day:
+    runs-on: ubuntu-latest
+    outputs:
+      is_last_day: ${{ steps.check.outputs.is_last_day }}
+      current_date: ${{ steps.check.outputs.current_date }}
+      month_year: ${{ steps.check.outputs.month_year }}
+    
+    steps:
+      - name: Check if today is last day of month
+        id: check
+        run: |
+          # Get current date info
+          CURRENT_DAY=$(date +%d)
+          CURRENT_MONTH=$(date +%m)
+          CURRENT_YEAR=$(date +%Y)
+          MONTH_YEAR=$(date +"%B %Y")
+          CURRENT_DATE=$(date +"%Y-%m-%d")
+          
+          # Calculate last day of current month
+          NEXT_MONTH=$((CURRENT_MONTH + 1))
+          NEXT_YEAR=$CURRENT_YEAR
+          
+          # Handle December -> January transition
+          if [ $NEXT_MONTH -gt 12 ]; then
+            NEXT_MONTH=1
+            NEXT_YEAR=$((CURRENT_YEAR + 1))
+          fi
+          
+          # Get last day of current month (day before first day of next month)
+          LAST_DAY=$(date -d "${NEXT_YEAR}-$(printf "%02d" $NEXT_MONTH)-01 -1 day" +%d)
+          
+          echo "Current day: $CURRENT_DAY"
+          echo "Last day of month: $LAST_DAY"
+          echo "Month/Year: $MONTH_YEAR"
+          
+          # Check if today is last day OR if manual run with force_run=true
+          if [ "$CURRENT_DAY" = "$LAST_DAY" ] || [ "${{ github.event.inputs.force_run }}" = "true" ]; then
+            echo "is_last_day=true" >> $GITHUB_OUTPUT
+            echo "✅ Today IS the last day of the month (or forced run)!"
+          else
+            echo "is_last_day=false" >> $GITHUB_OUTPUT
+            echo "❌ Today is NOT the last day of the month. Skipping blog generation."
+          fi
+          
+          echo "current_date=$CURRENT_DATE" >> $GITHUB_OUTPUT
+          echo "month_year=$MONTH_YEAR" >> $GITHUB_OUTPUT
+
   generate-blog:
     runs-on: ubuntu-latest
+    needs: check-last-day
+    if: needs.check-last-day.outputs.is_last_day == 'true'
     
     steps:
       - name: Checkout repository
@@ -47,16 +101,20 @@ jobs:
         env:
           PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
         run: |
+          echo "🚀 Generating blog post for ${{ needs.check-last-day.outputs.month_year }}"
+          
           if [ -n "${{ github.event.inputs.topic }}" ]; then
+            echo "📝 Using custom topic: ${{ github.event.inputs.topic }}"
             python scripts/generate-blog.py --topic "${{ github.event.inputs.topic }}" --output ${{ github.event.inputs.output || 'posts' }}
           else
+            echo "📝 Using default Canadian business focus"
             python scripts/generate-blog.py --output ${{ github.event.inputs.output || 'posts' }}
           fi
       
       - name: Configure Git
         run: |
           git config --local user.email "action@github.com"
-          git config --local user.name "AI Blog Generator"
+          git config --local user.name "AI Blog Generator (Last Day)"
       
       - name: Check for changes
         id: git-check
@@ -73,9 +131,9 @@ jobs:
       - name: Commit and push changes
         if: steps.git-check.outputs.changes == 'true'
         run: |
-          MONTH_YEAR=$(date +"%B %Y")
-          git commit -m "📝 Generate AI Insights Blog Post - $MONTH_YEAR
+          git commit -m "📝 Monthly AI Insights - ${{ needs.check-last-day.outputs.month_year }} (Last Day)
           
+          🗓️ Generated on last day of month: ${{ needs.check-last-day.outputs.current_date }}
           🤖 Monthly AI developments analysis for Canadian businesses
           📊 Key technology launches and business impact assessment  
           🎯 Strategic recommendations for digital leaders
@@ -92,9 +150,9 @@ jobs:
       - name: Create success summary
         if: steps.git-check.outputs.changes == 'true'
         run: |
-          echo "## 🎉 AI Insights Blog Post Generated!" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎉 Monthly AI Insights Posted! (Last Day of Month)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**📅 Date:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "**📅 Generated:** ${{ needs.check-last-day.outputs.current_date }} (Last day of ${{ needs.check-last-day.outputs.month_year }})" >> $GITHUB_STEP_SUMMARY
           echo "**🎯 Focus:** Canadian Business Impact Analysis" >> $GITHUB_STEP_SUMMARY
           echo "**📂 Output:** ${{ github.event.inputs.output || 'posts' }} directory" >> $GITHUB_STEP_SUMMARY
           if [ -n "${{ github.event.inputs.topic }}" ]; then
@@ -102,11 +160,11 @@ jobs:
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📝 Content Structure:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Monthly overview of AI developments" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Monthly overview of AI developments for ${{ needs.check-last-day.outputs.month_year }}" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Key technology launches from major companies" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Canadian business impact analysis" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ 5 strategic recommendations for leaders" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Clean formatting (Perplexity citations removed)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Clean formatting with proper sections and bullets" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔄 Files Updated:" >> $GITHUB_STEP_SUMMARY
           echo "- 📄 New monthly blog post created" >> $GITHUB_STEP_SUMMARY
@@ -114,16 +172,17 @@ jobs:
           echo "- 📋 \`blog/index.html\` updated with new post listing" >> $GITHUB_STEP_SUMMARY
           echo "- ⚠️  **Homepage NOT modified** (as requested)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🚀 Next Steps:" >> $GITHUB_STEP_SUMMARY
-          echo "- Visit your blog at \`/blog/\` to see the new post" >> $GITHUB_STEP_SUMMARY
-          echo "- Review the generated content for accuracy" >> $GITHUB_STEP_SUMMARY
-          echo "- Share the insights on LinkedIn/social media" >> $GITHUB_STEP_SUMMARY
-          echo "- Your homepage will continue showing your static content" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Perfect Timing:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🎯 Published on last day of month for maximum relevance" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 Captures complete month's AI developments" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔮 Ready for next month's business planning" >> $GITHUB_STEP_SUMMARY
       
       - name: Create no-changes summary
         if: steps.git-check.outputs.changes == 'false'
         run: |
-          echo "## ℹ️ No Blog Changes Made" >> $GITHUB_STEP_SUMMARY
+          echo "## ℹ️ No Blog Changes Made (Last Day Check)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**📅 Checked on:** ${{ needs.check-last-day.outputs.current_date }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The blog generation script completed but no files were changed." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -132,33 +191,50 @@ jobs:
           echo "- 🌐 **Network**: Connectivity issues during generation" >> $GITHUB_STEP_SUMMARY
           echo "- 📄 **Duplicate**: Generated content identical to existing post" >> $GITHUB_STEP_SUMMARY
           echo "- ⚠️  **Error**: Script encountered an exception" >> $GITHUB_STEP_SUMMARY
+
+  skipped-not-last-day:
+    runs-on: ubuntu-latest
+    needs: check-last-day
+    if: needs.check-last-day.outputs.is_last_day == 'false'
+    
+    steps:
+      - name: Create skip summary
+        run: |
+          echo "## ⏭️ Blog Generation Skipped" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🛠️ Troubleshooting:" >> $GITHUB_STEP_SUMMARY
-          echo "1. Check workflow logs above for specific errors" >> $GITHUB_STEP_SUMMARY
-          echo "2. Verify PERPLEXITY_API_KEY secret is properly configured" >> $GITHUB_STEP_SUMMARY
-          echo "3. Try manual workflow dispatch to test" >> $GITHUB_STEP_SUMMARY
-          echo "4. Check Perplexity API service status" >> $GITHUB_STEP_SUMMARY
+          echo "**📅 Current Date:** ${{ needs.check-last-day.outputs.current_date }}" >> $GITHUB_STEP_SUMMARY
+          echo "**📊 Status:** Not the last day of ${{ needs.check-last-day.outputs.month_year }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⏰ When Will It Run?" >> $GITHUB_STEP_SUMMARY
+          echo "The blog will automatically generate on the **last day of the month** to capture:" >> $GITHUB_STEP_SUMMARY
+          echo "- 📈 Complete month's AI developments" >> $GITHUB_STEP_SUMMARY
+          echo "- 🎯 Most up-to-date business insights" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 Comprehensive competitive analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Manual Override Available:" >> $GITHUB_STEP_SUMMARY
+          echo "Use **'Run workflow'** with **'Force run'** = true to generate immediately for testing."
 
   notify-on-failure:
     runs-on: ubuntu-latest
-    needs: generate-blog
-    if: failure()
+    needs: [check-last-day, generate-blog]
+    if: failure() && needs.check-last-day.outputs.is_last_day == 'true'
     
     steps:
       - name: Create failure summary
         run: |
-          echo "## ❌ Blog Generation Failed" >> $GITHUB_STEP_SUMMARY
+          echo "## ❌ Blog Generation Failed (Last Day)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**📅 Failed At:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "**📅 Failed At:** ${{ needs.check-last-day.outputs.current_date }}" >> $GITHUB_STEP_SUMMARY
           echo "**🔧 Workflow:** ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
           echo "**🔢 Run Number:** #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**⚠️ Critical:** This was the last day of ${{ needs.check-last-day.outputs.month_year }}!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🚨 Action Required:" >> $GITHUB_STEP_SUMMARY
-          echo "The monthly AI insights blog post was not generated successfully." >> $GITHUB_STEP_SUMMARY
-          echo "Please review the workflow logs and address any issues." >> $GITHUB_STEP_SUMMARY
+          echo "The monthly AI insights blog post failed on the last day of the month." >> $GITHUB_STEP_SUMMARY
+          echo "**Manual intervention needed to generate the monthly post.**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔧 Common Fixes:" >> $GITHUB_STEP_SUMMARY
-          echo "- Verify PERPLEXITY_API_KEY secret is valid" >> $GITHUB_STEP_SUMMARY
-          echo "- Check API usage limits" >> $GITHUB_STEP_SUMMARY
-          echo "- Test with manual workflow dispatch" >> $GITHUB_STEP_SUMMARY
-          echo "- Review recent code changes for syntax errors" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 Immediate Fixes:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Use **'Run workflow'** manually with **'Force run'** = true" >> $GITHUB_STEP_SUMMARY
+          echo "2. Verify PERPLEXITY_API_KEY secret is valid" >> $GITHUB_STEP_SUMMARY
+          echo "3. Check API usage limits" >> $GITHUB_STEP_SUMMARY
+          echo "4. Review workflow logs above for specific errors" >> $GITHUB_STEP_SUMMARY>
