@@ -541,7 +541,13 @@ def parse_development_items(text):
             replacement = f'VERSION{i}PROTECTED'
             version_replacements[replacement] = version
             protected_text = protected_text.replace(version, replacement)
-        
+        # ENHANCED protection for common patterns that break
+protected_text = re.sub(r'\bU\.S\.', 'USPROTECTED', protected_text)
+protected_text = re.sub(r'\bU\.K\.', 'UKPROTECTED', protected_text)
+protected_text = re.sub(r'\bE\.U\.', 'EUPROTECTED', protected_text)
+protected_text = re.sub(r'\bA\.I\.', 'AIPROTECTED', protected_text)
+protected_text = re.sub(r'\bGPT-(\d+)\.(\d+)', r'GPTVERSION\1DOT\2PROTECTED', protected_text)
+protected_text = re.sub(r'\bClaude-(\d+)\.(\d+)', r'CLAUDEVERSION\1DOT\2PROTECTED', protected_text)
         # Replace abbreviations
         for abbrev, replacement in abbreviations.items():
             protected_text = protected_text.replace(abbrev, replacement)
@@ -551,7 +557,13 @@ def parse_development_items(text):
         
         for sentence in sentences:
             sentence = sentence.strip()
-            
+            # Restore enhanced protections
+sentence = re.sub(r'USPROTECTED', 'U.S.', sentence)
+sentence = re.sub(r'UKPROTECTED', 'U.K.', sentence)
+sentence = re.sub(r'EUPROTECTED', 'E.U.', sentence)
+sentence = re.sub(r'AIPROTECTED', 'A.I.', sentence)
+sentence = re.sub(r'GPTVERSION(\d+)DOT(\d+)PROTECTED', r'GPT-\1.\2', sentence)
+sentence = re.sub(r'CLAUDEVERSION(\d+)DOT(\d+)PROTECTED', r'Claude-\1.\2', sentence)
             # Restore protected text
             for replacement, original in abbreviations.items():
                 sentence = sentence.replace(replacement, original)
@@ -577,7 +589,7 @@ def parse_development_items(text):
         if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
             filtered_items.append(item)
             
-    return items[:15]  # Return up to 15 items now
+    return filtered_items[:15]  # Return up to 15 items now
 
 def parse_recommendation_items(text):
     """Parse recommendation items with better decimal handling"""
