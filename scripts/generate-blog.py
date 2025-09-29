@@ -470,11 +470,10 @@ def extract_bullets_from_paragraph(paragraph):
     return items
 
 def parse_development_items(text):
-    """Parse development items with better decimal number handling"""
+    """Parse development items with SMART period handling for abbreviations and version numbers"""
     items = []
     
     # Split by actual list markers, but preserve decimal numbers in content
-    # Look for patterns that are clearly list items vs decimal numbers
     lines = text.split('\n')
     current_item = []
     
@@ -509,23 +508,66 @@ def parse_development_items(text):
         if len(item_text) > 50:
             items.append(item_text)
     
-    # If we still don't have good items, try company-based extraction
-    if len(items) < 3:
-        company_items = []
-        sentences = re.split(r'[.!?]+', text)
+    # If we still don't have good items, try SMART sentence-based extraction
+    if len(items) < 5:
+        # Use smarter splitting that preserves abbreviations and version numbers
+        smart_items = []
+        
+        # Replace common abbreviations temporarily to protect them
+        protected_text = text
+        abbreviations = {
+            'U.S.': 'USPROTECTED',
+            'U.K.': 'UKPROTECTED', 
+            'E.U.': 'EUPROTECTED',
+            'A.I.': 'AIPROTECTED',
+            'U.N.': 'UNPROTECTED',
+            'Inc.': 'IncPROTECTED',
+            'Corp.': 'CorpPROTECTED',
+            'Ltd.': 'LtdPROTECTED',
+            'Co.': 'CoPROTECTED',
+            'vs.': 'vsPROTECTED',
+            'etc.': 'etcPROTECTED',
+            'Dr.': 'DrPROTECTED',
+            'Mr.': 'MrPROTECTED',
+            'Ms.': 'MsPROTECTED',
+            'Mrs.': 'MrsPROTECTED'
+        }
+        
+        # Protect version numbers (like 4.1, 2.5, etc.)
+        version_pattern = r'\b(\d+\.\d+)\b'
+        version_matches = re.findall(version_pattern, protected_text)
+        version_replacements = {}
+        for i, version in enumerate(version_matches):
+            replacement = f'VERSION{i}PROTECTED'
+            version_replacements[replacement] = version
+            protected_text = protected_text.replace(version, replacement)
+        
+        # Replace abbreviations
+        for abbrev, replacement in abbreviations.items():
+            protected_text = protected_text.replace(abbrev, replacement)
+        
+        # Now split by sentences more safely
+        sentences = re.split(r'[.!?]+', protected_text)
         
         for sentence in sentences:
             sentence = sentence.strip()
+            
+            # Restore protected text
+            for replacement, original in abbreviations.items():
+                sentence = sentence.replace(replacement, original)
+            for replacement, original in version_replacements.items():
+                sentence = sentence.replace(replacement, original)
+            
             # Look for sentences mentioning companies with substantial content
             if (len(sentence) > 50 and 
-                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
+                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple', 'Tesla', 'IBM', 'Intel', 'AMD']) and
                 not re.match(r'^\d+\.\s', sentence)):  # Not already a numbered item
-                company_items.append(sentence)
+                smart_items.append(sentence)
         
-        if len(company_items) >= len(items):
-            items = company_items
+        if len(smart_items) >= len(items):
+            items = smart_items
     
-    return items[:5]
+    return items[:10]  # Return up to 10 items now
 
 def parse_recommendation_items(text):
     """Parse recommendation items with better decimal handling"""
