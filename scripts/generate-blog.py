@@ -541,19 +541,20 @@ def parse_development_items(text):
             replacement = f'VERSION{i}PROTECTED'
             version_replacements[replacement] = version
             protected_text = protected_text.replace(version, replacement)
-        # ENHANCED protection for common patterns that break
+            # ENHANCED protection for common patterns
 protected_text = re.sub(r'\bU\.S\.', 'USPROTECTED', protected_text)
 protected_text = re.sub(r'\bU\.K\.', 'UKPROTECTED', protected_text)
 protected_text = re.sub(r'\bE\.U\.', 'EUPROTECTED', protected_text)
 protected_text = re.sub(r'\bA\.I\.', 'AIPROTECTED', protected_text)
-protected_text = re.sub(r'\bGPT-(\d+)\.(\d+)', r'GPTVERSION\1DOT\2PROTECTED', protected_text)
-protected_text = re.sub(r'\bClaude-(\d+)\.(\d+)', r'CLAUDEVERSION\1DOT\2PROTECTED', protected_text)
-        # Replace abbreviations
-        for abbrev, replacement in abbreviations.items():
-            protected_text = protected_text.replace(abbrev, replacement)
-        
-        # Now split by sentences more safely
-        sentences = re.split(r'[.!?]+', protected_text)
+protected_text = re.sub(r'\bGPT(\d+)\.', r'GPTVERSION\1DOT', protected_text)
+protected_text = re.sub(r'\bClaude-(\d+)\.', r'CLAUDEVERSION\1DOT', protected_text)
+
+# Replace abbreviations
+for abbrev, replacement in abbreviations.items():
+    protected_text = protected_text.replace(abbrev, replacement)
+
+# Now split by sentences
+sentences = re.split(r'[.!?]+', protected_text)
         
         for sentence in sentences:
             sentence = sentence.strip()
