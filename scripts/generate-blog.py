@@ -725,6 +725,8 @@ def create_html_blog_post(content, title, excerpt):
     </div>
 </body>
 </html>'''
+    
+    return html_template
         .header-content {{ max-width: 1000px; margin: 0 auto; padding: 0 2rem; }}
         .header h1 {{ font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; }}
         .header .subtitle {{ font-size: 1.2rem; font-weight: 500; opacity: 0.9; margin-bottom: 1.5rem; }}
