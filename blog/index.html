@@ -4,415 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Insights Blog - Robert Simon | Digital Innovation & AI Strategy</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --primary-blue: #2563eb;
-            --secondary-blue: #3b82f6;
-            --accent-cyan: #06b6d4;
-            --ai-purple: #8b5cf6;
-            --dark-navy: #1e293b;
-            --medium-gray: #64748b;
-            --light-gray: #f1f5f9;
-            --white: #ffffff;
-            --gradient-primary: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
-            --gradient-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-            --gradient-ai: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%);
-            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: var(--font-primary);
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            color: var(--dark-navy);
-            line-height: 1.6;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .parallax-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 120%;
-            height: 120%;
-            pointer-events: none;
-            z-index: -1;
-            background: 
-                radial-gradient(circle at 30% 70%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
-                radial-gradient(circle at 70% 30%, rgba(6, 182, 212, 0.03) 0%, transparent 50%);
-            animation: slowFloat 20s ease-in-out infinite;
-        }
-
-        @keyframes slowFloat {
-            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
-            25% { transform: translate(-5px, -10px) rotate(0.5deg); }
-            50% { transform: translate(5px, -5px) rotate(-0.3deg); }
-            75% { transform: translate(-3px, 8px) rotate(0.2deg); }
-        }
-
-        .ai-circuit {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0.08;
-            background-image: 
-                radial-gradient(circle at 25% 25%, #06b6d4 2px, transparent 2px),
-                radial-gradient(circle at 75% 75%, #2563eb 1px, transparent 1px),
-                linear-gradient(45deg, transparent 48%, rgba(6, 182, 212, 0.1) 49%, rgba(6, 182, 212, 0.1) 51%, transparent 52%),
-                linear-gradient(-45deg, transparent 48%, rgba(37, 99, 235, 0.1) 49%, rgba(37, 99, 235, 0.1) 51%, transparent 52%);
-            background-size: 50px 50px, 30px 30px, 20px 20px, 20px 20px;
-            animation: aiFlow 15s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes aiFlow {
-            0%, 100% { transform: translateX(0) translateY(0); }
-            25% { transform: translateX(10px) translateY(-5px); }
-            50% { transform: translateX(-5px) translateY(10px); }
-            75% { transform: translateX(5px) translateY(-10px); }
-        }
-
-        .nav-bar {
-            background: var(--white);
-            padding: 1rem 0;
-            box-shadow: var(--shadow-sm);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            backdrop-filter: blur(10px);
-        }
-
-        .nav-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .nav-link {
-            color: var(--primary-blue);
-            text-decoration: none;
-            font-weight: 600;
-            padding: 0.75rem 2rem;
-            border-radius: 25px;
-            background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan));
-            color: white;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .nav-link:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        header {
-            background: var(--gradient-ai);
-            color: white;
-            padding: 4rem 0;
-            text-align: center;
-            margin-bottom: 3rem;
-            position: relative;
-            overflow: hidden;
-            border-radius: 20px;
-        }
-
-        header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, rgba(37, 99, 235, 0.2) 0%, transparent 50%);
-            animation: aiFlow 12s ease-in-out infinite;
-        }
-
-        h1 {
-            font-size: 3.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(45deg, #ffffff, #e0f2fe);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            position: relative;
-            z-index: 1;
-        }
-
-        .subtitle {
-            font-size: 1.4rem;
-            font-weight: 500;
-            opacity: 0.95;
-            position: relative;
-            z-index: 1;
-            margin-bottom: 1rem;
-        }
-
-        .header-description {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            position: relative;
-            z-index: 1;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .latest-post-section {
-            background: var(--gradient-ai);
-            color: white;
-            padding: 3rem;
-            border-radius: 20px;
-            margin-bottom: 3rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .latest-post-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.2) 0%, transparent 50%);
-            animation: aiFlow 15s ease-in-out infinite;
-        }
-
-        .latest-post-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .latest-badge {
-            background: rgba(255, 255, 255, 0.25);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            display: inline-block;
-            margin-bottom: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .latest-post-title {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: white;
-        }
-
-        .latest-post-date {
-            font-size: 1rem;
-            opacity: 0.9;
-            margin-bottom: 1rem;
-            font-family: var(--font-mono);
-        }
-
-        .latest-post-excerpt {
-            font-size: 1.1rem;
-            line-height: 1.7;
-            opacity: 0.95;
-            margin-bottom: 2rem;
-        }
-
-        .read-latest-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            padding: 0.75rem 2rem;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .read-latest-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .older-posts-section {
-            background: white;
-            border-radius: 20px;
-            padding: 2.5rem;
-            box-shadow: var(--shadow-xl);
-            border: 1px solid rgba(37, 99, 235, 0.1);
-        }
-
-        .older-posts-title {
-            font-size: 1.8rem;
-            color: var(--dark-navy);
-            margin-bottom: 2rem;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .older-posts-grid {
-            display: grid;
-            gap: 1.5rem;
-        }
-
-        .older-post-item {
-            border: 1px solid var(--light-gray);
-            border-radius: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .older-post-item:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-md);
-            border-color: var(--primary-blue);
-        }
-
-        .older-post-link {
-            display: block;
-            padding: 1.5rem;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .older-post-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: var(--primary-blue);
-            margin-bottom: 0.5rem;
-            line-height: 1.4;
-            text-decoration: underline;
-            text-decoration-color: var(--primary-blue);
-            text-underline-offset: 3px;
-            text-decoration-thickness: 1px;
-        }
-
-        .older-post-link:hover {
-            background-color: rgba(37, 99, 235, 0.02);
-        }
-
-        .older-post-link:hover .older-post-title {
-            text-decoration-thickness: 2px;
-            color: var(--secondary-blue);
-        }
-
-        .older-post-date {
-            font-size: 0.9rem;
-            color: var(--medium-gray);
-            font-family: var(--font-mono);
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            h1 {
-                font-size: 2.5rem;
-            }
-            
-            .latest-post-section {
-                padding: 2rem;
-            }
-            
-            .latest-post-title {
-                font-size: 1.5rem;
-            }
-            
-            .nav-content {
-                padding: 0 1rem;
-            }
-
-            .older-posts-section {
-                padding: 2rem 1.5rem;
-            }
-        }
-
-        .fade-in {
-            opacity: 0;
-            transform: translateY(30px);
-            animation: fadeInUp 0.8s ease forwards;
-        }
-
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        body { font-family: Inter, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        header { background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 3rem; border-radius: 20px; }
+        h1 { font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .nav-bar { background: white; padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }
+        .nav-content { max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: center; }
+        .nav-link { color: white; text-decoration: none; font-weight: 600; padding: 0.75rem 2rem; border-radius: 25px; background: linear-gradient(135deg, #2563eb, #06b6d4); }
+        .latest-post-section { background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }
+        .latest-badge { background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }
+        .latest-post-title { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }
+        .read-latest-btn { background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; }
+        .older-posts-section { background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        .older-post-item { border: 1px solid #f1f5f9; border-radius: 12px; transition: all 0.3s ease; }
+        .older-post-link { display: block; padding: 1.5rem; text-decoration: none; color: inherit; }
+        .older-post-title { font-size: 1.3rem; font-weight: 600; color: #2563eb; margin-bottom: 0.5rem; }
+        .older-post-date { font-size: 0.9rem; color: #64748b; }
     </style>
 </head>
 <body>
-    <div class="parallax-bg"></div>
-    
     <nav class="nav-bar">
         <div class="nav-content">
-            <a href="/" class="nav-link">
-                ← Back to Robert Simon's Portfolio
-            </a>
+            <a href="/" class="nav-link">← Back to Robert Simon's Portfolio</a>
         </div>
     </nav>
     
     <div class="container">
         <header>
             <h1>AI Insights Blog</h1>
-            <p class="subtitle">Strategic Intelligence for Digital Leaders</p>
-            <p class="header-description">Monthly deep-dives into AI innovations, practical business applications, and strategic implementation guidance from 25+ years of digital transformation experience.</p>
-            <div class="ai-circuit"></div>
+            <p>Strategic Intelligence for Digital Leaders</p>
         </header>
 
-        <!-- Latest Post Section -->
-        <section class="latest-post-section fade-in">
-            <div class="latest-post-content">
-                <div class="latest-badge">Latest</div>
-                <h2 class="latest-post-title">AI Insights for September 2025</h2>
-                <div class="latest-post-date">September 29, 2025</div>
-                <p class="latest-post-excerpt">September 2025 brought pivotal AI advancements, with a surge in enterprise integration, notable model releases, regulatory momentum, and transformative partnerships shaping the global and Canadian lan...</p>
-                <a href="/blog/posts/latest.html" class="read-latest-btn">
-                    Read Full Analysis →
-                </a>
-            </div>
-            <div class="ai-circuit"></div>
+        <section class="latest-post-section">
+            <div class="latest-badge">Latest</div>
+            <h2 class="latest-post-title">AI Insights for September 2025</h2>
+            <div>September 29, 2025</div>
+            <p>September 2025 has marked a pivotal month in artificial intelligence, with significant product launches, policy milestones, and ecosystem shifts that signal both opportunity and urgency for Canadian b...</p>
+            <a href="/blog/posts/latest.html" class="read-latest-btn">Read Full Analysis →</a>
         </section>
 
-        <!-- Older Posts Section -->
-        <section class="older-posts-section fade-in">
+        <section class="older-posts-section">
             <h3 class="older-posts-title">Previous Insights</h3>
             <div class="older-posts-grid">
                 
                 <div class="older-post-item">
                     <a href="/blog/posts/2025-09-29-key-ai-developments.html" class="older-post-link">
+                        <div class="older-post-title">AI Insights for September 2025</div>
+                        <div class="older-post-date">September 29, 2025</div>
+                    </a>
+                </div>
+                <div class="older-post-item">
+                    <a href="/blog/posts/2025-09-29-key-ai-developments-in-september-2025.html" class="older-post-link">
                         <div class="older-post-title">AI Insights for September 2025</div>
                         <div class="older-post-date">September 29, 2025</div>
                     </a>
