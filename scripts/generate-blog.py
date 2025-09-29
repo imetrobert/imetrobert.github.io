@@ -566,7 +566,17 @@ def parse_development_items(text):
         
         if len(smart_items) >= len(items):
             items = smart_items
+    if len(smart_items) >= len(items):
+            items = smart_items
     
+    # Filter out section headers from items
+    filtered_items = []
+    for item in items:
+        item_lower = item.lower()
+        # Skip if this looks like a section header
+        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
+            filtered_items.append(item)
+            
     return items[:15]  # Return up to 15 items now
 
 def parse_recommendation_items(text):
