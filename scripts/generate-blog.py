@@ -556,9 +556,9 @@ for abbrev, replacement in abbreviations.items():
 # Now split by sentences
 sentences = re.split(r'[.!?]+', protected_text)
         
-        for sentence in sentences:
-            sentence = sentence.strip()
-            # Restore enhanced protections
+for sentence in sentences:
+sentence = sentence.strip()
+# Restore enhanced protections
 sentence = re.sub(r'USPROTECTED', 'U.S.', sentence)
 sentence = re.sub(r'UKPROTECTED', 'U.K.', sentence)
 sentence = re.sub(r'EUPROTECTED', 'E.U.', sentence)
