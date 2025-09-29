@@ -15,15 +15,32 @@ def clean_filename(title):
     return clean_title.lower()
 
 def clean_perplexity_content(content):
-    """Remove citation numbers and clean up Perplexity response formatting with ROBUST decimal handling"""
+    """Remove citation numbers and clean up Perplexity response formatting with COMPREHENSIVE fixes"""
     # Remove citation markers like [1], [2], etc.
     content = re.sub(r'\[\d+\]', '', content)
     
     # Remove standalone citation references at end of sentences
     content = re.sub(r'\s*\(\d+\)\s*', ' ', content)
     
-    # CRITICAL FIX: Handle decimals properly - don't break on version numbers, percentages, etc.
-    # Only treat as list items if it's actually at start of line/sentence with specific patterns
+    # CRITICAL: Fix broken formatting patterns that appear in your output
+    # Remove stray bullets and dashes that shouldn't be there
+    content = re.sub(r'•\s*[-–—]\s*', '', content)  # Remove "• -" patterns
+    content = re.sub(r'[-–—]\s*•\s*', '', content)  # Remove "- •" patterns
+    content = re.sub(r'•\s*•', '•', content)        # Remove double bullets
+    content = re.sub(r':\s*•', ':', content)        # Remove ":•" patterns
+    content = re.sub(r'•\s*:', ':', content)        # Remove "•:" patterns
+    
+    # Fix title formatting issues - remove stray bullets around titles
+    content = re.sub(r'^•\s*(.*?)\s*•\s*$', r'\1', content, flags=re.MULTILINE)
+    
+    # Fix decimal number breaking (Claude 4.1 -> Claude 4 and 1)
+    # Restore common version numbers and decimals
+    content = re.sub(r'Claude Opus 4\s+1', 'Claude Opus 4.1', content)
+    content = re.sub(r'Claude Sonnet 4\s+1', 'Claude Sonnet 4.1', content)
+    content = re.sub(r'GPT-4\s+1', 'GPT-4.1', content)
+    content = re.sub(r'(\d+)\s+(\d+)%', r'\1.\2%', content)  # Fix broken percentages
+    
+    # Handle line-by-line cleaning with better logic
     lines = content.split('\n')
     cleaned_lines = []
     
@@ -33,32 +50,35 @@ def clean_perplexity_content(content):
             cleaned_lines.append(line)
             continue
             
-        # Check if this is a REAL numbered list item (starts with number + period + space + capital letter)
-        # But NOT a decimal number in middle of text (like "increased 4.1% last quarter")
+        # Check if this is a REAL numbered list item
         list_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        decimal_in_text_pattern = r'\b\d+\.\d+\b'
         
         if re.match(list_pattern, line):
             # This is a real list item - keep as is
             cleaned_lines.append(line)
-        elif re.search(decimal_in_text_pattern, line):
-            # This contains decimals but is not a list item - preserve completely
-            cleaned_lines.append(line)
         else:
-            # Regular line processing
-            # Remove unwanted dashes next to bullet points
-            line = re.sub(r'[-•*]\s*[-•*]\s*', '• ', line)
-            line = re.sub(r'^[-•*]\s*[-•*]\s*', '• ', line)
-            line = re.sub(r'^[-•*]\s*', '• ', line)
-            cleaned_lines.append(line)
+            # Clean up problematic formatting
+            # Remove leading/trailing stray bullets
+            line = re.sub(r'^[•\-–—]+\s*', '', line)
+            line = re.sub(r'\s*[•\-–—]+$', '', line)
+            
+            # Remove weird colon-bullet combinations
+            line = re.sub(r':\s*[•\-–—]+\s*([A-Z])', r': \1', line)
+            line = re.sub(r'[•\-–—]+\s*:\s*([A-Z])', r': \1', line)
+            
+            # Clean up section headers that got mangled
+            line = re.sub(r'^:\s*([A-Z][^:]*?)\s*:•', r'\1:', line)
+            
+            if line:  # Only add non-empty lines
+                cleaned_lines.append(line)
     
     content = '\n'.join(cleaned_lines)
     
-    # Clean up multiple spaces
-    content = re.sub(r' +', ' ', content)
+    # Final cleanup
+    content = re.sub(r' +', ' ', content)  # Multiple spaces
+    content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)  # Multiple newlines
     
     return content.strip()
-
 def generate_blog_with_perplexity(api_key, topic=None):
     """Generate blog content using Perplexity API with flexible topic handling"""
     current_date = datetime.now()
