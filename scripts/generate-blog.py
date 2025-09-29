@@ -607,7 +607,121 @@ def parse_recommendation_items(text):
             items.append(item_text)
     
     return items[:5]
+def generate_dynamic_conclusion(sections):
+    """Generate a dynamic Strategic Imperative based on the blog content"""
+    
+    # Extract key themes and technologies from developments
+    key_themes = []
+    technologies = []
+    companies = []
+    
+    if sections['developments']:
+        for item in sections['developments']:
+            item_lower = item.lower()
+            
+            # Extract company names
+            company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple', 'Tesla', 'IBM', 'Intel', 'AMD']
+            for company in company_names:
+                if company.lower() in item_lower and company not in companies:
+                    companies.append(company)
+            
+            # Extract technology themes
+            tech_keywords = {
+                'AI models': ['model', 'llm', 'gpt', 'claude', 'chatgpt', 'language model'],
+                'enterprise AI': ['enterprise', 'business', 'copilot', 'office', 'productivity'],
+                'AI safety': ['safety', 'alignment', 'responsible', 'ethics', 'governance'],
+                'automation': ['automation', 'workflow', 'process', 'efficiency'],
+                'partnerships': ['partnership', 'collaboration', 'integration', 'alliance'],
+                'hardware': ['chip', 'gpu', 'processor', 'computing', 'infrastructure'],
+                'research': ['research', 'breakthrough', 'innovation', 'development'],
+                'regulation': ['regulation', 'policy', 'compliance', 'government'],
+                'funding': ['funding', 'investment', 'capital', 'funding round']
+            }
+            
+            for theme, keywords in tech_keywords.items():
+                if any(keyword in item_lower for keyword in keywords) and theme not in key_themes:
+                    key_themes.append(theme)
+    
+    # Extract impact areas from Canadian impact section
+    impact_areas = []
+    if sections['canadian_impact']:
+        impact_text = sections['canadian_impact'].lower()
+        
+        impact_keywords = {
+            'competitive advantage': ['competitive', 'advantage', 'competition'],
+            'regulatory compliance': ['regulatory', 'compliance', 'pipeda', 'aida'],
+            'cross-border operations': ['cross-border', 'international', 'global'],
+            'market positioning': ['market', 'positioning', 'leadership'],
+            'operational efficiency': ['efficiency', 'productivity', 'optimization'],
+            'innovation capacity': ['innovation', 'transformation', 'modernization'],
+            'talent acquisition': ['talent', 'skills', 'workforce'],
+            'cost optimization': ['cost', 'savings', 'budget']
+        }
+        
+        for area, keywords in impact_keywords.items():
+            if any(keyword in impact_text for keyword in keywords) and area not in impact_areas:
+                impact_areas.append(area)
+    
+    # Generate dynamic conclusion based on content
+    conclusion_parts = []
+    
+    # Opening based on key themes
+    if len(key_themes) >= 3:
+        top_themes = key_themes[:3]
+        conclusion_parts.append(f"With major advances in {', '.join(top_themes[:-1])} and {top_themes[-1]}")
+    elif len(key_themes) >= 2:
+        conclusion_parts.append(f"With significant developments in {' and '.join(key_themes)}")
+    elif key_themes:
+        conclusion_parts.append(f"With critical advances in {key_themes[0]}")
+    else:
+        conclusion_parts.append("With accelerating AI innovation")
+    
+    # Add company context if we have multiple major players
+    if len(companies) >= 3:
+        conclusion_parts.append(f"from industry leaders like {', '.join(companies[:3])}")
+    elif len(companies) >= 2:
+        conclusion_parts.append(f"from {' and '.join(companies)}")
+    
+    # Add the imperative action
+    if impact_areas:
+        primary_impact = impact_areas[0] if impact_areas else "competitive advantage"
+        conclusion_parts.append(f"Canadian businesses must act decisively to maintain {primary_impact}")
+        
+        if len(impact_areas) >= 2:
+            conclusion_parts.append(f"while strengthening {impact_areas[1]}")
+    else:
+        conclusion_parts.append("Canadian businesses must act decisively to harness these breakthroughs")
+    
+    # Add urgency and market context
+    if 'enterprise AI' in key_themes or 'partnerships' in key_themes:
+        conclusion_parts.append("before competitors gain insurmountable advantages in the rapidly evolving AI landscape")
+    elif 'regulation' in key_themes:
+        conclusion_parts.append("while navigating the evolving regulatory landscape to maintain competitive positioning")
+    else:
+        conclusion_parts.append("to remain competitive in the global AI-driven economy")
+    
+    # Combine all parts into a coherent conclusion
+    conclusion = ' '.join(conclusion_parts).replace(' ,', ',')
+    
+    # Ensure it ends with a period
+    if not conclusion.endswith('.'):
+        conclusion += '.'
+    
+    # Capitalize the first letter
+    conclusion = conclusion[0].upper() + conclusion[1:] if conclusion else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
+    
+    return conclusion
 
+# Also update the create_html_blog_post function to use dynamic conclusion
+# Find this line in create_html_blog_post():
+# conclusion_text = sections['conclusion'] if sections['conclusion'] else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
+
+# Replace it with:
+# Generate dynamic conclusion based on content
+# if sections['conclusion']:
+#     conclusion_text = sections['conclusion']
+# else:
+#     conclusion_text = generate_dynamic_conclusion(sections)
 def create_html_blog_post(content, title, excerpt):
     """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
     current_date = datetime.now()
@@ -767,7 +881,11 @@ def create_html_blog_post(content, title, excerpt):
                     <p>{para}</p>
                 </div>''')
     
-    conclusion_text = sections['conclusion'] if sections['conclusion'] else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
+    # Generate dynamic conclusion based on content
+   if sections['conclusion']:
+       conclusion_text = sections['conclusion']
+   else:
+       conclusion_text = generate_dynamic_conclusion(sections)
     
     # Clean conclusion text too
     conclusion_text = re.sub(r'[-•*]\s*[-•*]\s*', '', conclusion_text)
