@@ -882,10 +882,10 @@ def create_html_blog_post(content, title, excerpt):
                 </div>''')
     
     # Generate dynamic conclusion based on content
-   if sections['conclusion']:
-       conclusion_text = sections['conclusion']
-   else:
-       conclusion_text = generate_dynamic_conclusion(sections)
+    if sections['conclusion']:
+        conclusion_text = sections['conclusion']
+    else:
+        conclusion_text = generate_dynamic_conclusion(sections)
     
     # Clean conclusion text too
     conclusion_text = re.sub(r'[-•*]\s*[-•*]\s*', '', conclusion_text)
