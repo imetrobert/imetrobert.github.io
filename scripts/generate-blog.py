@@ -1516,9 +1516,22 @@ def create_blog_index_html(posts):
         .older-post-title {{
             font-size: 1.3rem;
             font-weight: 600;
-            color: var(--dark-navy);
+            color: var(--primary-blue);
             margin-bottom: 0.5rem;
             line-height: 1.4;
+            text-decoration: underline;
+            text-decoration-color: var(--primary-blue);
+            text-underline-offset: 3px;
+            text-decoration-thickness: 1px;
+        }}
+
+        .older-post-link:hover {{
+            background-color: rgba(37, 99, 235, 0.02);
+        }}
+
+        .older-post-link:hover .older-post-title {{
+            text-decoration-thickness: 2px;
+            color: var(--secondary-blue);
         }}
 
         .older-post-date {{
