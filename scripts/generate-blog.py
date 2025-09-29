@@ -656,10 +656,75 @@ def create_html_blog_post(content, title, excerpt):
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{ font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); color: var(--dark-navy); line-height: 1.6; }}
         .nav-bar {{ background: var(--white); padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
-        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; }}
-        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.75rem 2rem; border-radius: 25px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); }}
-        .blog-meta {{ font-size: 0.85rem; color: var(--medium-gray); }}
+        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem; }}
+        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); transition: all 0.3s ease; flex-shrink: 0; }}
+        .nav-link:hover {{ transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }}
+        .blog-meta {{ font-size: 0.85rem; color: var(--medium-gray); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }}
         .header {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 4rem 0 3rem; text-align: center; }}
+        .header-content {{ max-width: 1000px; margin: 0 auto; padding: 0 2rem; }}
+        .header h1 {{ font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; }}
+        .header .subtitle {{ font-size: 1.2rem; font-weight: 500; opacity: 0.9; margin-bottom: 1.5rem; }}
+        .header .intro {{ font-size: 1.05rem; opacity: 0.85; max-width: 800px; margin: 0 auto; }}
+        .container {{ max-width: 1000px; margin: 0 auto; padding: 3rem 2rem 4rem; }}
+        .article-container {{ background: white; border-radius: 20px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); overflow: hidden; }}
+        .article-content {{ padding: 3rem; }}
+        .section {{ margin-bottom: 3rem; }}
+        .section-title {{ font-size: 2rem; color: var(--dark-navy); margin-bottom: 1.5rem; margin-top: 2rem; font-weight: 700; padding-left: 1.5rem; position: relative; }}
+        .section-title::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--primary-blue); border-radius: 2px; }}
+        .bullet-list {{ margin-bottom: 2rem; padding-left: 0; list-style: none; }}
+        .bullet-list li {{ margin-bottom: 1.5rem; line-height: 1.8; color: var(--medium-gray); position: relative; padding-left: 2.5rem; }}
+        .bullet-list li::before {{ content: '●'; position: absolute; left: 0; color: var(--primary-blue); font-weight: bold; top: 0.1rem; }}
+        .bullet-list.numbered {{ counter-reset: list-counter; }}
+        .bullet-list.numbered li {{ counter-increment: list-counter; }}
+        .bullet-list.numbered li::before {{ content: counter(list-counter) '.'; background: var(--primary-blue); color: white; width: 1.8rem; height: 1.8rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }}
+        p {{ margin-bottom: 1.2rem; line-height: 1.7; color: var(--medium-gray); }}
+        strong {{ color: var(--dark-navy); font-weight: 600; }}
+        .conclusion {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 2.5rem; border-radius: 15px; margin-top: 3rem; }}
+        .conclusion p {{ color: rgba(255, 255, 255, 0.95); font-size: 1.1rem; font-weight: 500; margin-bottom: 0; }}
+        .conclusion strong {{ color: white; }}
+        @media (max-width: 768px) {{ 
+            .header h1 {{ font-size: 2.2rem; }} 
+            .container {{ padding: 2rem 1rem 3rem; }} 
+            .article-content {{ padding: 2rem 1.5rem; }}
+            .nav-content {{ flex-direction: column; gap: 1rem; align-items: flex-start; }}
+            .blog-meta {{ width: 100%; }}
+        }}
+    </style>
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-content">
+            <a href="https://www.imetrobert.com/blog/" class="nav-link">
+                ← Back to Blog Homepage
+            </a>
+            <div class="blog-meta">
+                <span>AI Insights for Canadian Business</span>
+                <span>•</span>
+                <span>{formatted_date}</span>
+            </div>
+        </div>
+    </nav>
+
+    <header class="header">
+        <div class="header-content">
+            <h1>AI Insights for {month_year}</h1>
+            <div class="subtitle">Key AI Developments & Canadian Business Impact</div>
+            <div class="intro">{excerpt}</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <article class="article-container">
+            <div class="article-content">
+                {all_content}
+                <div class="conclusion">
+                    <p><strong>Strategic Imperative for Canadian Businesses:</strong> {conclusion_text}</p>
+                </div>
+            </div>
+        </article>
+    </div>
+</body>
+</html>'''
         .header-content {{ max-width: 1000px; margin: 0 auto; padding: 0 2rem; }}
         .header h1 {{ font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; }}
         .header .subtitle {{ font-size: 1.2rem; font-weight: 500; opacity: 0.9; margin-bottom: 1.5rem; }}
@@ -823,7 +888,7 @@ def create_blog_index_html(posts):
         h1 {{ font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; }}
         .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
         .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: center; }}
-        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); }}
+        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.75rem 2rem; border-radius: 25px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
         .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }}
         .latest-badge {{ background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }}
         .latest-post-title {{ font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }}
@@ -837,10 +902,8 @@ def create_blog_index_html(posts):
 </head>
 <body>
     <nav class="nav-bar">
-    <div class="nav-content">
-        <a href="/blog/" class="nav-link">
-            ← Back to Blog Homepage
-        </a>
+        <div class="nav-content">
+            <a href="/" class="nav-link">← Back to Robert Simon's Portfolio</a>
         </div>
     </nav>
     
