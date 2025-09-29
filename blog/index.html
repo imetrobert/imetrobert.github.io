@@ -10,25 +10,35 @@
         header { background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 3rem; border-radius: 20px; }
         h1 { font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; }
         .nav-bar { background: white; padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }
-        .nav-content { max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: center; }
-        .nav-link { color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); }
+        .nav-content { max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: flex-start; }
+        .nav-link { color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #06b6d4); transition: all 0.3s ease; }
+        .nav-link:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
         .latest-post-section { background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }
         .latest-badge { background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }
         .latest-post-title { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }
         .read-latest-btn { background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; }
         .older-posts-section { background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        .older-posts-title { font-size: 1.8rem; color: #1e293b; margin-bottom: 2rem; font-weight: 600; text-align: center; }
+        .older-posts-grid { display: grid; gap: 1.5rem; }
         .older-post-item { border: 1px solid #f1f5f9; border-radius: 12px; transition: all 0.3s ease; }
+        .older-post-item:hover { transform: translateY(-3px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-color: #2563eb; }
         .older-post-link { display: block; padding: 1.5rem; text-decoration: none; color: inherit; }
         .older-post-title { font-size: 1.3rem; font-weight: 600; color: #2563eb; margin-bottom: 0.5rem; }
         .older-post-date { font-size: 0.9rem; color: #64748b; }
+        @media (max-width: 768px) { 
+            .container { padding: 1rem; } 
+            h1 { font-size: 2.5rem; }
+            .latest-post-section { padding: 2rem; }
+            .older-posts-section { padding: 2rem 1.5rem; }
+        }
     </style>
 </head>
 <body>
     <nav class="nav-bar">
-    <div class="nav-content">
-        <a href="/blog/" class="nav-link">
-            ← Back to Blog Homepage
-        </a>
+        <div class="nav-content">
+            <a href="https://www.imetrobert.com" class="nav-link">
+                ← Back to Homepage
+            </a>
         </div>
     </nav>
     
@@ -49,7 +59,6 @@
         <section class="older-posts-section">
             <h3 class="older-posts-title">Previous Insights</h3>
             <div class="older-posts-grid">
-                
                 <div class="older-post-item">
                     <a href="/blog/posts/2025-09-29-key-ai-developments-september-2025.html" class="older-post-link">
                         <div class="older-post-title">AI Insights for September 2025</div>
