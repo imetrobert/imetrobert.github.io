@@ -15,28 +15,69 @@ def clean_filename(title):
     return clean_title.lower()
 
 def clean_perplexity_content(content):
-    """Remove citation numbers and clean up Perplexity response formatting"""
+    """Remove citation numbers and clean up Perplexity response formatting with ROBUST decimal handling"""
     # Remove citation markers like [1], [2], etc.
     content = re.sub(r'\[\d+\]', '', content)
     
     # Remove standalone citation references at end of sentences
     content = re.sub(r'\s*\(\d+\)\s*', ' ', content)
     
-    # Clean up multiple spaces
-    content = re.sub(r'\s+', ' ', content)
+    # CRITICAL FIX: Handle decimals properly - don't break on version numbers, percentages, etc.
+    # Only treat as list items if it's actually at start of line/sentence with specific patterns
+    lines = content.split('\n')
+    cleaned_lines = []
     
-    # Clean up bullet points and formatting
-    content = re.sub(r'^\s*[-*•]\s*', '• ', content, flags=re.MULTILINE)
+    for line in lines:
+        line = line.strip()
+        if not line:
+            cleaned_lines.append(line)
+            continue
+            
+        # Check if this is a REAL numbered list item (starts with number + period + space + capital letter)
+        # But NOT a decimal number in middle of text (like "increased 4.1% last quarter")
+        list_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        decimal_in_text_pattern = r'\b\d+\.\d+\b'
+        
+        if re.match(list_pattern, line):
+            # This is a real list item - keep as is
+            cleaned_lines.append(line)
+        elif re.search(decimal_in_text_pattern, line):
+            # This contains decimals but is not a list item - preserve completely
+            cleaned_lines.append(line)
+        else:
+            # Regular line processing
+            # Remove unwanted dashes next to bullet points
+            line = re.sub(r'[-•*]\s*[-•*]\s*', '• ', line)
+            line = re.sub(r'^[-•*]\s*[-•*]\s*', '• ', line)
+            line = re.sub(r'^[-•*]\s*', '• ', line)
+            cleaned_lines.append(line)
+    
+    content = '\n'.join(cleaned_lines)
+    
+    # Clean up multiple spaces
+    content = re.sub(r' +', ' ', content)
     
     return content.strip()
 
 def generate_blog_with_perplexity(api_key, topic=None):
-    """Generate blog content using Perplexity API with Canadian business focus"""
+    """Generate blog content using Perplexity API with flexible topic handling"""
     current_date = datetime.now()
     month_year = current_date.strftime("%B %Y")
     
+    # SMART TOPIC HANDLING: Adapt prompts based on topic type
     if not topic:
+        # DEFAULT: Monthly AI insights
+        topic_type = "monthly_ai"
         topic = f"Latest AI developments and technology launches since last month - {month_year} focus on Canadian business impact"
+    else:
+        # CUSTOM TOPIC: Determine if it's AI-related or general business
+        topic_lower = topic.lower()
+        ai_keywords = ['ai', 'artificial intelligence', 'machine learning', 'automation', 'technology', 'digital', 'innovation']
+        
+        if any(keyword in topic_lower for keyword in ai_keywords):
+            topic_type = "custom_ai"
+        else:
+            topic_type = "custom_business"
     
     url = "https://api.perplexity.ai/chat/completions"
     headers = {
@@ -50,7 +91,10 @@ def generate_blog_with_perplexity(api_key, topic=None):
         "sonar-small-online"
     ]
     
-    system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
+    # ADAPTIVE SYSTEM PROMPTS based on topic type
+    if topic_type == "monthly_ai":
+        # Your existing excellent system prompt for monthly AI insights
+        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
 
 Create a monthly AI insights post for {month_year} following this EXACT structure:
 
@@ -70,8 +114,8 @@ Create a monthly AI insights post for {month_year} following this EXACT structur
 5. CONCLUSION: Strategic imperative for Canadian businesses (1 paragraph)
 
 Write in a professional, authoritative tone. Be specific about companies, technologies, and dates. Focus on practical, actionable insights."""
-
-    user_prompt = f"""Write an AI insights blog post for Canadian business leaders covering the latest developments in {month_year}.
+        
+        user_prompt = f"""Write an AI insights blog post for Canadian business leaders covering the latest developments in {month_year}.
 
 Structure:
 - Introduction: Overview of this month's key AI developments 
@@ -82,8 +126,76 @@ Structure:
 
 Focus on developments from the past 30 days. Include specific company names, product launches, and real dates."""
 
+    elif topic_type == "custom_ai":
+        # Custom AI topic - force into structured format
+        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
+
+Create an AI insights post about "{topic}" following this EXACT structure:
+
+1. INTRODUCTION: Brief overview of the topic and its relevance to Canadian businesses (1 paragraph)
+
+2. KEY DEVELOPMENTS: List 4-5 major points, developments, or aspects related to "{topic}" with specific details, companies, or examples
+
+3. CANADIAN BUSINESS IMPACT: Analyze how "{topic}" specifically affects Canadian businesses, considering:
+   - Canadian market conditions
+   - Regulatory environment (PIPEDA, AIDA considerations)
+   - Cross-border business implications
+   - Currency and economic factors
+   - Competitive positioning vs US/global markets
+
+4. STRATEGIC RECOMMENDATIONS: Provide 5 specific, actionable recommendations for Canadian business leaders regarding "{topic}"
+
+5. CONCLUSION: Strategic imperative for Canadian businesses related to "{topic}" (1 paragraph)
+
+Write in a professional, authoritative tone. Be specific and provide practical, actionable insights."""
+        
+        user_prompt = f"""Write an AI insights blog post for Canadian business leaders about "{topic}".
+
+You MUST follow this exact structure:
+- Introduction: Overview of "{topic}" and its business relevance
+- Key Developments: 4-5 major points or aspects about "{topic}" with specific details
+- Canadian Business Impact: How "{topic}" specifically affects Canadian businesses
+- Strategic Recommendations: 5 actionable steps for Canadian business leaders
+- Conclusion: Strategic imperative for Canadian businesses
+
+Focus on practical insights and real-world applications. Include specific examples where possible."""
+
+    else:  # custom_business
+        # General business topic - adapt structure
+        system_prompt = f"""You are Robert Simon, a digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
+
+Create a business insights post about "{topic}" following this EXACT structure:
+
+1. INTRODUCTION: Brief overview of "{topic}" and its relevance to Canadian businesses (1 paragraph)
+
+2. KEY INSIGHTS: List 4-5 major points, trends, or developments related to "{topic}" with specific details and examples
+
+3. CANADIAN BUSINESS IMPACT: Analyze how "{topic}" specifically affects Canadian businesses, considering:
+   - Canadian market conditions
+   - Regulatory environment and compliance considerations
+   - Economic and competitive factors
+   - Cross-border implications where relevant
+
+4. STRATEGIC RECOMMENDATIONS: Provide 5 specific, actionable recommendations for Canadian business leaders regarding "{topic}"
+
+5. CONCLUSION: Strategic imperative for Canadian businesses related to "{topic}" (1 paragraph)
+
+Write in a professional, authoritative tone. Be specific and provide practical, actionable insights."""
+        
+        user_prompt = f"""Write a business insights blog post for Canadian business leaders about "{topic}".
+
+You MUST follow this exact structure:
+- Introduction: Overview of "{topic}" and its business relevance
+- Key Insights: 4-5 major points or developments about "{topic}" with specific details
+- Canadian Business Impact: How "{topic}" specifically affects Canadian businesses  
+- Strategic Recommendations: 5 actionable steps for Canadian business leaders
+- Conclusion: Strategic imperative for Canadian businesses
+
+Focus on practical insights and real-world applications. Include specific examples and data where possible."""
+
+    # Rest of the function - try models and generate content
     for model in models_to_try:
-        print(f"Trying Perplexity model: {model}")
+        print(f"Trying Perplexity model: {model} for topic type: {topic_type}")
         payload = {
             "model": model,
             "messages": [
@@ -116,7 +228,8 @@ Focus on developments from the past 30 days. Include specific company names, pro
                 return {
                     "content": cleaned_content,
                     "citations": data.get("citations", []),
-                    "usage": data.get("usage", {})
+                    "usage": data.get("usage", {}),
+                    "topic_type": topic_type  # Include topic type for potential use
                 }
             else:
                 print(f"Unexpected response structure: {data}")
@@ -132,7 +245,7 @@ Focus on developments from the past 30 days. Include specific company names, pro
     raise Exception("All Perplexity models failed to generate content")
 
 def parse_structured_content(content):
-    """Parse the structured content into sections with improved parsing"""
+    """Enhanced parsing that works with both AI insights and custom topics"""
     sections = {
         'introduction': '',
         'developments': [],
@@ -141,19 +254,39 @@ def parse_structured_content(content):
         'conclusion': ''
     }
     
-    # Clean up the content first - remove asterisks and format properly
-    content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)  # Remove bold asterisks
-    content = re.sub(r'\*(.*?)\*', r'\1', content)      # Remove italic asterisks
+    # Clean up the content first
+    content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)
+    content = re.sub(r'\*(.*?)\*', r'\1', content)
     
-    # Split by sections using regex to find section headers
     print("DEBUG: Starting enhanced content parsing...")
     print(f"DEBUG: Content length: {len(content)}")
     
-    # Try to split content into logical sections
     content_lower = content.lower()
     
+    # FLEXIBLE SECTION DETECTION - works for both AI and general business topics
+    dev_patterns = [
+        'key ai development', 'ai development', 'major development', 
+        'technological advance', 'key developments', 'major ai',
+        'key insights', 'main insights', 'major insights',  # For business topics
+        'key points', 'main points', 'major points'
+    ]
+    
+    impact_patterns = [
+        'canadian business impact', 'impact on canadian', 'canadian impact',
+        'canadian business', 'impact on canada', 'business impact'
+    ]
+    
+    rec_patterns = [
+        'strategic recommendation', 'recommendation', 'strategic action',
+        'action step', 'strategic step', 'recommendations for'
+    ]
+    
+    conclusion_patterns = [
+        'conclusion', 'strategic imperative', 'final thought',
+        'in conclusion', 'finally', 'key takeaway'
+    ]
+    
     # Find section boundaries
-    intro_end = -1
     dev_start = -1
     dev_end = -1
     impact_start = -1
@@ -162,11 +295,7 @@ def parse_structured_content(content):
     rec_end = -1
     conclusion_start = -1
     
-    # Look for development section
-    dev_patterns = [
-        'key ai development', 'ai development', 'major development', 
-        'technological advance', 'key developments', 'major ai'
-    ]
+    # Look for development/insights section
     for pattern in dev_patterns:
         pos = content_lower.find(pattern)
         if pos != -1:
@@ -174,10 +303,6 @@ def parse_structured_content(content):
             break
     
     # Look for Canadian impact section
-    impact_patterns = [
-        'canadian business impact', 'impact on canadian', 'canadian impact',
-        'canadian business', 'impact on canada'
-    ]
     for pattern in impact_patterns:
         pos = content_lower.find(pattern)
         if pos != -1 and pos > dev_start:
@@ -186,10 +311,6 @@ def parse_structured_content(content):
             break
     
     # Look for recommendations section
-    rec_patterns = [
-        'strategic recommendation', 'recommendation', 'strategic action',
-        'action step', 'strategic step', 'recommendations for'
-    ]
     for pattern in rec_patterns:
         pos = content_lower.find(pattern)
         if pos != -1 and pos > impact_start:
@@ -198,10 +319,6 @@ def parse_structured_content(content):
             break
     
     # Look for conclusion section
-    conclusion_patterns = [
-        'conclusion', 'strategic imperative', 'final thought',
-        'in conclusion', 'finally'
-    ]
     for pattern in conclusion_patterns:
         pos = content_lower.find(pattern)
         if pos != -1 and pos > rec_start:
@@ -241,11 +358,10 @@ def parse_structured_content(content):
                 break
         sections['conclusion'] = conclusion_text
     
-    # If we couldn't parse properly, try a different approach
+    # FALLBACK PARSING if structured parsing fails
     if not any([sections['developments'], sections['canadian_impact'], sections['recommendations']]):
-        print("WARNING: Primary parsing failed, trying paragraph-based parsing")
+        print("WARNING: Primary parsing failed, trying enhanced paragraph-based parsing")
         
-        # Split into paragraphs and try to categorize them
         paragraphs = [p.strip() for p in content.split('\n\n') if p.strip() and len(p.strip()) > 50]
         
         current_section = 'introduction'
@@ -270,13 +386,11 @@ def parse_structured_content(content):
             if current_section == 'introduction' and not sections['introduction']:
                 sections['introduction'] = para
             elif current_section == 'developments':
-                # Try to extract bullet points from paragraph
                 bullet_items = extract_bullets_from_paragraph(para)
                 sections['developments'].extend(bullet_items)
             elif current_section == 'canadian_impact' and not sections['canadian_impact']:
                 sections['canadian_impact'] = para
             elif current_section == 'recommendations':
-                # Try to extract bullet points from paragraph
                 rec_items = extract_bullets_from_paragraph(para)
                 sections['recommendations'].extend(rec_items)
             elif current_section == 'conclusion' and not sections['conclusion']:
@@ -285,127 +399,6 @@ def parse_structured_content(content):
     print(f"DEBUG: Final parsed sections - intro: {bool(sections['introduction'])}, dev: {len(sections['developments'])}, impact: {bool(sections['canadian_impact'])}, rec: {len(sections['recommendations'])}, conc: {bool(sections['conclusion'])}")
     
     return sections
-
-def extract_bullets_from_paragraph(paragraph):
-    """Extract bullet points from a paragraph that contains dashes or bullets"""
-    items = []
-    
-    # Look for items that start with bullet markers
-    lines = paragraph.split('. ')
-    for line in lines:
-        line = line.strip()
-        
-        # Skip if too short
-        if len(line) < 30:
-            continue
-            
-        # Look for patterns that suggest bullet points
-        if any(marker in line for marker in ['-', '•', 'Microsoft', 'Google', 'OpenAI', 'Anthropic', 'NVIDIA']):
-            # Clean up the line
-            clean_line = re.sub(r'^[-•*]\s*', '', line)
-            clean_line = re.sub(r'^\d+\.\s*', '', clean_line)
-            
-            if clean_line and len(clean_line) > 20:
-                items.append(clean_line)
-    
-    return items
-
-def parse_development_items(text):
-    """Parse development items from text"""
-    items = []
-    
-    # First try to split by common patterns
-    # Look for dashes followed by content
-    dash_items = re.split(r'\s*-\s*(?=[A-Z])', text)
-    
-    for item in dash_items:
-        item = item.strip()
-        if len(item) > 50 and any(company in item for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta']):
-            items.append(item)
-    
-    # If that didn't work, try sentences with dates
-    if len(items) < 3:
-        items = []
-        # Split by periods and look for substantial items
-        sentences = re.split(r'[.!?]+', text)
-        for sentence in sentences:
-            sentence = sentence.strip()
-            
-            # Look for sentences that mention companies and have dates or specific info
-            if (len(sentence) > 50 and 
-                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta']) and
-                (re.search(r'September|october|november|2025|\d+', sentence) or 
-                 any(word in sentence.lower() for word in ['launch', 'announce', 'release', 'integrate', 'partner']))):
-                items.append(sentence)
-    
-    # If still nothing, try to extract any substantial sentences
-    if len(items) < 2:
-        items = []
-        sentences = re.split(r'[.!?]+', text)
-        for sentence in sentences:
-            sentence = sentence.strip()
-            if len(sentence) > 80:  # Longer sentences likely to be substantial
-                items.append(sentence)
-    
-    return items[:5]  # Limit to 5 items
-
-def parse_recommendation_items(text):
-    """Parse recommendation items from text"""
-    items = []
-    
-    # First try numbered items
-    numbered_pattern = r'(\d+)\.\s*([^0-9]*?)(?=\d+\.|$)'
-    numbered_matches = re.findall(numbered_pattern, text, re.DOTALL)
-    
-    if numbered_matches and len(numbered_matches) >= 3:
-        for num, item_text in numbered_matches:
-            item_text = item_text.strip()
-            if len(item_text) > 30:
-                items.append(item_text)
-    else:
-        # Try dash/bullet separated items
-        dash_items = re.split(r'\s*[-•]\s*(?=[A-Z])', text)
-        
-        for item in dash_items:
-            item = item.strip()
-            if len(item) > 50:
-                # Clean up the item
-                item = re.sub(r'^\d+\.\s*', '', item)  # Remove leading numbers
-                items.append(item)
-        
-        # If still no good items, split by sentences and look for action words
-        if len(items) < 3:
-            items = []
-            sentences = re.split(r'[.!?]+', text)
-            for sentence in sentences:
-                sentence = sentence.strip()
-                if (len(sentence) > 50 and 
-                    any(action_word in sentence.lower() for action_word in 
-                        ['evaluate', 'assess', 'implement', 'develop', 'establish', 'monitor', 'review', 'ensure', 'invest', 'leverage'])):
-                    items.append(sentence)
-    
-    return items[:5]  # Limit to 5 items
-
-def clean_perplexity_content(content):
-    """Remove citation numbers and clean up Perplexity response formatting"""
-    # Remove citation markers like [1], [2], etc.
-    content = re.sub(r'\[\d+\]', '', content)
-    
-    # Remove standalone citation references at end of sentences
-    content = re.sub(r'\s*\(\d+\)\s*', ' ', content)
-    
-    # Remove unwanted dashes next to bullet points
-    content = re.sub(r'[-•*]\s*[-•*]\s*', '• ', content)  # Double dashes/bullets
-    content = re.sub(r'^\s*[-•*]\s*[-•*]\s*', '• ', content, flags=re.MULTILINE)  # Line start double dashes
-    
-    # Clean up multiple spaces
-    content = re.sub(r'\s+', ' ', content)
-    
-    # Clean up bullet points and formatting - remove extra dashes
-    content = re.sub(r'^\s*[-*•]\s*-\s*', '• ', content, flags=re.MULTILINE)
-    content = re.sub(r'^\s*[-*•]\s*', '• ', content, flags=re.MULTILINE)
-    
-    return content.strip()
 
 def extract_bullets_from_paragraph(paragraph):
     """Extract bullet points from a paragraph that contains dashes or bullets"""
@@ -433,6 +426,103 @@ def extract_bullets_from_paragraph(paragraph):
                 items.append(clean_line)
     
     return items
+
+def parse_development_items(text):
+    """Parse development items with better decimal number handling"""
+    items = []
+    
+    # Split by actual list markers, but preserve decimal numbers in content
+    # Look for patterns that are clearly list items vs decimal numbers
+    lines = text.split('\n')
+    current_item = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Check if this starts a new list item (number + period + space + capital letter)
+        # But exclude obvious decimal numbers (like "4.1%" or "version 2.3")
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        
+        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:10]):
+            # Save previous item if exists
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 50:
+                    items.append(item_text)
+            
+            # Start new item (remove the number prefix)
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            # Continue current item
+            if current_item:
+                current_item.append(line)
+            elif len(line) > 50:  # Start new item if substantial
+                current_item = [line]
+    
+    # Add final item
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 50:
+            items.append(item_text)
+    
+    # If we still don't have good items, try company-based extraction
+    if len(items) < 3:
+        company_items = []
+        sentences = re.split(r'[.!?]+', text)
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            # Look for sentences mentioning companies with substantial content
+            if (len(sentence) > 50 and 
+                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
+                not re.match(r'^\d+\.\s', sentence)):  # Not already a numbered item
+                company_items.append(sentence)
+        
+        if len(company_items) >= len(items):
+            items = company_items
+    
+    return items[:5]
+
+def parse_recommendation_items(text):
+    """Parse recommendation items with better decimal handling"""
+    items = []
+    
+    # Similar approach - look for real list items vs decimal numbers
+    lines = text.split('\n')
+    current_item = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Real list item pattern
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        
+        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
+            # Save previous item
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 30:
+                    items.append(item_text)
+            
+            # Start new item
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if current_item:
+                current_item.append(line)
+            elif len(line) > 30:
+                current_item = [line]
+    
+    # Add final item
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 30:
+            items.append(item_text)
+    
+    return items[:5]
 
 def create_html_blog_post(content, title, excerpt):
     """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
@@ -604,7 +694,7 @@ def create_html_blog_post(content, title, excerpt):
     
     print(f"DEBUG: Generated {len(content_html)} content sections, total length: {len(all_content)}")
     
-    # Complete HTML template (unchanged)
+    # Complete HTML template
     html_template = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1082,29 +1172,45 @@ def create_html_blog_post(content, title, excerpt):
     return html_template
 
 def extract_title_and_excerpt(content):
-    """Extract title and excerpt from generated content"""
+    """Enhanced title and excerpt extraction for any topic"""
     current_date = datetime.now()
     month_year = current_date.strftime("%B %Y")
     
-    title = f"AI Insights for {month_year}"
+    # Try to extract topic from content first
+    lines = [line.strip() for line in content.split("\n") if line.strip()]
     
-    # Clean content first
+    # Look for a clear title in the first few lines
+    potential_title = None
+    for line in lines[:5]:
+        if line and len(line) > 10 and len(line) < 100:
+            # Skip obvious headers/markers
+            if not line.lower().startswith(('introduction', 'key', 'major', '1.', '2.')):
+                potential_title = line
+                break
+    
+    # Generate appropriate title
+    if potential_title and not potential_title.lower().startswith('ai insights'):
+        title = potential_title
+    else:
+        title = f"AI Insights for {month_year}"
+    
+    # Clean content and extract excerpt
     clean_content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)
     clean_content = re.sub(r'\*(.*?)\*', r'\1', clean_content)
     
-    lines = [line.strip() for line in clean_content.split("\n") if line.strip()]
     excerpt = ""
     
     # Look for introduction paragraph
     for line in lines:
         if line and len(line) > 100 and not line.startswith(('#', '1.', '2.', '3.', '4.', '5.', '•', '-', '*')):
             # Make sure it's not a header
-            if not any(header in line.lower() for header in ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion']):
+            header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
+            if not any(header in line.lower() for header in header_keywords):
                 excerpt = line[:200] + "..." if len(line) > 200 else line
                 break
     
     if not excerpt:
-        excerpt = f"Monthly analysis of key AI developments and their strategic impact on Canadian businesses for {month_year}."
+        excerpt = f"Strategic insights and practical guidance for Canadian business leaders - {month_year} analysis."
     
     return title, excerpt
 
@@ -1177,14 +1283,30 @@ def extract_post_info(html_file):
     }
 
 def create_blog_index_html(posts):
-    """Create a beautiful blog index page matching your homepage design"""
+    """Create blog index page with FILE EXISTENCE VALIDATION"""
     if not posts:
         return None
     
-    latest_post = posts[0]
-    older_posts = posts[1:] if len(posts) > 1 else []
+    # CRITICAL: Validate that post files actually exist before including them
+    validated_posts = []
+    posts_dir = "blog/posts"
     
-    # Create posts HTML for older posts
+    for post in posts:
+        file_path = os.path.join(posts_dir, post['filename'])
+        if os.path.exists(file_path):
+            validated_posts.append(post)
+            print(f"✅ Validated post exists: {post['filename']}")
+        else:
+            print(f"⚠️  Skipping missing post: {post['filename']}")
+    
+    if not validated_posts:
+        print("WARNING: No valid post files found after validation")
+        return None
+    
+    latest_post = validated_posts[0]
+    older_posts = validated_posts[1:] if len(validated_posts) > 1 else []
+    
+    # Create posts HTML for older posts (only validated ones)
     older_posts_html = ""
     for post in older_posts:
         older_posts_html += f"""
@@ -1195,7 +1317,7 @@ def create_blog_index_html(posts):
                     </a>
                 </div>"""
     
-    # Create older posts section HTML if needed
+    # Create older posts section HTML only if we have validated older posts
     older_posts_section = ""
     if older_posts:
         older_posts_section = f"""<section class="older-posts-section fade-in">
@@ -1204,6 +1326,8 @@ def create_blog_index_html(posts):
                 {older_posts_html}
             </div>
         </section>"""
+    else:
+        print("INFO: No older posts to display - section will be hidden")
 
     blog_index_html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -1622,47 +1746,60 @@ def create_blog_index_html(posts):
     return blog_index_html
 
 def update_blog_index():
-    """Update ONLY the blog index page with proper styling"""
+    """Update blog index with ROBUST file validation"""
     posts_dir = "blog/posts"
     index_file = "blog/index.html"
     
     print(f"DEBUG: Checking posts directory: {posts_dir}")
-    print(f"DEBUG: Checking blog index file: {index_file}")
     
     if not os.path.exists(posts_dir):
         print(f"ERROR: Posts directory {posts_dir} does not exist")
         return []
     
-    if not os.path.exists(index_file):
-        print(f"ERROR: Blog index file {index_file} not found")
-        return []
-    
     posts = []
     html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html"]
     
-    print(f"DEBUG: Found HTML files: {html_files}")
+    print(f"DEBUG: Found potential HTML files: {html_files}")
     
-    if not html_files:
-        print("WARNING: No HTML files found in posts directory")
+    # VALIDATE each file exists and is readable
+    valid_files = []
+    for file in html_files:
+        file_path = os.path.join(posts_dir, file)
+        try:
+            # Double-check file exists and is readable
+            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                valid_files.append(file)
+                print(f"✅ File validated: {file}")
+            else:
+                print(f"⚠️  Skipping invalid file: {file}")
+        except Exception as e:
+            print(f"❌ Error validating {file}: {e}")
+    
+    if not valid_files:
+        print("WARNING: No valid HTML files found after validation")
         return []
 
-    print(f"Processing {len(html_files)} HTML files in posts directory")
+    print(f"Processing {len(valid_files)} validated HTML files")
 
-    for file in sorted(html_files, reverse=True):
+    for file in sorted(valid_files, reverse=True):
         file_path = os.path.join(posts_dir, file)
         try:
             post_info = extract_post_info(file_path)
-            posts.append(post_info)
-            print(f"✅ Processed: {file} -> {post_info['title']}")
+            # Final validation - ensure the post_info is complete
+            if post_info.get('title') and post_info.get('filename'):
+                posts.append(post_info)
+                print(f"✅ Processed: {file} -> {post_info['title']}")
+            else:
+                print(f"⚠️  Skipping incomplete post info: {file}")
         except Exception as e:
             print(f"❌ Error processing {file}: {e}")
             continue
 
     if not posts:
-        print("ERROR: No valid posts could be processed")
+        print("ERROR: No valid posts could be processed after all validation")
         return []
 
-    # Create beautiful blog index HTML
+    # Create blog index with validated posts only
     new_blog_index = create_blog_index_html(posts)
     if not new_blog_index:
         print("ERROR: Failed to create blog index HTML")
@@ -1672,7 +1809,8 @@ def update_blog_index():
     try:
         with open(index_file, "w", encoding="utf-8") as f:
             f.write(new_blog_index)
-        print(f"✅ Blog index completely recreated with beautiful styling and {len(posts)} posts")
+        print(f"✅ Blog index recreated with {len(posts)} VALIDATED posts")
+        print("🔒 All links guaranteed to point to existing files")
     except Exception as e:
         print(f"❌ Error writing blog index: {e}")
     
