@@ -120,7 +120,7 @@ Create a monthly AI insights post for {month_year} following this EXACT structur
 
 1. INTRODUCTION: Brief overview of the month's key AI developments (1 paragraph)
 
-2. KEY AI DEVELOPMENTS: List 10 major AI technology launches, updates, or breakthroughs from the past month with SPECIFIC DATES and company details:
+2. KEY AI DEVELOPMENTS: List 15 major AI technology launches, updates, or breakthroughs from the past month with SPECIFIC DATES and company details:
    - Each item MUST include the exact date (e.g., "September 25, 2025")
    - Include company names, product names, version numbers
    - Focus on major announcements, product launches, partnerships, funding rounds
@@ -144,14 +144,14 @@ Write in a professional, authoritative tone. Be specific about companies, techno
 Structure:
 - Introduction: Overview of this month's key AI developments 
 CRITICAL REQUIREMENTS:
-- Key AI Developments: EXACTLY 10 items, each with specific dates (e.g., "September 25, 2025")
+- Key AI Developments: EXACTLY 15 items, each with specific dates (e.g., "September 25, 2025")
 - Include diverse AI developments: major model releases, enterprise partnerships, funding announcements, research papers, regulatory updates, hardware launches
 - Each development MUST have: Company name, specific date, clear description
 - Focus on developments from the past 30 days
 
 Structure:
 - Introduction: Overview of this month's key AI developments 
-- Key AI Developments: 10 specific items with exact dates and company details
+- Key AI Developments: 15 specific items with exact dates and company details
 - Canadian Business Impact: How these affect Canadian businesses specifically
 - Strategic Recommendations: 5 actionable steps for Canadian business leaders
 - Conclusion: Strategic imperative for Canadian businesses
@@ -567,7 +567,7 @@ def parse_development_items(text):
         if len(smart_items) >= len(items):
             items = smart_items
     
-    return items[:10]  # Return up to 10 items now
+    return items[:15]  # Return up to 15 items now
 
 def parse_recommendation_items(text):
     """Parse recommendation items with better decimal handling"""
