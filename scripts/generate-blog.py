@@ -1192,21 +1192,32 @@ def create_html_blog_post(content, title, excerpt):
     return html_template
 
 def extract_title_and_excerpt(content):
-    """Enhanced title and excerpt extraction for any topic"""
+    """Enhanced title and excerpt extraction with ROBUST cleaning"""
     current_date = datetime.now()
     month_year = current_date.strftime("%B %Y")
     
-    # Try to extract topic from content first
-    lines = [line.strip() for line in content.split("\n") if line.strip()]
+    # FIRST: Clean the content thoroughly before processing
+    clean_content = clean_perplexity_content(content)
+    
+    # Split into lines for analysis
+    lines = [line.strip() for line in clean_content.split("\n") if line.strip()]
     
     # Look for a clear title in the first few lines
     potential_title = None
     for line in lines[:5]:
         if line and len(line) > 10 and len(line) < 100:
-            # Skip obvious headers/markers
-            if not line.lower().startswith(('introduction', 'key', 'major', '1.', '2.')):
-                potential_title = line
-                break
+            # Skip obvious headers/markers and problematic formatting
+            line_lower = line.lower()
+            if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
+                # Additional cleaning for title
+                clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)  # Remove leading symbols
+                clean_title = re.sub(r'\s*[•\-–—:]+$', '', clean_title)  # Remove trailing symbols
+                clean_title = re.sub(r'[•\-–—]', '', clean_title)  # Remove any remaining symbols
+                clean_title = clean_title.strip()
+                
+                if clean_title and len(clean_title) > 10:
+                    potential_title = clean_title
+                    break
     
     # Generate appropriate title
     if potential_title and not potential_title.lower().startswith('ai insights'):
@@ -1214,10 +1225,7 @@ def extract_title_and_excerpt(content):
     else:
         title = f"AI Insights for {month_year}"
     
-    # Clean content and extract excerpt
-    clean_content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)
-    clean_content = re.sub(r'\*(.*?)\*', r'\1', clean_content)
-    
+    # Extract excerpt from cleaned content
     excerpt = ""
     
     # Look for introduction paragraph
@@ -1226,8 +1234,15 @@ def extract_title_and_excerpt(content):
             # Make sure it's not a header
             header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
             if not any(header in line.lower() for header in header_keywords):
-                excerpt = line[:200] + "..." if len(line) > 200 else line
-                break
+                # Clean the excerpt
+                clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
+                clean_excerpt = re.sub(r'\s*[•\-–—:]+$', '', clean_excerpt)
+                clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
+                clean_excerpt = clean_excerpt.strip()
+                
+                if clean_excerpt:
+                    excerpt = clean_excerpt[:200] + "..." if len(clean_excerpt) > 200 else clean_excerpt
+                    break
     
     if not excerpt:
         excerpt = f"Strategic insights and practical guidance for Canadian business leaders - {month_year} analysis."
