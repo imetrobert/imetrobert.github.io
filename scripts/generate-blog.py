@@ -727,64 +727,6 @@ def create_html_blog_post(content, title, excerpt):
 </html>'''
     
     return html_template
-        .header-content {{ max-width: 1000px; margin: 0 auto; padding: 0 2rem; }}
-        .header h1 {{ font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; }}
-        .header .subtitle {{ font-size: 1.2rem; font-weight: 500; opacity: 0.9; margin-bottom: 1.5rem; }}
-        .header .intro {{ font-size: 1.05rem; opacity: 0.85; max-width: 800px; margin: 0 auto; }}
-        .container {{ max-width: 1000px; margin: 0 auto; padding: 3rem 2rem 4rem; }}
-        .article-container {{ background: white; border-radius: 20px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); overflow: hidden; }}
-        .article-content {{ padding: 3rem; }}
-        .section {{ margin-bottom: 3rem; }}
-        .section-title {{ font-size: 2rem; color: var(--dark-navy); margin-bottom: 1.5rem; margin-top: 2rem; font-weight: 700; padding-left: 1.5rem; position: relative; }}
-        .section-title::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--primary-blue); border-radius: 2px; }}
-        .bullet-list {{ margin-bottom: 2rem; padding-left: 0; list-style: none; }}
-        .bullet-list li {{ margin-bottom: 1.5rem; line-height: 1.8; color: var(--medium-gray); position: relative; padding-left: 2.5rem; }}
-        .bullet-list li::before {{ content: '●'; position: absolute; left: 0; color: var(--primary-blue); font-weight: bold; top: 0.1rem; }}
-        .bullet-list.numbered {{ counter-reset: list-counter; }}
-        .bullet-list.numbered li {{ counter-increment: list-counter; }}
-        .bullet-list.numbered li::before {{ content: counter(list-counter) '.'; background: var(--primary-blue); color: white; width: 1.8rem; height: 1.8rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }}
-        p {{ margin-bottom: 1.2rem; line-height: 1.7; color: var(--medium-gray); }}
-        strong {{ color: var(--dark-navy); font-weight: 600; }}
-        .conclusion {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 2.5rem; border-radius: 15px; margin-top: 3rem; }}
-        .conclusion p {{ color: rgba(255, 255, 255, 0.95); font-size: 1.1rem; font-weight: 500; margin-bottom: 0; }}
-        .conclusion strong {{ color: white; }}
-        @media (max-width: 768px) {{ .header h1 {{ font-size: 2.2rem; }} .container {{ padding: 2rem 1rem 3rem; }} .article-content {{ padding: 2rem 1.5rem; }} }}
-    </style>
-</head>
-<body>
-    <nav class="nav-bar">
-        <div class="nav-content">
-            <a href="/" class="nav-link">← Back to Portfolio</a>
-            <div class="blog-meta">
-                <span>AI Insights for Canadian Business</span>
-                <span>•</span>
-                <span>{formatted_date}</span>
-            </div>
-        </div>
-    </nav>
-
-    <header class="header">
-        <div class="header-content">
-            <h1>AI Insights for {month_year}</h1>
-            <div class="subtitle">Key AI Developments & Canadian Business Impact</div>
-            <div class="intro">{excerpt}</div>
-        </div>
-    </header>
-
-    <div class="container">
-        <article class="article-container">
-            <div class="article-content">
-                {all_content}
-                <div class="conclusion">
-                    <p><strong>Strategic Imperative for Canadian Businesses:</strong> {conclusion_text}</p>
-                </div>
-            </div>
-        </article>
-    </div>
-</body>
-</html>'''
-    
-    return html_template
 
 def extract_post_info(html_file):
     """Extract title, date, and excerpt from an HTML blog post"""
@@ -836,7 +778,7 @@ def extract_post_info(html_file):
     }
 
 def create_blog_index_html(posts):
-    """Create blog index page with FILE EXISTENCE VALIDATION"""
+    """Create blog index page"""
     if not posts:
         return None
     
@@ -847,12 +789,8 @@ def create_blog_index_html(posts):
         file_path = os.path.join(posts_dir, post['filename'])
         if os.path.exists(file_path):
             validated_posts.append(post)
-            print(f"✅ Validated post exists: {post['filename']}")
-        else:
-            print(f"⚠️  Skipping missing post: {post['filename']}")
     
     if not validated_posts:
-        print("WARNING: No valid post files found after validation")
         return None
     
     latest_post = validated_posts[0]
@@ -860,43 +798,44 @@ def create_blog_index_html(posts):
     
     older_posts_html = ""
     for post in older_posts:
-        older_posts_html += f"""
+        older_posts_html += f'''
                 <div class="older-post-item">
                     <a href="/blog/posts/{post['filename']}" class="older-post-link">
                         <div class="older-post-title">{post['title']}</div>
                         <div class="older-post-date">{post['date']}</div>
                     </a>
-                </div>"""
+                </div>'''
     
     older_posts_section = ""
     if older_posts:
-        older_posts_section = f"""<section class="older-posts-section">
+        older_posts_section = f'''<section class="older-posts-section">
             <h3 class="older-posts-title">Previous Insights</h3>
             <div class="older-posts-grid">
                 {older_posts_html}
             </div>
-        </section>"""
+        </section>'''
 
-    blog_index_html = f"""<!DOCTYPE html>
+    blog_index_html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Insights Blog - Robert Simon | Digital Innovation & AI Strategy</title>
+    <title>AI Insights Blog - Robert Simon</title>
     <style>
         body {{ font-family: Inter, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); margin: 0; padding: 0; }}
         .container {{ max-width: 1200px; margin: 0 auto; padding: 2rem; }}
         header {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 3rem; border-radius: 20px; }}
         h1 {{ font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; }}
         .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
-        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: center; }}
-        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.75rem 2rem; border-radius: 25px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
+        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: flex-start; }}
+        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
         .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }}
         .latest-badge {{ background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }}
         .latest-post-title {{ font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }}
         .read-latest-btn {{ background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; }}
         .older-posts-section {{ background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }}
-        .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; transition: all 0.3s ease; }}
+        .older-posts-title {{ font-size: 1.8rem; margin-bottom: 2rem; text-align: center; }}
+        .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 1rem; }}
         .older-post-link {{ display: block; padding: 1.5rem; text-decoration: none; color: inherit; }}
         .older-post-title {{ font-size: 1.3rem; font-weight: 600; color: #2563eb; margin-bottom: 0.5rem; }}
         .older-post-date {{ font-size: 0.9rem; color: #64748b; }}
@@ -905,7 +844,7 @@ def create_blog_index_html(posts):
 <body>
     <nav class="nav-bar">
         <div class="nav-content">
-            <a href="/" class="nav-link">← Back to Robert Simon's Portfolio</a>
+            <a href="https://www.imetrobert.com" class="nav-link">← Back to Homepage</a>
         </div>
     </nav>
     
@@ -926,37 +865,28 @@ def create_blog_index_html(posts):
         {older_posts_section}
     </div>
 </body>
-</html>"""
+</html>'''
 
     return blog_index_html
 
 def update_blog_index():
-    """Update blog index with ROBUST file validation"""
+    """Update blog index"""
     posts_dir = "blog/posts"
     index_file = "blog/index.html"
     
     if not os.path.exists(posts_dir):
-        print(f"ERROR: Posts directory {posts_dir} does not exist")
         return []
     
     posts = []
     html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html"]
     
-    valid_files = []
-    for file in html_files:
+    for file in sorted(html_files, reverse=True):
         file_path = os.path.join(posts_dir, file)
         try:
             if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                valid_files.append(file)
-        except Exception as e:
-            print(f"❌ Error validating {file}: {e}")
-    
-    for file in sorted(valid_files, reverse=True):
-        file_path = os.path.join(posts_dir, file)
-        try:
-            post_info = extract_post_info(file_path)
-            if post_info.get('title') and post_info.get('filename'):
-                posts.append(post_info)
+                post_info = extract_post_info(file_path)
+                if post_info.get('title') and post_info.get('filename'):
+                    posts.append(post_info)
         except Exception as e:
             continue
 
@@ -974,32 +904,22 @@ def update_blog_index():
     return posts
 
 def main():
-    parser = argparse.ArgumentParser(description="COMPLETE Blog Generator")
-    parser.add_argument("--topic", help="Custom topic for the blog post")
-    parser.add_argument("--output", default="posts", choices=["staging", "posts"],
-                        help="Output directory (staging for review, posts for direct publish)")
+    parser = argparse.ArgumentParser(description="Blog Generator")
+    parser.add_argument("--topic", help="Custom topic")
+    parser.add_argument("--output", default="posts", choices=["staging", "posts"])
     args = parser.parse_args()
     
-    print("🔧 RUNNING COMPLETE BLOG GENERATOR")
-    print("=" * 50)
-    print(f"📂 Output directory: {args.output}")
+    print("🔧 RUNNING BLOG GENERATOR")
     
     api_key = os.getenv("PERPLEXITY_API_KEY")
     if not api_key:
-        print("❌ PERPLEXITY_API_KEY environment variable not set")
+        print("❌ PERPLEXITY_API_KEY not set")
         sys.exit(1)
     
     try:
-        print("🤖 Generating comprehensive AI insights blog post...")
-        print("📍 SCOPE: Blog pages only (NO homepage changes)")
-        
         result = generate_blog_with_perplexity(api_key, args.topic)
-        
         title, excerpt = extract_title_and_excerpt(result["content"])
-        print(f"✅ Title extracted: {title}")
-        
         html_content = create_html_blog_post(result["content"], title, excerpt)
-        print(f"✅ HTML content generated with PROPERLY FORMATTED content ({len(html_content)} characters)")
         
         current_date = datetime.now().strftime("%Y-%m-%d")
         filename_html = f"{current_date}-{clean_filename(title)}.html"
@@ -1017,27 +937,14 @@ def main():
         os.makedirs(os.path.dirname(latest_path), exist_ok=True)
         with open(latest_path, "w", encoding="utf-8") as f:
             f.write(html_content)
-        print(f"✅ Latest post updated: {latest_path}")
+        print(f"✅ Latest post updated")
         
-        if result.get("citations"):
-            print(f"📚 Sources processed: {len(result['citations'])} (citations cleaned)")
-        
-        try:
-            posts = update_blog_index()
-            print(f"✅ Blog index recreated with stunning design and {len(posts)} total posts")
-            print("📍 NOTE: Homepage unchanged (as requested)")
-            
-        except Exception as e:
-            print(f"❌ Failed to update blog index: {e}")
-            import traceback
-            traceback.print_exc()
-        
-        print("🎉 COMPLETE SCRIPT EXECUTED SUCCESSFULLY!")
-        print("🔗 Check your blog at: /blog/ (now with beautiful styling)")
-        print("🔗 Latest post at: /blog/posts/latest.html (now with properly structured content)")
+        posts = update_blog_index()
+        print(f"✅ Blog index updated with {len(posts)} posts")
+        print("🎉 SUCCESS!")
         
     except Exception as e:
-        print(f"💥 Blog generation failed: {e}")
+        print(f"💥 Failed: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
