@@ -15,32 +15,20 @@ def clean_filename(title):
     return clean_title.lower()
 
 def clean_perplexity_content(content):
-    """Remove citation numbers and clean up Perplexity response formatting with COMPREHENSIVE fixes"""
-    # Remove citation markers like [1], [2], etc.
+    """Remove citation numbers and clean up Perplexity response formatting"""
     content = re.sub(r'\[\d+\]', '', content)
-    
-    # Remove standalone citation references at end of sentences
     content = re.sub(r'\s*\(\d+\)\s*', ' ', content)
-    
-    # CRITICAL: Fix broken formatting patterns that appear in your output
-    # Remove stray bullets and dashes that shouldn't be there
-    content = re.sub(r'•\s*[-–—]\s*', '', content)  # Remove "• -" patterns
-    content = re.sub(r'[-–—]\s*•\s*', '', content)  # Remove "- •" patterns
-    content = re.sub(r'•\s*•', '•', content)        # Remove double bullets
-    content = re.sub(r':\s*•', ':', content)        # Remove ":•" patterns
-    content = re.sub(r'•\s*:', ':', content)        # Remove "•:" patterns
-    
-    # Fix title formatting issues - remove stray bullets around titles
+    content = re.sub(r'•\s*[-–—]\s*', '', content)
+    content = re.sub(r'[-–—]\s*•\s*', '', content)
+    content = re.sub(r'•\s*•', '•', content)
+    content = re.sub(r':\s*•', ':', content)
+    content = re.sub(r'•\s*:', ':', content)
     content = re.sub(r'^•\s*(.*?)\s*•\s*$', r'\1', content, flags=re.MULTILINE)
-    
-    # Fix decimal number breaking (Claude 4.1 -> Claude 4 and 1)
-    # Restore common version numbers and decimals
     content = re.sub(r'Claude Opus 4\s+1', 'Claude Opus 4.1', content)
     content = re.sub(r'Claude Sonnet 4\s+1', 'Claude Sonnet 4.1', content)
     content = re.sub(r'GPT-4\s+1', 'GPT-4.1', content)
-    content = re.sub(r'(\d+)\s+(\d+)%', r'\1.\2%', content)  # Fix broken percentages
+    content = re.sub(r'(\d+)\s+(\d+)%', r'\1.\2%', content)
     
-    # Handle line-by-line cleaning with better logic
     lines = content.split('\n')
     cleaned_lines = []
     
@@ -49,52 +37,35 @@ def clean_perplexity_content(content):
         if not line:
             cleaned_lines.append(line)
             continue
-            
-        # Check if this is a REAL numbered list item
-        list_pattern = r'^(\d+)\.\s+([A-Z].*)'
         
+        list_pattern = r'^(\d+)\.\s+([A-Z].*)'
         if re.match(list_pattern, line):
-            # This is a real list item - keep as is
             cleaned_lines.append(line)
         else:
-            # Clean up problematic formatting
-            # Remove leading/trailing stray bullets
             line = re.sub(r'^[•\-–—]+\s*', '', line)
             line = re.sub(r'\s*[•\-–—]+$', '', line)
-            
-            # Remove weird colon-bullet combinations
             line = re.sub(r':\s*[•\-–—]+\s*([A-Z])', r': \1', line)
             line = re.sub(r'[•\-–—]+\s*:\s*([A-Z])', r': \1', line)
-            
-            # Clean up section headers that got mangled
             line = re.sub(r'^:\s*([A-Z][^:]*?)\s*:•', r'\1:', line)
-            
-            if line:  # Only add non-empty lines
+            if line:
                 cleaned_lines.append(line)
     
     content = '\n'.join(cleaned_lines)
-    
-    # Final cleanup
-    content = re.sub(r' +', ' ', content)  # Multiple spaces
-    content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)  # Multiple newlines
-    
+    content = re.sub(r' +', ' ', content)
+    content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
     return content.strip()
 
 def generate_blog_with_perplexity(api_key, topic=None):
-    """Generate blog content using Perplexity API with flexible topic handling"""
+    """Generate blog content using Perplexity API"""
     current_date = datetime.now()
     month_year = current_date.strftime("%B %Y")
     
-    # SMART TOPIC HANDLING: Adapt prompts based on topic type
     if not topic:
-        # DEFAULT: Monthly AI insights
         topic_type = "monthly_ai"
         topic = f"Latest AI developments and technology launches since last month - {month_year} focus on Canadian business impact"
     else:
-        # CUSTOM TOPIC: Determine if it's AI-related or general business
         topic_lower = topic.lower()
         ai_keywords = ['ai', 'artificial intelligence', 'machine learning', 'automation', 'technology', 'digital', 'innovation']
-        
         if any(keyword in topic_lower for keyword in ai_keywords):
             topic_type = "custom_ai"
         else:
@@ -106,52 +77,26 @@ def generate_blog_with_perplexity(api_key, topic=None):
         "Content-Type": "application/json"
     }
     
-    models_to_try = [
-        "sonar-pro",
-        "sonar-medium-online", 
-        "sonar-small-online"
-    ]
+    models_to_try = ["sonar-pro", "sonar-medium-online", "sonar-small-online"]
     
-    # ADAPTIVE SYSTEM PROMPTS based on topic type
     if topic_type == "monthly_ai":
         system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
 
 Create a monthly AI insights post for {month_year} following this EXACT structure:
 
 1. INTRODUCTION: Brief overview of the month's key AI developments (1 paragraph)
-
-2. KEY AI DEVELOPMENTS: List 15 major AI technology launches, updates, or breakthroughs from the past month with SPECIFIC DATES and company details:
-   - Each item MUST include the exact date (e.g., "September 25, 2025")
-   - Include company names, product names, version numbers
-   - Focus on major announcements, product launches, partnerships, funding rounds
-   - Cover diverse areas: LLMs, enterprise AI, developer tools, research breakthroughs, hardware, regulations
-
-3. CANADIAN BUSINESS IMPACT: Analyze how these developments specifically affect Canadian businesses, considering:
-   - Canadian market conditions
-   - Regulatory environment (PIPEDA, AIDA considerations)
-   - Cross-border business implications
-   - Currency and economic factors
-   - Competitive positioning vs US/global markets
-
+2. KEY AI DEVELOPMENTS: List 15 major AI technology launches, updates, or breakthroughs from the past month with SPECIFIC DATES and company details
+3. CANADIAN BUSINESS IMPACT: Analyze how these developments specifically affect Canadian businesses
 4. STRATEGIC RECOMMENDATIONS: Provide 5 specific, actionable recommendations for Canadian business leaders
-
 5. CONCLUSION: Strategic imperative for Canadian businesses (1 paragraph)
 
-Write in a professional, authoritative tone. Be specific about companies, technologies, and dates. Focus on practical, actionable insights."""
+Write in a professional, authoritative tone. Be specific about companies, technologies, and dates."""
         
         user_prompt = f"""Write an AI insights blog post for Canadian business leaders covering the latest developments in {month_year}.
 
 Structure:
 - Introduction: Overview of this month's key AI developments 
-CRITICAL REQUIREMENTS:
-- Key AI Developments: EXACTLY 15 items, each with specific dates (e.g., "September 25, 2025")
-- Include diverse AI developments: major model releases, enterprise partnerships, funding announcements, research papers, regulatory updates, hardware launches
-- Each development MUST have: Company name, specific date, clear description
-- Focus on developments from the past 30 days
-
-Structure:
-- Introduction: Overview of this month's key AI developments 
-- Key AI Developments: 15 specific items with exact dates and company details
+- Key AI Developments: EXACTLY 15 items, each with specific dates
 - Canadian Business Impact: How these affect Canadian businesses specifically
 - Strategic Recommendations: 5 actionable steps for Canadian business leaders
 - Conclusion: Strategic imperative for Canadian businesses
@@ -163,50 +108,45 @@ Focus on developments from the past 30 days. Include specific company names, pro
 
 Create an AI insights post about "{topic}" following this EXACT structure:
 
-1. INTRODUCTION: Brief overview of the topic and its relevance to Canadian businesses (1 paragraph)
-2. KEY DEVELOPMENTS: List 4-5 major points, developments, or aspects related to "{topic}" with specific details, companies, or examples
+1. INTRODUCTION: Brief overview of the topic and its relevance to Canadian businesses
+2. KEY DEVELOPMENTS: List 4-5 major points, developments, or aspects related to "{topic}"
 3. CANADIAN BUSINESS IMPACT: Analyze how "{topic}" specifically affects Canadian businesses
-4. STRATEGIC RECOMMENDATIONS: Provide 5 specific, actionable recommendations for Canadian business leaders regarding "{topic}"
-5. CONCLUSION: Strategic imperative for Canadian businesses related to "{topic}" (1 paragraph)
+4. STRATEGIC RECOMMENDATIONS: Provide 5 specific, actionable recommendations
+5. CONCLUSION: Strategic imperative for Canadian businesses
 
-Write in a professional, authoritative tone. Be specific and provide practical, actionable insights."""
+Write in a professional, authoritative tone."""
         
         user_prompt = f"""Write an AI insights blog post for Canadian business leaders about "{topic}".
 
 You MUST follow this exact structure:
 - Introduction: Overview of "{topic}" and its business relevance
-- Key Developments: 4-5 major points or aspects about "{topic}" with specific details
-- Canadian Business Impact: How "{topic}" specifically affects Canadian businesses
+- Key Developments: 4-5 major points about "{topic}" with specific details
+- Canadian Business Impact: How "{topic}" affects Canadian businesses
 - Strategic Recommendations: 5 actionable steps for Canadian business leaders
-- Conclusion: Strategic imperative for Canadian businesses
+- Conclusion: Strategic imperative for Canadian businesses"""
 
-Focus on practical insights and real-world applications. Include specific examples where possible."""
-
-    else:  # custom_business
+    else:
         system_prompt = f"""You are Robert Simon, a digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
 
 Create a business insights post about "{topic}" following this EXACT structure:
 
-1. INTRODUCTION: Brief overview of "{topic}" and its relevance to Canadian businesses (1 paragraph)
-2. KEY INSIGHTS: List 4-5 major points, trends, or developments related to "{topic}" with specific details and examples
-3. CANADIAN BUSINESS IMPACT: Analyze how "{topic}" specifically affects Canadian businesses
-4. STRATEGIC RECOMMENDATIONS: Provide 5 specific, actionable recommendations for Canadian business leaders regarding "{topic}"
-5. CONCLUSION: Strategic imperative for Canadian businesses related to "{topic}" (1 paragraph)
+1. INTRODUCTION: Brief overview of "{topic}" and its relevance to Canadian businesses
+2. KEY INSIGHTS: List 4-5 major points, trends, or developments related to "{topic}"
+3. CANADIAN BUSINESS IMPACT: Analyze how "{topic}" affects Canadian businesses
+4. STRATEGIC RECOMMENDATIONS: Provide 5 specific, actionable recommendations
+5. CONCLUSION: Strategic imperative for Canadian businesses
 
-Write in a professional, authoritative tone. Be specific and provide practical, actionable insights."""
+Write in a professional, authoritative tone."""
         
         user_prompt = f"""Write a business insights blog post for Canadian business leaders about "{topic}".
 
-You MUST follow this exact structure:
+Structure:
 - Introduction: Overview of "{topic}" and its business relevance
-- Key Insights: 4-5 major points or developments about "{topic}" with specific details
-- Canadian Business Impact: How "{topic}" specifically affects Canadian businesses  
+- Key Insights: 4-5 major points about "{topic}" with specific details
+- Canadian Business Impact: How "{topic}" affects Canadian businesses
 - Strategic Recommendations: 5 actionable steps for Canadian business leaders
-- Conclusion: Strategic imperative for Canadian businesses
+- Conclusion: Strategic imperative for Canadian businesses"""
 
-Focus on practical insights and real-world applications. Include specific examples and data where possible."""
-
-    # Try models and generate content
     for model in models_to_try:
         print(f"Trying Perplexity model: {model} for topic type: {topic_type}")
         payload = {
@@ -266,7 +206,6 @@ def parse_structured_content(content):
         'conclusion': ''
     }
     
-    # Clean up the content first
     content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)
     content = re.sub(r'\*(.*?)\*', r'\1', content)
     
@@ -275,7 +214,6 @@ def parse_structured_content(content):
     
     content_lower = content.lower()
     
-    # FLEXIBLE SECTION DETECTION
     dev_patterns = [
         'key ai development', 'ai development', 'major development', 
         'technological advance', 'key developments', 'major ai',
@@ -298,7 +236,6 @@ def parse_structured_content(content):
         'in conclusion', 'finally', 'key takeaway'
     ]
     
-    # Find section boundaries
     dev_start = -1
     dev_end = -1
     impact_start = -1
@@ -336,7 +273,6 @@ def parse_structured_content(content):
     
     print(f"DEBUG: Section positions - dev:{dev_start}, impact:{impact_start}, rec:{rec_start}, conclusion:{conclusion_start}")
     
-    # Extract sections based on found positions
     if dev_start > 0:
         sections['introduction'] = content[:dev_start].strip()
     
@@ -364,7 +300,6 @@ def parse_structured_content(content):
                 break
         sections['conclusion'] = conclusion_text
     
-    # FALLBACK PARSING if structured parsing fails
     if not any([sections['developments'], sections['canadian_impact'], sections['recommendations']]):
         print("WARNING: Primary parsing failed, trying enhanced paragraph-based parsing")
         
@@ -467,17 +402,8 @@ def parse_development_items(text):
             'U.K.': 'UKPROTECTED', 
             'E.U.': 'EUPROTECTED',
             'A.I.': 'AIPROTECTED',
-            'U.N.': 'UNPROTECTED',
             'Inc.': 'IncPROTECTED',
-            'Corp.': 'CorpPROTECTED',
-            'Ltd.': 'LtdPROTECTED',
-            'Co.': 'CoPROTECTED',
-            'vs.': 'vsPROTECTED',
-            'etc.': 'etcPROTECTED',
-            'Dr.': 'DrPROTECTED',
-            'Mr.': 'MrPROTECTED',
-            'Ms.': 'MsPROTECTED',
-            'Mrs.': 'MrsPROTECTED'
+            'Corp.': 'CorpPROTECTED'
         }
         
         version_pattern = r'\b(\d+\.\d+)\b'
@@ -488,13 +414,6 @@ def parse_development_items(text):
             version_replacements[replacement] = version
             protected_text = protected_text.replace(version, replacement)
         
-        protected_text = re.sub(r'\bU\.S\.', 'USPROTECTED', protected_text)
-        protected_text = re.sub(r'\bU\.K\.', 'UKPROTECTED', protected_text)
-        protected_text = re.sub(r'\bE\.U\.', 'EUPROTECTED', protected_text)
-        protected_text = re.sub(r'\bA\.I\.', 'AIPROTECTED', protected_text)
-        protected_text = re.sub(r'\bGPT(\d+)\.', r'GPTVERSION\1DOT', protected_text)
-        protected_text = re.sub(r'\bClaude-(\d+)\.', r'CLAUDEVERSION\1DOT', protected_text)
-
         for abbrev, replacement in abbreviations.items():
             protected_text = protected_text.replace(abbrev, replacement)
 
@@ -502,12 +421,6 @@ def parse_development_items(text):
         
         for sentence in sentences:
             sentence = sentence.strip()
-            sentence = re.sub(r'USPROTECTED', 'U.S.', sentence)
-            sentence = re.sub(r'UKPROTECTED', 'U.K.', sentence)
-            sentence = re.sub(r'EUPROTECTED', 'E.U.', sentence)
-            sentence = re.sub(r'AIPROTECTED', 'A.I.', sentence)
-            sentence = re.sub(r'GPTVERSION(\d+)DOT(\d+)PROTECTED', r'GPT-\1.\2', sentence)
-            sentence = re.sub(r'CLAUDEVERSION(\d+)DOT(\d+)PROTECTED', r'Claude-\1.\2', sentence)
             
             for replacement, original in abbreviations.items():
                 sentence = sentence.replace(replacement, original)
@@ -515,7 +428,7 @@ def parse_development_items(text):
                 sentence = sentence.replace(replacement, original)
             
             if (len(sentence) > 50 and 
-                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple', 'Tesla', 'IBM', 'Intel', 'AMD']) and
+                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
                 not re.match(r'^\d+\.\s', sentence)):
                 smart_items.append(sentence)
         
@@ -573,569 +486,43 @@ def generate_dynamic_conclusion(sections):
         for item in sections['developments']:
             item_lower = item.lower()
             
-            company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple', 'Tesla', 'IBM', 'Intel', 'AMD']
+            company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']
             for company in company_names:
                 if company.lower() in item_lower and company not in companies:
                     companies.append(company)
             
             tech_keywords = {
-                'AI models': ['model', 'llm', 'gpt', 'claude', 'chatgpt', 'language model'],
-                'enterprise AI': ['enterprise', 'business', 'copilot', 'office', 'productivity'],
-                'AI safety': ['safety', 'alignment', 'responsible', 'ethics', 'governance'],
-                'automation': ['automation', 'workflow', 'process', 'efficiency'],
-                'partnerships': ['partnership', 'collaboration', 'integration', 'alliance'],
-                'hardware': ['chip', 'gpu', 'processor', 'computing', 'infrastructure'],
-                'research': ['research', 'breakthrough', 'innovation', 'development'],
-                'regulation': ['regulation', 'policy', 'compliance', 'government'],
-                'funding': ['funding', 'investment', 'capital', 'funding round']
+                'AI models': ['model', 'llm', 'gpt', 'claude', 'chatgpt'],
+                'enterprise AI': ['enterprise', 'business', 'copilot', 'office'],
+                'automation': ['automation', 'workflow', 'process'],
+                'partnerships': ['partnership', 'collaboration', 'integration']
             }
             
             for theme, keywords in tech_keywords.items():
                 if any(keyword in item_lower for keyword in keywords) and theme not in key_themes:
                     key_themes.append(theme)
     
-    impact_areas = []
-    if sections['canadian_impact']:
-        impact_text = sections['canadian_impact'].lower()
-        
-        impact_keywords = {
-            'competitive advantage': ['competitive', 'advantage', 'competition'],
-            'regulatory compliance': ['regulatory', 'compliance', 'pipeda', 'aida'],
-            'cross-border operations': ['cross-border', 'international', 'global'],
-            'market positioning': ['market', 'positioning', 'leadership'],
-            'operational efficiency': ['efficiency', 'productivity', 'optimization'],
-            'innovation capacity': ['innovation', 'transformation', 'modernization'],
-            'talent acquisition': ['talent', 'skills', 'workforce'],
-            'cost optimization': ['cost', 'savings', 'budget']
-        }
-        
-        for area, keywords in impact_keywords.items():
-            if any(keyword in impact_text for keyword in keywords) and area not in impact_areas:
-                impact_areas.append(area)
-    
     conclusion_parts = []
     
-    if len(key_themes) >= 3:
-        top_themes = key_themes[:3]
-        conclusion_parts.append(f"With major advances in {', '.join(top_themes[:-1])} and {top_themes[-1]}")
-    elif len(key_themes) >= 2:
-        conclusion_parts.append(f"With significant developments in {' and '.join(key_themes)}")
+    if len(key_themes) >= 2:
+        conclusion_parts.append(f"With significant developments in {' and '.join(key_themes[:2])}")
     elif key_themes:
         conclusion_parts.append(f"With critical advances in {key_themes[0]}")
     else:
         conclusion_parts.append("With accelerating AI innovation")
     
-    if len(companies) >= 3:
-        conclusion_parts.append(f"from industry leaders like {', '.join(companies[:3])}")
-    elif len(companies) >= 2:
-        conclusion_parts.append(f"from {' and '.join(companies)}")
+    if len(companies) >= 2:
+        conclusion_parts.append(f"from {' and '.join(companies[:2])}")
     
-    if impact_areas:
-        primary_impact = impact_areas[0] if impact_areas else "competitive advantage"
-        conclusion_parts.append(f"Canadian businesses must act decisively to maintain {primary_impact}")
-        
-        if len(impact_areas) >= 2:
-            conclusion_parts.append(f"while strengthening {impact_areas[1]}")
-    else:
-        conclusion_parts.append("Canadian businesses must act decisively to harness these breakthroughs")
+    conclusion_parts.append("Canadian businesses must act decisively to harness these breakthroughs")
+    conclusion_parts.append("to remain competitive in the global AI-driven economy")
     
-    if 'enterprise AI' in key_themes or 'partnerships' in key_themes:
-        conclusion_parts.append("before competitors gain insurmountable advantages in the rapidly evolving AI landscape")
-    elif 'regulation' in key_themes:
-        conclusion_parts.append("while navigating the evolving regulatory landscape to maintain competitive positioning")
-    else:
-        conclusion_parts.append("to remain competitive in the global AI-driven economy")
-    
-    conclusion = ' '.join(conclusion_parts).replace(' ,', ',')
+    conclusion = ' '.join(conclusion_parts)
     
     if not conclusion.endswith('.'):
         conclusion += '.'
     
-    conclusion = conclusion[0].upper() + conclusion[1:] if conclusion else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
-    
-    return conclusion
-
-def create_html_blog_post(content, title, excerpt):
-    """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
-    current_date = datetime.now()
-    formatted_date = current_date.strftime("%B %d, %Y")
-    month_year = current_date.strftime("%B %Y")
-    
-    sections = parse_structured_content(content)
-    
-    content_html = []
-    
-    if sections['introduction']:
-        intro_clean = re.sub(r'[-•*]\s*[-•*]\s*', '', sections['introduction'])
-        intro_clean = re.sub(r'^\s*[-•*]\s*', '', intro_clean)
-        content_html.append(f'''
-                <div class="section">
-                    <p>{intro_clean}</p>
-                </div>''')
-    
-    if sections['developments']:
-        dev_items = []
-        for item in sections['developments']:
-            clean_item = item.strip()
-            clean_item = re.sub(r'^[-•*]\s*[-•*]\s*', '', clean_item)
-            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
-            
-            if ':' in clean_item:
-                parts = clean_item.split(':', 1)
-                dev_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
-            else:
-                words = clean_item.split()
-                if len(words) > 0:
-                    company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']
-                    for company in company_names:
-                        if company in clean_item:
-                            clean_item = clean_item.replace(company, f'<strong>{company}</strong>')
-                            break
-                    dev_items.append(f'<li>{clean_item}</li>')
-        
-        if dev_items:
-            content_html.append(f'''
-                <div class="section">
-                    <h2 class="section-title">Key AI Developments This Month</h2>
-                    <ul class="bullet-list">
-                        {chr(10).join(['                        ' + item for item in dev_items])}
-                    </ul>
-                </div>''')
-    
-    if sections['canadian_impact']:
-        impact_text = sections['canadian_impact']
-        impact_text = re.sub(r'[-•*]\s*[-•*]\s*', '', impact_text)
-        impact_text = re.sub(r'^\s*[-•*]\s*', '', impact_text)
-        
-        if any(marker in impact_text for marker in ['-', '•', 'First', 'Second', 'Additionally', 'Furthermore', 'Moreover']):
-            sentences = [s.strip() + '.' for s in impact_text.split('.') if s.strip()]
-            impact_items = []
-            
-            current_point = []
-            for sentence in sentences:
-                current_point.append(sentence)
-                if len(' '.join(current_point)) > 100:
-                    point_text = ' '.join(current_point).strip()
-                    if point_text:
-                        point_text = re.sub(r'^[-•*]\s*', '', point_text)
-                        impact_items.append(f'<li>{point_text}</li>')
-                    current_point = []
-            
-            if current_point:
-                point_text = ' '.join(current_point).strip()
-                if point_text:
-                    point_text = re.sub(r'^[-•*]\s*', '', point_text)
-                    impact_items.append(f'<li>{point_text}</li>')
-            
-            if len(impact_items) >= 2:
-                content_html.append(f'''
-                <div class="section">
-                    <h2 class="section-title">Impact on Canadian Businesses</h2>
-                    <ul class="bullet-list">
-                        {chr(10).join(['                        ' + item for item in impact_items])}
-                    </ul>
-                </div>''')
-            else:
-                content_html.append(f'''
-                <div class="section">
-                    <h2 class="section-title">Impact on Canadian Businesses</h2>
-                    <p>{impact_text}</p>
-                </div>''')
-        else:
-            content_html.append(f'''
-                <div class="section">
-                    <h2 class="section-title">Impact on Canadian Businesses</h2>
-                    <p>{impact_text}</p>
-                </div>''')
-    
-    if sections['recommendations']:
-        rec_items = []
-        for i, item in enumerate(sections['recommendations']):
-            clean_item = item.strip()
-            clean_item = re.sub(r'^[-•*]\s*[-•*]\s*', '', clean_item)
-            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
-            
-            if ':' in clean_item:
-                parts = clean_item.split(':', 1)
-                rec_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
-            else:
-                if not clean_item.startswith(('1.', '2.', '3.', '4.', '5.')):
-                    rec_items.append(f'<li><strong>Strategic Action {i+1}:</strong> {clean_item}</li>')
-                else:
-                    clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
-                    rec_items.append(f'<li>{clean_item}</li>')
-        
-        if rec_items:
-            content_html.append(f'''
-                <div class="section">
-                    <h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2>
-                    <ul class="bullet-list numbered">
-                        {chr(10).join(['                        ' + item for item in rec_items])}
-                    </ul>
-                </div>''')
-    
-    if len(content_html) < 3:
-        print("WARNING: Insufficient structured parsing, using paragraph fallback")
-        clean_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content)
-        clean_content = re.sub(r'\*(.*?)\*', r'<em>\1</em>', content)
-        clean_content = re.sub(r'[-•*]\s*[-•*]\s*', '• ', clean_content)
-        clean_content = re.sub(r'^\s*[-•*]\s*[-•*]\s*', '• ', clean_content, flags=re.MULTILINE)
-        
-        paragraphs = [p.strip() for p in clean_content.split('\n\n') if p.strip() and len(p.strip()) > 50]
-        content_html = []
-        for para in paragraphs[:6]:
-            content_html.append(f'''
-                <div class="section">
-                    <p>{para}</p>
-                </div>''')
-    
-    if sections['conclusion']:
-        conclusion_text = sections['conclusion']
-    else:
-        conclusion_text = generate_dynamic_conclusion(sections)
-    
-    conclusion_text = re.sub(r'[-•*]\s*[-•*]\s*', '', conclusion_text)
-    conclusion_text = re.sub(r'^\s*[-•*]\s*', '', conclusion_text)
-    
-    all_content = '\n'.join(content_html)
-    
-    print(f"DEBUG: Generated {len(content_html)} content sections, total length: {len(all_content)}")
-    
-    # Complete HTML template
-    html_template = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title} | Robert Simon - AI Insights</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <style>
-        :root {{
-            --primary-blue: #2563eb;
-            --secondary-blue: #3b82f6;
-            --accent-cyan: #06b6d4;
-            --ai-purple: #8b5cf6;
-            --dark-navy: #1e293b;
-            --medium-gray: #64748b;
-            --light-gray: #f1f5f9;
-            --white: #ffffff;
-            --gradient-primary: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
-            --gradient-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-            --gradient-ai: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%);
-            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-        }}
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
-        body {{
-            font-family: var(--font-primary);
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            color: var(--dark-navy);
-            line-height: 1.6;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }}
-        .parallax-bg {{
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 120%;
-            height: 120%;
-            pointer-events: none;
-            z-index: -1;
-            background: 
-                radial-gradient(circle at 30% 70%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
-                radial-gradient(circle at 70% 30%, rgba(6, 182, 212, 0.03) 0%, transparent 50%);
-            animation: slowFloat 20s ease-in-out infinite;
-        }}
-        @keyframes slowFloat {{
-            0%, 100% {{ transform: translate(0px, 0px) rotate(0deg); }}
-            25% {{ transform: translate(-5px, -10px) rotate(0.5deg); }}
-            50% {{ transform: translate(5px, -5px) rotate(-0.3deg); }}
-            75% {{ transform: translate(-3px, 8px) rotate(0.2deg); }}
-        }}
-        .nav-bar {{
-            background: var(--white);
-            padding: 1rem 0;
-            box-shadow: var(--shadow-sm);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            backdrop-filter: blur(10px);
-        }}
-        .nav-content {{
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }}
-        .nav-link {{
-            color: var(--primary-blue);
-            text-decoration: none;
-            font-weight: 600;
-            padding: 0.75rem 2rem;
-            border-radius: 25px;
-            background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan));
-            color: white;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }}
-        .nav-link:hover {{
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }}
-        .blog-meta {{
-            font-family: var(--font-mono);
-            font-size: 0.85rem;
-            color: var(--medium-gray);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }}
-        .header {{
-            background: var(--gradient-ai);
-            color: white;
-            padding: 4rem 0 3rem;
-            position: relative;
-            overflow: hidden;
-        }}
-        .header-content {{
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            text-align: center;
-            position: relative;
-            z-index: 1;
-        }}
-        .header h1 {{
-            font-size: 2.8rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(45deg, #ffffff, #e0f2fe);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }}
-        .header .subtitle {{
-            font-size: 1.2rem;
-            font-weight: 500;
-            opacity: 0.9;
-            margin-bottom: 1.5rem;
-        }}
-        .header .intro {{
-            font-size: 1.05rem;
-            opacity: 0.85;
-            max-width: 800px;
-            margin: 0 auto;
-            font-weight: 300;
-            line-height: 1.7;
-        }}
-        .container {{
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 3rem 2rem 4rem;
-        }}
-        .article-container {{
-            background: var(--gradient-card);
-            border-radius: 20px;
-            box-shadow: var(--shadow-xl);
-            overflow: hidden;
-            border: 1px solid rgba(37, 99, 235, 0.1);
-            position: relative;
-        }}
-        .article-content {{
-            padding: 3rem;
-            background: white;
-        }}
-        .section {{
-            margin-bottom: 3rem;
-        }}
-        .section-title {{
-            font-size: 2rem;
-            color: var(--dark-navy);
-            margin-bottom: 1.5rem;
-            margin-top: 2rem;
-            font-weight: 700;
-            position: relative;
-            padding-left: 1.5rem;
-            line-height: 1.2;
-            border-bottom: 3px solid var(--primary-blue);
-            padding-bottom: 0.5rem;
-            display: block;
-        }}
-        .section-title::before {{
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0.5rem;
-            width: 4px;
-            background: var(--gradient-primary);
-            border-radius: 2px;
-        }}
-        .bullet-list {{
-            margin-bottom: 2rem;
-            padding-left: 0;
-            list-style: none;
-        }}
-        .bullet-list li {{
-            margin-bottom: 1.5rem;
-            line-height: 1.8;
-            color: var(--medium-gray);
-            position: relative;
-            padding-left: 2.5rem;
-            font-size: 1.05rem;
-        }}
-        .bullet-list li::before {{
-            content: '●';
-            position: absolute;
-            left: 0;
-            color: var(--primary-blue);
-            font-weight: bold;
-            font-size: 1.2rem;
-            top: 0.1rem;
-        }}
-        .bullet-list.numbered li {{
-            counter-increment: list-counter;
-        }}
-        .bullet-list.numbered li::before {{
-            content: counter(list-counter) '.';
-            background: var(--gradient-primary);
-            color: white;
-            width: 1.8rem;
-            height: 1.8rem;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.85rem;
-            top: 0.1rem;
-        }}
-        .bullet-list.numbered {{
-            counter-reset: list-counter;
-        }}
-        p {{
-            margin-bottom: 1.2rem;
-            text-align: justify;
-            word-spacing: normal;
-            line-height: 1.7;
-            color: var(--medium-gray);
-            font-size: 1rem;
-        }}
-        strong {{
-            color: var(--dark-navy);
-            font-weight: 600;
-        }}
-        .conclusion {{
-            background: var(--gradient-ai);
-            color: white;
-            padding: 2.5rem;
-            border-radius: 15px;
-            margin-top: 3rem;
-            position: relative;
-            overflow: hidden;
-        }}
-        .conclusion p {{
-            color: rgba(255, 255, 255, 0.95);
-            font-size: 1.1rem;
-            font-weight: 500;
-            position: relative;
-            z-index: 1;
-            margin-bottom: 0;
-            text-align: left;
-        }}
-        .conclusion strong {{
-            color: white;
-        }}
-        @media (max-width: 768px) {{
-            .header h1 {{
-                font-size: 2.2rem;
-            }}
-            .header .subtitle {{
-                font-size: 1.1rem;
-            }}
-            .container {{
-                padding: 2rem 1rem 3rem;
-            }}
-            .article-content {{
-                padding: 2rem 1.5rem;
-            }}
-            .section-title {{
-                font-size: 1.5rem;
-            }}
-            .nav-content {{
-                padding: 0 1rem;
-                flex-direction: column;
-                gap: 1rem;
-                text-align: center;
-            }}
-        }}
-        .fade-in {{
-            opacity: 0;
-            transform: translateY(30px);
-            animation: fadeInUp 0.8s ease forwards;
-        }}
-        @keyframes fadeInUp {{
-            to {{
-                opacity: 1;
-                transform: translateY(0);
-            }}
-        }}
-    </style>
-</head>
-<body>
-    <div class="parallax-bg"></div>
-
-    <nav class="nav-bar">
-        <div class="nav-content">
-            <a href="/" class="nav-link">
-                ← Back to Portfolio
-            </a>
-            <div class="blog-meta">
-                <span>AI Insights for Canadian Business</span>
-                <span>•</span>
-                <span>{formatted_date}</span>
-            </div>
-        </div>
-    </nav>
-
-    <header class="header">
-        <div class="header-content">
-            <h1>AI Insights for {month_year}</h1>
-            <div class="subtitle">Key AI Developments & Canadian Business Impact</div>
-            <div class="intro">
-                {excerpt}
-            </div>
-        </div>
-    </header>
-
-    <div class="container">
-        <article class="article-container fade-in">
-            <div class="article-content">
-                {all_content}
-
-                <div class="conclusion">
-                    <p><strong>Strategic Imperative for Canadian Businesses:</strong> {conclusion_text}</p>
-                </div>
-            </div>
-        </article>
-    </div>
-</body>
-</html>'''
-    
-    return html_template
+    return conclusion[0].upper() + conclusion[1:] if conclusion else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
 
 def extract_title_and_excerpt(content):
     """Enhanced title and excerpt extraction with ROBUST cleaning"""
@@ -1143,7 +530,6 @@ def extract_title_and_excerpt(content):
     month_year = current_date.strftime("%B %Y")
     
     clean_content = clean_perplexity_content(content)
-    
     lines = [line.strip() for line in clean_content.split("\n") if line.strip()]
     
     potential_title = None
@@ -1152,7 +538,7 @@ def extract_title_and_excerpt(content):
             line_lower = line.lower()
             if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
                 clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+, '', clean_title)
+                clean_title = re.sub(r'\s*[•\-–—:]+$', '', clean_title)
                 clean_title = re.sub(r'[•\-–—]', '', clean_title)
                 clean_title = clean_title.strip()
                 
@@ -1166,13 +552,12 @@ def extract_title_and_excerpt(content):
         title = f"AI Insights for {month_year}"
     
     excerpt = ""
-    
     for line in lines:
         if line and len(line) > 100 and not line.startswith(('#', '1.', '2.', '3.', '4.', '5.', '•', '-', '*')):
             header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
             if not any(header in line.lower() for header in header_keywords):
                 clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_excerpt = re.sub(r'\s*[•\-–—:]+, '', clean_excerpt)
+                clean_excerpt = re.sub(r'\s*[•\-–—:]+$', '', clean_excerpt)
                 clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
                 clean_excerpt = clean_excerpt.strip()
                 
@@ -1185,35 +570,169 @@ def extract_title_and_excerpt(content):
     
     return title, excerpt
 
+def create_html_blog_post(content, title, excerpt):
+    """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
+    current_date = datetime.now()
+    formatted_date = current_date.strftime("%B %d, %Y")
+    month_year = current_date.strftime("%B %Y")
+    
+    sections = parse_structured_content(content)
+    content_html = []
+    
+    if sections['introduction']:
+        intro_clean = re.sub(r'[-•*]\s*[-•*]\s*', '', sections['introduction'])
+        intro_clean = re.sub(r'^\s*[-•*]\s*', '', intro_clean)
+        content_html.append(f'<div class="section"><p>{intro_clean}</p></div>')
+    
+    if sections['developments']:
+        dev_items = []
+        for item in sections['developments']:
+            clean_item = item.strip()
+            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
+            
+            if ':' in clean_item:
+                parts = clean_item.split(':', 1)
+                dev_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
+            else:
+                company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta']
+                for company in company_names:
+                    if company in clean_item:
+                        clean_item = clean_item.replace(company, f'<strong>{company}</strong>')
+                        break
+                dev_items.append(f'<li>{clean_item}</li>')
+        
+        if dev_items:
+            dev_list = '\n'.join(['                        ' + item for item in dev_items])
+            content_html.append(f'<div class="section"><h2 class="section-title">Key AI Developments This Month</h2><ul class="bullet-list">\n{dev_list}\n                    </ul></div>')
+    
+    if sections['canadian_impact']:
+        impact_text = sections['canadian_impact']
+        impact_text = re.sub(r'[-•*]\s*[-•*]\s*', '', impact_text)
+        impact_text = re.sub(r'^\s*[-•*]\s*', '', impact_text)
+        content_html.append(f'<div class="section"><h2 class="section-title">Impact on Canadian Businesses</h2><p>{impact_text}</p></div>')
+    
+    if sections['recommendations']:
+        rec_items = []
+        for i, item in enumerate(sections['recommendations']):
+            clean_item = item.strip()
+            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
+            clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
+            
+            if ':' in clean_item:
+                parts = clean_item.split(':', 1)
+                rec_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
+            else:
+                rec_items.append(f'<li><strong>Strategic Action {i+1}:</strong> {clean_item}</li>')
+        
+        if rec_items:
+            rec_list = '\n'.join(['                        ' + item for item in rec_items])
+            content_html.append(f'<div class="section"><h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2><ul class="bullet-list numbered">\n{rec_list}\n                    </ul></div>')
+    
+    if sections['conclusion']:
+        conclusion_text = sections['conclusion']
+    else:
+        conclusion_text = generate_dynamic_conclusion(sections)
+    
+    conclusion_text = re.sub(r'[-•*]\s*[-•*]\s*', '', conclusion_text)
+    conclusion_text = re.sub(r'^\s*[-•*]\s*', '', conclusion_text)
+    
+    all_content = '\n'.join(content_html)
+    
+    html_template = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title} | Robert Simon - AI Insights</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {{
+            --primary-blue: #2563eb;
+            --accent-cyan: #06b6d4;
+            --dark-navy: #1e293b;
+            --medium-gray: #64748b;
+            --white: #ffffff;
+        }}
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); color: var(--dark-navy); line-height: 1.6; }}
+        .nav-bar {{ background: var(--white); padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
+        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; }}
+        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.75rem 2rem; border-radius: 25px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); }}
+        .blog-meta {{ font-size: 0.85rem; color: var(--medium-gray); }}
+        .header {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 4rem 0 3rem; text-align: center; }}
+        .header-content {{ max-width: 1000px; margin: 0 auto; padding: 0 2rem; }}
+        .header h1 {{ font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; }}
+        .header .subtitle {{ font-size: 1.2rem; font-weight: 500; opacity: 0.9; margin-bottom: 1.5rem; }}
+        .header .intro {{ font-size: 1.05rem; opacity: 0.85; max-width: 800px; margin: 0 auto; }}
+        .container {{ max-width: 1000px; margin: 0 auto; padding: 3rem 2rem 4rem; }}
+        .article-container {{ background: white; border-radius: 20px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); overflow: hidden; }}
+        .article-content {{ padding: 3rem; }}
+        .section {{ margin-bottom: 3rem; }}
+        .section-title {{ font-size: 2rem; color: var(--dark-navy); margin-bottom: 1.5rem; margin-top: 2rem; font-weight: 700; padding-left: 1.5rem; position: relative; }}
+        .section-title::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--primary-blue); border-radius: 2px; }}
+        .bullet-list {{ margin-bottom: 2rem; padding-left: 0; list-style: none; }}
+        .bullet-list li {{ margin-bottom: 1.5rem; line-height: 1.8; color: var(--medium-gray); position: relative; padding-left: 2.5rem; }}
+        .bullet-list li::before {{ content: '●'; position: absolute; left: 0; color: var(--primary-blue); font-weight: bold; top: 0.1rem; }}
+        .bullet-list.numbered {{ counter-reset: list-counter; }}
+        .bullet-list.numbered li {{ counter-increment: list-counter; }}
+        .bullet-list.numbered li::before {{ content: counter(list-counter) '.'; background: var(--primary-blue); color: white; width: 1.8rem; height: 1.8rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }}
+        p {{ margin-bottom: 1.2rem; line-height: 1.7; color: var(--medium-gray); }}
+        strong {{ color: var(--dark-navy); font-weight: 600; }}
+        .conclusion {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 2.5rem; border-radius: 15px; margin-top: 3rem; }}
+        .conclusion p {{ color: rgba(255, 255, 255, 0.95); font-size: 1.1rem; font-weight: 500; margin-bottom: 0; }}
+        .conclusion strong {{ color: white; }}
+        @media (max-width: 768px) {{ .header h1 {{ font-size: 2.2rem; }} .container {{ padding: 2rem 1rem 3rem; }} .article-content {{ padding: 2rem 1.5rem; }} }}
+    </style>
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-content">
+            <a href="/" class="nav-link">← Back to Portfolio</a>
+            <div class="blog-meta">
+                <span>AI Insights for Canadian Business</span>
+                <span>•</span>
+                <span>{formatted_date}</span>
+            </div>
+        </div>
+    </nav>
+
+    <header class="header">
+        <div class="header-content">
+            <h1>AI Insights for {month_year}</h1>
+            <div class="subtitle">Key AI Developments & Canadian Business Impact</div>
+            <div class="intro">{excerpt}</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <article class="article-container">
+            <div class="article-content">
+                {all_content}
+                <div class="conclusion">
+                    <p><strong>Strategic Imperative for Canadian Businesses:</strong> {conclusion_text}</p>
+                </div>
+            </div>
+        </article>
+    </div>
+</body>
+</html>'''
+    
+    return html_template
+
 def extract_post_info(html_file):
     """Extract title, date, and excerpt from an HTML blog post"""
     with open(html_file, "r", encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
 
-    title_tag = None
-    header_content = soup.find("div", class_="header-content")
-    if header_content:
-        title_tag = header_content.find("h1")
-    else:
-        title_tag = soup.find("h1")
-    
+    title_tag = soup.find("h1")
     title = title_tag.get_text(strip=True) if title_tag else "AI Insights"
 
     date_text = None
-    
     blog_meta = soup.find("div", class_="blog-meta")
     if blog_meta:
         meta_text = blog_meta.get_text()
         if "•" in meta_text:
             date_text = meta_text.split("•")[-1].strip()
-    
-    if not date_text:
-        subtitle = soup.find("div", class_="subtitle")
-        if subtitle:
-            subtitle_text = subtitle.get_text()
-            date_match = re.search(r'([A-Za-z]+ \d{1,2}, \d{4})', subtitle_text)
-            if date_match:
-                date_text = date_match.group(1)
     
     if not date_text:
         basename = os.path.basename(html_file)
@@ -1225,7 +744,6 @@ def extract_post_info(html_file):
             date_text = datetime.now().strftime("%B %d, %Y")
 
     excerpt = None
-    
     intro_div = soup.find("div", class_="intro")
     if intro_div:
         excerpt = re.sub(r'\s+', ' ', intro_div.get_text()).strip()
@@ -1285,14 +803,12 @@ def create_blog_index_html(posts):
     
     older_posts_section = ""
     if older_posts:
-        older_posts_section = f"""<section class="older-posts-section fade-in">
+        older_posts_section = f"""<section class="older-posts-section">
             <h3 class="older-posts-title">Previous Insights</h3>
             <div class="older-posts-grid">
                 {older_posts_html}
             </div>
         </section>"""
-    else:
-        print("INFO: No older posts to display - section will be hidden")
 
     blog_index_html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -1300,59 +816,23 @@ def create_blog_index_html(posts):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Insights Blog - Robert Simon | Digital Innovation & AI Strategy</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-        :root {{
-            --primary-blue: #2563eb;
-            --secondary-blue: #3b82f6;
-            --accent-cyan: #06b6d4;
-            --ai-purple: #8b5cf6;
-            --dark-navy: #1e293b;
-            --medium-gray: #64748b;
-            --light-gray: #f1f5f9;
-            --white: #ffffff;
-            --gradient-primary: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
-            --gradient-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-            --gradient-ai: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%);
-            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-        }}
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: var(--font-primary); background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); color: var(--dark-navy); line-height: 1.6; min-height: 100vh; overflow-x: hidden; }}
-        .nav-bar {{ background: var(--white); padding: 1rem 0; box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }}
-        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: center; align-items: center; }}
-        .nav-link {{ color: var(--primary-blue); text-decoration: none; font-weight: 600; padding: 0.75rem 2rem; border-radius: 25px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); color: white; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.5rem; }}
-        .nav-link:hover {{ transform: translateY(-3px); box-shadow: var(--shadow-lg); }}
+        body {{ font-family: Inter, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); margin: 0; padding: 0; }}
         .container {{ max-width: 1200px; margin: 0 auto; padding: 2rem; }}
-        header {{ background: var(--gradient-ai); color: white; padding: 4rem 0; text-align: center; margin-bottom: 3rem; position: relative; overflow: hidden; border-radius: 20px; }}
-        h1 {{ font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; position: relative; z-index: 1; }}
-        .subtitle {{ font-size: 1.4rem; font-weight: 500; opacity: 0.95; position: relative; z-index: 1; margin-bottom: 1rem; }}
-        .header-description {{ font-size: 1.1rem; opacity: 0.9; position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }}
-        .latest-post-section {{ background: var(--gradient-ai); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; position: relative; overflow: hidden; }}
-        .latest-post-content {{ position: relative; z-index: 1; }}
-        .latest-badge {{ background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600; display: inline-block; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px; }}
-        .latest-post-title {{ font-size: 2rem; font-weight: 700; margin-bottom: 1rem; color: white; }}
-        .latest-post-date {{ font-size: 1rem; opacity: 0.9; margin-bottom: 1rem; font-family: var(--font-mono); }}
-        .latest-post-excerpt {{ font-size: 1.1rem; line-height: 1.7; opacity: 0.95; margin-bottom: 2rem; }}
-        .read-latest-btn {{ background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease; backdrop-filter: blur(10px); }}
-        .read-latest-btn:hover {{ background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); box-shadow: var(--shadow-lg); }}
-        .older-posts-section {{ background: white; border-radius: 20px; padding: 2.5rem; box-shadow: var(--shadow-xl); border: 1px solid rgba(37, 99, 235, 0.1); }}
-        .older-posts-title {{ font-size: 1.8rem; color: var(--dark-navy); margin-bottom: 2rem; font-weight: 600; text-align: center; }}
-        .older-posts-grid {{ display: grid; gap: 1.5rem; }}
-        .older-post-item {{ border: 1px solid var(--light-gray); border-radius: 12px; transition: all 0.3s ease; }}
-        .older-post-item:hover {{ transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--primary-blue); }}
+        header {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 3rem; border-radius: 20px; }}
+        h1 {{ font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; }}
+        .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
+        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: center; }}
+        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.75rem 2rem; border-radius: 25px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
+        .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }}
+        .latest-badge {{ background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }}
+        .latest-post-title {{ font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }}
+        .read-latest-btn {{ background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; }}
+        .older-posts-section {{ background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }}
+        .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; transition: all 0.3s ease; }}
         .older-post-link {{ display: block; padding: 1.5rem; text-decoration: none; color: inherit; }}
-        .older-post-title {{ font-size: 1.3rem; font-weight: 600; color: var(--primary-blue); margin-bottom: 0.5rem; line-height: 1.4; text-decoration: underline; text-decoration-color: var(--primary-blue); text-underline-offset: 3px; text-decoration-thickness: 1px; }}
-        .older-post-link:hover {{ background-color: rgba(37, 99, 235, 0.02); }}
-        .older-post-link:hover .older-post-title {{ text-decoration-thickness: 2px; color: var(--secondary-blue); }}
-        .older-post-date {{ font-size: 0.9rem; color: var(--medium-gray); font-family: var(--font-mono); }}
-        @media (max-width: 768px) {{ .container {{ padding: 1rem; }} h1 {{ font-size: 2.5rem; }} .latest-post-section {{ padding: 2rem; }} .latest-post-title {{ font-size: 1.5rem; }} .nav-content {{ padding: 0 1rem; }} .older-posts-section {{ padding: 2rem 1.5rem; }} }}
-        .fade-in {{ opacity: 0; transform: translateY(30px); animation: fadeInUp 0.8s ease forwards; }}
-        @keyframes fadeInUp {{ to {{ opacity: 1; transform: translateY(0); }} }}
+        .older-post-title {{ font-size: 1.3rem; font-weight: 600; color: #2563eb; margin-bottom: 0.5rem; }}
+        .older-post-date {{ font-size: 0.9rem; color: #64748b; }}
     </style>
 </head>
 <body>
@@ -1365,18 +845,15 @@ def create_blog_index_html(posts):
     <div class="container">
         <header>
             <h1>AI Insights Blog</h1>
-            <p class="subtitle">Strategic Intelligence for Digital Leaders</p>
-            <p class="header-description">Monthly deep-dives into AI innovations, practical business applications, and strategic implementation guidance from 25+ years of digital transformation experience.</p>
+            <p>Strategic Intelligence for Digital Leaders</p>
         </header>
 
-        <section class="latest-post-section fade-in">
-            <div class="latest-post-content">
-                <div class="latest-badge">Latest</div>
-                <h2 class="latest-post-title">{latest_post['title']}</h2>
-                <div class="latest-post-date">{latest_post['date']}</div>
-                <p class="latest-post-excerpt">{latest_post['excerpt']}</p>
-                <a href="/blog/posts/{latest_post['filename']}" class="read-latest-btn">Read Full Analysis →</a>
-            </div>
+        <section class="latest-post-section">
+            <div class="latest-badge">Latest</div>
+            <h2 class="latest-post-title">{latest_post['title']}</h2>
+            <div>{latest_post['date']}</div>
+            <p>{latest_post['excerpt']}</p>
+            <a href="/blog/posts/{latest_post['filename']}" class="read-latest-btn">Read Full Analysis →</a>
         </section>
 
         {older_posts_section}
@@ -1391,8 +868,6 @@ def update_blog_index():
     posts_dir = "blog/posts"
     index_file = "blog/index.html"
     
-    print(f"DEBUG: Checking posts directory: {posts_dir}")
-    
     if not os.path.exists(posts_dir):
         print(f"ERROR: Posts directory {posts_dir} does not exist")
         return []
@@ -1400,60 +875,39 @@ def update_blog_index():
     posts = []
     html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html"]
     
-    print(f"DEBUG: Found potential HTML files: {html_files}")
-    
     valid_files = []
     for file in html_files:
         file_path = os.path.join(posts_dir, file)
         try:
             if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                 valid_files.append(file)
-                print(f"✅ File validated: {file}")
-            else:
-                print(f"⚠️  Skipping invalid file: {file}")
         except Exception as e:
             print(f"❌ Error validating {file}: {e}")
     
-    if not valid_files:
-        print("WARNING: No valid HTML files found after validation")
-        return []
-
-    print(f"Processing {len(valid_files)} validated HTML files")
-
     for file in sorted(valid_files, reverse=True):
         file_path = os.path.join(posts_dir, file)
         try:
             post_info = extract_post_info(file_path)
             if post_info.get('title') and post_info.get('filename'):
                 posts.append(post_info)
-                print(f"✅ Processed: {file} -> {post_info['title']}")
-            else:
-                print(f"⚠️  Skipping incomplete post info: {file}")
         except Exception as e:
-            print(f"❌ Error processing {file}: {e}")
             continue
-
-    if not posts:
-        print("ERROR: No valid posts could be processed after all validation")
-        return []
 
     new_blog_index = create_blog_index_html(posts)
     if not new_blog_index:
-        print("ERROR: Failed to create blog index HTML")
         return posts
     
     try:
         with open(index_file, "w", encoding="utf-8") as f:
             f.write(new_blog_index)
-        print(f"✅ Blog index recreated with {len(posts)} VALIDATED posts")
-        print("🔒 All links guaranteed to point to existing files")
+        print(f"✅ Blog index recreated with {len(posts)} posts")
     except Exception as e:
         print(f"❌ Error writing blog index: {e}")
     
     return posts
 
 def main():
-    parser = argparse.ArgumentParser(description="COMPLETE Blog Generator - Proper Start")
+    parser = argparse.ArgumentParser(description="COMPLETE Blog Generator")
     parser.add_argument("--topic", help="Custom topic for the blog post")
     parser.add_argument("--output", default="posts", choices=["staging", "posts"],
                         help="Output directory (staging for review, posts for direct publish)")
