@@ -120,7 +120,11 @@ Create a monthly AI insights post for {month_year} following this EXACT structur
 
 1. INTRODUCTION: Brief overview of the month's key AI developments (1 paragraph)
 
-2. KEY AI DEVELOPMENTS: List 4-5 major AI technology launches, updates, or breakthroughs from the past month with specific company names, product names, and dates
+2. KEY AI DEVELOPMENTS: List 10 major AI technology launches, updates, or breakthroughs from the past month with SPECIFIC DATES and company details:
+   - Each item MUST include the exact date (e.g., "September 25, 2025")
+   - Include company names, product names, version numbers
+   - Focus on major announcements, product launches, partnerships, funding rounds
+   - Cover diverse areas: LLMs, enterprise AI, developer tools, research breakthroughs, hardware, regulations
 
 3. CANADIAN BUSINESS IMPACT: Analyze how these developments specifically affect Canadian businesses, considering:
    - Canadian market conditions
@@ -139,7 +143,25 @@ Write in a professional, authoritative tone. Be specific about companies, techno
 
 Structure:
 - Introduction: Overview of this month's key AI developments 
-- Key AI Developments: 4-5 specific technology launches/updates from major companies (OpenAI, Google, Microsoft, Anthropic, etc.) with dates and details
+CRITICAL REQUIREMENTS:
+- Key AI Developments: EXACTLY 10 items, each with specific dates (e.g., "September 25, 2025")
+- Include diverse AI developments: major model releases, enterprise partnerships, funding announcements, research papers, regulatory updates, hardware launches
+- Each development MUST have: Company name, specific date, clear description
+- Focus on developments from the past 30 days
+
+Structure:
+- Introduction: Overview of this month's key AI developments 
+- Key AI Developments: 10 specific items with exact dates and company details
+- Canadian Business Impact: How these affect Canadian businesses specifically
+- Strategic Recommendations: 5 actionable steps for Canadian business leaders
+- Conclusion: Strategic imperative for Canadian businesses
+
+Examples of the format I want:
+"September 25, 2025: Microsoft announced Claude integration into Office 365..."
+"September 18, 2025: OpenAI released GPT-4.5 with improved reasoning..."
+"September 12, 2025: Google DeepMind published breakthrough research on..."
+
+Make sure every single development has a specific date in {month_year}.
 - Canadian Business Impact: How these affect Canadian businesses specifically
 - Strategic Recommendations: 5 actionable steps for Canadian business leaders
 - Conclusion: Strategic imperative for Canadian businesses
