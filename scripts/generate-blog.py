@@ -1,4 +1,4 @@
-import argparse
+ki import argparse
 import os
 import requests
 import json
@@ -823,7 +823,7 @@ def create_blog_index_html(posts):
         h1 {{ font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; }}
         .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
         .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: center; }}
-        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.75rem 2rem; border-radius: 25px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
+        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); }}
         .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }}
         .latest-badge {{ background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }}
         .latest-post-title {{ font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }}
@@ -837,8 +837,10 @@ def create_blog_index_html(posts):
 </head>
 <body>
     <nav class="nav-bar">
-        <div class="nav-content">
-            <a href="/" class="nav-link">← Back to Robert Simon's Portfolio</a>
+    <div class="nav-content">
+        <a href="/blog/" class="nav-link">
+            ← Back to Blog Homepage
+        </a>
         </div>
     </nav>
     
