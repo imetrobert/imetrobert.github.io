@@ -444,15 +444,30 @@ def parse_development_items(text):
     return filtered_items[:15]
 
 def parse_recommendation_items(text):
-    """Parse recommendation items with better decimal handling"""
+    """Parse recommendation items with better decimal handling and header filtering - FIXED VERSION"""
     items = []
     
     lines = text.split('\n')
     current_item = []
     
+    # Section headers to skip
+    header_keywords = [
+        'strategic recommendation', 
+        'recommendations for', 
+        'strategic action',
+        'for canadian leaders',
+        'for canadian business',
+        'action steps'
+    ]
+    
     for line in lines:
         line = line.strip()
         if not line:
+            continue
+        
+        # Skip section headers
+        line_lower = line.lower()
+        if any(header in line_lower for header in header_keywords):
             continue
             
         list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
@@ -461,7 +476,10 @@ def parse_recommendation_items(text):
             if current_item:
                 item_text = ' '.join(current_item).strip()
                 if len(item_text) > 30:
-                    items.append(item_text)
+                    # Additional check: make sure it's not just a title repeat
+                    item_lower = item_text.lower()
+                    if not any(header in item_lower for header in header_keywords):
+                        items.append(item_text)
             
             current_item = [re.sub(r'^\d+\.\s*', '', line)]
         else:
@@ -473,7 +491,10 @@ def parse_recommendation_items(text):
     if current_item:
         item_text = ' '.join(current_item).strip()
         if len(item_text) > 30:
-            items.append(item_text)
+            # Additional check: make sure it's not just a title repeat
+            item_lower = item_text.lower()
+            if not any(header in item_lower for header in header_keywords):
+                items.append(item_text)
     
     return items[:5]
 
@@ -745,7 +766,7 @@ def extract_post_info(html_file):
     
     if not date_text:
         basename = os.path.basename(html_file)
-        match = re.match(r"(\d{4}-\d{2}-\d{2})-", basename)
+        match = re.match(r"(\d{{4}}-\d{{2}}-\d{{2}})-", basename)
         if match:
             date_obj = datetime.strptime(match.group(1), "%Y-%m-%d")
             date_text = date_obj.strftime("%B %d, %Y")
@@ -770,12 +791,12 @@ def extract_post_info(html_file):
     if len(excerpt) > 200:
         excerpt = excerpt[:200] + "..."
 
-    return {
+    return {{
         "title": title,
         "date": date_text,
         "excerpt": excerpt,
         "filename": os.path.basename(html_file)
-    }
+    }}
 
 def create_blog_index_html(posts):
     """Create blog index page"""
@@ -800,9 +821,9 @@ def create_blog_index_html(posts):
     for post in older_posts:
         older_posts_html += f'''
                 <div class="older-post-item">
-                    <a href="/blog/posts/{post['filename']}" class="older-post-link">
-                        <div class="older-post-title">{post['title']}</div>
-                        <div class="older-post-date">{post['date']}</div>
+                    <a href="/blog/posts/{{post['filename']}}" class="older-post-link">
+                        <div class="older-post-title">{{post['title']}}</div>
+                        <div class="older-post-date">{{post['date']}}</div>
                     </a>
                 </div>'''
     
@@ -811,7 +832,7 @@ def create_blog_index_html(posts):
         older_posts_section = f'''<section class="older-posts-section">
             <h3 class="older-posts-title">Previous Insights</h3>
             <div class="older-posts-grid">
-                {older_posts_html}
+                {{older_posts_html}}
             </div>
         </section>'''
 
@@ -856,13 +877,13 @@ def create_blog_index_html(posts):
 
         <section class="latest-post-section">
             <div class="latest-badge">Latest</div>
-            <h2 class="latest-post-title">{latest_post['title']}</h2>
-            <div>{latest_post['date']}</div>
-            <p>{latest_post['excerpt']}</p>
-            <a href="/blog/posts/{latest_post['filename']}" class="read-latest-btn">Read Full Analysis →</a>
+            <h2 class="latest-post-title">{{latest_post['title']}}</h2>
+            <div>{{latest_post['date']}}</div>
+            <p>{{latest_post['excerpt']}}</p>
+            <a href="/blog/posts/{{latest_post['filename']}}" class="read-latest-btn">Read Full Analysis →</a>
         </section>
 
-        {older_posts_section}
+        {{older_posts_section}}
     </div>
 </body>
 </html>'''
@@ -897,9 +918,9 @@ def update_blog_index():
     try:
         with open(index_file, "w", encoding="utf-8") as f:
             f.write(new_blog_index)
-        print(f"✅ Blog index recreated with {len(posts)} posts")
+        print(f"✅ Blog index recreated with {{len(posts)}} posts")
     except Exception as e:
-        print(f"❌ Error writing blog index: {e}")
+        print(f"❌ Error writing blog index: {{e}}")
     
     return posts
 
@@ -922,7 +943,7 @@ def main():
         html_content = create_html_blog_post(result["content"], title, excerpt)
         
         current_date = datetime.now().strftime("%Y-%m-%d")
-        filename_html = f"{current_date}-{clean_filename(title)}.html"
+        filename_html = f"{{current_date}}-{{clean_filename(title)}}.html"
         
         output_dir = os.path.join("blog", args.output)
         os.makedirs(output_dir, exist_ok=True)
@@ -931,7 +952,7 @@ def main():
         
         with open(path_html, "w", encoding="utf-8") as f:
             f.write(html_content)
-        print(f"✅ Blog post saved: {path_html}")
+        print(f"✅ Blog post saved: {{path_html}}")
         
         latest_path = os.path.join("blog", "posts", "latest.html")
         os.makedirs(os.path.dirname(latest_path), exist_ok=True)
@@ -940,11 +961,11 @@ def main():
         print(f"✅ Latest post updated")
         
         posts = update_blog_index()
-        print(f"✅ Blog index updated with {len(posts)} posts")
+        print(f"✅ Blog index updated with {{len(posts)}} posts")
         print("🎉 SUCCESS!")
         
     except Exception as e:
-        print(f"💥 Failed: {e}")
+        print(f"💥 Failed: {{e}}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
