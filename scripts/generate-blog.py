@@ -86,82 +86,113 @@ Create a monthly AI insights post for {month_year} with EXACTLY these 6 sections
 
 SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
 
-SECTION 2 - HEADING "Key AI Developments This Month": List exactly 15 major AI developments from the past month with specific dates and company names
+SECTION 2 - HEADING "Key AI Developments This Month": List exactly 15 major AI developments from the past month with specific dates and company names. Write each as a separate paragraph or bullet point.
 
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write analysis of how these developments affect Canadian businesses
+SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how these developments affect Canadian businesses
 
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations
+SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each recommendation as a separate paragraph starting with an action verb like "Prioritize", "Invest", "Develop", "Establish", or "Implement".
 
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages showing:
-- Current adoption rates (e.g., "15.2% of Canadian businesses now use AI")
-- Month-over-month growth (e.g., "up from 12.8% last month")
-- Industry-specific adoption rates
-- Personal use statistics in Canada
-- Comparisons to previous months
+SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 separate data points with percentages. Write each metric as a separate sentence or paragraph. Examples:
+- "15.2% of Canadian businesses have adopted AI, up from 12.8% in August 2025"
+- "Personal AI usage in Canada reached 38.5% in September 2025"
+- "Financial services lead adoption at 24.3%, followed by technology at 22.1%"
+- "Manufacturing sector adoption grew 3.2 percentage points to 18.7%"
 
 SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
 
-YOU MUST INCLUDE ALL 6 SECTIONS. Section 5 (Canadian Business AI Adoption Metrics) is MANDATORY."""
+CRITICAL: You MUST include ALL 6 SECTIONS. Section 5 (Canadian Business AI Adoption Metrics) is MANDATORY and must contain 3-5 separate statistics with percentages."""
         
-        user_prompt = f"""Write an AI insights blog post for {month_year} with EXACTLY 6 sections:
+        user_prompt = f"""Write an AI insights blog post for {month_year} with EXACTLY 6 sections in this order:
 
-1. Introduction paragraph (NO HEADING)
-2. Key AI Developments This Month (15 items with dates)
-3. Impact on Canadian Businesses (analysis paragraph)
-4. Strategic Recommendations for Canadian Leaders (5 recommendations)
-5. Canadian Business AI Adoption Metrics (3-5 data points with percentages - THIS IS REQUIRED)
-6. Conclusion (1 paragraph)
+1. Introduction paragraph (NO HEADING) - 1 paragraph
+2. Key AI Developments This Month - 15 separate items with dates
+3. Impact on Canadian Businesses - 1-2 paragraphs
+4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations, each starting with action words
+5. Canadian Business AI Adoption Metrics - 3-5 separate statistics with percentages (THIS IS MANDATORY)
+6. Conclusion - 1 paragraph
 
-For Section 5 (Canadian Business AI Adoption Metrics), you MUST include statistics like:
-- "X% of Canadian businesses have adopted AI (up from Y% last month)"
-- "Personal AI usage in Canada reached Z%"
-- "Industry breakdown: Financial services X%, Manufacturing Y%, Healthcare Z%"
+CRITICAL REQUIREMENT FOR SECTION 5:
+Write 3-5 SEPARATE statistics about Canadian AI adoption. Each must include percentages. Format each as a separate sentence:
 
-DO NOT SKIP SECTION 5. Include specific Canadian adoption statistics with percentages."""
+"15.2% of Canadian businesses have adopted AI, up from 12.8% last month."
+"Personal AI usage in Canada reached 38.5%."
+"Financial services adoption is at 24.3%."
+"Manufacturing adoption grew to 18.7%."
+"Healthcare sector adoption reached 16.2%."
+
+DO NOT SKIP SECTION 5. It must have real statistics with percentage numbers."""
 
     elif topic_type == "custom_ai":
         system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
 
-Create an AI insights post about "{topic}" following this EXACT structure:
+Create an AI insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
 
-1. INTRODUCTION: Brief overview of the topic and its relevance to Canadian businesses
-2. KEY DEVELOPMENTS: List 4-5 major points, developments, or aspects related to "{topic}"
-3. CANADIAN BUSINESS IMPACT: Analyze how "{topic}" specifically affects Canadian businesses
-4. STRATEGIC RECOMMENDATIONS: Provide 5 specific, actionable recommendations
-5. CONCLUSION: Strategic imperative for Canadian businesses
+SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
 
-Write in a professional, authoritative tone."""
+SECTION 2 - HEADING "Key AI Developments": List 8-10 major points or developments related to "{topic}". Write each as a separate paragraph.
+
+SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how "{topic}" affects Canadian businesses
+
+SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each as a separate paragraph starting with action verbs.
+
+SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages about AI adoption in Canada related to "{topic}". Write each as a separate sentence with percentages.
+
+SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
+
+CRITICAL: You MUST include ALL 6 SECTIONS including Section 5 with adoption statistics."""
         
         user_prompt = f"""Write an AI insights blog post for Canadian business leaders about "{topic}".
 
-You MUST follow this exact structure:
-- Introduction: Overview of "{topic}" and its business relevance
-- Key Developments: 4-5 major points about "{topic}" with specific details
-- Canadian Business Impact: How "{topic}" affects Canadian businesses
-- Strategic Recommendations: 5 actionable steps for Canadian business leaders
-- Conclusion: Strategic imperative for Canadian businesses"""
+You MUST include EXACTLY 6 sections:
+1. Introduction paragraph (NO HEADING)
+2. Key AI Developments - 8-10 items about "{topic}"
+3. Impact on Canadian Businesses - analysis paragraphs
+4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations
+5. Canadian Business AI Adoption Metrics - 3-5 statistics with percentages (MANDATORY)
+6. Conclusion - strategic imperative
+
+For Section 5, include statistics like:
+"X% of Canadian businesses in [sector] use AI for {topic}"
+"Adoption of {topic} grew Y% in Canada"
+"Z% of Canadian leaders consider {topic} a priority"
+
+DO NOT SKIP SECTION 5."""
 
     else:
         system_prompt = f"""You are Robert Simon, a digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
 
-Create a business insights post about "{topic}" following this EXACT structure:
+Create a business insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
 
-1. INTRODUCTION: Brief overview of "{topic}" and its relevance to Canadian businesses
-2. KEY INSIGHTS: List 4-5 major points, trends, or developments related to "{topic}"
-3. CANADIAN BUSINESS IMPACT: Analyze how "{topic}" affects Canadian businesses
-4. STRATEGIC RECOMMENDATIONS: Provide 5 specific, actionable recommendations
-5. CONCLUSION: Strategic imperative for Canadian businesses
+SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
 
-Write in a professional, authoritative tone."""
+SECTION 2 - HEADING "Key Insights": List 8-10 major points, trends, or developments related to "{topic}". Write each as a separate paragraph.
+
+SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how "{topic}" affects Canadian businesses
+
+SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each as a separate paragraph starting with action verbs.
+
+SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages about how Canadian businesses are adopting or implementing aspects of "{topic}". Write each as a separate sentence with percentages.
+
+SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
+
+CRITICAL: You MUST include ALL 6 SECTIONS including Section 5 with adoption statistics."""
         
         user_prompt = f"""Write a business insights blog post for Canadian business leaders about "{topic}".
 
-Structure:
-- Introduction: Overview of "{topic}" and its business relevance
-- Key Insights: 4-5 major points about "{topic}" with specific details
-- Canadian Business Impact: How "{topic}" affects Canadian businesses
-- Strategic Recommendations: 5 actionable steps for Canadian business leaders
-- Conclusion: Strategic imperative for Canadian businesses"""
+You MUST include EXACTLY 6 sections:
+1. Introduction paragraph (NO HEADING)
+2. Key Insights - 8-10 items about "{topic}"
+3. Impact on Canadian Businesses - analysis paragraphs
+4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations
+5. Canadian Business AI Adoption Metrics - 3-5 statistics with percentages (MANDATORY)
+6. Conclusion - strategic imperative
+
+For Section 5, include statistics like:
+"X% of Canadian businesses have adopted [aspect of topic]"
+"Y% of Canadian companies report [metric related to topic]"
+"Adoption of [topic] in Canada grew Z%"
+
+DO NOT SKIP SECTION 5."""
 
     for model in models_to_try:
         print(f"Trying Perplexity model: {model} for topic type: {topic_type}")
@@ -527,7 +558,7 @@ def parse_development_items(text):
     return filtered_items[:15]
 
 def parse_recommendation_items(text):
-    """Parse recommendation items with better decimal handling and header filtering - FIXED VERSION"""
+    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
     items = []
     
     # First, remove the section header itself
@@ -552,20 +583,15 @@ def parse_recommendation_items(text):
     
     text = '\n'.join(cleaned_lines)
     
-    # Now parse items
+    # Strategy 1: Try to parse numbered list items
     current_item = []
     
     for line in cleaned_lines:
         if not line:
             continue
         
-        # CRITICAL: Check if this is a numbered list item starting
-        # Must NOT match version numbers like "4.1" or decimals like "15.3%"
+        # Check if this is a numbered list item starting
         list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        
-        # Additional check: ensure it's not a decimal/version number
-        # Version numbers have format: X.Y where Y is typically 1-2 digits
-        # List numbers have format: X. followed by space and capital letter
         is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
         
         if is_list_number:
@@ -580,13 +606,10 @@ def parse_recommendation_items(text):
         else:
             # Check if line looks like an unnumbered recommendation
             if len(line) > 30 and ':' in line and not current_item:
-                # This might be a recommendation like "Prioritize AI Literacy: ..."
                 current_item = [line]
             elif current_item:
-                # Continue previous item (don't break on U.S., version numbers, etc.)
                 current_item.append(line)
             elif len(line) > 30:
-                # Start new item
                 current_item = [line]
     
     # Don't forget the last item
@@ -595,14 +618,56 @@ def parse_recommendation_items(text):
         if len(item_text) > 30:
             items.append(item_text)
     
+    # Strategy 2: If we got fewer than 3 items, try splitting by sentences/paragraphs
+    if len(items) < 3:
+        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
+        
+        # Split by double newlines OR single newlines followed by capital letters
+        paragraphs = []
+        current_para = []
+        
+        for line in cleaned_lines:
+            if not line:
+                if current_para:
+                    paragraphs.append(' '.join(current_para))
+                    current_para = []
+            else:
+                # If this line starts with a capital and previous para exists, it might be a new item
+                if current_para and len(line) > 30 and line[0].isupper():
+                    paragraphs.append(' '.join(current_para))
+                    current_para = [line]
+                else:
+                    current_para.append(line)
+        
+        if current_para:
+            paragraphs.append(' '.join(current_para))
+        
+        # Filter paragraphs: must be > 30 chars and look like recommendations
+        paragraph_items = []
+        for para in paragraphs:
+            para = para.strip()
+            if len(para) > 30:
+                # Look for action words that indicate recommendations
+                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
+                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
+                               'strengthen', 'leverage', 'foster', 'collaborate']
+                
+                para_lower = para.lower()
+                if any(word in para_lower for word in action_words):
+                    paragraph_items.append(para)
+        
+        # Use paragraph items if we got more
+        if len(paragraph_items) > len(items):
+            items = paragraph_items
+    
     print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
-    for i, item in enumerate(items[:3]):  # Print first 3 for debugging
+    for i, item in enumerate(items[:3]):
         print(f"DEBUG rec item {i+1}: {item[:100]}...")
     
     return items[:5]
 
 def parse_adoption_metrics(text):
-    """Parse adoption metrics items with percentages and statistics"""
+    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
     items = []
     
     lines = text.split('\n')
@@ -616,6 +681,7 @@ def parse_adoption_metrics(text):
         'adoption statistics'
     ]
     
+    # Strategy 1: Try numbered list parsing
     for line in lines:
         line = line.strip()
         if not line:
@@ -632,7 +698,6 @@ def parse_adoption_metrics(text):
             if current_item:
                 item_text = ' '.join(current_item).strip()
                 if len(item_text) > 20:
-                    # Additional check: make sure it's not just a title repeat
                     item_lower = item_text.lower()
                     if not any(header in item_lower for header in header_keywords):
                         items.append(item_text)
@@ -647,10 +712,57 @@ def parse_adoption_metrics(text):
     if current_item:
         item_text = ' '.join(current_item).strip()
         if len(item_text) > 20:
-            # Additional check: make sure it's not just a title repeat
             item_lower = item_text.lower()
             if not any(header in item_lower for header in header_keywords):
                 items.append(item_text)
+    
+    # Strategy 2: If we got fewer than 2 items, try sentence-based parsing
+    if len(items) < 2:
+        print("DEBUG: Numbered list parsing found < 2 adoption items, trying sentence-based parsing")
+        
+        # Look for sentences with percentages
+        sentences = []
+        current_sentence = []
+        
+        for line in lines:
+            line = line.strip()
+            line_lower = line.lower()
+            
+            # Skip headers
+            if any(header in line_lower for header in header_keywords):
+                continue
+            
+            if not line:
+                if current_sentence:
+                    sentences.append(' '.join(current_sentence))
+                    current_sentence = []
+            else:
+                # If line has percentage or "adoption", it's likely a metric
+                if '%' in line or 'adoption' in line_lower:
+                    if current_sentence:
+                        sentences.append(' '.join(current_sentence))
+                    current_sentence = [line]
+                elif current_sentence:
+                    current_sentence.append(line)
+        
+        if current_sentence:
+            sentences.append(' '.join(current_sentence))
+        
+        # Filter: must have percentage or adoption keywords
+        sentence_items = []
+        for sent in sentences:
+            sent = sent.strip()
+            if len(sent) > 20 and ('%' in sent or 'adoption' in sent.lower()):
+                sent_lower = sent.lower()
+                if not any(header in sent_lower for header in header_keywords):
+                    sentence_items.append(sent)
+        
+        if len(sentence_items) > len(items):
+            items = sentence_items
+    
+    print(f"DEBUG parse_adoption_metrics: Found {len(items)} items")
+    for i, item in enumerate(items[:3]):
+        print(f"DEBUG adoption item {i+1}: {item[:100]}...")
     
     return items[:5]
 
@@ -715,7 +827,7 @@ def extract_title_and_excerpt(content):
             line_lower = line.lower()
             if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
                 clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+$', '', clean_title)
+                clean_title = re.sub(r'\s*[•\-–—:]+, '', clean_title)
                 clean_title = re.sub(r'[•\-–—]', '', clean_title)
                 clean_title = clean_title.strip()
                 
@@ -734,7 +846,7 @@ def extract_title_and_excerpt(content):
             header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
             if not any(header in line.lower() for header in header_keywords):
                 clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_excerpt = re.sub(r'\s*[•\-–—:]+$', '', clean_excerpt)
+                clean_excerpt = re.sub(r'\s*[•\-–—:]+, '', clean_excerpt)
                 clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
                 clean_excerpt = clean_excerpt.strip()
                 
