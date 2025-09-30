@@ -1081,19 +1081,25 @@ def create_blog_index_html(posts):
     latest_post = validated_posts[0]
     older_posts = validated_posts[1:] if len(validated_posts) > 1 else []
     
+    # Build older posts HTML
     older_posts_html = ""
-    for post in older_posts:
-        older_posts_html += f'''
+    if older_posts:
+        for post in older_posts:
+            older_posts_html += f'''
                 <div class="older-post-item">
                     <a href="/blog/posts/{post['filename']}" class="older-post-link">
                         <div class="older-post-title">{post['title']}</div>
                         <div class="older-post-date">{post['date']}</div>
                     </a>
                 </div>'''
+    else:
+        older_posts_html = '''
+                <div class="no-posts-message">
+                    <p>Previous blogs will be available here</p>
+                </div>'''
     
-    older_posts_section = ""
-    if older_posts:
-        older_posts_section = f'''<section class="older-posts-section">
+    # Always show the older posts section
+    older_posts_section = f'''<section class="older-posts-section">
             <h3 class="older-posts-title">Previous Insights</h3>
             <div class="older-posts-grid">
                 {older_posts_html}
@@ -1117,13 +1123,16 @@ def create_blog_index_html(posts):
         .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }}
         .latest-badge {{ background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }}
         .latest-post-title {{ font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }}
-        .read-latest-btn {{ background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; }}
+        .read-latest-btn {{ background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; display: inline-block; transition: all 0.3s ease; }}
+        .read-latest-btn:hover {{ background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }}
         .older-posts-section {{ background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }}
-        .older-posts-title {{ font-size: 1.8rem; margin-bottom: 2rem; text-align: center; }}
-        .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 1rem; }}
+        .older-posts-title {{ font-size: 1.8rem; margin-bottom: 2rem; text-align: center; color: #1e293b; }}
+        .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 1rem; transition: all 0.3s ease; }}
+        .older-post-item:hover {{ border-color: #2563eb; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }}
         .older-post-link {{ display: block; padding: 1.5rem; text-decoration: none; color: inherit; }}
-        .older-post-title {{ font-size: 1.3rem; font-weight: 600; color: #2563eb; margin-bottom: 0.5rem; }}
+        .older-post-title {{ font-size: 1.3rem; font-weight: 600; color: #2563eb; margin-bottom: 0.5rem; text-decoration: underline; }}
         .older-post-date {{ font-size: 0.9rem; color: #64748b; }}
+        .no-posts-message {{ text-align: center; padding: 2rem; color: #64748b; font-style: italic; }}
     </style>
 </head>
 <body>
@@ -1142,9 +1151,9 @@ def create_blog_index_html(posts):
         <section class="latest-post-section">
             <div class="latest-badge">Latest</div>
             <h2 class="latest-post-title">{latest_post['title']}</h2>
-            <div>{latest_post['date']}</div>
-            <p>{latest_post['excerpt']}</p>
-            <a href="/blog/posts/{latest_post['filename']}" class="read-latest-btn">Read Full Analysis →</a>
+            <div style="margin-bottom: 1rem; opacity: 0.9;">{latest_post['date']}</div>
+            <p style="line-height: 1.6; margin-bottom: 1.5rem;">{latest_post['excerpt']}</p>
+            <a href="/blog/posts/latest.html" class="read-latest-btn">Read Full Analysis →</a>
         </section>
 
         {older_posts_section}
