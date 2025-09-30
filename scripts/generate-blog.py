@@ -499,6 +499,118 @@ def parse_development_items(text):
     
     if current_item:
         item_text = ' '.join(current_item).strip()
+        if len(item_text) > 20:
+            item_lower = item_text.lower()
+            if not any(header in item_lower for header in header_keywords):
+                items.append(item_text)
+    
+    if len(items) < 2:
+        print("DEBUG: Numbered list parsing found < 2 adoption items, trying sentence-based parsing")
+        
+        sentences = []
+        current_sentence = []
+        
+        for line in lines:
+            line = line.strip()
+            line_lower = line.lower()
+            
+            if any(header in line_lower for header in header_keywords):
+                continue
+            
+            if not line:
+                if current_sentence:
+                    sentences.append(' '.join(current_sentence))
+                    current_sentence = []
+            else:
+                if '%' in line or 'adoption' in line_lower:
+                    if current_sentence:
+                        sentences.append(' '.join(current_sentence))
+                    current_sentence = [line]
+                elif current_sentence:
+                    current_sentence.append(line)
+        
+        if current_sentence:
+            sentences.append(' '.join(current_sentence))
+        
+        sentence_items = []
+        for sent in sentences:
+            sent = sent.strip()
+            if len(sent) > 20 and ('%' in sent or 'adoption' in sent.lower()):
+                sent_lower = sent.lower()
+                if not any(header in sent_lower for header in header_keywords):
+                    sentence_items.append(sent)
+        
+        if len(sentence_items) > len(items):
+            items = sentence_items
+    
+    print(f"DEBUG parse_adoption_metrics: Found {len(items)} items")
+    for i, item in enumerate(items[:3]):
+        print(f"DEBUG adoption item {i+1}: {item[:100]}...")
+    
+    return items[:5]
+
+def generate_dynamic_conclusion(sections):
+    """Generate a dynamic Strategic Imperative based on the blog content"""
+    key_themes = []
+    companies = []
+    
+    if sections['developments']:
+        for item in sections['developments']:
+            item_lower = item.lower()
+            
+            company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']
+            for company in company_names:
+                if company.lower() in item_lower and company not in companies:
+                    companies.append(company)
+            
+            tech_keywords = {
+                'AI models': ['model', 'llm', 'gpt', 'claude', 'chatgpt'],
+                'enterprise AI': ['enterprise', 'business', 'copilot', 'office'],
+                'automation': ['automation', 'workflow', 'process'],
+                'partnerships': ['partnership', 'collaboration', 'integration']
+            }
+            
+            for theme, keywords in tech_keywords.items():
+                if any(keyword in item_lower for keyword in keywords) and theme not in key_themes:
+                    key_themes.append(theme)
+    
+    conclusion_parts = []
+    
+    if len(key_themes) >= 2:
+        conclusion_parts.append(f"With significant developments in {' and '.join(key_themes[:2])}")
+    elif key_themes:
+        conclusion_parts.append(f"With critical advances in {key_themes[0]}")
+    else:
+        conclusion_parts.append("With accelerating AI innovation")
+    
+    if len(companies) >= 2:
+        conclusion_parts.append(f"from {' and '.join(companies[:2])}")
+    
+    conclusion_parts.append("Canadian businesses must act decisively to harness these breakthroughs")
+    conclusion_parts.append("to remain competitive in the global AI-driven economy")
+    
+    conclusion = ' '.join(conclusion_parts)
+    
+    if not conclusion.endswith('.'):
+        conclusion += '.'
+    
+    return conclusion[0].upper() + conclusion[1:] if conclusion else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
+
+def extract_title_and_excerpt(content):
+    """Enhanced title and excerpt extraction with ROBUST cleaning"""
+    current_date = datetime.now()
+    month_year = current_date.strftime("%B %Y")
+    
+    clean_content = clean_perplexity_content(content)
+    lines = [line.strip() for line in clean_content.split("\n") if line.strip()]
+    
+    potential_title = None
+    for line in lines[:5]:
+        if line and len(line) > 10 and len(line) < 100:
+            line_lower = line.lower()
+            if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
+                clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
+                clean_title = re.sub(r'\s*[•\-–—:]+current_item).strip()
         if len(item_text) > 50:
             items.append(item_text)
     
@@ -687,119 +799,7 @@ def parse_adoption_metrics(text):
                 current_item = [line]
     
     if current_item:
-        item_text = ' '.join(current_item).strip()
-        if len(item_text) > 20:
-            item_lower = item_text.lower()
-            if not any(header in item_lower for header in header_keywords):
-                items.append(item_text)
-    
-    if len(items) < 2:
-        print("DEBUG: Numbered list parsing found < 2 adoption items, trying sentence-based parsing")
-        
-        sentences = []
-        current_sentence = []
-        
-        for line in lines:
-            line = line.strip()
-            line_lower = line.lower()
-            
-            if any(header in line_lower for header in header_keywords):
-                continue
-            
-            if not line:
-                if current_sentence:
-                    sentences.append(' '.join(current_sentence))
-                    current_sentence = []
-            else:
-                if '%' in line or 'adoption' in line_lower:
-                    if current_sentence:
-                        sentences.append(' '.join(current_sentence))
-                    current_sentence = [line]
-                elif current_sentence:
-                    current_sentence.append(line)
-        
-        if current_sentence:
-            sentences.append(' '.join(current_sentence))
-        
-        sentence_items = []
-        for sent in sentences:
-            sent = sent.strip()
-            if len(sent) > 20 and ('%' in sent or 'adoption' in sent.lower()):
-                sent_lower = sent.lower()
-                if not any(header in sent_lower for header in header_keywords):
-                    sentence_items.append(sent)
-        
-        if len(sentence_items) > len(items):
-            items = sentence_items
-    
-    print(f"DEBUG parse_adoption_metrics: Found {len(items)} items")
-    for i, item in enumerate(items[:3]):
-        print(f"DEBUG adoption item {i+1}: {item[:100]}...")
-    
-    return items[:5]
-
-def generate_dynamic_conclusion(sections):
-    """Generate a dynamic Strategic Imperative based on the blog content"""
-    key_themes = []
-    companies = []
-    
-    if sections['developments']:
-        for item in sections['developments']:
-            item_lower = item.lower()
-            
-            company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']
-            for company in company_names:
-                if company.lower() in item_lower and company not in companies:
-                    companies.append(company)
-            
-            tech_keywords = {
-                'AI models': ['model', 'llm', 'gpt', 'claude', 'chatgpt'],
-                'enterprise AI': ['enterprise', 'business', 'copilot', 'office'],
-                'automation': ['automation', 'workflow', 'process'],
-                'partnerships': ['partnership', 'collaboration', 'integration']
-            }
-            
-            for theme, keywords in tech_keywords.items():
-                if any(keyword in item_lower for keyword in keywords) and theme not in key_themes:
-                    key_themes.append(theme)
-    
-    conclusion_parts = []
-    
-    if len(key_themes) >= 2:
-        conclusion_parts.append(f"With significant developments in {' and '.join(key_themes[:2])}")
-    elif key_themes:
-        conclusion_parts.append(f"With critical advances in {key_themes[0]}")
-    else:
-        conclusion_parts.append("With accelerating AI innovation")
-    
-    if len(companies) >= 2:
-        conclusion_parts.append(f"from {' and '.join(companies[:2])}")
-    
-    conclusion_parts.append("Canadian businesses must act decisively to harness these breakthroughs")
-    conclusion_parts.append("to remain competitive in the global AI-driven economy")
-    
-    conclusion = ' '.join(conclusion_parts)
-    
-    if not conclusion.endswith('.'):
-        conclusion += '.'
-    
-    return conclusion[0].upper() + conclusion[1:] if conclusion else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
-
-def extract_title_and_excerpt(content):
-    """Enhanced title and excerpt extraction with ROBUST cleaning"""
-    current_date = datetime.now()
-    month_year = current_date.strftime("%B %Y")
-    
-    clean_content = clean_perplexity_content(content)
-    lines = [line.strip() for line in clean_content.split("\n") if line.strip()]
-    
-    potential_title = None
-    for line in lines[:5]:
-        if line and len(line) > 10 and len(line) < 100:
-            line_lower = line.lower()
-            if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
-                clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+$', '', clean_title)
+        item_text = ' '.join(, '', clean_title)
                 clean_title = re.sub(r'[•\-–—]', '', clean_title)
                 clean_title = clean_title.strip()
                 
@@ -818,7 +818,196 @@ def extract_title_and_excerpt(content):
             header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
             if not any(header in line.lower() for header in header_keywords):
                 clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_excerpt = re.sub(r'\s*[•\-–—:]+$', '', clean_excerpt)
+                clean_excerpt = re.sub(r'\s*[•\-–—:]+current_item).strip()
+        if len(item_text) > 50:
+            items.append(item_text)
+    
+    if len(items) < 5:
+        smart_items = []
+        
+        protected_text = text
+        abbreviations = {
+            'U.S.': 'USPROTECTED',
+            'U.K.': 'UKPROTECTED', 
+            'E.U.': 'EUPROTECTED',
+            'A.I.': 'AIPROTECTED',
+            'Inc.': 'IncPROTECTED',
+            'Corp.': 'CorpPROTECTED'
+        }
+        
+        version_pattern = r'\b(\d+\.\d+)\b'
+        version_matches = re.findall(version_pattern, protected_text)
+        version_replacements = {}
+        for i, version in enumerate(version_matches):
+            replacement = f'VERSION{i}PROTECTED'
+            version_replacements[replacement] = version
+            protected_text = protected_text.replace(version, replacement)
+        
+        for abbrev, replacement in abbreviations.items():
+            protected_text = protected_text.replace(abbrev, replacement)
+
+        sentences = re.split(r'[.!?]+', protected_text)
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            
+            for replacement, original in abbreviations.items():
+                sentence = sentence.replace(replacement, original)
+            for replacement, original in version_replacements.items():
+                sentence = sentence.replace(replacement, original)
+            
+            if (len(sentence) > 50 and 
+                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
+                not re.match(r'^\d+\.\s', sentence)):
+                smart_items.append(sentence)
+        
+        if len(smart_items) >= len(items):
+            items = smart_items
+    
+    filtered_items = []
+    for item in items:
+        item_lower = item.lower()
+        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
+            filtered_items.append(item)
+            
+    return filtered_items[:15]
+
+def parse_recommendation_items(text):
+    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
+    items = []
+    
+    header_keywords = [
+        'strategic recommendation', 
+        'recommendations for canadian leaders',
+        'recommendations for', 
+        'strategic action',
+        'for canadian leaders',
+        'for canadian business',
+        'action steps'
+    ]
+    
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        line_lower = line.strip().lower()
+        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
+            cleaned_lines.append(line.strip())
+    
+    text = '\n'.join(cleaned_lines)
+    
+    current_item = []
+    
+    for line in cleaned_lines:
+        if not line:
+            continue
+        
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
+        
+        if is_list_number:
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 30:
+                    items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if len(line) > 30 and ':' in line and not current_item:
+                current_item = [line]
+            elif current_item:
+                current_item.append(line)
+            elif len(line) > 30:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 30:
+            items.append(item_text)
+    
+    if len(items) < 3:
+        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
+        
+        paragraphs = []
+        current_para = []
+        
+        for line in cleaned_lines:
+            if not line:
+                if current_para:
+                    paragraphs.append(' '.join(current_para))
+                    current_para = []
+            else:
+                if current_para and len(line) > 30 and line[0].isupper():
+                    paragraphs.append(' '.join(current_para))
+                    current_para = [line]
+                else:
+                    current_para.append(line)
+        
+        if current_para:
+            paragraphs.append(' '.join(current_para))
+        
+        paragraph_items = []
+        for para in paragraphs:
+            para = para.strip()
+            if len(para) > 30:
+                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
+                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
+                               'strengthen', 'leverage', 'foster', 'collaborate']
+                
+                para_lower = para.lower()
+                if any(word in para_lower for word in action_words):
+                    paragraph_items.append(para)
+        
+        if len(paragraph_items) > len(items):
+            items = paragraph_items
+    
+    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
+    for i, item in enumerate(items[:3]):
+        print(f"DEBUG rec item {i+1}: {item[:100]}...")
+    
+    return items[:5]
+
+def parse_adoption_metrics(text):
+    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
+    items = []
+    
+    lines = text.split('\n')
+    current_item = []
+    
+    header_keywords = [
+        'canadian business ai adoption',
+        'ai adoption metrics',
+        'adoption metrics',
+        'adoption statistics'
+    ]
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        line_lower = line.lower()
+        if any(header in line_lower for header in header_keywords):
+            continue
+            
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        
+        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 20:
+                    item_lower = item_text.lower()
+                    if not any(header in item_lower for header in header_keywords):
+                        items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if current_item:
+                current_item.append(line)
+            elif len(line) > 20:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(, '', clean_excerpt)
                 clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
                 clean_excerpt = clean_excerpt.strip()
                 
@@ -830,6 +1019,7 @@ def extract_title_and_excerpt(content):
         excerpt = f"Strategic insights and practical guidance for Canadian business leaders - {month_year} analysis."
     
     return title, excerpt
+
 def create_html_blog_post(content, title, excerpt):
     """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
     current_date = datetime.now()
@@ -1062,37 +1252,22 @@ def extract_post_info(html_file):
         "filename": os.path.basename(html_file)
     }
 
-def create_blog_index_html(posts):
-    """Create blog index page"""
-    if not posts:
-        return None
+def create_blog_index_html(latest_post, older_posts):
+    """Create blog index page with latest post always linking to latest.html"""
     
-    validated_posts = []
-    posts_dir = "blog/posts"
-    
-    for post in posts:
-        file_path = os.path.join(posts_dir, post['filename'])
-        if os.path.exists(file_path):
-            validated_posts.append(post)
-    
-    if not validated_posts:
-        return None
-    
-    latest_post = validated_posts[0]
-    older_posts = validated_posts[1:] if len(validated_posts) > 1 else []
-    
-    older_posts_html = ""
-    for post in older_posts:
-        older_posts_html += f'''
+    # Older posts section - only show if there are older posts
+    older_posts_section = ""
+    if older_posts:
+        older_posts_html = ""
+        for post in older_posts:
+            older_posts_html += f'''
                 <div class="older-post-item">
                     <a href="/blog/posts/{post['filename']}" class="older-post-link">
                         <div class="older-post-title">{post['title']}</div>
                         <div class="older-post-date">{post['date']}</div>
                     </a>
                 </div>'''
-    
-    older_posts_section = ""
-    if older_posts:
+        
         older_posts_section = f'''<section class="older-posts-section">
             <h3 class="older-posts-title">Previous Insights</h3>
             <div class="older-posts-grid">
@@ -1144,7 +1319,7 @@ def create_blog_index_html(posts):
             <h2 class="latest-post-title">{latest_post['title']}</h2>
             <div>{latest_post['date']}</div>
             <p>{latest_post['excerpt']}</p>
-            <a href="/blog/posts/{latest_post['filename']}" class="read-latest-btn">Read Full Analysis →</a>
+            <a href="/blog/posts/latest.html" class="read-latest-btn">Read Full Analysis →</a>
         </section>
 
         {older_posts_section}
@@ -1155,16 +1330,22 @@ def create_blog_index_html(posts):
     return blog_index_html
 
 def update_blog_index():
-    """Update blog index"""
+    """Update blog index with latest post and previous month posts"""
     posts_dir = "blog/posts"
     index_file = "blog/index.html"
     
     if not os.path.exists(posts_dir):
         return []
     
-    posts = []
-    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html" and f != "latest.html"]
+    # Get all HTML posts except index.html and latest.html
+    html_files = [f for f in os.listdir(posts_dir) 
+                  if f.endswith(".html") and f != "index.html" and f != "latest.html"]
     
+    if not html_files:
+        print("Warning: No blog posts found")
+        return []
+    
+    posts = []
     for file in sorted(html_files, reverse=True):
         file_path = os.path.join(posts_dir, file)
         try:
@@ -1176,35 +1357,33 @@ def update_blog_index():
             print(f"Warning: Could not process {file}: {e}")
             continue
 
-    validated_posts = []
-    for post in posts:
-        file_path = os.path.join(posts_dir, post['filename'])
-        if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
-            validated_posts.append(post)
-    
-    if not validated_posts:
+    if not posts:
         print("Warning: No valid posts found")
         return []
     
-    latest_post = validated_posts[0]
+    # Get the latest post (first in sorted list)
+    latest_post = posts[0]
     
+    # Extract month and year from latest post
     try:
         latest_date = datetime.strptime(latest_post['date'], "%B %d, %Y")
         latest_month_year = latest_date.strftime("%B %Y")
     except:
         try:
-            filename_date = latest_post['filename'].split('-')[:3]
-            latest_date = datetime.strptime('-'.join(filename_date), "%Y-%m-%d")
+            filename_date = latest_post['filename'].split('-')[:2]
+            latest_date = datetime.strptime('-'.join(filename_date) + '-01', "%Y-%m-%d")
             latest_month_year = latest_date.strftime("%B %Y")
         except:
             latest_month_year = None
     
+    # Filter older posts - only posts from DIFFERENT months
     older_posts = []
-    for post in validated_posts[1:]:
+    for post in posts[1:]:
         try:
             post_date = datetime.strptime(post['date'], "%B %d, %Y")
             post_month_year = post_date.strftime("%B %Y")
             
+            # Only include if from a different month
             if latest_month_year and post_month_year != latest_month_year:
                 older_posts.append(post)
             elif not latest_month_year:
@@ -1218,20 +1397,20 @@ def update_blog_index():
             except:
                 older_posts.append(post)
     
-    print(f"Found {len(validated_posts)} total posts, showing latest and {len(older_posts)} from previous months")
+    print(f"Found latest post: {latest_post['title']}")
+    print(f"Found {len(older_posts)} previous month posts")
 
-    new_blog_index = create_blog_index_html(validated_posts[:1] + older_posts)
-    if not new_blog_index:
-        return []
+    # Create new blog index with latest post always linking to latest.html
+    new_blog_index = create_blog_index_html(latest_post, older_posts)
     
     try:
         with open(index_file, "w", encoding="utf-8") as f:
             f.write(new_blog_index)
-        print(f"✅ Blog index recreated with 1 latest + {len(older_posts)} previous months")
+        print(f"✅ Blog index updated - latest post + {len(older_posts)} previous months")
     except Exception as e:
         print(f"❌ Error writing blog index: {e}")
     
-    return validated_posts
+    return [latest_post] + older_posts
 
 def main():
     parser = argparse.ArgumentParser(description="Blog Generator")
@@ -1267,10 +1446,10 @@ def main():
         os.makedirs(os.path.dirname(latest_path), exist_ok=True)
         with open(latest_path, "w", encoding="utf-8") as f:
             f.write(html_content)
-        print(f"✅ Latest post updated")
+        print(f"✅ Latest post updated at: {latest_path}")
         
         posts = update_blog_index()
-        print(f"✅ Blog index updated with {len(posts)} posts")
+        print(f"✅ Blog index updated with {len(posts)} total posts")
         print("🎉 SUCCESS!")
         
     except Exception as e:
@@ -1280,4 +1459,193 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    main()current_item).strip()
+        if len(item_text) > 50:
+            items.append(item_text)
+    
+    if len(items) < 5:
+        smart_items = []
+        
+        protected_text = text
+        abbreviations = {
+            'U.S.': 'USPROTECTED',
+            'U.K.': 'UKPROTECTED', 
+            'E.U.': 'EUPROTECTED',
+            'A.I.': 'AIPROTECTED',
+            'Inc.': 'IncPROTECTED',
+            'Corp.': 'CorpPROTECTED'
+        }
+        
+        version_pattern = r'\b(\d+\.\d+)\b'
+        version_matches = re.findall(version_pattern, protected_text)
+        version_replacements = {}
+        for i, version in enumerate(version_matches):
+            replacement = f'VERSION{i}PROTECTED'
+            version_replacements[replacement] = version
+            protected_text = protected_text.replace(version, replacement)
+        
+        for abbrev, replacement in abbreviations.items():
+            protected_text = protected_text.replace(abbrev, replacement)
+
+        sentences = re.split(r'[.!?]+', protected_text)
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            
+            for replacement, original in abbreviations.items():
+                sentence = sentence.replace(replacement, original)
+            for replacement, original in version_replacements.items():
+                sentence = sentence.replace(replacement, original)
+            
+            if (len(sentence) > 50 and 
+                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
+                not re.match(r'^\d+\.\s', sentence)):
+                smart_items.append(sentence)
+        
+        if len(smart_items) >= len(items):
+            items = smart_items
+    
+    filtered_items = []
+    for item in items:
+        item_lower = item.lower()
+        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
+            filtered_items.append(item)
+            
+    return filtered_items[:15]
+
+def parse_recommendation_items(text):
+    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
+    items = []
+    
+    header_keywords = [
+        'strategic recommendation', 
+        'recommendations for canadian leaders',
+        'recommendations for', 
+        'strategic action',
+        'for canadian leaders',
+        'for canadian business',
+        'action steps'
+    ]
+    
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        line_lower = line.strip().lower()
+        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
+            cleaned_lines.append(line.strip())
+    
+    text = '\n'.join(cleaned_lines)
+    
+    current_item = []
+    
+    for line in cleaned_lines:
+        if not line:
+            continue
+        
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
+        
+        if is_list_number:
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 30:
+                    items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if len(line) > 30 and ':' in line and not current_item:
+                current_item = [line]
+            elif current_item:
+                current_item.append(line)
+            elif len(line) > 30:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 30:
+            items.append(item_text)
+    
+    if len(items) < 3:
+        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
+        
+        paragraphs = []
+        current_para = []
+        
+        for line in cleaned_lines:
+            if not line:
+                if current_para:
+                    paragraphs.append(' '.join(current_para))
+                    current_para = []
+            else:
+                if current_para and len(line) > 30 and line[0].isupper():
+                    paragraphs.append(' '.join(current_para))
+                    current_para = [line]
+                else:
+                    current_para.append(line)
+        
+        if current_para:
+            paragraphs.append(' '.join(current_para))
+        
+        paragraph_items = []
+        for para in paragraphs:
+            para = para.strip()
+            if len(para) > 30:
+                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
+                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
+                               'strengthen', 'leverage', 'foster', 'collaborate']
+                
+                para_lower = para.lower()
+                if any(word in para_lower for word in action_words):
+                    paragraph_items.append(para)
+        
+        if len(paragraph_items) > len(items):
+            items = paragraph_items
+    
+    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
+    for i, item in enumerate(items[:3]):
+        print(f"DEBUG rec item {i+1}: {item[:100]}...")
+    
+    return items[:5]
+
+def parse_adoption_metrics(text):
+    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
+    items = []
+    
+    lines = text.split('\n')
+    current_item = []
+    
+    header_keywords = [
+        'canadian business ai adoption',
+        'ai adoption metrics',
+        'adoption metrics',
+        'adoption statistics'
+    ]
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        line_lower = line.lower()
+        if any(header in line_lower for header in header_keywords):
+            continue
+            
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        
+        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 20:
+                    item_lower = item_text.lower()
+                    if not any(header in item_lower for header in header_keywords):
+                        items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if current_item:
+                current_item.append(line)
+            elif len(line) > 20:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(
