@@ -770,7 +770,7 @@ def extract_title_and_excerpt(content):
             line_lower = line.lower()
             if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
                 clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+, '', clean_title)
+                clean_title = re.sub(r'\s*[•\-–—:]+$', '', clean_title)
                 clean_title = re.sub(r'[•\-–—]', '', clean_title)
                 clean_title = clean_title.strip()
                 
