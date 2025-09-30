@@ -336,20 +336,17 @@ def parse_structured_content(content):
                 adoption_end = pos
             break
     
-    # If we didn't find adoption section, set rec_end to conclusion or end of content
     if rec_start != -1 and rec_end == -1:
         if conclusion_start != -1:
             rec_end = conclusion_start
         else:
             rec_end = len(content)
     
-    # If we didn't find conclusion section, set adoption_end to end of content
     if adoption_start != -1 and adoption_end == -1:
         adoption_end = len(content)
     
     print(f"DEBUG: Section positions - dev:{dev_start}, impact:{impact_start}, rec:{rec_start}, adoption:{adoption_start}, conclusion:{conclusion_start}")
     
-    # Print what text was found at each position for debugging
     if dev_start != -1:
         print(f"DEBUG: Dev section header: '{content[dev_start:dev_start+50]}'")
     if impact_start != -1:
@@ -393,10 +390,8 @@ def parse_structured_content(content):
     else:
         print("DEBUG: Adoption metrics section NOT FOUND in content")
         print(f"DEBUG: Looking for patterns: {adoption_patterns}")
-        # Check if content mentions adoption at all
         if 'adoption' in content_lower:
             print("DEBUG: Word 'adoption' exists in content but section not matched")
-            # Find where adoption is mentioned
             adoption_mentions = [i for i, word in enumerate(content_lower.split()) if 'adoption' in word]
             print(f"DEBUG: 'adoption' appears at word positions: {adoption_mentions[:5]}")
     
@@ -561,7 +556,6 @@ def parse_recommendation_items(text):
     """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
     items = []
     
-    # First, remove the section header itself
     header_keywords = [
         'strategic recommendation', 
         'recommendations for canadian leaders',
@@ -572,39 +566,32 @@ def parse_recommendation_items(text):
         'action steps'
     ]
     
-    # Remove header line
     lines = text.split('\n')
     cleaned_lines = []
     for line in lines:
         line_lower = line.strip().lower()
-        # Skip if line is just a header
         if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
             cleaned_lines.append(line.strip())
     
     text = '\n'.join(cleaned_lines)
     
-    # Strategy 1: Try to parse numbered list items
     current_item = []
     
     for line in cleaned_lines:
         if not line:
             continue
         
-        # Check if this is a numbered list item starting
         list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
         is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
         
         if is_list_number:
-            # Save previous item
             if current_item:
                 item_text = ' '.join(current_item).strip()
                 if len(item_text) > 30:
                     items.append(item_text)
             
-            # Start new item (remove the number)
             current_item = [re.sub(r'^\d+\.\s*', '', line)]
         else:
-            # Check if line looks like an unnumbered recommendation
             if len(line) > 30 and ':' in line and not current_item:
                 current_item = [line]
             elif current_item:
@@ -612,17 +599,14 @@ def parse_recommendation_items(text):
             elif len(line) > 30:
                 current_item = [line]
     
-    # Don't forget the last item
     if current_item:
         item_text = ' '.join(current_item).strip()
         if len(item_text) > 30:
             items.append(item_text)
     
-    # Strategy 2: If we got fewer than 3 items, try splitting by sentences/paragraphs
     if len(items) < 3:
         print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
         
-        # Split by double newlines OR single newlines followed by capital letters
         paragraphs = []
         current_para = []
         
@@ -632,7 +616,6 @@ def parse_recommendation_items(text):
                     paragraphs.append(' '.join(current_para))
                     current_para = []
             else:
-                # If this line starts with a capital and previous para exists, it might be a new item
                 if current_para and len(line) > 30 and line[0].isupper():
                     paragraphs.append(' '.join(current_para))
                     current_para = [line]
@@ -642,12 +625,10 @@ def parse_recommendation_items(text):
         if current_para:
             paragraphs.append(' '.join(current_para))
         
-        # Filter paragraphs: must be > 30 chars and look like recommendations
         paragraph_items = []
         for para in paragraphs:
             para = para.strip()
             if len(para) > 30:
-                # Look for action words that indicate recommendations
                 action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
                                'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
                                'strengthen', 'leverage', 'foster', 'collaborate']
@@ -656,7 +637,6 @@ def parse_recommendation_items(text):
                 if any(word in para_lower for word in action_words):
                     paragraph_items.append(para)
         
-        # Use paragraph items if we got more
         if len(paragraph_items) > len(items):
             items = paragraph_items
     
@@ -673,7 +653,6 @@ def parse_adoption_metrics(text):
     lines = text.split('\n')
     current_item = []
     
-    # Section headers to skip
     header_keywords = [
         'canadian business ai adoption',
         'ai adoption metrics',
@@ -681,13 +660,11 @@ def parse_adoption_metrics(text):
         'adoption statistics'
     ]
     
-    # Strategy 1: Try numbered list parsing
     for line in lines:
         line = line.strip()
         if not line:
             continue
         
-        # Skip section headers
         line_lower = line.lower()
         if any(header in line_lower for header in header_keywords):
             continue
@@ -716,11 +693,9 @@ def parse_adoption_metrics(text):
             if not any(header in item_lower for header in header_keywords):
                 items.append(item_text)
     
-    # Strategy 2: If we got fewer than 2 items, try sentence-based parsing
     if len(items) < 2:
         print("DEBUG: Numbered list parsing found < 2 adoption items, trying sentence-based parsing")
         
-        # Look for sentences with percentages
         sentences = []
         current_sentence = []
         
@@ -728,7 +703,6 @@ def parse_adoption_metrics(text):
             line = line.strip()
             line_lower = line.lower()
             
-            # Skip headers
             if any(header in line_lower for header in header_keywords):
                 continue
             
@@ -737,7 +711,6 @@ def parse_adoption_metrics(text):
                     sentences.append(' '.join(current_sentence))
                     current_sentence = []
             else:
-                # If line has percentage or "adoption", it's likely a metric
                 if '%' in line or 'adoption' in line_lower:
                     if current_sentence:
                         sentences.append(' '.join(current_sentence))
@@ -748,7 +721,6 @@ def parse_adoption_metrics(text):
         if current_sentence:
             sentences.append(' '.join(current_sentence))
         
-        # Filter: must have percentage or adoption keywords
         sentence_items = []
         for sent in sentences:
             sent = sent.strip()
@@ -827,7 +799,7 @@ def extract_title_and_excerpt(content):
             line_lower = line.lower()
             if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
                 clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+, '', clean_title)
+                clean_title = re.sub(r'\s*[•\-–—:]+$', '', clean_title)
                 clean_title = re.sub(r'[•\-–—]', '', clean_title)
                 clean_title = clean_title.strip()
                 
@@ -846,7 +818,7 @@ def extract_title_and_excerpt(content):
             header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
             if not any(header in line.lower() for header in header_keywords):
                 clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_excerpt = re.sub(r'\s*[•\-–—:]+, '', clean_excerpt)
+                clean_excerpt = re.sub(r'\s*[•\-–—:]+$', '', clean_excerpt)
                 clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
                 clean_excerpt = clean_excerpt.strip()
                 
@@ -858,7 +830,6 @@ def extract_title_and_excerpt(content):
         excerpt = f"Strategic insights and practical guidance for Canadian business leaders - {month_year} analysis."
     
     return title, excerpt
-
 def create_html_blog_post(content, title, excerpt):
     """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
     current_date = datetime.now()
@@ -924,7 +895,6 @@ def create_html_blog_post(content, title, excerpt):
             clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
             clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
             
-            # Highlight percentages and numbers
             clean_item = re.sub(r'(\d+\.?\d*%)', r'<strong>\1</strong>', clean_item)
             clean_item = re.sub(r'(\d+\.?\d*x)', r'<strong>\1</strong>', clean_item)
             
@@ -941,7 +911,6 @@ def create_html_blog_post(content, title, excerpt):
             print("WARNING: Adoption metrics section found but no items parsed")
     else:
         print("WARNING: No adoption metrics section found - Perplexity did not generate this section")
-        # Add a placeholder note so it's visible in the output
         content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><p><em>Note: Canadian adoption statistics were not available for this reporting period. For the latest adoption data, please refer to Statistics Canada or ISED reports.</em></p></div>')
     
     if sections['conclusion']:
@@ -1199,7 +1168,6 @@ def update_blog_index():
     for file in sorted(html_files, reverse=True):
         file_path = os.path.join(posts_dir, file)
         try:
-            # Check if file exists and is not empty
             if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                 post_info = extract_post_info(file_path)
                 if post_info.get('title') and post_info.get('filename'):
@@ -1208,26 +1176,22 @@ def update_blog_index():
             print(f"Warning: Could not process {file}: {e}")
             continue
 
-    # Filter out posts that don't exist or are invalid
     validated_posts = []
     for post in posts:
         file_path = os.path.join(posts_dir, post['filename'])
-        if os.path.exists(file_path) and os.path.getsize(file_path) > 100:  # Must be at least 100 bytes
+        if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
             validated_posts.append(post)
     
     if not validated_posts:
         print("Warning: No valid posts found")
         return []
     
-    # Get the latest post
     latest_post = validated_posts[0]
     
-    # Extract month and year from latest post date
     try:
         latest_date = datetime.strptime(latest_post['date'], "%B %d, %Y")
         latest_month_year = latest_date.strftime("%B %Y")
     except:
-        # Fallback to filename parsing
         try:
             filename_date = latest_post['filename'].split('-')[:3]
             latest_date = datetime.strptime('-'.join(filename_date), "%Y-%m-%d")
@@ -1235,28 +1199,23 @@ def update_blog_index():
         except:
             latest_month_year = None
     
-    # Filter older posts - exclude posts from the same month as latest
     older_posts = []
     for post in validated_posts[1:]:
         try:
             post_date = datetime.strptime(post['date'], "%B %d, %Y")
             post_month_year = post_date.strftime("%B %Y")
             
-            # Only include if from a different month than latest
             if latest_month_year and post_month_year != latest_month_year:
                 older_posts.append(post)
             elif not latest_month_year:
-                # If we couldn't parse latest date, include all older posts
                 older_posts.append(post)
         except:
-            # If date parsing fails, try to compare by filename
             try:
-                post_filename_date = post['filename'].split('-')[:2]  # Year-month
+                post_filename_date = post['filename'].split('-')[:2]
                 latest_filename_date = latest_post['filename'].split('-')[:2]
                 if post_filename_date != latest_filename_date:
                     older_posts.append(post)
             except:
-                # If all parsing fails, include the post
                 older_posts.append(post)
     
     print(f"Found {len(validated_posts)} total posts, showing latest and {len(older_posts)} from previous months")
