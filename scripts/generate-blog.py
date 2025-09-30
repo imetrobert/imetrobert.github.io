@@ -799,7 +799,7 @@ def extract_title_and_excerpt(content):
             line_lower = line.lower()
             if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
                 clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+, '', clean_title)
+                clean_title = re.sub(r'\s*[•\-–—:]+$', '', clean_title)
                 clean_title = re.sub(r'[•\-–—]', '', clean_title)
                 clean_title = clean_title.strip()
                 
@@ -818,7 +818,7 @@ def extract_title_and_excerpt(content):
             header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
             if not any(header in line.lower() for header in header_keywords):
                 clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_excerpt = re.sub(r'\s*[•\-–—:]+, '', clean_excerpt)
+                clean_excerpt = re.sub(r'\s*[•\-–—:]+$', '', clean_excerpt)
                 clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
                 clean_excerpt = clean_excerpt.strip()
                 
@@ -830,7 +830,6 @@ def extract_title_and_excerpt(content):
         excerpt = f"Strategic insights and practical guidance for Canadian business leaders - {month_year} analysis."
     
     return title, excerpt
-
 def create_html_blog_post(content, title, excerpt):
     """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
     current_date = datetime.now()
@@ -1063,22 +1062,37 @@ def extract_post_info(html_file):
         "filename": os.path.basename(html_file)
     }
 
-def create_blog_index_html(latest_post, older_posts):
-    """Create blog index page with latest post always linking to latest.html"""
+def create_blog_index_html(posts):
+    """Create blog index page"""
+    if not posts:
+        return None
     
-    # Older posts section - only show if there are older posts
-    older_posts_section = ""
-    if older_posts:
-        older_posts_html = ""
-        for post in older_posts:
-            older_posts_html += f'''
+    validated_posts = []
+    posts_dir = "blog/posts"
+    
+    for post in posts:
+        file_path = os.path.join(posts_dir, post['filename'])
+        if os.path.exists(file_path):
+            validated_posts.append(post)
+    
+    if not validated_posts:
+        return None
+    
+    latest_post = validated_posts[0]
+    older_posts = validated_posts[1:] if len(validated_posts) > 1 else []
+    
+    older_posts_html = ""
+    for post in older_posts:
+        older_posts_html += f'''
                 <div class="older-post-item">
                     <a href="/blog/posts/{post['filename']}" class="older-post-link">
                         <div class="older-post-title">{post['title']}</div>
                         <div class="older-post-date">{post['date']}</div>
                     </a>
                 </div>'''
-        
+    
+    older_posts_section = ""
+    if older_posts:
         older_posts_section = f'''<section class="older-posts-section">
             <h3 class="older-posts-title">Previous Insights</h3>
             <div class="older-posts-grid">
@@ -1130,7 +1144,7 @@ def create_blog_index_html(latest_post, older_posts):
             <h2 class="latest-post-title">{latest_post['title']}</h2>
             <div>{latest_post['date']}</div>
             <p>{latest_post['excerpt']}</p>
-            <a href="/blog/posts/latest.html" class="read-latest-btn">Read Full Analysis →</a>
+            <a href="/blog/posts/{latest_post['filename']}" class="read-latest-btn">Read Full Analysis →</a>
         </section>
 
         {older_posts_section}
@@ -1141,22 +1155,16 @@ def create_blog_index_html(latest_post, older_posts):
     return blog_index_html
 
 def update_blog_index():
-    """Update blog index with latest post and previous month posts"""
+    """Update blog index"""
     posts_dir = "blog/posts"
     index_file = "blog/index.html"
     
     if not os.path.exists(posts_dir):
         return []
     
-    # Get all HTML posts except index.html and latest.html
-    html_files = [f for f in os.listdir(posts_dir) 
-                  if f.endswith(".html") and f != "index.html" and f != "latest.html"]
-    
-    if not html_files:
-        print("Warning: No blog posts found")
-        return []
-    
     posts = []
+    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html" and f != "latest.html"]
+    
     for file in sorted(html_files, reverse=True):
         file_path = os.path.join(posts_dir, file)
         try:
@@ -1168,33 +1176,35 @@ def update_blog_index():
             print(f"Warning: Could not process {file}: {e}")
             continue
 
-    if not posts:
+    validated_posts = []
+    for post in posts:
+        file_path = os.path.join(posts_dir, post['filename'])
+        if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
+            validated_posts.append(post)
+    
+    if not validated_posts:
         print("Warning: No valid posts found")
         return []
     
-    # Get the latest post (first in sorted list)
-    latest_post = posts[0]
+    latest_post = validated_posts[0]
     
-    # Extract month and year from latest post
     try:
         latest_date = datetime.strptime(latest_post['date'], "%B %d, %Y")
         latest_month_year = latest_date.strftime("%B %Y")
     except:
         try:
-            filename_date = latest_post['filename'].split('-')[:2]
-            latest_date = datetime.strptime('-'.join(filename_date) + '-01', "%Y-%m-%d")
+            filename_date = latest_post['filename'].split('-')[:3]
+            latest_date = datetime.strptime('-'.join(filename_date), "%Y-%m-%d")
             latest_month_year = latest_date.strftime("%B %Y")
         except:
             latest_month_year = None
     
-    # Filter older posts - only posts from DIFFERENT months
     older_posts = []
-    for post in posts[1:]:
+    for post in validated_posts[1:]:
         try:
             post_date = datetime.strptime(post['date'], "%B %d, %Y")
             post_month_year = post_date.strftime("%B %Y")
             
-            # Only include if from a different month
             if latest_month_year and post_month_year != latest_month_year:
                 older_posts.append(post)
             elif not latest_month_year:
@@ -1208,20 +1218,20 @@ def update_blog_index():
             except:
                 older_posts.append(post)
     
-    print(f"Found latest post: {latest_post['title']}")
-    print(f"Found {len(older_posts)} previous month posts")
+    print(f"Found {len(validated_posts)} total posts, showing latest and {len(older_posts)} from previous months")
 
-    # Create new blog index with latest post always linking to latest.html
-    new_blog_index = create_blog_index_html(latest_post, older_posts)
+    new_blog_index = create_blog_index_html(validated_posts[:1] + older_posts)
+    if not new_blog_index:
+        return []
     
     try:
         with open(index_file, "w", encoding="utf-8") as f:
             f.write(new_blog_index)
-        print(f"✅ Blog index updated - latest post + {len(older_posts)} previous months")
+        print(f"✅ Blog index recreated with 1 latest + {len(older_posts)} previous months")
     except Exception as e:
         print(f"❌ Error writing blog index: {e}")
     
-    return [latest_post] + older_posts
+    return validated_posts
 
 def main():
     parser = argparse.ArgumentParser(description="Blog Generator")
@@ -1257,10 +1267,10 @@ def main():
         os.makedirs(os.path.dirname(latest_path), exist_ok=True)
         with open(latest_path, "w", encoding="utf-8") as f:
             f.write(html_content)
-        print(f"✅ Latest post updated at: {latest_path}")
+        print(f"✅ Latest post updated")
         
         posts = update_blog_index()
-        print(f"✅ Blog index updated with {len(posts)} total posts")
+        print(f"✅ Blog index updated with {len(posts)} posts")
         print("🎉 SUCCESS!")
         
     except Exception as e:
