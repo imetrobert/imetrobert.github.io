@@ -1194,76 +1194,88 @@ def update_blog_index():
     if not os.path.exists(posts_dir):
         return []
     
+    # ALWAYS read latest.html first
+    latest_path = os.path.join(posts_dir, "latest.html")
     posts = []
-    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html" and f != "latest.html"]
+    
+    # Extract info from latest.html first
+    if os.path.exists(latest_path) and os.path.getsize(latest_path) > 100:
+        try:
+            latest_info = extract_post_info(latest_path)
+            if latest_info and latest_info.get('title') and latest_info.get('excerpt'):
+                # Change filename to latest.html for the link
+                latest_info['filename'] = 'latest.html'
+                posts.append(latest_info)
+                print(f"✅ Loaded latest post: {latest_info['title']}")
+                print(f"   Excerpt: {latest_info['excerpt'][:100]}...")
+        except Exception as e:
+            print(f"Warning: Could not process latest.html: {e}")
+    
+    # Then get all other dated posts for the "Previous" section
+    html_files = [f for f in os.listdir(posts_dir) 
+                  if f.endswith(".html") 
+                  and f != "latest.html" 
+                  and not f.startswith("{")  # Skip template files
+                  and f != "index.html"]
     
     for file in sorted(html_files, reverse=True):
         file_path = os.path.join(posts_dir, file)
         try:
-            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+            if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
                 post_info = extract_post_info(file_path)
-                if post_info.get('title') and post_info.get('filename'):
+                if post_info and post_info.get('title') and post_info.get('filename'):
                     posts.append(post_info)
         except Exception as e:
             print(f"Warning: Could not process {file}: {e}")
             continue
 
-    validated_posts = []
-    for post in posts:
-        file_path = os.path.join(posts_dir, post['filename'])
-        if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
-            validated_posts.append(post)
-    
-    if not validated_posts:
+    if not posts:
         print("Warning: No valid posts found")
         return []
     
-    latest_post = validated_posts[0]
+    # The first post is always the latest
+    latest_post = posts[0]
     
+    # Filter older posts by month to show only one per month
+    older_posts = []
+    seen_months = set()
+    
+    # Add the current month from latest post to seen
     try:
         latest_date = datetime.strptime(latest_post['date'], "%B %d, %Y")
-        latest_month_year = latest_date.strftime("%B %Y")
+        latest_month_year = latest_date.strftime("%Y-%m")
+        seen_months.add(latest_month_year)
     except:
-        try:
-            filename_date = latest_post['filename'].split('-')[:3]
-            latest_date = datetime.strptime('-'.join(filename_date), "%Y-%m-%d")
-            latest_month_year = latest_date.strftime("%B %Y")
-        except:
-            latest_month_year = None
+        pass
     
-    older_posts = []
-    for post in validated_posts[1:]:
+    # Go through remaining posts and take one per month
+    for post in posts[1:]:
         try:
             post_date = datetime.strptime(post['date'], "%B %d, %Y")
-            post_month_year = post_date.strftime("%B %Y")
+            post_month_year = post_date.strftime("%Y-%m")
             
-            if latest_month_year and post_month_year != latest_month_year:
+            if post_month_year not in seen_months:
                 older_posts.append(post)
-            elif not latest_month_year:
-                older_posts.append(post)
+                seen_months.add(post_month_year)
         except:
-            try:
-                post_filename_date = post['filename'].split('-')[:2]
-                latest_filename_date = latest_post['filename'].split('-')[:2]
-                if post_filename_date != latest_filename_date:
-                    older_posts.append(post)
-            except:
-                older_posts.append(post)
+            # If date parsing fails, include it anyway
+            older_posts.append(post)
     
-    print(f"Found {len(validated_posts)} total posts, showing latest and {len(older_posts)} from previous months")
+    print(f"Found {len(posts)} total posts, showing latest and {len(older_posts)} from previous months")
 
-    new_blog_index = create_blog_index_html(validated_posts[:1] + older_posts)
+    # Create the new index with the latest post info
+    new_blog_index = create_blog_index_html([latest_post] + older_posts)
     if not new_blog_index:
         return []
     
     try:
         with open(index_file, "w", encoding="utf-8") as f:
             f.write(new_blog_index)
-        print(f"✅ Blog index recreated with 1 latest + {len(older_posts)} previous months")
+        print(f"✅ Blog index recreated with latest post + {len(older_posts)} previous months")
     except Exception as e:
         print(f"❌ Error writing blog index: {e}")
     
-    return validated_posts
+    return posts
 
 def main():
     parser = argparse.ArgumentParser(description="Blog Generator")
