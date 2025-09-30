@@ -52,6 +52,612 @@ def clean_perplexity_content(content):
         if re.match(list_pattern, line):
             cleaned_lines.append(line)
         else:
+            line = re.sub(r'^[•\-–—]+\s*', '', line)
+            line = re.sub(r'\s*[•\-–—]+$', '', line)
+            line = re.sub(r':\s*[•\-–—]+\s*([A-Z])', r': \1', line)
+            line = re.sub(r'[•\-–—]+\s*:\s*([A-Z])', r': \1', line)
+            line = re.sub(r'^:\s*([A-Z][^:]*?)\s*:•', r'\1:', line)
+            if line:
+                cleaned_lines.append(line)
+    
+    content = '\n'.join(cleaned_lines)
+    content = re.sub(r' +', ' ', content)
+    content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
+    return content.strip()
+
+def generate_blog_with_perplexity(api_key, topic=None):
+    """Generate blog content using Perplexity API"""
+    current_date = datetime.now()
+    month_year = current_date.strftime("%B %Y")
+    
+    if not topic:
+        topic_type = "monthly_ai"
+        topic = f"Latest AI developments and technology launches since last month - {month_year} focus on Canadian business impact"
+    else:
+        topic_lower = topic.lower()
+        ai_keywords = ['ai', 'artificial intelligence', 'machine learning', 'automation', 'technology', 'digital', 'innovation']
+        if any(keyword in topic_lower for keyword in ai_keywords):
+            topic_type = "custom_ai"
+        else:
+            topic_type = "custom_business"
+    
+    url = "https://api.perplexity.ai/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    models_to_try = ["sonar-pro", "sonar-medium-online", "sonar-small-online"]
+    
+    if topic_type == "monthly_ai":
+        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
+
+Create a monthly AI insights post for {month_year} with EXACTLY these 6 sections in this EXACT order:
+
+SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
+
+SECTION 2 - HEADING "Key AI Developments This Month": List exactly 15 major AI developments from the past month with specific dates and company names. Write each as a separate paragraph or bullet point.
+
+SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how these developments affect Canadian businesses
+
+SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each recommendation as a separate paragraph starting with an action verb like "Prioritize", "Invest", "Develop", "Establish", or "Implement".
+
+SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 separate data points with percentages. Write each metric as a separate sentence or paragraph. Examples:
+- "15.2% of Canadian businesses have adopted AI, up from 12.8% in August 2025"
+- "Personal AI usage in Canada reached 38.5% in September 2025"
+- "Financial services lead adoption at 24.3%, followed by technology at 22.1%"
+- "Manufacturing sector adoption grew 3.2 percentage points to 18.7%"
+
+SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
+
+CRITICAL: You MUST include ALL 6 SECTIONS. Section 5 (Canadian Business AI Adoption Metrics) is MANDATORY and must contain 3-5 separate statistics with percentages."""
+        
+        user_prompt = f"""Write an AI insights blog post for {month_year} with EXACTLY 6 sections in this order:
+
+1. Introduction paragraph (NO HEADING) - 1 paragraph
+2. Key AI Developments This Month - 15 separate items with dates
+3. Impact on Canadian Businesses - 1-2 paragraphs
+4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations, each starting with action words
+5. Canadian Business AI Adoption Metrics - 3-5 separate statistics with percentages (THIS IS MANDATORY)
+6. Conclusion - 1 paragraph
+
+CRITICAL REQUIREMENT FOR SECTION 5:
+Write 3-5 SEPARATE statistics about Canadian AI adoption. Each must include percentages. Format each as a separate sentence:
+
+"15.2% of Canadian businesses have adopted AI, up from 12.8% last month."
+"Personal AI usage in Canada reached 38.5%."
+"Financial services adoption is at 24.3%."
+"Manufacturing adoption grew to 18.7%."
+"Healthcare sector adoption reached 16.2%."
+
+DO NOT SKIP SECTION 5. It must have real statistics with percentage numbers."""
+
+    elif topic_type == "custom_ai":
+        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
+
+Create an AI insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
+
+SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
+
+SECTION 2 - HEADING "Key AI Developments": List 8-10 major points or developments related to "{topic}". Write each as a separate paragraph.
+
+SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how "{topic}" affects Canadian businesses
+
+SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each as a separate paragraph starting with action verbs.
+
+SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages about AI adoption in Canada related to "{topic}". Write each as a separate sentence with percentages.
+
+SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
+
+CRITICAL: You MUST include ALL 6 SECTIONS including Section 5 with adoption statistics."""
+        
+        user_prompt = f"""Write an AI insights blog post for Canadian business leaders about "{topic}".
+
+You MUST include EXACTLY 6 sections:
+1. Introduction paragraph (NO HEADING)
+2. Key AI Developments - 8-10 items about "{topic}"
+3. Impact on Canadian Businesses - analysis paragraphs
+4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations
+5. Canadian Business AI Adoption Metrics - 3-5 statistics with percentages (MANDATORY)
+6. Conclusion - strategic imperative
+
+For Section 5, include statistics like:
+"X% of Canadian businesses in [sector] use AI for {topic}"
+"Adoption of {topic} grew Y% in Canada"
+"Z% of Canadian leaders consider {topic} a priority"
+
+DO NOT SKIP SECTION 5."""
+
+    else:
+        system_prompt = f"""You are Robert Simon, a digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
+
+Create a business insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
+
+SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
+
+SECTION 2 - HEADING "Key Insights": List 8-10 major points, trends, or developments related to "{topic}". Write each as a separate paragraph.
+
+SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how "{topic}" affects Canadian businesses
+
+SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each as a separate paragraph starting with action verbs.
+
+SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages about how Canadian businesses are adopting or implementing aspects of "{topic}". Write each as a separate sentence with percentages.
+
+SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
+
+CRITICAL: You MUST include ALL 6 SECTIONS including Section 5 with adoption statistics."""
+        
+        user_prompt = f"""Write a business insights blog post for Canadian business leaders about "{topic}".
+
+You MUST include EXACTLY 6 sections:
+1. Introduction paragraph (NO HEADING)
+2. Key Insights - 8-10 items about "{topic}"
+3. Impact on Canadian Businesses - analysis paragraphs
+4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations
+5. Canadian Business AI Adoption Metrics - 3-5 statistics with percentages (MANDATORY)
+6. Conclusion - strategic imperative
+
+For Section 5, include statistics like:
+"X% of Canadian businesses have adopted [aspect of topic]"
+"Y% of Canadian companies report [metric related to topic]"
+"Adoption of [topic] in Canada grew Z%"
+
+DO NOT SKIP SECTION 5."""
+
+    for model in models_to_try:
+        print(f"Trying Perplexity model: {model} for topic type: {topic_type}")
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "max_tokens": 3000,
+            "temperature": 0.7
+        }
+        
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=60)
+            print(f"API status code: {response.status_code}")
+            
+            if response.status_code != 200:
+                print(f"Failed model {model}: {response.text}")
+                continue
+            
+            data = response.json()
+            if 'choices' in data and len(data['choices']) > 0:
+                content = data['choices'][0]['message']['content'].strip()
+                if not content:
+                    print("API returned empty content")
+                    continue
+                
+                cleaned_content = clean_perplexity_content(content)
+                
+                print(f"Content received from model {model} ({len(cleaned_content)} characters)")
+                return {
+                    "content": cleaned_content,
+                    "citations": data.get("citations", []),
+                    "usage": data.get("usage", {}),
+                    "topic_type": topic_type
+                }
+            else:
+                print(f"Unexpected response structure: {data}")
+                continue
+        
+        except requests.exceptions.RequestException as e:
+            print(f"Request exception with model {model}: {e}")
+            continue
+        except Exception as e:
+            print(f"Unexpected error with model {model}: {e}")
+            continue
+    
+    raise Exception("All Perplexity models failed to generate content")
+
+def parse_structured_content(content):
+    """Enhanced parsing that works with both AI insights and custom topics"""
+    sections = {
+        'introduction': '',
+        'developments': [],
+        'canadian_impact': '',
+        'recommendations': [],
+        'adoption_metrics': [],
+        'conclusion': ''
+    }
+    
+    content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)
+    content = re.sub(r'\*(.*?)\*', r'\1', content)
+    
+    print("DEBUG: Starting enhanced content parsing...")
+    print(f"DEBUG: Content length: {len(content)}")
+    
+    content_lower = content.lower()
+    
+    dev_patterns = [
+        'key ai development', 'ai development', 'major development', 
+        'technological advance', 'key developments', 'major ai',
+        'key insights', 'main insights', 'major insights',
+        'key points', 'main points', 'major points'
+    ]
+    
+    impact_patterns = [
+        'canadian business impact', 'impact on canadian', 'canadian impact',
+        'canadian business', 'impact on canada', 'business impact'
+    ]
+    
+    rec_patterns = [
+        'strategic recommendation', 'recommendation', 'strategic action',
+        'action step', 'strategic step', 'recommendations for'
+    ]
+    
+    adoption_patterns = [
+        'canadian business ai adoption', 'ai adoption metrics', 'adoption metrics',
+        'canadian ai adoption', 'adoption data', 'adoption statistics'
+    ]
+    
+    conclusion_patterns = [
+        'conclusion', 'strategic imperative', 'final thought',
+        'in conclusion', 'finally', 'key takeaway'
+    ]
+    
+    dev_start = -1
+    dev_end = -1
+    impact_start = -1
+    impact_end = -1
+    rec_start = -1
+    rec_end = -1
+    adoption_start = -1
+    adoption_end = -1
+    conclusion_start = -1
+    
+    for pattern in dev_patterns:
+        pos = content_lower.find(pattern)
+        if pos != -1:
+            dev_start = pos
+            break
+    
+    for pattern in impact_patterns:
+        pos = content_lower.find(pattern)
+        if pos != -1 and pos > dev_start:
+            impact_start = pos
+            dev_end = pos
+            break
+    
+    for pattern in rec_patterns:
+        pos = content_lower.find(pattern)
+        if pos != -1 and (impact_start == -1 or pos > impact_start):
+            rec_start = pos
+            if impact_start != -1:
+                impact_end = pos
+            break
+    
+    for pattern in adoption_patterns:
+        pos = content_lower.find(pattern)
+        if pos != -1 and (rec_start == -1 or pos > rec_start):
+            adoption_start = pos
+            if rec_start != -1:
+                rec_end = pos
+            break
+    
+    for pattern in conclusion_patterns:
+        pos = content_lower.find(pattern)
+        if pos != -1 and (adoption_start == -1 or pos > adoption_start):
+            conclusion_start = pos
+            if adoption_start != -1:
+                adoption_end = pos
+            break
+    
+    if rec_start != -1 and rec_end == -1:
+        if conclusion_start != -1:
+            rec_end = conclusion_start
+        else:
+            rec_end = len(content)
+    
+    if adoption_start != -1 and adoption_end == -1:
+        adoption_end = len(content)
+    
+    print(f"DEBUG: Section positions - dev:{dev_start}, impact:{impact_start}, rec:{rec_start}, adoption:{adoption_start}, conclusion:{conclusion_start}")
+    
+    if dev_start > 0:
+        sections['introduction'] = content[:dev_start].strip()
+    
+    if dev_start != -1 and dev_end != -1:
+        dev_text = content[dev_start:dev_end].strip()
+        sections['developments'] = parse_development_items(dev_text)
+    
+    if impact_start != -1 and impact_end != -1:
+        impact_text = content[impact_start:impact_end].strip()
+        for pattern in impact_patterns:
+            if pattern in impact_text.lower():
+                impact_text = re.sub(re.escape(pattern), '', impact_text, flags=re.IGNORECASE).strip()
+                break
+        sections['canadian_impact'] = impact_text
+    
+    if rec_start != -1 and rec_end != -1:
+        rec_text = content[rec_start:rec_end].strip()
+        sections['recommendations'] = parse_recommendation_items(rec_text)
+    
+    if adoption_start != -1 and adoption_end != -1:
+        adoption_text = content[adoption_start:adoption_end].strip()
+        sections['adoption_metrics'] = parse_adoption_metrics(adoption_text)
+    
+    if conclusion_start != -1:
+        conclusion_text = content[conclusion_start:].strip()
+        for pattern in conclusion_patterns:
+            if pattern in conclusion_text.lower():
+                conclusion_text = re.sub(re.escape(pattern), '', conclusion_text, flags=re.IGNORECASE).strip()
+                break
+        sections['conclusion'] = conclusion_text
+    
+    if not any([sections['developments'], sections['canadian_impact'], sections['recommendations']]):
+        print("WARNING: Primary parsing failed, trying enhanced paragraph-based parsing")
+        
+        paragraphs = [p.strip() for p in content.split('\n\n') if p.strip() and len(p.strip()) > 50]
+        
+        current_section = 'introduction'
+        for para in paragraphs:
+            para_lower = para.lower()
+            
+            if any(pattern in para_lower for pattern in dev_patterns):
+                current_section = 'developments'
+                continue
+            elif any(pattern in para_lower for pattern in impact_patterns):
+                current_section = 'canadian_impact'
+                continue
+            elif any(pattern in para_lower for pattern in rec_patterns):
+                current_section = 'recommendations'
+                continue
+            elif any(pattern in para_lower for pattern in adoption_patterns):
+                current_section = 'adoption_metrics'
+                continue
+            elif any(pattern in para_lower for pattern in conclusion_patterns):
+                current_section = 'conclusion'
+                continue
+            
+            if current_section == 'introduction' and not sections['introduction']:
+                sections['introduction'] = para
+            elif current_section == 'developments':
+                bullet_items = extract_bullets_from_paragraph(para)
+                sections['developments'].extend(bullet_items)
+            elif current_section == 'canadian_impact' and not sections['canadian_impact']:
+                sections['canadian_impact'] = para
+            elif current_section == 'recommendations':
+                rec_items = extract_bullets_from_paragraph(para)
+                sections['recommendations'].extend(rec_items)
+            elif current_section == 'adoption_metrics':
+                adoption_items = extract_bullets_from_paragraph(para)
+                sections['adoption_metrics'].extend(adoption_items)
+            elif current_section == 'conclusion' and not sections['conclusion']:
+                sections['conclusion'] = para
+    
+    return sections
+
+def extract_bullets_from_paragraph(paragraph):
+    """Extract bullet points from a paragraph that contains dashes or bullets"""
+    items = []
+    
+    lines = paragraph.split('. ')
+    for line in lines:
+        line = line.strip()
+        
+        if len(line) < 30:
+            continue
+            
+        line = re.sub(r'^[-•*]\s*[-•*]\s*', '', line)
+        line = re.sub(r'^[-•*]\s*', '', line)
+            
+        if any(marker in line for marker in ['Microsoft', 'Google', 'OpenAI', 'Anthropic', 'NVIDIA']):
+            clean_line = re.sub(r'^\d+\.\s*', '', line)
+            
+            if clean_line and len(clean_line) > 20:
+                items.append(clean_line)
+    
+    return items
+
+def parse_development_items(text):
+    """Parse development items with SMART period handling for abbreviations and version numbers"""
+    items = []
+    
+    lines = text.split('\n')
+    current_item = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        
+        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:10]):
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 50:
+                    items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if current_item:
+                current_item.append(line)
+            elif len(line) > 50:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 50:
+            items.append(item_text)
+    
+    if len(items) < 5:
+        smart_items = []
+        
+        protected_text = text
+        abbreviations = {
+            'U.S.': 'USPROTECTED',
+            'U.K.': 'UKPROTECTED', 
+            'E.U.': 'EUPROTECTED',
+            'A.I.': 'AIPROTECTED',
+            'Inc.': 'IncPROTECTED',
+            'Corp.': 'CorpPROTECTED'
+        }
+        
+        version_pattern = r'\b(\d+\.\d+)\b'
+        version_matches = re.findall(version_pattern, protected_text)
+        version_replacements = {}
+        for i, version in enumerate(version_matches):
+            replacement = f'VERSION{i}PROTECTED'
+            version_replacements[replacement] = version
+            protected_text = protected_text.replace(version, replacement)
+        
+        for abbrev, replacement in abbreviations.items():
+            protected_text = protected_text.replace(abbrev, replacement)
+
+        sentences = re.split(r'[.!?]+', protected_text)
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            
+            for replacement, original in abbreviations.items():
+                sentence = sentence.replace(replacement, original)
+            for replacement, original in version_replacements.items():
+                sentence = sentence.replace(replacement, original)
+            
+            if (len(sentence) > 50 and 
+                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
+                not re.match(r'^\d+\.\s', sentence)):
+                smart_items.append(sentence)
+        
+        if len(smart_items) >= len(items):
+            items = smart_items
+    
+    filtered_items = []
+    for item in items:
+        item_lower = item.lower()
+        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
+            filtered_items.append(item)
+            
+    return filtered_items[:15]
+
+def parse_recommendation_items(text):
+    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
+    items = []
+    
+    header_keywords = [
+        'strategic recommendation', 
+        'recommendations for canadian leaders',
+        'recommendations for', 
+        'strategic action',
+        'for canadian leaders',
+        'for canadian business',
+        'action steps'
+    ]
+    
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        line_lower = line.strip().lower()
+        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
+            cleaned_lines.append(line.strip())
+    
+    text = '\n'.join(cleaned_lines)
+    
+    current_item = []
+    
+    for line in cleaned_lines:
+        if not line:
+            continue
+        
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
+        
+        if is_list_number:
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 30:
+                    items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if len(line) > 30 and ':' in line and not current_item:
+                current_item = [line]
+            elif current_item:
+                current_item.append(line)
+            elif len(line) > 30:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 30:
+            items.append(item_text)
+    
+    if len(items) < 3:
+        paragraphs = []
+        current_para = []
+        
+        for line in cleaned_lines:
+            if not line:
+                if current_para:
+                    paragraphs.append(' '.join(current_para))
+                    current_para = []
+            else:
+                if current_para and len(line) > 30 and line[0].isupper():
+                    paragraphs.append(' '.join(current_para))
+                    current_para = [line]
+                else:
+                    current_para.append(line)
+        
+        if current_para:
+            paragraphs.append(' '.join(current_para))
+        
+        paragraph_items = []
+        for para in paragraphs:
+            para = para.strip()
+            if len(para) > 30:
+                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
+                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
+                               'strengthen', 'leverage', 'foster', 'collaborate']
+                
+                para_lower = para.lower()
+                if any(word in para_lower for word in action_words):
+                    paragraph_items.append(para)
+        
+        if len(paragraph_items) > len(items):
+            items = paragraph_items
+    
+    return items[:5]
+
+def parse_adoption_metrics(text):
+    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
+    items = []
+    
+    lines = text.split('\n')
+    current_item = []
+    
+    header_keywords = [
+        'canadian business ai adoption',
+        'ai adoption metrics',
+        'adoption metrics',
+        'adoption statistics'
+    ]
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        line_lower = line.lower()
+        if any(header in line_lower for header in header_keywords):
+            continue
+            
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        
+        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 20:
+                    item_lower = item_text.lower()
+                    if not any(header in item_lower for header in header_keywords):
+                        items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
             if current_item:
                 current_item.append(line)
             elif len(line) > 20:
@@ -65,8 +671,6 @@ def clean_perplexity_content(content):
                 items.append(item_text)
     
     if len(items) < 2:
-        print("DEBUG: Numbered list parsing found < 2 adoption items, trying sentence-based parsing")
-        
         sentences = []
         current_sentence = []
         
@@ -102,10 +706,6 @@ def clean_perplexity_content(content):
         
         if len(sentence_items) > len(items):
             items = sentence_items
-    
-    print(f"DEBUG parse_adoption_metrics: Found {len(items)} items")
-    for i, item in enumerate(items[:3]):
-        print(f"DEBUG adoption item {i+1}: {item[:100]}...")
     
     return items[:5]
 
@@ -170,646 +770,7 @@ def extract_title_and_excerpt(content):
             line_lower = line.lower()
             if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
                 clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+
-            line = re.sub(r'^[•\-–—]+\s*', '', line)
-            line = re.sub(r'\s*[•\-–—]+$', '', line)
-            line = re.sub(r':\s*[•\-–—]+\s*([A-Z])', r': \1', line)
-            line = re.sub(r'[•\-–—]+\s*:\s*([A-Z])', r': \1', line)
-            line = re.sub(r'^:\s*([A-Z][^:]*?)\s*:•', r'\1:', line)
-            if line:
-                cleaned_lines.append(line)
-    
-    content = '\n'.join(cleaned_lines)
-    content = re.sub(r' +', ' ', content)
-    content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
-    return content.strip()
-
-def generate_blog_with_perplexity(api_key, topic=None):
-    """Generate blog content using Perplexity API"""
-    current_date = datetime.now()
-    month_year = current_date.strftime("%B %Y")
-    
-    if not topic:
-        topic_type = "monthly_ai"
-        topic = f"Latest AI developments and technology launches since last month - {month_year} focus on Canadian business impact"
-    else:
-        topic_lower = topic.lower()
-        ai_keywords = ['ai', 'artificial intelligence', 'machine learning', 'automation', 'technology', 'digital', 'innovation']
-        if any(keyword in topic_lower for keyword in ai_keywords):
-            topic_type = "custom_ai"
-        else:
-            topic_type = "custom_business"
-    
-    url = "https://api.perplexity.ai/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    
-    models_to_try = ["sonar-pro", "sonar-medium-online", "sonar-small-online"]
-    
-    if topic_type == "monthly_ai":
-        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
-
-Create a monthly AI insights post for {month_year} with EXACTLY these 6 sections in this EXACT order:
-
-SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
-
-SECTION 2 - HEADING "Key AI Developments This Month": List exactly 15 major AI developments from the past month with specific dates and company names. Write each as a separate paragraph or bullet point.
-
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how these developments affect Canadian businesses
-
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each recommendation as a separate paragraph starting with an action verb like "Prioritize", "Invest", "Develop", "Establish", or "Implement".
-
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 separate data points with percentages. Write each metric as a separate sentence or paragraph. Examples:
-- "15.2% of Canadian businesses have adopted AI, up from 12.8% in August 2025"
-- "Personal AI usage in Canada reached 38.5% in September 2025"
-- "Financial services lead adoption at 24.3%, followed by technology at 22.1%"
-- "Manufacturing sector adoption grew 3.2 percentage points to 18.7%"
-
-SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
-
-CRITICAL: You MUST include ALL 6 SECTIONS. Section 5 (Canadian Business AI Adoption Metrics) is MANDATORY and must contain 3-5 separate statistics with percentages."""
-        
-        user_prompt = f"""Write an AI insights blog post for {month_year} with EXACTLY 6 sections in this order:
-
-1. Introduction paragraph (NO HEADING) - 1 paragraph
-2. Key AI Developments This Month - 15 separate items with dates
-3. Impact on Canadian Businesses - 1-2 paragraphs
-4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations, each starting with action words
-5. Canadian Business AI Adoption Metrics - 3-5 separate statistics with percentages (THIS IS MANDATORY)
-6. Conclusion - 1 paragraph
-
-CRITICAL REQUIREMENT FOR SECTION 5:
-Write 3-5 SEPARATE statistics about Canadian AI adoption. Each must include percentages. Format each as a separate sentence:
-
-"15.2% of Canadian businesses have adopted AI, up from 12.8% last month."
-"Personal AI usage in Canada reached 38.5%."
-"Financial services adoption is at 24.3%."
-"Manufacturing adoption grew to 18.7%."
-"Healthcare sector adoption reached 16.2%."
-
-DO NOT SKIP SECTION 5. It must have real statistics with percentage numbers."""
-
-    elif topic_type == "custom_ai":
-        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
-
-Create an AI insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
-
-SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
-
-SECTION 2 - HEADING "Key AI Developments": List 8-10 major points or developments related to "{topic}". Write each as a separate paragraph.
-
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how "{topic}" affects Canadian businesses
-
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each as a separate paragraph starting with action verbs.
-
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages about AI adoption in Canada related to "{topic}". Write each as a separate sentence with percentages.
-
-SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
-
-CRITICAL: You MUST include ALL 6 SECTIONS including Section 5 with adoption statistics."""
-        
-        user_prompt = f"""Write an AI insights blog post for Canadian business leaders about "{topic}".
-
-You MUST include EXACTLY 6 sections:
-1. Introduction paragraph (NO HEADING)
-2. Key AI Developments - 8-10 items about "{topic}"
-3. Impact on Canadian Businesses - analysis paragraphs
-4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations
-5. Canadian Business AI Adoption Metrics - 3-5 statistics with percentages (MANDATORY)
-6. Conclusion - strategic imperative
-
-For Section 5, include statistics like:
-"X% of Canadian businesses in [sector] use AI for {topic}"
-"Adoption of {topic} grew Y% in Canada"
-"Z% of Canadian leaders consider {topic} a priority"
-
-DO NOT SKIP SECTION 5."""
-
-    else:
-        system_prompt = f"""You are Robert Simon, a digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
-
-Create a business insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
-
-SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
-
-SECTION 2 - HEADING "Key Insights": List 8-10 major points, trends, or developments related to "{topic}". Write each as a separate paragraph.
-
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how "{topic}" affects Canadian businesses
-
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each as a separate paragraph starting with action verbs.
-
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages about how Canadian businesses are adopting or implementing aspects of "{topic}". Write each as a separate sentence with percentages.
-
-SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
-
-CRITICAL: You MUST include ALL 6 SECTIONS including Section 5 with adoption statistics."""
-        
-        user_prompt = f"""Write a business insights blog post for Canadian business leaders about "{topic}".
-
-You MUST include EXACTLY 6 sections:
-1. Introduction paragraph (NO HEADING)
-2. Key Insights - 8-10 items about "{topic}"
-3. Impact on Canadian Businesses - analysis paragraphs
-4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations
-5. Canadian Business AI Adoption Metrics - 3-5 statistics with percentages (MANDATORY)
-6. Conclusion - strategic imperative
-
-For Section 5, include statistics like:
-"X% of Canadian businesses have adopted [aspect of topic]"
-"Y% of Canadian companies report [metric related to topic]"
-"Adoption of [topic] in Canada grew Z%"
-
-DO NOT SKIP SECTION 5."""
-
-    for model in models_to_try:
-        print(f"Trying Perplexity model: {model} for topic type: {topic_type}")
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "max_tokens": 3000,
-            "temperature": 0.7
-        }
-        
-        try:
-            response = requests.post(url, json=payload, headers=headers, timeout=60)
-            print(f"API status code: {response.status_code}")
-            
-            if response.status_code != 200:
-                print(f"Failed model {model}: {response.text}")
-                continue
-            
-            data = response.json()
-            if 'choices' in data and len(data['choices']) > 0:
-                content = data['choices'][0]['message']['content'].strip()
-                if not content:
-                    print("API returned empty content")
-                    continue
-                
-                cleaned_content = clean_perplexity_content(content)
-                
-                print(f"Content received from model {model} ({len(cleaned_content)} characters)")
-                return {
-                    "content": cleaned_content,
-                    "citations": data.get("citations", []),
-                    "usage": data.get("usage", {}),
-                    "topic_type": topic_type
-                }
-            else:
-                print(f"Unexpected response structure: {data}")
-                continue
-        
-        except requests.exceptions.RequestException as e:
-            print(f"Request exception with model {model}: {e}")
-            continue
-        except Exception as e:
-            print(f"Unexpected error with model {model}: {e}")
-            continue
-    
-    raise Exception("All Perplexity models failed to generate content")
-
-def parse_structured_content(content):
-    """Enhanced parsing that works with both AI insights and custom topics"""
-    sections = {
-        'introduction': '',
-        'developments': [],
-        'canadian_impact': '',
-        'recommendations': [],
-        'adoption_metrics': [],
-        'conclusion': ''
-    }
-    
-    content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)
-    content = re.sub(r'\*(.*?)\*', r'\1', content)
-    
-    print("DEBUG: Starting enhanced content parsing...")
-    print(f"DEBUG: Content length: {len(content)}")
-    
-    content_lower = content.lower()
-    
-    dev_patterns = [
-        'key ai development', 'ai development', 'major development', 
-        'technological advance', 'key developments', 'major ai',
-        'key insights', 'main insights', 'major insights',
-        'key points', 'main points', 'major points'
-    ]
-    
-    impact_patterns = [
-        'canadian business impact', 'impact on canadian', 'canadian impact',
-        'canadian business', 'impact on canada', 'business impact'
-    ]
-    
-    rec_patterns = [
-        'strategic recommendation', 'recommendation', 'strategic action',
-        'action step', 'strategic step', 'recommendations for'
-    ]
-    
-    adoption_patterns = [
-        'canadian business ai adoption', 'ai adoption metrics', 'adoption metrics',
-        'canadian ai adoption', 'adoption data', 'adoption statistics'
-    ]
-    
-    conclusion_patterns = [
-        'conclusion', 'strategic imperative', 'final thought',
-        'in conclusion', 'finally', 'key takeaway'
-    ]
-    
-    dev_start = -1
-    dev_end = -1
-    impact_start = -1
-    impact_end = -1
-    rec_start = -1
-    rec_end = -1
-    adoption_start = -1
-    adoption_end = -1
-    conclusion_start = -1
-    
-    for pattern in dev_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1:
-            dev_start = pos
-            break
-    
-    for pattern in impact_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and pos > dev_start:
-            impact_start = pos
-            dev_end = pos
-            break
-    
-    for pattern in rec_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and (impact_start == -1 or pos > impact_start):
-            rec_start = pos
-            if impact_start != -1:
-                impact_end = pos
-            break
-    
-    for pattern in adoption_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and (rec_start == -1 or pos > rec_start):
-            adoption_start = pos
-            if rec_start != -1:
-                rec_end = pos
-            break
-    
-    for pattern in conclusion_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and (adoption_start == -1 or pos > adoption_start):
-            conclusion_start = pos
-            if adoption_start != -1:
-                adoption_end = pos
-            break
-    
-    if rec_start != -1 and rec_end == -1:
-        if conclusion_start != -1:
-            rec_end = conclusion_start
-        else:
-            rec_end = len(content)
-    
-    if adoption_start != -1 and adoption_end == -1:
-        adoption_end = len(content)
-    
-    print(f"DEBUG: Section positions - dev:{dev_start}, impact:{impact_start}, rec:{rec_start}, adoption:{adoption_start}, conclusion:{conclusion_start}")
-    
-    if dev_start != -1:
-        print(f"DEBUG: Dev section header: '{content[dev_start:dev_start+50]}'")
-    if impact_start != -1:
-        print(f"DEBUG: Impact section header: '{content[impact_start:impact_start+50]}'")
-    if rec_start != -1:
-        print(f"DEBUG: Rec section header: '{content[rec_start:rec_start+50]}'")
-    if adoption_start != -1:
-        print(f"DEBUG: Adoption section header: '{content[adoption_start:adoption_start+50]}'")
-    if conclusion_start != -1:
-        print(f"DEBUG: Conclusion section header: '{content[conclusion_start:conclusion_start+50]}'")
-    
-    if dev_start > 0:
-        sections['introduction'] = content[:dev_start].strip()
-    
-    if dev_start != -1 and dev_end != -1:
-        dev_text = content[dev_start:dev_end].strip()
-        sections['developments'] = parse_development_items(dev_text)
-    
-    if impact_start != -1 and impact_end != -1:
-        impact_text = content[impact_start:impact_end].strip()
-        for pattern in impact_patterns:
-            if pattern in impact_text.lower():
-                impact_text = re.sub(re.escape(pattern), '', impact_text, flags=re.IGNORECASE).strip()
-                break
-        sections['canadian_impact'] = impact_text
-    
-    if rec_start != -1 and rec_end != -1:
-        rec_text = content[rec_start:rec_end].strip()
-        print(f"DEBUG: Raw rec text length: {len(rec_text)}")
-        print(f"DEBUG: First 200 chars of rec text: '{rec_text[:200]}'")
-        sections['recommendations'] = parse_recommendation_items(rec_text)
-        print(f"DEBUG: Parsed {len(sections['recommendations'])} recommendations")
-    else:
-        print(f"DEBUG: Recommendations section NOT FOUND - rec_start={rec_start}, rec_end={rec_end}")
-    
-    if adoption_start != -1 and adoption_end != -1:
-        adoption_text = content[adoption_start:adoption_end].strip()
-        print(f"DEBUG: Found adoption section from pos {adoption_start} to {adoption_end}")
-        print(f"DEBUG: Adoption text preview: {adoption_text[:200]}...")
-        sections['adoption_metrics'] = parse_adoption_metrics(adoption_text)
-    else:
-        print("DEBUG: Adoption metrics section NOT FOUND in content")
-        print(f"DEBUG: Looking for patterns: {adoption_patterns}")
-        if 'adoption' in content_lower:
-            print("DEBUG: Word 'adoption' exists in content but section not matched")
-            adoption_mentions = [i for i, word in enumerate(content_lower.split()) if 'adoption' in word]
-            print(f"DEBUG: 'adoption' appears at word positions: {adoption_mentions[:5]}")
-    
-    if conclusion_start != -1:
-        conclusion_text = content[conclusion_start:].strip()
-        for pattern in conclusion_patterns:
-            if pattern in conclusion_text.lower():
-                conclusion_text = re.sub(re.escape(pattern), '', conclusion_text, flags=re.IGNORECASE).strip()
-                break
-        sections['conclusion'] = conclusion_text
-    
-    if not any([sections['developments'], sections['canadian_impact'], sections['recommendations']]):
-        print("WARNING: Primary parsing failed, trying enhanced paragraph-based parsing")
-        
-        paragraphs = [p.strip() for p in content.split('\n\n') if p.strip() and len(p.strip()) > 50]
-        
-        current_section = 'introduction'
-        for para in paragraphs:
-            para_lower = para.lower()
-            
-            if any(pattern in para_lower for pattern in dev_patterns):
-                current_section = 'developments'
-                continue
-            elif any(pattern in para_lower for pattern in impact_patterns):
-                current_section = 'canadian_impact'
-                continue
-            elif any(pattern in para_lower for pattern in rec_patterns):
-                current_section = 'recommendations'
-                continue
-            elif any(pattern in para_lower for pattern in adoption_patterns):
-                current_section = 'adoption_metrics'
-                continue
-            elif any(pattern in para_lower for pattern in conclusion_patterns):
-                current_section = 'conclusion'
-                continue
-            
-            if current_section == 'introduction' and not sections['introduction']:
-                sections['introduction'] = para
-            elif current_section == 'developments':
-                bullet_items = extract_bullets_from_paragraph(para)
-                sections['developments'].extend(bullet_items)
-            elif current_section == 'canadian_impact' and not sections['canadian_impact']:
-                sections['canadian_impact'] = para
-            elif current_section == 'recommendations':
-                rec_items = extract_bullets_from_paragraph(para)
-                sections['recommendations'].extend(rec_items)
-            elif current_section == 'adoption_metrics':
-                adoption_items = extract_bullets_from_paragraph(para)
-                sections['adoption_metrics'].extend(adoption_items)
-            elif current_section == 'conclusion' and not sections['conclusion']:
-                sections['conclusion'] = para
-    
-    print(f"DEBUG: Final parsed sections - intro: {bool(sections['introduction'])}, dev: {len(sections['developments'])}, impact: {bool(sections['canadian_impact'])}, rec: {len(sections['recommendations'])}, adoption: {len(sections['adoption_metrics'])}, conc: {bool(sections['conclusion'])}")
-    
-    return sections
-
-def extract_bullets_from_paragraph(paragraph):
-    """Extract bullet points from a paragraph that contains dashes or bullets"""
-    items = []
-    
-    lines = paragraph.split('. ')
-    for line in lines:
-        line = line.strip()
-        
-        if len(line) < 30:
-            continue
-            
-        line = re.sub(r'^[-•*]\s*[-•*]\s*', '', line)
-        line = re.sub(r'^[-•*]\s*', '', line)
-            
-        if any(marker in line for marker in ['Microsoft', 'Google', 'OpenAI', 'Anthropic', 'NVIDIA']):
-            clean_line = re.sub(r'^\d+\.\s*', '', line)
-            
-            if clean_line and len(clean_line) > 20:
-                items.append(clean_line)
-    
-    return items
-
-def parse_development_items(text):
-    """Parse development items with SMART period handling for abbreviations and version numbers"""
-    items = []
-    
-    lines = text.split('\n')
-    current_item = []
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-            
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        
-        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:10]):
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 50:
-                    items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if current_item:
-                current_item.append(line)
-            elif len(line) > 50:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(current_item).strip()
-        if len(item_text) > 50:
-            items.append(item_text)
-    
-    if len(items) < 5:
-        smart_items = []
-        
-        protected_text = text
-        abbreviations = {
-            'U.S.': 'USPROTECTED',
-            'U.K.': 'UKPROTECTED', 
-            'E.U.': 'EUPROTECTED',
-            'A.I.': 'AIPROTECTED',
-            'Inc.': 'IncPROTECTED',
-            'Corp.': 'CorpPROTECTED'
-        }
-        
-        version_pattern = r'\b(\d+\.\d+)\b'
-        version_matches = re.findall(version_pattern, protected_text)
-        version_replacements = {}
-        for i, version in enumerate(version_matches):
-            replacement = f'VERSION{i}PROTECTED'
-            version_replacements[replacement] = version
-            protected_text = protected_text.replace(version, replacement)
-        
-        for abbrev, replacement in abbreviations.items():
-            protected_text = protected_text.replace(abbrev, replacement)
-
-        sentences = re.split(r'[.!?]+', protected_text)
-        
-        for sentence in sentences:
-            sentence = sentence.strip()
-            
-            for replacement, original in abbreviations.items():
-                sentence = sentence.replace(replacement, original)
-            for replacement, original in version_replacements.items():
-                sentence = sentence.replace(replacement, original)
-            
-            if (len(sentence) > 50 and 
-                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
-                not re.match(r'^\d+\.\s', sentence)):
-                smart_items.append(sentence)
-        
-        if len(smart_items) >= len(items):
-            items = smart_items
-    
-    filtered_items = []
-    for item in items:
-        item_lower = item.lower()
-        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
-            filtered_items.append(item)
-            
-    return filtered_items[:15]
-
-def parse_recommendation_items(text):
-    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    header_keywords = [
-        'strategic recommendation', 
-        'recommendations for canadian leaders',
-        'recommendations for', 
-        'strategic action',
-        'for canadian leaders',
-        'for canadian business',
-        'action steps'
-    ]
-    
-    lines = text.split('\n')
-    cleaned_lines = []
-    for line in lines:
-        line_lower = line.strip().lower()
-        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
-            cleaned_lines.append(line.strip())
-    
-    text = '\n'.join(cleaned_lines)
-    
-    current_item = []
-    
-    for line in cleaned_lines:
-        if not line:
-            continue
-        
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
-        
-        if is_list_number:
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 30:
-                    items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if len(line) > 30 and ':' in line and not current_item:
-                current_item = [line]
-            elif current_item:
-                current_item.append(line)
-            elif len(line) > 30:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(current_item).strip()
-        if len(item_text) > 30:
-            items.append(item_text)
-    
-    if len(items) < 3:
-        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
-        
-        paragraphs = []
-        current_para = []
-        
-        for line in cleaned_lines:
-            if not line:
-                if current_para:
-                    paragraphs.append(' '.join(current_para))
-                    current_para = []
-            else:
-                if current_para and len(line) > 30 and line[0].isupper():
-                    paragraphs.append(' '.join(current_para))
-                    current_para = [line]
-                else:
-                    current_para.append(line)
-        
-        if current_para:
-            paragraphs.append(' '.join(current_para))
-        
-        paragraph_items = []
-        for para in paragraphs:
-            para = para.strip()
-            if len(para) > 30:
-                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
-                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
-                               'strengthen', 'leverage', 'foster', 'collaborate']
-                
-                para_lower = para.lower()
-                if any(word in para_lower for word in action_words):
-                    paragraph_items.append(para)
-        
-        if len(paragraph_items) > len(items):
-            items = paragraph_items
-    
-    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
-    for i, item in enumerate(items[:3]):
-        print(f"DEBUG rec item {i+1}: {item[:100]}...")
-    
-    return items[:5]
-
-def parse_adoption_metrics(text):
-    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    lines = text.split('\n')
-    current_item = []
-    
-    header_keywords = [
-        'canadian business ai adoption',
-        'ai adoption metrics',
-        'adoption metrics',
-        'adoption statistics'
-    ]
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        
-        line_lower = line.lower()
-        if any(header in line_lower for header in header_keywords):
-            continue
-            
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        
-        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 20:
-                    item_lower = item_text.lower()
-                    if not any(header in item_lower for header in header_keywords):
-                        items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:, '', clean_title)
+                clean_title = re.sub(r'\s*[•\-–—:]+, '', clean_title)
                 clean_title = re.sub(r'[•\-–—]', '', clean_title)
                 clean_title = clean_title.strip()
                 
@@ -828,646 +789,7 @@ def parse_adoption_metrics(text):
             header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
             if not any(header in line.lower() for header in header_keywords):
                 clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_excerpt = re.sub(r'\s*[•\-–—:]+
-            line = re.sub(r'^[•\-–—]+\s*', '', line)
-            line = re.sub(r'\s*[•\-–—]+$', '', line)
-            line = re.sub(r':\s*[•\-–—]+\s*([A-Z])', r': \1', line)
-            line = re.sub(r'[•\-–—]+\s*:\s*([A-Z])', r': \1', line)
-            line = re.sub(r'^:\s*([A-Z][^:]*?)\s*:•', r'\1:', line)
-            if line:
-                cleaned_lines.append(line)
-    
-    content = '\n'.join(cleaned_lines)
-    content = re.sub(r' +', ' ', content)
-    content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
-    return content.strip()
-
-def generate_blog_with_perplexity(api_key, topic=None):
-    """Generate blog content using Perplexity API"""
-    current_date = datetime.now()
-    month_year = current_date.strftime("%B %Y")
-    
-    if not topic:
-        topic_type = "monthly_ai"
-        topic = f"Latest AI developments and technology launches since last month - {month_year} focus on Canadian business impact"
-    else:
-        topic_lower = topic.lower()
-        ai_keywords = ['ai', 'artificial intelligence', 'machine learning', 'automation', 'technology', 'digital', 'innovation']
-        if any(keyword in topic_lower for keyword in ai_keywords):
-            topic_type = "custom_ai"
-        else:
-            topic_type = "custom_business"
-    
-    url = "https://api.perplexity.ai/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    
-    models_to_try = ["sonar-pro", "sonar-medium-online", "sonar-small-online"]
-    
-    if topic_type == "monthly_ai":
-        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
-
-Create a monthly AI insights post for {month_year} with EXACTLY these 6 sections in this EXACT order:
-
-SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
-
-SECTION 2 - HEADING "Key AI Developments This Month": List exactly 15 major AI developments from the past month with specific dates and company names. Write each as a separate paragraph or bullet point.
-
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how these developments affect Canadian businesses
-
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each recommendation as a separate paragraph starting with an action verb like "Prioritize", "Invest", "Develop", "Establish", or "Implement".
-
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 separate data points with percentages. Write each metric as a separate sentence or paragraph. Examples:
-- "15.2% of Canadian businesses have adopted AI, up from 12.8% in August 2025"
-- "Personal AI usage in Canada reached 38.5% in September 2025"
-- "Financial services lead adoption at 24.3%, followed by technology at 22.1%"
-- "Manufacturing sector adoption grew 3.2 percentage points to 18.7%"
-
-SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
-
-CRITICAL: You MUST include ALL 6 SECTIONS. Section 5 (Canadian Business AI Adoption Metrics) is MANDATORY and must contain 3-5 separate statistics with percentages."""
-        
-        user_prompt = f"""Write an AI insights blog post for {month_year} with EXACTLY 6 sections in this order:
-
-1. Introduction paragraph (NO HEADING) - 1 paragraph
-2. Key AI Developments This Month - 15 separate items with dates
-3. Impact on Canadian Businesses - 1-2 paragraphs
-4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations, each starting with action words
-5. Canadian Business AI Adoption Metrics - 3-5 separate statistics with percentages (THIS IS MANDATORY)
-6. Conclusion - 1 paragraph
-
-CRITICAL REQUIREMENT FOR SECTION 5:
-Write 3-5 SEPARATE statistics about Canadian AI adoption. Each must include percentages. Format each as a separate sentence:
-
-"15.2% of Canadian businesses have adopted AI, up from 12.8% last month."
-"Personal AI usage in Canada reached 38.5%."
-"Financial services adoption is at 24.3%."
-"Manufacturing adoption grew to 18.7%."
-"Healthcare sector adoption reached 16.2%."
-
-DO NOT SKIP SECTION 5. It must have real statistics with percentage numbers."""
-
-    elif topic_type == "custom_ai":
-        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
-
-Create an AI insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
-
-SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
-
-SECTION 2 - HEADING "Key AI Developments": List 8-10 major points or developments related to "{topic}". Write each as a separate paragraph.
-
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how "{topic}" affects Canadian businesses
-
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each as a separate paragraph starting with action verbs.
-
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages about AI adoption in Canada related to "{topic}". Write each as a separate sentence with percentages.
-
-SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
-
-CRITICAL: You MUST include ALL 6 SECTIONS including Section 5 with adoption statistics."""
-        
-        user_prompt = f"""Write an AI insights blog post for Canadian business leaders about "{topic}".
-
-You MUST include EXACTLY 6 sections:
-1. Introduction paragraph (NO HEADING)
-2. Key AI Developments - 8-10 items about "{topic}"
-3. Impact on Canadian Businesses - analysis paragraphs
-4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations
-5. Canadian Business AI Adoption Metrics - 3-5 statistics with percentages (MANDATORY)
-6. Conclusion - strategic imperative
-
-For Section 5, include statistics like:
-"X% of Canadian businesses in [sector] use AI for {topic}"
-"Adoption of {topic} grew Y% in Canada"
-"Z% of Canadian leaders consider {topic} a priority"
-
-DO NOT SKIP SECTION 5."""
-
-    else:
-        system_prompt = f"""You are Robert Simon, a digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
-
-Create a business insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
-
-SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
-
-SECTION 2 - HEADING "Key Insights": List 8-10 major points, trends, or developments related to "{topic}". Write each as a separate paragraph.
-
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how "{topic}" affects Canadian businesses
-
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each as a separate paragraph starting with action verbs.
-
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages about how Canadian businesses are adopting or implementing aspects of "{topic}". Write each as a separate sentence with percentages.
-
-SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
-
-CRITICAL: You MUST include ALL 6 SECTIONS including Section 5 with adoption statistics."""
-        
-        user_prompt = f"""Write a business insights blog post for Canadian business leaders about "{topic}".
-
-You MUST include EXACTLY 6 sections:
-1. Introduction paragraph (NO HEADING)
-2. Key Insights - 8-10 items about "{topic}"
-3. Impact on Canadian Businesses - analysis paragraphs
-4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations
-5. Canadian Business AI Adoption Metrics - 3-5 statistics with percentages (MANDATORY)
-6. Conclusion - strategic imperative
-
-For Section 5, include statistics like:
-"X% of Canadian businesses have adopted [aspect of topic]"
-"Y% of Canadian companies report [metric related to topic]"
-"Adoption of [topic] in Canada grew Z%"
-
-DO NOT SKIP SECTION 5."""
-
-    for model in models_to_try:
-        print(f"Trying Perplexity model: {model} for topic type: {topic_type}")
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "max_tokens": 3000,
-            "temperature": 0.7
-        }
-        
-        try:
-            response = requests.post(url, json=payload, headers=headers, timeout=60)
-            print(f"API status code: {response.status_code}")
-            
-            if response.status_code != 200:
-                print(f"Failed model {model}: {response.text}")
-                continue
-            
-            data = response.json()
-            if 'choices' in data and len(data['choices']) > 0:
-                content = data['choices'][0]['message']['content'].strip()
-                if not content:
-                    print("API returned empty content")
-                    continue
-                
-                cleaned_content = clean_perplexity_content(content)
-                
-                print(f"Content received from model {model} ({len(cleaned_content)} characters)")
-                return {
-                    "content": cleaned_content,
-                    "citations": data.get("citations", []),
-                    "usage": data.get("usage", {}),
-                    "topic_type": topic_type
-                }
-            else:
-                print(f"Unexpected response structure: {data}")
-                continue
-        
-        except requests.exceptions.RequestException as e:
-            print(f"Request exception with model {model}: {e}")
-            continue
-        except Exception as e:
-            print(f"Unexpected error with model {model}: {e}")
-            continue
-    
-    raise Exception("All Perplexity models failed to generate content")
-
-def parse_structured_content(content):
-    """Enhanced parsing that works with both AI insights and custom topics"""
-    sections = {
-        'introduction': '',
-        'developments': [],
-        'canadian_impact': '',
-        'recommendations': [],
-        'adoption_metrics': [],
-        'conclusion': ''
-    }
-    
-    content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)
-    content = re.sub(r'\*(.*?)\*', r'\1', content)
-    
-    print("DEBUG: Starting enhanced content parsing...")
-    print(f"DEBUG: Content length: {len(content)}")
-    
-    content_lower = content.lower()
-    
-    dev_patterns = [
-        'key ai development', 'ai development', 'major development', 
-        'technological advance', 'key developments', 'major ai',
-        'key insights', 'main insights', 'major insights',
-        'key points', 'main points', 'major points'
-    ]
-    
-    impact_patterns = [
-        'canadian business impact', 'impact on canadian', 'canadian impact',
-        'canadian business', 'impact on canada', 'business impact'
-    ]
-    
-    rec_patterns = [
-        'strategic recommendation', 'recommendation', 'strategic action',
-        'action step', 'strategic step', 'recommendations for'
-    ]
-    
-    adoption_patterns = [
-        'canadian business ai adoption', 'ai adoption metrics', 'adoption metrics',
-        'canadian ai adoption', 'adoption data', 'adoption statistics'
-    ]
-    
-    conclusion_patterns = [
-        'conclusion', 'strategic imperative', 'final thought',
-        'in conclusion', 'finally', 'key takeaway'
-    ]
-    
-    dev_start = -1
-    dev_end = -1
-    impact_start = -1
-    impact_end = -1
-    rec_start = -1
-    rec_end = -1
-    adoption_start = -1
-    adoption_end = -1
-    conclusion_start = -1
-    
-    for pattern in dev_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1:
-            dev_start = pos
-            break
-    
-    for pattern in impact_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and pos > dev_start:
-            impact_start = pos
-            dev_end = pos
-            break
-    
-    for pattern in rec_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and (impact_start == -1 or pos > impact_start):
-            rec_start = pos
-            if impact_start != -1:
-                impact_end = pos
-            break
-    
-    for pattern in adoption_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and (rec_start == -1 or pos > rec_start):
-            adoption_start = pos
-            if rec_start != -1:
-                rec_end = pos
-            break
-    
-    for pattern in conclusion_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and (adoption_start == -1 or pos > adoption_start):
-            conclusion_start = pos
-            if adoption_start != -1:
-                adoption_end = pos
-            break
-    
-    if rec_start != -1 and rec_end == -1:
-        if conclusion_start != -1:
-            rec_end = conclusion_start
-        else:
-            rec_end = len(content)
-    
-    if adoption_start != -1 and adoption_end == -1:
-        adoption_end = len(content)
-    
-    print(f"DEBUG: Section positions - dev:{dev_start}, impact:{impact_start}, rec:{rec_start}, adoption:{adoption_start}, conclusion:{conclusion_start}")
-    
-    if dev_start != -1:
-        print(f"DEBUG: Dev section header: '{content[dev_start:dev_start+50]}'")
-    if impact_start != -1:
-        print(f"DEBUG: Impact section header: '{content[impact_start:impact_start+50]}'")
-    if rec_start != -1:
-        print(f"DEBUG: Rec section header: '{content[rec_start:rec_start+50]}'")
-    if adoption_start != -1:
-        print(f"DEBUG: Adoption section header: '{content[adoption_start:adoption_start+50]}'")
-    if conclusion_start != -1:
-        print(f"DEBUG: Conclusion section header: '{content[conclusion_start:conclusion_start+50]}'")
-    
-    if dev_start > 0:
-        sections['introduction'] = content[:dev_start].strip()
-    
-    if dev_start != -1 and dev_end != -1:
-        dev_text = content[dev_start:dev_end].strip()
-        sections['developments'] = parse_development_items(dev_text)
-    
-    if impact_start != -1 and impact_end != -1:
-        impact_text = content[impact_start:impact_end].strip()
-        for pattern in impact_patterns:
-            if pattern in impact_text.lower():
-                impact_text = re.sub(re.escape(pattern), '', impact_text, flags=re.IGNORECASE).strip()
-                break
-        sections['canadian_impact'] = impact_text
-    
-    if rec_start != -1 and rec_end != -1:
-        rec_text = content[rec_start:rec_end].strip()
-        print(f"DEBUG: Raw rec text length: {len(rec_text)}")
-        print(f"DEBUG: First 200 chars of rec text: '{rec_text[:200]}'")
-        sections['recommendations'] = parse_recommendation_items(rec_text)
-        print(f"DEBUG: Parsed {len(sections['recommendations'])} recommendations")
-    else:
-        print(f"DEBUG: Recommendations section NOT FOUND - rec_start={rec_start}, rec_end={rec_end}")
-    
-    if adoption_start != -1 and adoption_end != -1:
-        adoption_text = content[adoption_start:adoption_end].strip()
-        print(f"DEBUG: Found adoption section from pos {adoption_start} to {adoption_end}")
-        print(f"DEBUG: Adoption text preview: {adoption_text[:200]}...")
-        sections['adoption_metrics'] = parse_adoption_metrics(adoption_text)
-    else:
-        print("DEBUG: Adoption metrics section NOT FOUND in content")
-        print(f"DEBUG: Looking for patterns: {adoption_patterns}")
-        if 'adoption' in content_lower:
-            print("DEBUG: Word 'adoption' exists in content but section not matched")
-            adoption_mentions = [i for i, word in enumerate(content_lower.split()) if 'adoption' in word]
-            print(f"DEBUG: 'adoption' appears at word positions: {adoption_mentions[:5]}")
-    
-    if conclusion_start != -1:
-        conclusion_text = content[conclusion_start:].strip()
-        for pattern in conclusion_patterns:
-            if pattern in conclusion_text.lower():
-                conclusion_text = re.sub(re.escape(pattern), '', conclusion_text, flags=re.IGNORECASE).strip()
-                break
-        sections['conclusion'] = conclusion_text
-    
-    if not any([sections['developments'], sections['canadian_impact'], sections['recommendations']]):
-        print("WARNING: Primary parsing failed, trying enhanced paragraph-based parsing")
-        
-        paragraphs = [p.strip() for p in content.split('\n\n') if p.strip() and len(p.strip()) > 50]
-        
-        current_section = 'introduction'
-        for para in paragraphs:
-            para_lower = para.lower()
-            
-            if any(pattern in para_lower for pattern in dev_patterns):
-                current_section = 'developments'
-                continue
-            elif any(pattern in para_lower for pattern in impact_patterns):
-                current_section = 'canadian_impact'
-                continue
-            elif any(pattern in para_lower for pattern in rec_patterns):
-                current_section = 'recommendations'
-                continue
-            elif any(pattern in para_lower for pattern in adoption_patterns):
-                current_section = 'adoption_metrics'
-                continue
-            elif any(pattern in para_lower for pattern in conclusion_patterns):
-                current_section = 'conclusion'
-                continue
-            
-            if current_section == 'introduction' and not sections['introduction']:
-                sections['introduction'] = para
-            elif current_section == 'developments':
-                bullet_items = extract_bullets_from_paragraph(para)
-                sections['developments'].extend(bullet_items)
-            elif current_section == 'canadian_impact' and not sections['canadian_impact']:
-                sections['canadian_impact'] = para
-            elif current_section == 'recommendations':
-                rec_items = extract_bullets_from_paragraph(para)
-                sections['recommendations'].extend(rec_items)
-            elif current_section == 'adoption_metrics':
-                adoption_items = extract_bullets_from_paragraph(para)
-                sections['adoption_metrics'].extend(adoption_items)
-            elif current_section == 'conclusion' and not sections['conclusion']:
-                sections['conclusion'] = para
-    
-    print(f"DEBUG: Final parsed sections - intro: {bool(sections['introduction'])}, dev: {len(sections['developments'])}, impact: {bool(sections['canadian_impact'])}, rec: {len(sections['recommendations'])}, adoption: {len(sections['adoption_metrics'])}, conc: {bool(sections['conclusion'])}")
-    
-    return sections
-
-def extract_bullets_from_paragraph(paragraph):
-    """Extract bullet points from a paragraph that contains dashes or bullets"""
-    items = []
-    
-    lines = paragraph.split('. ')
-    for line in lines:
-        line = line.strip()
-        
-        if len(line) < 30:
-            continue
-            
-        line = re.sub(r'^[-•*]\s*[-•*]\s*', '', line)
-        line = re.sub(r'^[-•*]\s*', '', line)
-            
-        if any(marker in line for marker in ['Microsoft', 'Google', 'OpenAI', 'Anthropic', 'NVIDIA']):
-            clean_line = re.sub(r'^\d+\.\s*', '', line)
-            
-            if clean_line and len(clean_line) > 20:
-                items.append(clean_line)
-    
-    return items
-
-def parse_development_items(text):
-    """Parse development items with SMART period handling for abbreviations and version numbers"""
-    items = []
-    
-    lines = text.split('\n')
-    current_item = []
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-            
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        
-        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:10]):
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 50:
-                    items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if current_item:
-                current_item.append(line)
-            elif len(line) > 50:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(current_item).strip()
-        if len(item_text) > 50:
-            items.append(item_text)
-    
-    if len(items) < 5:
-        smart_items = []
-        
-        protected_text = text
-        abbreviations = {
-            'U.S.': 'USPROTECTED',
-            'U.K.': 'UKPROTECTED', 
-            'E.U.': 'EUPROTECTED',
-            'A.I.': 'AIPROTECTED',
-            'Inc.': 'IncPROTECTED',
-            'Corp.': 'CorpPROTECTED'
-        }
-        
-        version_pattern = r'\b(\d+\.\d+)\b'
-        version_matches = re.findall(version_pattern, protected_text)
-        version_replacements = {}
-        for i, version in enumerate(version_matches):
-            replacement = f'VERSION{i}PROTECTED'
-            version_replacements[replacement] = version
-            protected_text = protected_text.replace(version, replacement)
-        
-        for abbrev, replacement in abbreviations.items():
-            protected_text = protected_text.replace(abbrev, replacement)
-
-        sentences = re.split(r'[.!?]+', protected_text)
-        
-        for sentence in sentences:
-            sentence = sentence.strip()
-            
-            for replacement, original in abbreviations.items():
-                sentence = sentence.replace(replacement, original)
-            for replacement, original in version_replacements.items():
-                sentence = sentence.replace(replacement, original)
-            
-            if (len(sentence) > 50 and 
-                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
-                not re.match(r'^\d+\.\s', sentence)):
-                smart_items.append(sentence)
-        
-        if len(smart_items) >= len(items):
-            items = smart_items
-    
-    filtered_items = []
-    for item in items:
-        item_lower = item.lower()
-        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
-            filtered_items.append(item)
-            
-    return filtered_items[:15]
-
-def parse_recommendation_items(text):
-    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    header_keywords = [
-        'strategic recommendation', 
-        'recommendations for canadian leaders',
-        'recommendations for', 
-        'strategic action',
-        'for canadian leaders',
-        'for canadian business',
-        'action steps'
-    ]
-    
-    lines = text.split('\n')
-    cleaned_lines = []
-    for line in lines:
-        line_lower = line.strip().lower()
-        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
-            cleaned_lines.append(line.strip())
-    
-    text = '\n'.join(cleaned_lines)
-    
-    current_item = []
-    
-    for line in cleaned_lines:
-        if not line:
-            continue
-        
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
-        
-        if is_list_number:
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 30:
-                    items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if len(line) > 30 and ':' in line and not current_item:
-                current_item = [line]
-            elif current_item:
-                current_item.append(line)
-            elif len(line) > 30:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(current_item).strip()
-        if len(item_text) > 30:
-            items.append(item_text)
-    
-    if len(items) < 3:
-        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
-        
-        paragraphs = []
-        current_para = []
-        
-        for line in cleaned_lines:
-            if not line:
-                if current_para:
-                    paragraphs.append(' '.join(current_para))
-                    current_para = []
-            else:
-                if current_para and len(line) > 30 and line[0].isupper():
-                    paragraphs.append(' '.join(current_para))
-                    current_para = [line]
-                else:
-                    current_para.append(line)
-        
-        if current_para:
-            paragraphs.append(' '.join(current_para))
-        
-        paragraph_items = []
-        for para in paragraphs:
-            para = para.strip()
-            if len(para) > 30:
-                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
-                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
-                               'strengthen', 'leverage', 'foster', 'collaborate']
-                
-                para_lower = para.lower()
-                if any(word in para_lower for word in action_words):
-                    paragraph_items.append(para)
-        
-        if len(paragraph_items) > len(items):
-            items = paragraph_items
-    
-    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
-    for i, item in enumerate(items[:3]):
-        print(f"DEBUG rec item {i+1}: {item[:100]}...")
-    
-    return items[:5]
-
-def parse_adoption_metrics(text):
-    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    lines = text.split('\n')
-    current_item = []
-    
-    header_keywords = [
-        'canadian business ai adoption',
-        'ai adoption metrics',
-        'adoption metrics',
-        'adoption statistics'
-    ]
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        
-        line_lower = line.lower()
-        if any(header in line_lower for header in header_keywords):
-            continue
-            
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        
-        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 20:
-                    item_lower = item_text.lower()
-                    if not any(header in item_lower for header in header_keywords):
-                        items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:, '', clean_excerpt)
+                clean_excerpt = re.sub(r'\s*[•\-–—:]+, '', clean_excerpt)
                 clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
                 clean_excerpt = clean_excerpt.strip()
                 
@@ -1557,10 +879,7 @@ def create_html_blog_post(content, title, excerpt):
         if adoption_items:
             adoption_list = '\n'.join(['                        ' + item for item in adoption_items])
             content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><ul class="bullet-list">\n{adoption_list}\n                    </ul></div>')
-        else:
-            print("WARNING: Adoption metrics section found but no items parsed")
     else:
-        print("WARNING: No adoption metrics section found - Perplexity did not generate this section")
         content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><p><em>Note: Canadian adoption statistics were not available for this reporting period. For the latest adoption data, please refer to Statistics Canada or ISED reports.</em></p></div>')
     
     if sections['conclusion']:
@@ -1933,643 +1252,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-            line = re.sub(r'^[•\-–—]+\s*', '', line)
-            line = re.sub(r'\s*[•\-–—]+$', '', line)
-            line = re.sub(r':\s*[•\-–—]+\s*([A-Z])', r': \1', line)
-            line = re.sub(r'[•\-–—]+\s*:\s*([A-Z])', r': \1', line)
-            line = re.sub(r'^:\s*([A-Z][^:]*?)\s*:•', r'\1:', line)
-            if line:
-                cleaned_lines.append(line)
-    
-    content = '\n'.join(cleaned_lines)
-    content = re.sub(r' +', ' ', content)
-    content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
-    return content.strip()
-
-def generate_blog_with_perplexity(api_key, topic=None):
-    """Generate blog content using Perplexity API"""
-    current_date = datetime.now()
-    month_year = current_date.strftime("%B %Y")
-    
-    if not topic:
-        topic_type = "monthly_ai"
-        topic = f"Latest AI developments and technology launches since last month - {month_year} focus on Canadian business impact"
-    else:
-        topic_lower = topic.lower()
-        ai_keywords = ['ai', 'artificial intelligence', 'machine learning', 'automation', 'technology', 'digital', 'innovation']
-        if any(keyword in topic_lower for keyword in ai_keywords):
-            topic_type = "custom_ai"
-        else:
-            topic_type = "custom_business"
-    
-    url = "https://api.perplexity.ai/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    
-    models_to_try = ["sonar-pro", "sonar-medium-online", "sonar-small-online"]
-    
-    if topic_type == "monthly_ai":
-        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
-
-Create a monthly AI insights post for {month_year} with EXACTLY these 6 sections in this EXACT order:
-
-SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
-
-SECTION 2 - HEADING "Key AI Developments This Month": List exactly 15 major AI developments from the past month with specific dates and company names. Write each as a separate paragraph or bullet point.
-
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how these developments affect Canadian businesses
-
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each recommendation as a separate paragraph starting with an action verb like "Prioritize", "Invest", "Develop", "Establish", or "Implement".
-
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 separate data points with percentages. Write each metric as a separate sentence or paragraph. Examples:
-- "15.2% of Canadian businesses have adopted AI, up from 12.8% in August 2025"
-- "Personal AI usage in Canada reached 38.5% in September 2025"
-- "Financial services lead adoption at 24.3%, followed by technology at 22.1%"
-- "Manufacturing sector adoption grew 3.2 percentage points to 18.7%"
-
-SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
-
-CRITICAL: You MUST include ALL 6 SECTIONS. Section 5 (Canadian Business AI Adoption Metrics) is MANDATORY and must contain 3-5 separate statistics with percentages."""
-        
-        user_prompt = f"""Write an AI insights blog post for {month_year} with EXACTLY 6 sections in this order:
-
-1. Introduction paragraph (NO HEADING) - 1 paragraph
-2. Key AI Developments This Month - 15 separate items with dates
-3. Impact on Canadian Businesses - 1-2 paragraphs
-4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations, each starting with action words
-5. Canadian Business AI Adoption Metrics - 3-5 separate statistics with percentages (THIS IS MANDATORY)
-6. Conclusion - 1 paragraph
-
-CRITICAL REQUIREMENT FOR SECTION 5:
-Write 3-5 SEPARATE statistics about Canadian AI adoption. Each must include percentages. Format each as a separate sentence:
-
-"15.2% of Canadian businesses have adopted AI, up from 12.8% last month."
-"Personal AI usage in Canada reached 38.5%."
-"Financial services adoption is at 24.3%."
-"Manufacturing adoption grew to 18.7%."
-"Healthcare sector adoption reached 16.2%."
-
-DO NOT SKIP SECTION 5. It must have real statistics with percentage numbers."""
-
-    elif topic_type == "custom_ai":
-        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
-
-Create an AI insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
-
-SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
-
-SECTION 2 - HEADING "Key AI Developments": List 8-10 major points or developments related to "{topic}". Write each as a separate paragraph.
-
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how "{topic}" affects Canadian businesses
-
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each as a separate paragraph starting with action verbs.
-
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages about AI adoption in Canada related to "{topic}". Write each as a separate sentence with percentages.
-
-SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
-
-CRITICAL: You MUST include ALL 6 SECTIONS including Section 5 with adoption statistics."""
-        
-        user_prompt = f"""Write an AI insights blog post for Canadian business leaders about "{topic}".
-
-You MUST include EXACTLY 6 sections:
-1. Introduction paragraph (NO HEADING)
-2. Key AI Developments - 8-10 items about "{topic}"
-3. Impact on Canadian Businesses - analysis paragraphs
-4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations
-5. Canadian Business AI Adoption Metrics - 3-5 statistics with percentages (MANDATORY)
-6. Conclusion - strategic imperative
-
-For Section 5, include statistics like:
-"X% of Canadian businesses in [sector] use AI for {topic}"
-"Adoption of {topic} grew Y% in Canada"
-"Z% of Canadian leaders consider {topic} a priority"
-
-DO NOT SKIP SECTION 5."""
-
-    else:
-        system_prompt = f"""You are Robert Simon, a digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
-
-Create a business insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
-
-SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
-
-SECTION 2 - HEADING "Key Insights": List 8-10 major points, trends, or developments related to "{topic}". Write each as a separate paragraph.
-
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how "{topic}" affects Canadian businesses
-
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each as a separate paragraph starting with action verbs.
-
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages about how Canadian businesses are adopting or implementing aspects of "{topic}". Write each as a separate sentence with percentages.
-
-SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
-
-CRITICAL: You MUST include ALL 6 SECTIONS including Section 5 with adoption statistics."""
-        
-        user_prompt = f"""Write a business insights blog post for Canadian business leaders about "{topic}".
-
-You MUST include EXACTLY 6 sections:
-1. Introduction paragraph (NO HEADING)
-2. Key Insights - 8-10 items about "{topic}"
-3. Impact on Canadian Businesses - analysis paragraphs
-4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations
-5. Canadian Business AI Adoption Metrics - 3-5 statistics with percentages (MANDATORY)
-6. Conclusion - strategic imperative
-
-For Section 5, include statistics like:
-"X% of Canadian businesses have adopted [aspect of topic]"
-"Y% of Canadian companies report [metric related to topic]"
-"Adoption of [topic] in Canada grew Z%"
-
-DO NOT SKIP SECTION 5."""
-
-    for model in models_to_try:
-        print(f"Trying Perplexity model: {model} for topic type: {topic_type}")
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "max_tokens": 3000,
-            "temperature": 0.7
-        }
-        
-        try:
-            response = requests.post(url, json=payload, headers=headers, timeout=60)
-            print(f"API status code: {response.status_code}")
-            
-            if response.status_code != 200:
-                print(f"Failed model {model}: {response.text}")
-                continue
-            
-            data = response.json()
-            if 'choices' in data and len(data['choices']) > 0:
-                content = data['choices'][0]['message']['content'].strip()
-                if not content:
-                    print("API returned empty content")
-                    continue
-                
-                cleaned_content = clean_perplexity_content(content)
-                
-                print(f"Content received from model {model} ({len(cleaned_content)} characters)")
-                return {
-                    "content": cleaned_content,
-                    "citations": data.get("citations", []),
-                    "usage": data.get("usage", {}),
-                    "topic_type": topic_type
-                }
-            else:
-                print(f"Unexpected response structure: {data}")
-                continue
-        
-        except requests.exceptions.RequestException as e:
-            print(f"Request exception with model {model}: {e}")
-            continue
-        except Exception as e:
-            print(f"Unexpected error with model {model}: {e}")
-            continue
-    
-    raise Exception("All Perplexity models failed to generate content")
-
-def parse_structured_content(content):
-    """Enhanced parsing that works with both AI insights and custom topics"""
-    sections = {
-        'introduction': '',
-        'developments': [],
-        'canadian_impact': '',
-        'recommendations': [],
-        'adoption_metrics': [],
-        'conclusion': ''
-    }
-    
-    content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)
-    content = re.sub(r'\*(.*?)\*', r'\1', content)
-    
-    print("DEBUG: Starting enhanced content parsing...")
-    print(f"DEBUG: Content length: {len(content)}")
-    
-    content_lower = content.lower()
-    
-    dev_patterns = [
-        'key ai development', 'ai development', 'major development', 
-        'technological advance', 'key developments', 'major ai',
-        'key insights', 'main insights', 'major insights',
-        'key points', 'main points', 'major points'
-    ]
-    
-    impact_patterns = [
-        'canadian business impact', 'impact on canadian', 'canadian impact',
-        'canadian business', 'impact on canada', 'business impact'
-    ]
-    
-    rec_patterns = [
-        'strategic recommendation', 'recommendation', 'strategic action',
-        'action step', 'strategic step', 'recommendations for'
-    ]
-    
-    adoption_patterns = [
-        'canadian business ai adoption', 'ai adoption metrics', 'adoption metrics',
-        'canadian ai adoption', 'adoption data', 'adoption statistics'
-    ]
-    
-    conclusion_patterns = [
-        'conclusion', 'strategic imperative', 'final thought',
-        'in conclusion', 'finally', 'key takeaway'
-    ]
-    
-    dev_start = -1
-    dev_end = -1
-    impact_start = -1
-    impact_end = -1
-    rec_start = -1
-    rec_end = -1
-    adoption_start = -1
-    adoption_end = -1
-    conclusion_start = -1
-    
-    for pattern in dev_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1:
-            dev_start = pos
-            break
-    
-    for pattern in impact_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and pos > dev_start:
-            impact_start = pos
-            dev_end = pos
-            break
-    
-    for pattern in rec_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and (impact_start == -1 or pos > impact_start):
-            rec_start = pos
-            if impact_start != -1:
-                impact_end = pos
-            break
-    
-    for pattern in adoption_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and (rec_start == -1 or pos > rec_start):
-            adoption_start = pos
-            if rec_start != -1:
-                rec_end = pos
-            break
-    
-    for pattern in conclusion_patterns:
-        pos = content_lower.find(pattern)
-        if pos != -1 and (adoption_start == -1 or pos > adoption_start):
-            conclusion_start = pos
-            if adoption_start != -1:
-                adoption_end = pos
-            break
-    
-    if rec_start != -1 and rec_end == -1:
-        if conclusion_start != -1:
-            rec_end = conclusion_start
-        else:
-            rec_end = len(content)
-    
-    if adoption_start != -1 and adoption_end == -1:
-        adoption_end = len(content)
-    
-    print(f"DEBUG: Section positions - dev:{dev_start}, impact:{impact_start}, rec:{rec_start}, adoption:{adoption_start}, conclusion:{conclusion_start}")
-    
-    if dev_start != -1:
-        print(f"DEBUG: Dev section header: '{content[dev_start:dev_start+50]}'")
-    if impact_start != -1:
-        print(f"DEBUG: Impact section header: '{content[impact_start:impact_start+50]}'")
-    if rec_start != -1:
-        print(f"DEBUG: Rec section header: '{content[rec_start:rec_start+50]}'")
-    if adoption_start != -1:
-        print(f"DEBUG: Adoption section header: '{content[adoption_start:adoption_start+50]}'")
-    if conclusion_start != -1:
-        print(f"DEBUG: Conclusion section header: '{content[conclusion_start:conclusion_start+50]}'")
-    
-    if dev_start > 0:
-        sections['introduction'] = content[:dev_start].strip()
-    
-    if dev_start != -1 and dev_end != -1:
-        dev_text = content[dev_start:dev_end].strip()
-        sections['developments'] = parse_development_items(dev_text)
-    
-    if impact_start != -1 and impact_end != -1:
-        impact_text = content[impact_start:impact_end].strip()
-        for pattern in impact_patterns:
-            if pattern in impact_text.lower():
-                impact_text = re.sub(re.escape(pattern), '', impact_text, flags=re.IGNORECASE).strip()
-                break
-        sections['canadian_impact'] = impact_text
-    
-    if rec_start != -1 and rec_end != -1:
-        rec_text = content[rec_start:rec_end].strip()
-        print(f"DEBUG: Raw rec text length: {len(rec_text)}")
-        print(f"DEBUG: First 200 chars of rec text: '{rec_text[:200]}'")
-        sections['recommendations'] = parse_recommendation_items(rec_text)
-        print(f"DEBUG: Parsed {len(sections['recommendations'])} recommendations")
-    else:
-        print(f"DEBUG: Recommendations section NOT FOUND - rec_start={rec_start}, rec_end={rec_end}")
-    
-    if adoption_start != -1 and adoption_end != -1:
-        adoption_text = content[adoption_start:adoption_end].strip()
-        print(f"DEBUG: Found adoption section from pos {adoption_start} to {adoption_end}")
-        print(f"DEBUG: Adoption text preview: {adoption_text[:200]}...")
-        sections['adoption_metrics'] = parse_adoption_metrics(adoption_text)
-    else:
-        print("DEBUG: Adoption metrics section NOT FOUND in content")
-        print(f"DEBUG: Looking for patterns: {adoption_patterns}")
-        if 'adoption' in content_lower:
-            print("DEBUG: Word 'adoption' exists in content but section not matched")
-            adoption_mentions = [i for i, word in enumerate(content_lower.split()) if 'adoption' in word]
-            print(f"DEBUG: 'adoption' appears at word positions: {adoption_mentions[:5]}")
-    
-    if conclusion_start != -1:
-        conclusion_text = content[conclusion_start:].strip()
-        for pattern in conclusion_patterns:
-            if pattern in conclusion_text.lower():
-                conclusion_text = re.sub(re.escape(pattern), '', conclusion_text, flags=re.IGNORECASE).strip()
-                break
-        sections['conclusion'] = conclusion_text
-    
-    if not any([sections['developments'], sections['canadian_impact'], sections['recommendations']]):
-        print("WARNING: Primary parsing failed, trying enhanced paragraph-based parsing")
-        
-        paragraphs = [p.strip() for p in content.split('\n\n') if p.strip() and len(p.strip()) > 50]
-        
-        current_section = 'introduction'
-        for para in paragraphs:
-            para_lower = para.lower()
-            
-            if any(pattern in para_lower for pattern in dev_patterns):
-                current_section = 'developments'
-                continue
-            elif any(pattern in para_lower for pattern in impact_patterns):
-                current_section = 'canadian_impact'
-                continue
-            elif any(pattern in para_lower for pattern in rec_patterns):
-                current_section = 'recommendations'
-                continue
-            elif any(pattern in para_lower for pattern in adoption_patterns):
-                current_section = 'adoption_metrics'
-                continue
-            elif any(pattern in para_lower for pattern in conclusion_patterns):
-                current_section = 'conclusion'
-                continue
-            
-            if current_section == 'introduction' and not sections['introduction']:
-                sections['introduction'] = para
-            elif current_section == 'developments':
-                bullet_items = extract_bullets_from_paragraph(para)
-                sections['developments'].extend(bullet_items)
-            elif current_section == 'canadian_impact' and not sections['canadian_impact']:
-                sections['canadian_impact'] = para
-            elif current_section == 'recommendations':
-                rec_items = extract_bullets_from_paragraph(para)
-                sections['recommendations'].extend(rec_items)
-            elif current_section == 'adoption_metrics':
-                adoption_items = extract_bullets_from_paragraph(para)
-                sections['adoption_metrics'].extend(adoption_items)
-            elif current_section == 'conclusion' and not sections['conclusion']:
-                sections['conclusion'] = para
-    
-    print(f"DEBUG: Final parsed sections - intro: {bool(sections['introduction'])}, dev: {len(sections['developments'])}, impact: {bool(sections['canadian_impact'])}, rec: {len(sections['recommendations'])}, adoption: {len(sections['adoption_metrics'])}, conc: {bool(sections['conclusion'])}")
-    
-    return sections
-
-def extract_bullets_from_paragraph(paragraph):
-    """Extract bullet points from a paragraph that contains dashes or bullets"""
-    items = []
-    
-    lines = paragraph.split('. ')
-    for line in lines:
-        line = line.strip()
-        
-        if len(line) < 30:
-            continue
-            
-        line = re.sub(r'^[-•*]\s*[-•*]\s*', '', line)
-        line = re.sub(r'^[-•*]\s*', '', line)
-            
-        if any(marker in line for marker in ['Microsoft', 'Google', 'OpenAI', 'Anthropic', 'NVIDIA']):
-            clean_line = re.sub(r'^\d+\.\s*', '', line)
-            
-            if clean_line and len(clean_line) > 20:
-                items.append(clean_line)
-    
-    return items
-
-def parse_development_items(text):
-    """Parse development items with SMART period handling for abbreviations and version numbers"""
-    items = []
-    
-    lines = text.split('\n')
-    current_item = []
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-            
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        
-        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:10]):
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 50:
-                    items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if current_item:
-                current_item.append(line)
-            elif len(line) > 50:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(current_item).strip()
-        if len(item_text) > 50:
-            items.append(item_text)
-    
-    if len(items) < 5:
-        smart_items = []
-        
-        protected_text = text
-        abbreviations = {
-            'U.S.': 'USPROTECTED',
-            'U.K.': 'UKPROTECTED', 
-            'E.U.': 'EUPROTECTED',
-            'A.I.': 'AIPROTECTED',
-            'Inc.': 'IncPROTECTED',
-            'Corp.': 'CorpPROTECTED'
-        }
-        
-        version_pattern = r'\b(\d+\.\d+)\b'
-        version_matches = re.findall(version_pattern, protected_text)
-        version_replacements = {}
-        for i, version in enumerate(version_matches):
-            replacement = f'VERSION{i}PROTECTED'
-            version_replacements[replacement] = version
-            protected_text = protected_text.replace(version, replacement)
-        
-        for abbrev, replacement in abbreviations.items():
-            protected_text = protected_text.replace(abbrev, replacement)
-
-        sentences = re.split(r'[.!?]+', protected_text)
-        
-        for sentence in sentences:
-            sentence = sentence.strip()
-            
-            for replacement, original in abbreviations.items():
-                sentence = sentence.replace(replacement, original)
-            for replacement, original in version_replacements.items():
-                sentence = sentence.replace(replacement, original)
-            
-            if (len(sentence) > 50 and 
-                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
-                not re.match(r'^\d+\.\s', sentence)):
-                smart_items.append(sentence)
-        
-        if len(smart_items) >= len(items):
-            items = smart_items
-    
-    filtered_items = []
-    for item in items:
-        item_lower = item.lower()
-        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
-            filtered_items.append(item)
-            
-    return filtered_items[:15]
-
-def parse_recommendation_items(text):
-    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    header_keywords = [
-        'strategic recommendation', 
-        'recommendations for canadian leaders',
-        'recommendations for', 
-        'strategic action',
-        'for canadian leaders',
-        'for canadian business',
-        'action steps'
-    ]
-    
-    lines = text.split('\n')
-    cleaned_lines = []
-    for line in lines:
-        line_lower = line.strip().lower()
-        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
-            cleaned_lines.append(line.strip())
-    
-    text = '\n'.join(cleaned_lines)
-    
-    current_item = []
-    
-    for line in cleaned_lines:
-        if not line:
-            continue
-        
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
-        
-        if is_list_number:
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 30:
-                    items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if len(line) > 30 and ':' in line and not current_item:
-                current_item = [line]
-            elif current_item:
-                current_item.append(line)
-            elif len(line) > 30:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(current_item).strip()
-        if len(item_text) > 30:
-            items.append(item_text)
-    
-    if len(items) < 3:
-        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
-        
-        paragraphs = []
-        current_para = []
-        
-        for line in cleaned_lines:
-            if not line:
-                if current_para:
-                    paragraphs.append(' '.join(current_para))
-                    current_para = []
-            else:
-                if current_para and len(line) > 30 and line[0].isupper():
-                    paragraphs.append(' '.join(current_para))
-                    current_para = [line]
-                else:
-                    current_para.append(line)
-        
-        if current_para:
-            paragraphs.append(' '.join(current_para))
-        
-        paragraph_items = []
-        for para in paragraphs:
-            para = para.strip()
-            if len(para) > 30:
-                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
-                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
-                               'strengthen', 'leverage', 'foster', 'collaborate']
-                
-                para_lower = para.lower()
-                if any(word in para_lower for word in action_words):
-                    paragraph_items.append(para)
-        
-        if len(paragraph_items) > len(items):
-            items = paragraph_items
-    
-    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
-    for i, item in enumerate(items[:3]):
-        print(f"DEBUG rec item {i+1}: {item[:100]}...")
-    
-    return items[:5]
-
-def parse_adoption_metrics(text):
-    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    lines = text.split('\n')
-    current_item = []
-    
-    header_keywords = [
-        'canadian business ai adoption',
-        'ai adoption metrics',
-        'adoption metrics',
-        'adoption statistics'
-    ]
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        
-        line_lower = line.lower()
-        if any(header in line_lower for header in header_keywords):
-            continue
-            
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        
-        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 20:
-                    item_lower = item_text.lower()
-                    if not any(header in item_lower for header in header_keywords):
-                        items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
