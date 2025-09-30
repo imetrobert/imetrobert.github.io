@@ -1015,8 +1015,14 @@ def create_html_blog_post(content, title, excerpt):
 
 def extract_post_info(html_file):
     """Extract title, date, and excerpt from an HTML blog post"""
+    # Ensure file exists and is not empty
+    if not os.path.exists(html_file) or os.path.getsize(html_file) == 0:
+        return None
+        
     with open(html_file, "r", encoding="utf-8") as f:
-        soup = BeautifulSoup(f, "html.parser")
+        html_content = f.read()
+    
+    soup = BeautifulSoup(html_content, "html.parser")
 
     title_tag = soup.find("h1")
     title = title_tag.get_text(strip=True) if title_tag else "AI Insights"
@@ -1046,6 +1052,7 @@ def extract_post_info(html_file):
         # Clean up any truncation markers or markdown artifacts
         excerpt = re.sub(r'\.\.\.f$', '...', excerpt)
         excerpt = re.sub(r'f\.\.\.$', '...', excerpt)
+        excerpt = re.sub(r'\.\.\.$', '', excerpt).strip()  # Remove trailing ...
     
     # SECOND: If no intro div, try the first paragraph in article-content
     if not excerpt:
@@ -1061,9 +1068,15 @@ def extract_post_info(html_file):
     if not excerpt:
         excerpt = "Read the latest AI insights and business applications."
 
-    # Ensure excerpt is properly truncated
+    # Ensure excerpt is properly truncated to 200 chars
     if len(excerpt) > 200:
-        excerpt = excerpt[:200].rstrip() + "..."
+        # Find a good breaking point (end of sentence or word)
+        truncated = excerpt[:200].rstrip()
+        excerpt = truncated + "..."
+    elif not excerpt.endswith('...') and len(excerpt) < 200:
+        # For shorter excerpts, add ... if it seems incomplete
+        if not excerpt.endswith('.'):
+            excerpt = excerpt + "..."
 
     return {
         "title": title,
@@ -1278,16 +1291,27 @@ def main():
         
         path_html = os.path.join(output_dir, filename_html)
         
+        # Save to dated filename
         with open(path_html, "w", encoding="utf-8") as f:
             f.write(html_content)
+            f.flush()  # Ensure it's written to disk
+            os.fsync(f.fileno())  # Force write to disk
         print(f"✅ Blog post saved: {path_html}")
         
+        # Save to latest.html
         latest_path = os.path.join("blog", "posts", "latest.html")
         os.makedirs(os.path.dirname(latest_path), exist_ok=True)
         with open(latest_path, "w", encoding="utf-8") as f:
             f.write(html_content)
+            f.flush()  # Ensure it's written to disk
+            os.fsync(f.fileno())  # Force write to disk
         print(f"✅ Latest post updated")
         
+        # Small delay to ensure filesystem sync
+        import time
+        time.sleep(0.1)
+        
+        # Now update the blog index
         posts = update_blog_index()
         print(f"✅ Blog index updated with {len(posts)} posts")
         print("🎉 SUCCESS!")
