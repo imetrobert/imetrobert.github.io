@@ -499,6 +499,195 @@ def parse_development_items(text):
     
     if current_item:
         item_text = ' '.join(current_item).strip()
+        if len(item_text) > 50:
+            items.append(item_text)
+    
+    if len(items) < 5:
+        smart_items = []
+        
+        protected_text = text
+        abbreviations = {
+            'U.S.': 'USPROTECTED',
+            'U.K.': 'UKPROTECTED', 
+            'E.U.': 'EUPROTECTED',
+            'A.I.': 'AIPROTECTED',
+            'Inc.': 'IncPROTECTED',
+            'Corp.': 'CorpPROTECTED'
+        }
+        
+        version_pattern = r'\b(\d+\.\d+)\b'
+        version_matches = re.findall(version_pattern, protected_text)
+        version_replacements = {}
+        for i, version in enumerate(version_matches):
+            replacement = f'VERSION{i}PROTECTED'
+            version_replacements[replacement] = version
+            protected_text = protected_text.replace(version, replacement)
+        
+        for abbrev, replacement in abbreviations.items():
+            protected_text = protected_text.replace(abbrev, replacement)
+
+        sentences = re.split(r'[.!?]+', protected_text)
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            
+            for replacement, original in abbreviations.items():
+                sentence = sentence.replace(replacement, original)
+            for replacement, original in version_replacements.items():
+                sentence = sentence.replace(replacement, original)
+            
+            if (len(sentence) > 50 and 
+                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
+                not re.match(r'^\d+\.\s', sentence)):
+                smart_items.append(sentence)
+        
+        if len(smart_items) >= len(items):
+            items = smart_items
+    
+    filtered_items = []
+    for item in items:
+        item_lower = item.lower()
+        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
+            filtered_items.append(item)
+            
+    return filtered_items[:15]
+
+def parse_recommendation_items(text):
+    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
+    items = []
+    
+    header_keywords = [
+        'strategic recommendation', 
+        'recommendations for canadian leaders',
+        'recommendations for', 
+        'strategic action',
+        'for canadian leaders',
+        'for canadian business',
+        'action steps'
+    ]
+    
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        line_lower = line.strip().lower()
+        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
+            cleaned_lines.append(line.strip())
+    
+    text = '\n'.join(cleaned_lines)
+    
+    current_item = []
+    
+    for line in cleaned_lines:
+        if not line:
+            continue
+        
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
+        
+        if is_list_number:
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 30:
+                    items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if len(line) > 30 and ':' in line and not current_item:
+                current_item = [line]
+            elif current_item:
+                current_item.append(line)
+            elif len(line) > 30:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 30:
+            items.append(item_text)
+    
+    if len(items) < 3:
+        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
+        
+        paragraphs = []
+        current_para = []
+        
+        for line in cleaned_lines:
+            if not line:
+                if current_para:
+                    paragraphs.append(' '.join(current_para))
+                    current_para = []
+            else:
+                if current_para and len(line) > 30 and line[0].isupper():
+                    paragraphs.append(' '.join(current_para))
+                    current_para = [line]
+                else:
+                    current_para.append(line)
+        
+        if current_para:
+            paragraphs.append(' '.join(current_para))
+        
+        paragraph_items = []
+        for para in paragraphs:
+            para = para.strip()
+            if len(para) > 30:
+                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
+                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
+                               'strengthen', 'leverage', 'foster', 'collaborate']
+                
+                para_lower = para.lower()
+                if any(word in para_lower for word in action_words):
+                    paragraph_items.append(para)
+        
+        if len(paragraph_items) > len(items):
+            items = paragraph_items
+    
+    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
+    for i, item in enumerate(items[:3]):
+        print(f"DEBUG rec item {i+1}: {item[:100]}...")
+    
+    return items[:5]
+
+def parse_adoption_metrics(text):
+    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
+    items = []
+    
+    lines = text.split('\n')
+    current_item = []
+    
+    header_keywords = [
+        'canadian business ai adoption',
+        'ai adoption metrics',
+        'adoption metrics',
+        'adoption statistics'
+    ]
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        line_lower = line.lower()
+        if any(header in line_lower for header in header_keywords):
+            continue
+            
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        
+        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 20:
+                    item_lower = item_text.lower()
+                    if not any(header in item_lower for header in header_keywords):
+                        items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if current_item:
+                current_item.append(line)
+            elif len(line) > 20:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(current_item).strip()
         if len(item_text) > 20:
             item_lower = item_text.lower()
             if not any(header in item_lower for header in header_keywords):
@@ -610,196 +799,7 @@ def extract_title_and_excerpt(content):
             line_lower = line.lower()
             if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
                 clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+current_item).strip()
-        if len(item_text) > 50:
-            items.append(item_text)
-    
-    if len(items) < 5:
-        smart_items = []
-        
-        protected_text = text
-        abbreviations = {
-            'U.S.': 'USPROTECTED',
-            'U.K.': 'UKPROTECTED', 
-            'E.U.': 'EUPROTECTED',
-            'A.I.': 'AIPROTECTED',
-            'Inc.': 'IncPROTECTED',
-            'Corp.': 'CorpPROTECTED'
-        }
-        
-        version_pattern = r'\b(\d+\.\d+)\b'
-        version_matches = re.findall(version_pattern, protected_text)
-        version_replacements = {}
-        for i, version in enumerate(version_matches):
-            replacement = f'VERSION{i}PROTECTED'
-            version_replacements[replacement] = version
-            protected_text = protected_text.replace(version, replacement)
-        
-        for abbrev, replacement in abbreviations.items():
-            protected_text = protected_text.replace(abbrev, replacement)
-
-        sentences = re.split(r'[.!?]+', protected_text)
-        
-        for sentence in sentences:
-            sentence = sentence.strip()
-            
-            for replacement, original in abbreviations.items():
-                sentence = sentence.replace(replacement, original)
-            for replacement, original in version_replacements.items():
-                sentence = sentence.replace(replacement, original)
-            
-            if (len(sentence) > 50 and 
-                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
-                not re.match(r'^\d+\.\s', sentence)):
-                smart_items.append(sentence)
-        
-        if len(smart_items) >= len(items):
-            items = smart_items
-    
-    filtered_items = []
-    for item in items:
-        item_lower = item.lower()
-        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
-            filtered_items.append(item)
-            
-    return filtered_items[:15]
-
-def parse_recommendation_items(text):
-    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    header_keywords = [
-        'strategic recommendation', 
-        'recommendations for canadian leaders',
-        'recommendations for', 
-        'strategic action',
-        'for canadian leaders',
-        'for canadian business',
-        'action steps'
-    ]
-    
-    lines = text.split('\n')
-    cleaned_lines = []
-    for line in lines:
-        line_lower = line.strip().lower()
-        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
-            cleaned_lines.append(line.strip())
-    
-    text = '\n'.join(cleaned_lines)
-    
-    current_item = []
-    
-    for line in cleaned_lines:
-        if not line:
-            continue
-        
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
-        
-        if is_list_number:
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 30:
-                    items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if len(line) > 30 and ':' in line and not current_item:
-                current_item = [line]
-            elif current_item:
-                current_item.append(line)
-            elif len(line) > 30:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(current_item).strip()
-        if len(item_text) > 30:
-            items.append(item_text)
-    
-    if len(items) < 3:
-        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
-        
-        paragraphs = []
-        current_para = []
-        
-        for line in cleaned_lines:
-            if not line:
-                if current_para:
-                    paragraphs.append(' '.join(current_para))
-                    current_para = []
-            else:
-                if current_para and len(line) > 30 and line[0].isupper():
-                    paragraphs.append(' '.join(current_para))
-                    current_para = [line]
-                else:
-                    current_para.append(line)
-        
-        if current_para:
-            paragraphs.append(' '.join(current_para))
-        
-        paragraph_items = []
-        for para in paragraphs:
-            para = para.strip()
-            if len(para) > 30:
-                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
-                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
-                               'strengthen', 'leverage', 'foster', 'collaborate']
-                
-                para_lower = para.lower()
-                if any(word in para_lower for word in action_words):
-                    paragraph_items.append(para)
-        
-        if len(paragraph_items) > len(items):
-            items = paragraph_items
-    
-    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
-    for i, item in enumerate(items[:3]):
-        print(f"DEBUG rec item {i+1}: {item[:100]}...")
-    
-    return items[:5]
-
-def parse_adoption_metrics(text):
-    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    lines = text.split('\n')
-    current_item = []
-    
-    header_keywords = [
-        'canadian business ai adoption',
-        'ai adoption metrics',
-        'adoption metrics',
-        'adoption statistics'
-    ]
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        
-        line_lower = line.lower()
-        if any(header in line_lower for header in header_keywords):
-            continue
-            
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        
-        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 20:
-                    item_lower = item_text.lower()
-                    if not any(header in item_lower for header in header_keywords):
-                        items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if current_item:
-                current_item.append(line)
-            elif len(line) > 20:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(, '', clean_title)
+                clean_title = re.sub(r'\s*[•\-–—:]+, '', clean_title)
                 clean_title = re.sub(r'[•\-–—]', '', clean_title)
                 clean_title = clean_title.strip()
                 
@@ -818,196 +818,7 @@ def parse_adoption_metrics(text):
             header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
             if not any(header in line.lower() for header in header_keywords):
                 clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_excerpt = re.sub(r'\s*[•\-–—:]+current_item).strip()
-        if len(item_text) > 50:
-            items.append(item_text)
-    
-    if len(items) < 5:
-        smart_items = []
-        
-        protected_text = text
-        abbreviations = {
-            'U.S.': 'USPROTECTED',
-            'U.K.': 'UKPROTECTED', 
-            'E.U.': 'EUPROTECTED',
-            'A.I.': 'AIPROTECTED',
-            'Inc.': 'IncPROTECTED',
-            'Corp.': 'CorpPROTECTED'
-        }
-        
-        version_pattern = r'\b(\d+\.\d+)\b'
-        version_matches = re.findall(version_pattern, protected_text)
-        version_replacements = {}
-        for i, version in enumerate(version_matches):
-            replacement = f'VERSION{i}PROTECTED'
-            version_replacements[replacement] = version
-            protected_text = protected_text.replace(version, replacement)
-        
-        for abbrev, replacement in abbreviations.items():
-            protected_text = protected_text.replace(abbrev, replacement)
-
-        sentences = re.split(r'[.!?]+', protected_text)
-        
-        for sentence in sentences:
-            sentence = sentence.strip()
-            
-            for replacement, original in abbreviations.items():
-                sentence = sentence.replace(replacement, original)
-            for replacement, original in version_replacements.items():
-                sentence = sentence.replace(replacement, original)
-            
-            if (len(sentence) > 50 and 
-                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
-                not re.match(r'^\d+\.\s', sentence)):
-                smart_items.append(sentence)
-        
-        if len(smart_items) >= len(items):
-            items = smart_items
-    
-    filtered_items = []
-    for item in items:
-        item_lower = item.lower()
-        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
-            filtered_items.append(item)
-            
-    return filtered_items[:15]
-
-def parse_recommendation_items(text):
-    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    header_keywords = [
-        'strategic recommendation', 
-        'recommendations for canadian leaders',
-        'recommendations for', 
-        'strategic action',
-        'for canadian leaders',
-        'for canadian business',
-        'action steps'
-    ]
-    
-    lines = text.split('\n')
-    cleaned_lines = []
-    for line in lines:
-        line_lower = line.strip().lower()
-        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
-            cleaned_lines.append(line.strip())
-    
-    text = '\n'.join(cleaned_lines)
-    
-    current_item = []
-    
-    for line in cleaned_lines:
-        if not line:
-            continue
-        
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
-        
-        if is_list_number:
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 30:
-                    items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if len(line) > 30 and ':' in line and not current_item:
-                current_item = [line]
-            elif current_item:
-                current_item.append(line)
-            elif len(line) > 30:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(current_item).strip()
-        if len(item_text) > 30:
-            items.append(item_text)
-    
-    if len(items) < 3:
-        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
-        
-        paragraphs = []
-        current_para = []
-        
-        for line in cleaned_lines:
-            if not line:
-                if current_para:
-                    paragraphs.append(' '.join(current_para))
-                    current_para = []
-            else:
-                if current_para and len(line) > 30 and line[0].isupper():
-                    paragraphs.append(' '.join(current_para))
-                    current_para = [line]
-                else:
-                    current_para.append(line)
-        
-        if current_para:
-            paragraphs.append(' '.join(current_para))
-        
-        paragraph_items = []
-        for para in paragraphs:
-            para = para.strip()
-            if len(para) > 30:
-                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
-                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
-                               'strengthen', 'leverage', 'foster', 'collaborate']
-                
-                para_lower = para.lower()
-                if any(word in para_lower for word in action_words):
-                    paragraph_items.append(para)
-        
-        if len(paragraph_items) > len(items):
-            items = paragraph_items
-    
-    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
-    for i, item in enumerate(items[:3]):
-        print(f"DEBUG rec item {i+1}: {item[:100]}...")
-    
-    return items[:5]
-
-def parse_adoption_metrics(text):
-    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    lines = text.split('\n')
-    current_item = []
-    
-    header_keywords = [
-        'canadian business ai adoption',
-        'ai adoption metrics',
-        'adoption metrics',
-        'adoption statistics'
-    ]
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        
-        line_lower = line.lower()
-        if any(header in line_lower for header in header_keywords):
-            continue
-            
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        
-        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 20:
-                    item_lower = item_text.lower()
-                    if not any(header in item_lower for header in header_keywords):
-                        items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if current_item:
-                current_item.append(line)
-            elif len(line) > 20:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(, '', clean_excerpt)
+                clean_excerpt = re.sub(r'\s*[•\-–—:]+, '', clean_excerpt)
                 clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
                 clean_excerpt = clean_excerpt.strip()
                 
@@ -1459,193 +1270,4 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()current_item).strip()
-        if len(item_text) > 50:
-            items.append(item_text)
-    
-    if len(items) < 5:
-        smart_items = []
-        
-        protected_text = text
-        abbreviations = {
-            'U.S.': 'USPROTECTED',
-            'U.K.': 'UKPROTECTED', 
-            'E.U.': 'EUPROTECTED',
-            'A.I.': 'AIPROTECTED',
-            'Inc.': 'IncPROTECTED',
-            'Corp.': 'CorpPROTECTED'
-        }
-        
-        version_pattern = r'\b(\d+\.\d+)\b'
-        version_matches = re.findall(version_pattern, protected_text)
-        version_replacements = {}
-        for i, version in enumerate(version_matches):
-            replacement = f'VERSION{i}PROTECTED'
-            version_replacements[replacement] = version
-            protected_text = protected_text.replace(version, replacement)
-        
-        for abbrev, replacement in abbreviations.items():
-            protected_text = protected_text.replace(abbrev, replacement)
-
-        sentences = re.split(r'[.!?]+', protected_text)
-        
-        for sentence in sentences:
-            sentence = sentence.strip()
-            
-            for replacement, original in abbreviations.items():
-                sentence = sentence.replace(replacement, original)
-            for replacement, original in version_replacements.items():
-                sentence = sentence.replace(replacement, original)
-            
-            if (len(sentence) > 50 and 
-                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
-                not re.match(r'^\d+\.\s', sentence)):
-                smart_items.append(sentence)
-        
-        if len(smart_items) >= len(items):
-            items = smart_items
-    
-    filtered_items = []
-    for item in items:
-        item_lower = item.lower()
-        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
-            filtered_items.append(item)
-            
-    return filtered_items[:15]
-
-def parse_recommendation_items(text):
-    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    header_keywords = [
-        'strategic recommendation', 
-        'recommendations for canadian leaders',
-        'recommendations for', 
-        'strategic action',
-        'for canadian leaders',
-        'for canadian business',
-        'action steps'
-    ]
-    
-    lines = text.split('\n')
-    cleaned_lines = []
-    for line in lines:
-        line_lower = line.strip().lower()
-        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
-            cleaned_lines.append(line.strip())
-    
-    text = '\n'.join(cleaned_lines)
-    
-    current_item = []
-    
-    for line in cleaned_lines:
-        if not line:
-            continue
-        
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
-        
-        if is_list_number:
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 30:
-                    items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if len(line) > 30 and ':' in line and not current_item:
-                current_item = [line]
-            elif current_item:
-                current_item.append(line)
-            elif len(line) > 30:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(current_item).strip()
-        if len(item_text) > 30:
-            items.append(item_text)
-    
-    if len(items) < 3:
-        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
-        
-        paragraphs = []
-        current_para = []
-        
-        for line in cleaned_lines:
-            if not line:
-                if current_para:
-                    paragraphs.append(' '.join(current_para))
-                    current_para = []
-            else:
-                if current_para and len(line) > 30 and line[0].isupper():
-                    paragraphs.append(' '.join(current_para))
-                    current_para = [line]
-                else:
-                    current_para.append(line)
-        
-        if current_para:
-            paragraphs.append(' '.join(current_para))
-        
-        paragraph_items = []
-        for para in paragraphs:
-            para = para.strip()
-            if len(para) > 30:
-                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
-                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
-                               'strengthen', 'leverage', 'foster', 'collaborate']
-                
-                para_lower = para.lower()
-                if any(word in para_lower for word in action_words):
-                    paragraph_items.append(para)
-        
-        if len(paragraph_items) > len(items):
-            items = paragraph_items
-    
-    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
-    for i, item in enumerate(items[:3]):
-        print(f"DEBUG rec item {i+1}: {item[:100]}...")
-    
-    return items[:5]
-
-def parse_adoption_metrics(text):
-    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
-    items = []
-    
-    lines = text.split('\n')
-    current_item = []
-    
-    header_keywords = [
-        'canadian business ai adoption',
-        'ai adoption metrics',
-        'adoption metrics',
-        'adoption statistics'
-    ]
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        
-        line_lower = line.lower()
-        if any(header in line_lower for header in header_keywords):
-            continue
-            
-        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
-        
-        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
-            if current_item:
-                item_text = ' '.join(current_item).strip()
-                if len(item_text) > 20:
-                    item_lower = item_text.lower()
-                    if not any(header in item_lower for header in header_keywords):
-                        items.append(item_text)
-            
-            current_item = [re.sub(r'^\d+\.\s*', '', line)]
-        else:
-            if current_item:
-                current_item.append(line)
-            elif len(line) > 20:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(
+    main()
