@@ -283,26 +283,52 @@ def parse_structured_content(content):
     
     for pattern in rec_patterns:
         pos = content_lower.find(pattern)
-        if pos != -1 and pos > impact_start:
+        if pos != -1 and (impact_start == -1 or pos > impact_start):
             rec_start = pos
-            impact_end = pos
+            if impact_start != -1:
+                impact_end = pos
             break
     
     for pattern in adoption_patterns:
         pos = content_lower.find(pattern)
-        if pos != -1 and pos > rec_start:
+        if pos != -1 and (rec_start == -1 or pos > rec_start):
             adoption_start = pos
-            rec_end = pos
+            if rec_start != -1:
+                rec_end = pos
             break
     
     for pattern in conclusion_patterns:
         pos = content_lower.find(pattern)
-        if pos != -1 and pos > adoption_start:
+        if pos != -1 and (adoption_start == -1 or pos > adoption_start):
             conclusion_start = pos
-            adoption_end = pos
+            if adoption_start != -1:
+                adoption_end = pos
             break
     
+    # If we didn't find adoption section, set rec_end to conclusion or end of content
+    if rec_start != -1 and rec_end == -1:
+        if conclusion_start != -1:
+            rec_end = conclusion_start
+        else:
+            rec_end = len(content)
+    
+    # If we didn't find conclusion section, set adoption_end to end of content
+    if adoption_start != -1 and adoption_end == -1:
+        adoption_end = len(content)
+    
     print(f"DEBUG: Section positions - dev:{dev_start}, impact:{impact_start}, rec:{rec_start}, adoption:{adoption_start}, conclusion:{conclusion_start}")
+    
+    # Print what text was found at each position for debugging
+    if dev_start != -1:
+        print(f"DEBUG: Dev section header: '{content[dev_start:dev_start+50]}'")
+    if impact_start != -1:
+        print(f"DEBUG: Impact section header: '{content[impact_start:impact_start+50]}'")
+    if rec_start != -1:
+        print(f"DEBUG: Rec section header: '{content[rec_start:rec_start+50]}'")
+    if adoption_start != -1:
+        print(f"DEBUG: Adoption section header: '{content[adoption_start:adoption_start+50]}'")
+    if conclusion_start != -1:
+        print(f"DEBUG: Conclusion section header: '{content[conclusion_start:conclusion_start+50]}'")
     
     if dev_start > 0:
         sections['introduction'] = content[:dev_start].strip()
@@ -321,7 +347,12 @@ def parse_structured_content(content):
     
     if rec_start != -1 and rec_end != -1:
         rec_text = content[rec_start:rec_end].strip()
+        print(f"DEBUG: Raw rec text length: {len(rec_text)}")
+        print(f"DEBUG: First 200 chars of rec text: '{rec_text[:200]}'")
         sections['recommendations'] = parse_recommendation_items(rec_text)
+        print(f"DEBUG: Parsed {len(sections['recommendations'])} recommendations")
+    else:
+        print(f"DEBUG: Recommendations section NOT FOUND - rec_start={rec_start}, rec_end={rec_end}")
     
     if adoption_start != -1 and adoption_end != -1:
         adoption_text = content[adoption_start:adoption_end].strip()
