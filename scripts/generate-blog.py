@@ -799,7 +799,7 @@ def extract_title_and_excerpt(content):
             line_lower = line.lower()
             if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
                 clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+, '', clean_title)
+                clean_title = re.sub(r'\s*[•\-–—:]+$', '', clean_title)
                 clean_title = re.sub(r'[•\-–—]', '', clean_title)
                 clean_title = clean_title.strip()
                 
@@ -818,7 +818,7 @@ def extract_title_and_excerpt(content):
             header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
             if not any(header in line.lower() for header in header_keywords):
                 clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_excerpt = re.sub(r'\s*[•\-–—:]+, '', clean_excerpt)
+                clean_excerpt = re.sub(r'\s*[•\-–—:]+$', '', clean_excerpt)
                 clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
                 clean_excerpt = clean_excerpt.strip()
                 
@@ -830,7 +830,6 @@ def extract_title_and_excerpt(content):
         excerpt = f"Strategic insights and practical guidance for Canadian business leaders - {month_year} analysis."
     
     return title, excerpt
-
 def create_html_blog_post(content, title, excerpt):
     """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
     current_date = datetime.now()
