@@ -170,19 +170,37 @@ def extract_title_and_excerpt(content):
             line_lower = line.lower()
             if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
                 clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+
-            line = re.sub(r'^[•\-–—]+\s*', '', line)
-            line = re.sub(r'\s*[•\-–—]+$', '', line)
-            line = re.sub(r':\s*[•\-–—]+\s*([A-Z])', r': \1', line)
-            line = re.sub(r'[•\-–—]+\s*:\s*([A-Z])', r': \1', line)
-            line = re.sub(r'^:\s*([A-Z][^:]*?)\s*:•', r'\1:', line)
-            if line:
-                cleaned_lines.append(line)
+                clean_title = re.sub(r'\s*[•\-–—:]+$', '', clean_title)
+                clean_title = re.sub(r'[•\-–—]', '', clean_title)
+                clean_title = clean_title.strip()
+                
+                if clean_title and len(clean_title) > 10:
+                    potential_title = clean_title
+                    break
     
-    content = '\n'.join(cleaned_lines)
-    content = re.sub(r' +', ' ', content)
-    content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
-    return content.strip()
+    if potential_title and not potential_title.lower().startswith('ai insights'):
+        title = potential_title
+    else:
+        title = f"AI Insights for {month_year}"
+    
+    excerpt = ""
+    for line in lines:
+        if line and len(line) > 100 and not line.startswith(('#', '1.', '2.', '3.', '4.', '5.', '•', '-', '*')):
+            header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
+            if not any(header in line.lower() for header in header_keywords):
+                clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
+                clean_excerpt = re.sub(r'\s*[•\-–—:]+$', '', clean_excerpt)
+                clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
+                clean_excerpt = clean_excerpt.strip()
+                
+                if clean_excerpt:
+                    excerpt = clean_excerpt[:200] + "..." if len(clean_excerpt) > 200 else clean_excerpt
+                    break
+    
+    if not excerpt:
+        excerpt = f"Strategic insights and practical guidance for Canadian business leaders - {month_year} analysis."
+    
+    return title, excerpt
 
 def generate_blog_with_perplexity(api_key, topic=None):
     """Generate blog content using Perplexity API"""
