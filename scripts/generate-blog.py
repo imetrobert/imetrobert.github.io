@@ -1038,22 +1038,32 @@ def extract_post_info(html_file):
             date_text = datetime.now().strftime("%B %d, %Y")
 
     excerpt = None
+    
+    # FIRST: Try to get the intro from the header section (most reliable for new posts)
     intro_div = soup.find("div", class_="intro")
     if intro_div:
         excerpt = re.sub(r'\s+', ' ', intro_div.get_text()).strip()
+        # Clean up any truncation markers or markdown artifacts
+        excerpt = re.sub(r'\.\.\.f$', '...', excerpt)
+        excerpt = re.sub(r'f\.\.\.$', '...', excerpt)
     
+    # SECOND: If no intro div, try the first paragraph in article-content
     if not excerpt:
         article_content = soup.find("div", class_="article-content")
         if article_content:
-            p_tag = article_content.find("p")
-            if p_tag:
-                excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
+            # Find the first section div with a paragraph
+            first_section = article_content.find("div", class_="section")
+            if first_section:
+                p_tag = first_section.find("p")
+                if p_tag:
+                    excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
     
     if not excerpt:
         excerpt = "Read the latest AI insights and business applications."
 
+    # Ensure excerpt is properly truncated
     if len(excerpt) > 200:
-        excerpt = excerpt[:200] + "..."
+        excerpt = excerpt[:200].rstrip() + "..."
 
     return {
         "title": title,
