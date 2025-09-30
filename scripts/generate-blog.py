@@ -336,20 +336,17 @@ def parse_structured_content(content):
                 adoption_end = pos
             break
     
-    # If we didn't find adoption section, set rec_end to conclusion or end of content
     if rec_start != -1 and rec_end == -1:
         if conclusion_start != -1:
             rec_end = conclusion_start
         else:
             rec_end = len(content)
     
-    # If we didn't find conclusion section, set adoption_end to end of content
     if adoption_start != -1 and adoption_end == -1:
         adoption_end = len(content)
     
     print(f"DEBUG: Section positions - dev:{dev_start}, impact:{impact_start}, rec:{rec_start}, adoption:{adoption_start}, conclusion:{conclusion_start}")
     
-    # Print what text was found at each position for debugging
     if dev_start != -1:
         print(f"DEBUG: Dev section header: '{content[dev_start:dev_start+50]}'")
     if impact_start != -1:
@@ -393,10 +390,8 @@ def parse_structured_content(content):
     else:
         print("DEBUG: Adoption metrics section NOT FOUND in content")
         print(f"DEBUG: Looking for patterns: {adoption_patterns}")
-        # Check if content mentions adoption at all
         if 'adoption' in content_lower:
             print("DEBUG: Word 'adoption' exists in content but section not matched")
-            # Find where adoption is mentioned
             adoption_mentions = [i for i, word in enumerate(content_lower.split()) if 'adoption' in word]
             print(f"DEBUG: 'adoption' appears at word positions: {adoption_mentions[:5]}")
     
@@ -561,7 +556,6 @@ def parse_recommendation_items(text):
     """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
     items = []
     
-    # First, remove the section header itself
     header_keywords = [
         'strategic recommendation', 
         'recommendations for canadian leaders',
@@ -572,39 +566,32 @@ def parse_recommendation_items(text):
         'action steps'
     ]
     
-    # Remove header line
     lines = text.split('\n')
     cleaned_lines = []
     for line in lines:
         line_lower = line.strip().lower()
-        # Skip if line is just a header
         if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
             cleaned_lines.append(line.strip())
     
     text = '\n'.join(cleaned_lines)
     
-    # Strategy 1: Try to parse numbered list items
     current_item = []
     
     for line in cleaned_lines:
         if not line:
             continue
         
-        # Check if this is a numbered list item starting
         list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
         is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
         
         if is_list_number:
-            # Save previous item
             if current_item:
                 item_text = ' '.join(current_item).strip()
                 if len(item_text) > 30:
                     items.append(item_text)
             
-            # Start new item (remove the number)
             current_item = [re.sub(r'^\d+\.\s*', '', line)]
         else:
-            # Check if line looks like an unnumbered recommendation
             if len(line) > 30 and ':' in line and not current_item:
                 current_item = [line]
             elif current_item:
@@ -612,17 +599,14 @@ def parse_recommendation_items(text):
             elif len(line) > 30:
                 current_item = [line]
     
-    # Don't forget the last item
     if current_item:
         item_text = ' '.join(current_item).strip()
         if len(item_text) > 30:
             items.append(item_text)
     
-    # Strategy 2: If we got fewer than 3 items, try splitting by sentences/paragraphs
     if len(items) < 3:
         print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
         
-        # Split by double newlines OR single newlines followed by capital letters
         paragraphs = []
         current_para = []
         
@@ -632,7 +616,6 @@ def parse_recommendation_items(text):
                     paragraphs.append(' '.join(current_para))
                     current_para = []
             else:
-                # If this line starts with a capital and previous para exists, it might be a new item
                 if current_para and len(line) > 30 and line[0].isupper():
                     paragraphs.append(' '.join(current_para))
                     current_para = [line]
@@ -642,12 +625,10 @@ def parse_recommendation_items(text):
         if current_para:
             paragraphs.append(' '.join(current_para))
         
-        # Filter paragraphs: must be > 30 chars and look like recommendations
         paragraph_items = []
         for para in paragraphs:
             para = para.strip()
             if len(para) > 30:
-                # Look for action words that indicate recommendations
                 action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
                                'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
                                'strengthen', 'leverage', 'foster', 'collaborate']
@@ -656,7 +637,6 @@ def parse_recommendation_items(text):
                 if any(word in para_lower for word in action_words):
                     paragraph_items.append(para)
         
-        # Use paragraph items if we got more
         if len(paragraph_items) > len(items):
             items = paragraph_items
     
@@ -673,7 +653,6 @@ def parse_adoption_metrics(text):
     lines = text.split('\n')
     current_item = []
     
-    # Section headers to skip
     header_keywords = [
         'canadian business ai adoption',
         'ai adoption metrics',
@@ -681,13 +660,11 @@ def parse_adoption_metrics(text):
         'adoption statistics'
     ]
     
-    # Strategy 1: Try numbered list parsing
     for line in lines:
         line = line.strip()
         if not line:
             continue
         
-        # Skip section headers
         line_lower = line.lower()
         if any(header in line_lower for header in header_keywords):
             continue
@@ -716,11 +693,9 @@ def parse_adoption_metrics(text):
             if not any(header in item_lower for header in header_keywords):
                 items.append(item_text)
     
-    # Strategy 2: If we got fewer than 2 items, try sentence-based parsing
     if len(items) < 2:
         print("DEBUG: Numbered list parsing found < 2 adoption items, trying sentence-based parsing")
         
-        # Look for sentences with percentages
         sentences = []
         current_sentence = []
         
@@ -728,7 +703,6 @@ def parse_adoption_metrics(text):
             line = line.strip()
             line_lower = line.lower()
             
-            # Skip headers
             if any(header in line_lower for header in header_keywords):
                 continue
             
@@ -737,7 +711,6 @@ def parse_adoption_metrics(text):
                     sentences.append(' '.join(current_sentence))
                     current_sentence = []
             else:
-                # If line has percentage or "adoption", it's likely a metric
                 if '%' in line or 'adoption' in line_lower:
                     if current_sentence:
                         sentences.append(' '.join(current_sentence))
@@ -748,7 +721,6 @@ def parse_adoption_metrics(text):
         if current_sentence:
             sentences.append(' '.join(current_sentence))
         
-        # Filter: must have percentage or adoption keywords
         sentence_items = []
         for sent in sentences:
             sent = sent.strip()
@@ -827,501 +799,7 @@ def extract_title_and_excerpt(content):
             line_lower = line.lower()
             if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
                 clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+
-                
-                if clean_title and len(clean_title) > 10:
-                    potential_title = clean_title
-                    break
-    
-    if potential_title and not potential_title.lower().startswith('ai insights'):
-        title = potential_title
-    else:
-        title = f"AI Insights for {month_year}"
-    
-    excerpt = ""
-    for line in lines:
-        if line and len(line) > 100 and not line.startswith(('#', '1.', '2.', '3.', '4.', '5.', '•', '-', '*')):
-            header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
-            if not any(header in line.lower() for header in header_keywords):
-                clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_excerpt = re.sub(r'\s*[•\-–—:]+, '', clean_excerpt)
-                clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
-                clean_excerpt = clean_excerpt.strip()
-                
-                if clean_excerpt:
-                    excerpt = clean_excerpt[:200] + "..." if len(clean_excerpt) > 200 else clean_excerpt
-                    break
-    
-    if not excerpt:
-        excerpt = f"Strategic insights and practical guidance for Canadian business leaders - {month_year} analysis."
-    
-    return title, excerpt
-
-def create_html_blog_post(content, title, excerpt):
-    """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
-    current_date = datetime.now()
-    formatted_date = current_date.strftime("%B %d, %Y")
-    month_year = current_date.strftime("%B %Y")
-    
-    sections = parse_structured_content(content)
-    content_html = []
-    
-    if sections['introduction']:
-        intro_clean = re.sub(r'[-•*]\s*[-•*]\s*', '', sections['introduction'])
-        intro_clean = re.sub(r'^\s*[-•*]\s*', '', intro_clean)
-        content_html.append(f'<div class="section"><p>{intro_clean}</p></div>')
-    
-    if sections['developments']:
-        dev_items = []
-        for item in sections['developments']:
-            clean_item = item.strip()
-            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
-            
-            if ':' in clean_item:
-                parts = clean_item.split(':', 1)
-                dev_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
-            else:
-                company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta']
-                for company in company_names:
-                    if company in clean_item:
-                        clean_item = clean_item.replace(company, f'<strong>{company}</strong>')
-                        break
-                dev_items.append(f'<li>{clean_item}</li>')
-        
-        if dev_items:
-            dev_list = '\n'.join(['                        ' + item for item in dev_items])
-            content_html.append(f'<div class="section"><h2 class="section-title">Key AI Developments This Month</h2><ul class="bullet-list">\n{dev_list}\n                    </ul></div>')
-    
-    if sections['canadian_impact']:
-        impact_text = sections['canadian_impact']
-        impact_text = re.sub(r'[-•*]\s*[-•*]\s*', '', impact_text)
-        impact_text = re.sub(r'^\s*[-•*]\s*', '', impact_text)
-        content_html.append(f'<div class="section"><h2 class="section-title">Impact on Canadian Businesses</h2><p>{impact_text}</p></div>')
-    
-    if sections['recommendations']:
-        rec_items = []
-        for i, item in enumerate(sections['recommendations']):
-            clean_item = item.strip()
-            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
-            clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
-            
-            if ':' in clean_item:
-                parts = clean_item.split(':', 1)
-                rec_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
-            else:
-                rec_items.append(f'<li><strong>Strategic Action {i+1}:</strong> {clean_item}</li>')
-        
-        if rec_items:
-            rec_list = '\n'.join(['                        ' + item for item in rec_items])
-            content_html.append(f'<div class="section"><h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2><ul class="bullet-list numbered">\n{rec_list}\n                    </ul></div>')
-    
-    if sections['adoption_metrics']:
-        adoption_items = []
-        for item in sections['adoption_metrics']:
-            clean_item = item.strip()
-            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
-            clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
-            
-            # Highlight percentages and numbers
-            clean_item = re.sub(r'(\d+\.?\d*%)', r'<strong>\1</strong>', clean_item)
-            clean_item = re.sub(r'(\d+\.?\d*x)', r'<strong>\1</strong>', clean_item)
-            
-            if ':' in clean_item:
-                parts = clean_item.split(':', 1)
-                adoption_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
-            else:
-                adoption_items.append(f'<li>{clean_item}</li>')
-        
-        if adoption_items:
-            adoption_list = '\n'.join(['                        ' + item for item in adoption_items])
-            content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><ul class="bullet-list">\n{adoption_list}\n                    </ul></div>')
-        else:
-            print("WARNING: Adoption metrics section found but no items parsed")
-    else:
-        print("WARNING: No adoption metrics section found - Perplexity did not generate this section")
-        # Add a placeholder note so it's visible in the output
-        content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><p><em>Note: Canadian adoption statistics were not available for this reporting period. For the latest adoption data, please refer to Statistics Canada or ISED reports.</em></p></div>')
-    
-    if sections['conclusion']:
-        conclusion_text = sections['conclusion']
-    else:
-        conclusion_text = generate_dynamic_conclusion(sections)
-    
-    conclusion_text = re.sub(r'[-•*]\s*[-•*]\s*', '', conclusion_text)
-    conclusion_text = re.sub(r'^\s*[-•*]\s*', '', conclusion_text)
-    
-    all_content = '\n'.join(content_html)
-    
-    html_template = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title} | Robert Simon - AI Insights</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <style>
-        :root {{
-            --primary-blue: #2563eb;
-            --accent-cyan: #06b6d4;
-            --dark-navy: #1e293b;
-            --medium-gray: #64748b;
-            --white: #ffffff;
-        }}
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); color: var(--dark-navy); line-height: 1.6; }}
-        .nav-bar {{ background: var(--white); padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
-        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem; }}
-        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); transition: all 0.3s ease; flex-shrink: 0; }}
-        .nav-link:hover {{ transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }}
-        .blog-meta {{ font-size: 0.85rem; color: var(--medium-gray); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }}
-        .header {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 4rem 0 3rem; text-align: center; }}
-        .header-content {{ max-width: 1000px; margin: 0 auto; padding: 0 2rem; }}
-        .header h1 {{ font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; }}
-        .header .subtitle {{ font-size: 1.2rem; font-weight: 500; opacity: 0.9; margin-bottom: 1.5rem; }}
-        .header .intro {{ font-size: 1.05rem; opacity: 0.85; max-width: 800px; margin: 0 auto; }}
-        .container {{ max-width: 1000px; margin: 0 auto; padding: 3rem 2rem 4rem; }}
-        .article-container {{ background: white; border-radius: 20px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); overflow: hidden; }}
-        .article-content {{ padding: 3rem; }}
-        .section {{ margin-bottom: 3rem; }}
-        .section-title {{ font-size: 2rem; color: var(--dark-navy); margin-bottom: 1.5rem; margin-top: 2rem; font-weight: 700; padding-left: 1.5rem; position: relative; }}
-        .section-title::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--primary-blue); border-radius: 2px; }}
-        .bullet-list {{ margin-bottom: 2rem; padding-left: 0; list-style: none; }}
-        .bullet-list li {{ margin-bottom: 1.5rem; line-height: 1.8; color: var(--medium-gray); position: relative; padding-left: 2.5rem; }}
-        .bullet-list li::before {{ content: '●'; position: absolute; left: 0; color: var(--primary-blue); font-weight: bold; top: 0.1rem; }}
-        .bullet-list.numbered {{ counter-reset: list-counter; }}
-        .bullet-list.numbered li {{ counter-increment: list-counter; }}
-        .bullet-list.numbered li::before {{ content: counter(list-counter) '.'; background: var(--primary-blue); color: white; width: 1.8rem; height: 1.8rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }}
-        p {{ margin-bottom: 1.2rem; line-height: 1.7; color: var(--medium-gray); }}
-        strong {{ color: var(--dark-navy); font-weight: 600; }}
-        .conclusion {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 2.5rem; border-radius: 15px; margin-top: 3rem; }}
-        .conclusion p {{ color: rgba(255, 255, 255, 0.95); font-size: 1.1rem; font-weight: 500; margin-bottom: 0; }}
-        .conclusion strong {{ color: white; }}
-        @media (max-width: 768px) {{ 
-            .header h1 {{ font-size: 2.2rem; }} 
-            .container {{ padding: 2rem 1rem 3rem; }} 
-            .article-content {{ padding: 2rem 1.5rem; }}
-            .nav-content {{ flex-direction: column; gap: 1rem; align-items: flex-start; }}
-            .blog-meta {{ width: 100%; }}
-        }}
-    </style>
-</head>
-<body>
-    <nav class="nav-bar">
-        <div class="nav-content">
-            <a href="https://www.imetrobert.com/blog/" class="nav-link">
-                ← Back to Blog Homepage
-            </a>
-            <div class="blog-meta">
-                <span>AI Insights for Canadian Business</span>
-                <span>•</span>
-                <span>{formatted_date}</span>
-            </div>
-        </div>
-    </nav>
-
-    <header class="header">
-        <div class="header-content">
-            <h1>AI Insights for {month_year}</h1>
-            <div class="subtitle">Key AI Developments & Canadian Business Impact</div>
-            <div class="intro">{excerpt}</div>
-        </div>
-    </header>
-
-    <div class="container">
-        <article class="article-container">
-            <div class="article-content">
-                {all_content}
-                <div class="conclusion">
-                    <p><strong>Strategic Imperative for Canadian Businesses:</strong> {conclusion_text}</p>
-                </div>
-            </div>
-        </article>
-    </div>
-</body>
-</html>'''
-    
-    return html_template
-
-def extract_post_info(html_file):
-    """Extract title, date, and excerpt from an HTML blog post"""
-    with open(html_file, "r", encoding="utf-8") as f:
-        soup = BeautifulSoup(f, "html.parser")
-
-    title_tag = soup.find("h1")
-    title = title_tag.get_text(strip=True) if title_tag else "AI Insights"
-
-    date_text = None
-    blog_meta = soup.find("div", class_="blog-meta")
-    if blog_meta:
-        meta_text = blog_meta.get_text()
-        if "•" in meta_text:
-            date_text = meta_text.split("•")[-1].strip()
-    
-    if not date_text:
-        basename = os.path.basename(html_file)
-        match = re.match(r"(\d{4}-\d{2}-\d{2})-", basename)
-        if match:
-            date_obj = datetime.strptime(match.group(1), "%Y-%m-%d")
-            date_text = date_obj.strftime("%B %d, %Y")
-        else:
-            date_text = datetime.now().strftime("%B %d, %Y")
-
-    excerpt = None
-    intro_div = soup.find("div", class_="intro")
-    if intro_div:
-        excerpt = re.sub(r'\s+', ' ', intro_div.get_text()).strip()
-    
-    if not excerpt:
-        article_content = soup.find("div", class_="article-content")
-        if article_content:
-            p_tag = article_content.find("p")
-            if p_tag:
-                excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
-    
-    if not excerpt:
-        excerpt = "Read the latest AI insights and business applications."
-
-    if len(excerpt) > 200:
-        excerpt = excerpt[:200] + "..."
-
-    return {
-        "title": title,
-        "date": date_text,
-        "excerpt": excerpt,
-        "filename": os.path.basename(html_file)
-    }
-
-def create_blog_index_html(posts):
-    """Create blog index page"""
-    if not posts:
-        return None
-    
-    validated_posts = []
-    posts_dir = "blog/posts"
-    
-    for post in posts:
-        file_path = os.path.join(posts_dir, post['filename'])
-        if os.path.exists(file_path):
-            validated_posts.append(post)
-    
-    if not validated_posts:
-        return None
-    
-    latest_post = validated_posts[0]
-    older_posts = validated_posts[1:] if len(validated_posts) > 1 else []
-    
-    older_posts_html = ""
-    for post in older_posts:
-        older_posts_html += f'''
-                <div class="older-post-item">
-                    <a href="/blog/posts/{post['filename']}" class="older-post-link">
-                        <div class="older-post-title">{post['title']}</div>
-                        <div class="older-post-date">{post['date']}</div>
-                    </a>
-                </div>'''
-    
-    older_posts_section = ""
-    if older_posts:
-        older_posts_section = f'''<section class="older-posts-section">
-            <h3 class="older-posts-title">Previous Insights</h3>
-            <div class="older-posts-grid">
-                {older_posts_html}
-            </div>
-        </section>'''
-
-    blog_index_html = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Insights Blog - Robert Simon</title>
-    <style>
-        body {{ font-family: Inter, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); margin: 0; padding: 0; }}
-        .container {{ max-width: 1200px; margin: 0 auto; padding: 2rem; }}
-        header {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 3rem; border-radius: 20px; }}
-        h1 {{ font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; }}
-        .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
-        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: flex-start; }}
-        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
-        .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }}
-        .latest-badge {{ background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }}
-        .latest-post-title {{ font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }}
-        .read-latest-btn {{ background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; }}
-        .older-posts-section {{ background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }}
-        .older-posts-title {{ font-size: 1.8rem; margin-bottom: 2rem; text-align: center; }}
-        .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 1rem; }}
-        .older-post-link {{ display: block; padding: 1.5rem; text-decoration: none; color: inherit; }}
-        .older-post-title {{ font-size: 1.3rem; font-weight: 600; color: #2563eb; margin-bottom: 0.5rem; }}
-        .older-post-date {{ font-size: 0.9rem; color: #64748b; }}
-    </style>
-</head>
-<body>
-    <nav class="nav-bar">
-        <div class="nav-content">
-            <a href="https://www.imetrobert.com" class="nav-link">← Back to Homepage</a>
-        </div>
-    </nav>
-    
-    <div class="container">
-        <header>
-            <h1>AI Insights Blog</h1>
-            <p>Strategic Intelligence for Digital Leaders</p>
-        </header>
-
-        <section class="latest-post-section">
-            <div class="latest-badge">Latest</div>
-            <h2 class="latest-post-title">{latest_post['title']}</h2>
-            <div>{latest_post['date']}</div>
-            <p>{latest_post['excerpt']}</p>
-            <a href="/blog/posts/{latest_post['filename']}" class="read-latest-btn">Read Full Analysis →</a>
-        </section>
-
-        {older_posts_section}
-    </div>
-</body>
-</html>'''
-
-    return blog_index_html
-
-def update_blog_index():
-    """Update blog index"""
-    posts_dir = "blog/posts"
-    index_file = "blog/index.html"
-    
-    if not os.path.exists(posts_dir):
-        return []
-    
-    posts = []
-    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html" and f != "latest.html"]
-    
-    for file in sorted(html_files, reverse=True):
-        file_path = os.path.join(posts_dir, file)
-        try:
-            # Check if file exists and is not empty
-            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                post_info = extract_post_info(file_path)
-                if post_info.get('title') and post_info.get('filename'):
-                    posts.append(post_info)
-        except Exception as e:
-            print(f"Warning: Could not process {file}: {e}")
-            continue
-
-    # Filter out posts that don't exist or are invalid
-    validated_posts = []
-    for post in posts:
-        file_path = os.path.join(posts_dir, post['filename'])
-        if os.path.exists(file_path) and os.path.getsize(file_path) > 100:  # Must be at least 100 bytes
-            validated_posts.append(post)
-    
-    if not validated_posts:
-        print("Warning: No valid posts found")
-        return []
-    
-    # Get the latest post
-    latest_post = validated_posts[0]
-    
-    # Extract month and year from latest post date
-    try:
-        latest_date = datetime.strptime(latest_post['date'], "%B %d, %Y")
-        latest_month_year = latest_date.strftime("%B %Y")
-    except:
-        # Fallback to filename parsing
-        try:
-            filename_date = latest_post['filename'].split('-')[:3]
-            latest_date = datetime.strptime('-'.join(filename_date), "%Y-%m-%d")
-            latest_month_year = latest_date.strftime("%B %Y")
-        except:
-            latest_month_year = None
-    
-    # Filter older posts - exclude posts from the same month as latest
-    older_posts = []
-    for post in validated_posts[1:]:
-        try:
-            post_date = datetime.strptime(post['date'], "%B %d, %Y")
-            post_month_year = post_date.strftime("%B %Y")
-            
-            # Only include if from a different month than latest
-            if latest_month_year and post_month_year != latest_month_year:
-                older_posts.append(post)
-            elif not latest_month_year:
-                # If we couldn't parse latest date, include all older posts
-                older_posts.append(post)
-        except:
-            # If date parsing fails, try to compare by filename
-            try:
-                post_filename_date = post['filename'].split('-')[:2]  # Year-month
-                latest_filename_date = latest_post['filename'].split('-')[:2]
-                if post_filename_date != latest_filename_date:
-                    older_posts.append(post)
-            except:
-                # If all parsing fails, include the post
-                older_posts.append(post)
-    
-    print(f"Found {len(validated_posts)} total posts, showing latest and {len(older_posts)} from previous months")
-
-    new_blog_index = create_blog_index_html(validated_posts[:1] + older_posts)
-    if not new_blog_index:
-        return []
-    
-    try:
-        with open(index_file, "w", encoding="utf-8") as f:
-            f.write(new_blog_index)
-        print(f"✅ Blog index recreated with 1 latest + {len(older_posts)} previous months")
-    except Exception as e:
-        print(f"❌ Error writing blog index: {e}")
-    
-    return validated_posts
-
-def main():
-    parser = argparse.ArgumentParser(description="Blog Generator")
-    parser.add_argument("--topic", help="Custom topic")
-    parser.add_argument("--output", default="posts", choices=["staging", "posts"])
-    args = parser.parse_args()
-    
-    print("🔧 RUNNING BLOG GENERATOR")
-    
-    api_key = os.getenv("PERPLEXITY_API_KEY")
-    if not api_key:
-        print("❌ PERPLEXITY_API_KEY not set")
-        sys.exit(1)
-    
-    try:
-        result = generate_blog_with_perplexity(api_key, args.topic)
-        title, excerpt = extract_title_and_excerpt(result["content"])
-        html_content = create_html_blog_post(result["content"], title, excerpt)
-        
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        filename_html = f"{current_date}-{clean_filename(title)}.html"
-        
-        output_dir = os.path.join("blog", args.output)
-        os.makedirs(output_dir, exist_ok=True)
-        
-        path_html = os.path.join(output_dir, filename_html)
-        
-        with open(path_html, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        print(f"✅ Blog post saved: {path_html}")
-        
-        latest_path = os.path.join("blog", "posts", "latest.html")
-        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
-        with open(latest_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        print(f"✅ Latest post updated")
-        
-        posts = update_blog_index()
-        print(f"✅ Blog index updated with {len(posts)} posts")
-        print("🎉 SUCCESS!")
-        
-    except Exception as e:
-        print(f"💥 Failed: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
-
-    , '', clean_title)
+                clean_title = re.sub(r'\s*[•\-–—:]+, '', clean_title)
                 clean_title = re.sub(r'[•\-–—]', '', clean_title)
                 clean_title = clean_title.strip()
                 
@@ -1418,7 +896,6 @@ def create_html_blog_post(content, title, excerpt):
             clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
             clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
             
-            # Highlight percentages and numbers
             clean_item = re.sub(r'(\d+\.?\d*%)', r'<strong>\1</strong>', clean_item)
             clean_item = re.sub(r'(\d+\.?\d*x)', r'<strong>\1</strong>', clean_item)
             
@@ -1435,7 +912,6 @@ def create_html_blog_post(content, title, excerpt):
             print("WARNING: Adoption metrics section found but no items parsed")
     else:
         print("WARNING: No adoption metrics section found - Perplexity did not generate this section")
-        # Add a placeholder note so it's visible in the output
         content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><p><em>Note: Canadian adoption statistics were not available for this reporting period. For the latest adoption data, please refer to Statistics Canada or ISED reports.</em></p></div>')
     
     if sections['conclusion']:
@@ -1693,7 +1169,6 @@ def update_blog_index():
     for file in sorted(html_files, reverse=True):
         file_path = os.path.join(posts_dir, file)
         try:
-            # Check if file exists and is not empty
             if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                 post_info = extract_post_info(file_path)
                 if post_info.get('title') and post_info.get('filename'):
@@ -1702,26 +1177,22 @@ def update_blog_index():
             print(f"Warning: Could not process {file}: {e}")
             continue
 
-    # Filter out posts that don't exist or are invalid
     validated_posts = []
     for post in posts:
         file_path = os.path.join(posts_dir, post['filename'])
-        if os.path.exists(file_path) and os.path.getsize(file_path) > 100:  # Must be at least 100 bytes
+        if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
             validated_posts.append(post)
     
     if not validated_posts:
         print("Warning: No valid posts found")
         return []
     
-    # Get the latest post
     latest_post = validated_posts[0]
     
-    # Extract month and year from latest post date
     try:
         latest_date = datetime.strptime(latest_post['date'], "%B %d, %Y")
         latest_month_year = latest_date.strftime("%B %Y")
     except:
-        # Fallback to filename parsing
         try:
             filename_date = latest_post['filename'].split('-')[:3]
             latest_date = datetime.strptime('-'.join(filename_date), "%Y-%m-%d")
@@ -1729,28 +1200,23 @@ def update_blog_index():
         except:
             latest_month_year = None
     
-    # Filter older posts - exclude posts from the same month as latest
     older_posts = []
     for post in validated_posts[1:]:
         try:
             post_date = datetime.strptime(post['date'], "%B %d, %Y")
             post_month_year = post_date.strftime("%B %Y")
             
-            # Only include if from a different month than latest
             if latest_month_year and post_month_year != latest_month_year:
                 older_posts.append(post)
             elif not latest_month_year:
-                # If we couldn't parse latest date, include all older posts
                 older_posts.append(post)
         except:
-            # If date parsing fails, try to compare by filename
             try:
-                post_filename_date = post['filename'].split('-')[:2]  # Year-month
+                post_filename_date = post['filename'].split('-')[:2]
                 latest_filename_date = latest_post['filename'].split('-')[:2]
                 if post_filename_date != latest_filename_date:
                     older_posts.append(post)
             except:
-                # If all parsing fails, include the post
                 older_posts.append(post)
     
     print(f"Found {len(validated_posts)} total posts, showing latest and {len(older_posts)} from previous months")
