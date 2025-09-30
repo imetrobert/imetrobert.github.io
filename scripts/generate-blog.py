@@ -530,12 +530,10 @@ def parse_recommendation_items(text):
     """Parse recommendation items with better decimal handling and header filtering - FIXED VERSION"""
     items = []
     
-    lines = text.split('\n')
-    current_item = []
-    
-    # Section headers to skip
+    # First, remove the section header itself
     header_keywords = [
         'strategic recommendation', 
+        'recommendations for canadian leaders',
         'recommendations for', 
         'strategic action',
         'for canadian leaders',
@@ -543,41 +541,63 @@ def parse_recommendation_items(text):
         'action steps'
     ]
     
+    # Remove header line
+    lines = text.split('\n')
+    cleaned_lines = []
     for line in lines:
-        line = line.strip()
+        line_lower = line.strip().lower()
+        # Skip if line is just a header
+        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
+            cleaned_lines.append(line.strip())
+    
+    text = '\n'.join(cleaned_lines)
+    
+    # Now parse items
+    current_item = []
+    
+    for line in cleaned_lines:
         if not line:
             continue
         
-        # Skip section headers
-        line_lower = line.lower()
-        if any(header in line_lower for header in header_keywords):
-            continue
-            
+        # CRITICAL: Check if this is a numbered list item starting
+        # Must NOT match version numbers like "4.1" or decimals like "15.3%"
         list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
         
-        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
+        # Additional check: ensure it's not a decimal/version number
+        # Version numbers have format: X.Y where Y is typically 1-2 digits
+        # List numbers have format: X. followed by space and capital letter
+        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
+        
+        if is_list_number:
+            # Save previous item
             if current_item:
                 item_text = ' '.join(current_item).strip()
                 if len(item_text) > 30:
-                    # Additional check: make sure it's not just a title repeat
-                    item_lower = item_text.lower()
-                    if not any(header in item_lower for header in header_keywords):
-                        items.append(item_text)
+                    items.append(item_text)
             
+            # Start new item (remove the number)
             current_item = [re.sub(r'^\d+\.\s*', '', line)]
         else:
-            if current_item:
+            # Check if line looks like an unnumbered recommendation
+            if len(line) > 30 and ':' in line and not current_item:
+                # This might be a recommendation like "Prioritize AI Literacy: ..."
+                current_item = [line]
+            elif current_item:
+                # Continue previous item (don't break on U.S., version numbers, etc.)
                 current_item.append(line)
             elif len(line) > 30:
+                # Start new item
                 current_item = [line]
     
+    # Don't forget the last item
     if current_item:
         item_text = ' '.join(current_item).strip()
         if len(item_text) > 30:
-            # Additional check: make sure it's not just a title repeat
-            item_lower = item_text.lower()
-            if not any(header in item_lower for header in header_keywords):
-                items.append(item_text)
+            items.append(item_text)
+    
+    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
+    for i, item in enumerate(items[:3]):  # Print first 3 for debugging
+        print(f"DEBUG rec item {i+1}: {item[:100]}...")
     
     return items[:5]
 
