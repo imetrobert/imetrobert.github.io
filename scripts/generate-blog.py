@@ -82,28 +82,42 @@ def generate_blog_with_perplexity(api_key, topic=None):
     if topic_type == "monthly_ai":
         system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
 
-Create a monthly AI insights post for {month_year} following this EXACT structure:
+Create a monthly AI insights post for {month_year} with EXACTLY these 6 sections in this EXACT order:
 
-1. INTRODUCTION: Brief overview of the month's key AI developments (1 paragraph)
-2. KEY AI DEVELOPMENTS: List 15 major AI technology launches, updates, or breakthroughs from the past month with SPECIFIC DATES and company details
-3. CANADIAN BUSINESS IMPACT: Analyze how these developments specifically affect Canadian businesses
-4. STRATEGIC RECOMMENDATIONS: Provide 5 specific, actionable recommendations for Canadian business leaders
-5. CANADIAN BUSINESS AI ADOPTION METRICS: Provide 3-5 data points showing how Canadian businesses and individuals are adopting AI this month compared to previous months, including percentages, growth rates, and industry-specific adoption trends
-6. CONCLUSION: Strategic imperative for Canadian businesses (1 paragraph)
+SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
 
-Write in a professional, authoritative tone. Be specific about companies, technologies, dates, and statistics."""
+SECTION 2 - HEADING "Key AI Developments This Month": List exactly 15 major AI developments from the past month with specific dates and company names
+
+SECTION 3 - HEADING "Impact on Canadian Businesses": Write analysis of how these developments affect Canadian businesses
+
+SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations
+
+SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 data points with percentages showing:
+- Current adoption rates (e.g., "15.2% of Canadian businesses now use AI")
+- Month-over-month growth (e.g., "up from 12.8% last month")
+- Industry-specific adoption rates
+- Personal use statistics in Canada
+- Comparisons to previous months
+
+SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
+
+YOU MUST INCLUDE ALL 6 SECTIONS. Section 5 (Canadian Business AI Adoption Metrics) is MANDATORY."""
         
-        user_prompt = f"""Write an AI insights blog post for Canadian business leaders covering the latest developments in {month_year}.
+        user_prompt = f"""Write an AI insights blog post for {month_year} with EXACTLY 6 sections:
 
-Structure:
-- Introduction: Overview of this month's key AI developments 
-- Key AI Developments: EXACTLY 15 items, each with specific dates
-- Canadian Business Impact: How these affect Canadian businesses specifically
-- Strategic Recommendations: 5 actionable steps for Canadian business leaders
-- Canadian Business AI Adoption Metrics: 3-5 specific data points with percentages showing adoption trends in Canada (business adoption rates, personal use statistics, industry comparisons, month-over-month growth)
-- Conclusion: Strategic imperative for Canadian businesses
+1. Introduction paragraph (NO HEADING)
+2. Key AI Developments This Month (15 items with dates)
+3. Impact on Canadian Businesses (analysis paragraph)
+4. Strategic Recommendations for Canadian Leaders (5 recommendations)
+5. Canadian Business AI Adoption Metrics (3-5 data points with percentages - THIS IS REQUIRED)
+6. Conclusion (1 paragraph)
 
-Focus on developments from the past 30 days. Include specific company names, product launches, real dates, and Canadian adoption statistics."""
+For Section 5 (Canadian Business AI Adoption Metrics), you MUST include statistics like:
+- "X% of Canadian businesses have adopted AI (up from Y% last month)"
+- "Personal AI usage in Canada reached Z%"
+- "Industry breakdown: Financial services X%, Manufacturing Y%, Healthcare Z%"
+
+DO NOT SKIP SECTION 5. Include specific Canadian adoption statistics with percentages."""
 
     elif topic_type == "custom_ai":
         system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
@@ -760,6 +774,12 @@ def create_html_blog_post(content, title, excerpt):
         if adoption_items:
             adoption_list = '\n'.join(['                        ' + item for item in adoption_items])
             content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><ul class="bullet-list">\n{adoption_list}\n                    </ul></div>')
+        else:
+            print("WARNING: Adoption metrics section found but no items parsed")
+    else:
+        print("WARNING: No adoption metrics section found - Perplexity did not generate this section")
+        # Add a placeholder note so it's visible in the output
+        content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><p><em>Note: Canadian adoption statistics were not available for this reporting period. For the latest adoption data, please refer to Statistics Canada or ISED reports.</em></p></div>')
     
     if sections['conclusion']:
         conclusion_text = sections['conclusion']
@@ -1011,30 +1031,85 @@ def update_blog_index():
         return []
     
     posts = []
-    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html"]
+    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html" and f != "latest.html"]
     
     for file in sorted(html_files, reverse=True):
         file_path = os.path.join(posts_dir, file)
         try:
+            # Check if file exists and is not empty
             if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                 post_info = extract_post_info(file_path)
                 if post_info.get('title') and post_info.get('filename'):
                     posts.append(post_info)
         except Exception as e:
+            print(f"Warning: Could not process {file}: {e}")
             continue
 
-    new_blog_index = create_blog_index_html(posts)
+    # Filter out posts that don't exist or are invalid
+    validated_posts = []
+    for post in posts:
+        file_path = os.path.join(posts_dir, post['filename'])
+        if os.path.exists(file_path) and os.path.getsize(file_path) > 100:  # Must be at least 100 bytes
+            validated_posts.append(post)
+    
+    if not validated_posts:
+        print("Warning: No valid posts found")
+        return []
+    
+    # Get the latest post
+    latest_post = validated_posts[0]
+    
+    # Extract month and year from latest post date
+    try:
+        latest_date = datetime.strptime(latest_post['date'], "%B %d, %Y")
+        latest_month_year = latest_date.strftime("%B %Y")
+    except:
+        # Fallback to filename parsing
+        try:
+            filename_date = latest_post['filename'].split('-')[:3]
+            latest_date = datetime.strptime('-'.join(filename_date), "%Y-%m-%d")
+            latest_month_year = latest_date.strftime("%B %Y")
+        except:
+            latest_month_year = None
+    
+    # Filter older posts - exclude posts from the same month as latest
+    older_posts = []
+    for post in validated_posts[1:]:
+        try:
+            post_date = datetime.strptime(post['date'], "%B %d, %Y")
+            post_month_year = post_date.strftime("%B %Y")
+            
+            # Only include if from a different month than latest
+            if latest_month_year and post_month_year != latest_month_year:
+                older_posts.append(post)
+            elif not latest_month_year:
+                # If we couldn't parse latest date, include all older posts
+                older_posts.append(post)
+        except:
+            # If date parsing fails, try to compare by filename
+            try:
+                post_filename_date = post['filename'].split('-')[:2]  # Year-month
+                latest_filename_date = latest_post['filename'].split('-')[:2]
+                if post_filename_date != latest_filename_date:
+                    older_posts.append(post)
+            except:
+                # If all parsing fails, include the post
+                older_posts.append(post)
+    
+    print(f"Found {len(validated_posts)} total posts, showing latest and {len(older_posts)} from previous months")
+
+    new_blog_index = create_blog_index_html(validated_posts[:1] + older_posts)
     if not new_blog_index:
-        return posts
+        return []
     
     try:
         with open(index_file, "w", encoding="utf-8") as f:
             f.write(new_blog_index)
-        print(f"✅ Blog index recreated with {len(posts)} posts")
+        print(f"✅ Blog index recreated with 1 latest + {len(older_posts)} previous months")
     except Exception as e:
         print(f"❌ Error writing blog index: {e}")
     
-    return posts
+    return validated_posts
 
 def main():
     parser = argparse.ArgumentParser(description="Blog Generator")
