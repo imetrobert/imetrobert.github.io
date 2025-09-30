@@ -311,7 +311,18 @@ def parse_structured_content(content):
     
     if adoption_start != -1 and adoption_end != -1:
         adoption_text = content[adoption_start:adoption_end].strip()
+        print(f"DEBUG: Found adoption section from pos {adoption_start} to {adoption_end}")
+        print(f"DEBUG: Adoption text preview: {adoption_text[:200]}...")
         sections['adoption_metrics'] = parse_adoption_metrics(adoption_text)
+    else:
+        print("DEBUG: Adoption metrics section NOT FOUND in content")
+        print(f"DEBUG: Looking for patterns: {adoption_patterns}")
+        # Check if content mentions adoption at all
+        if 'adoption' in content_lower:
+            print("DEBUG: Word 'adoption' exists in content but section not matched")
+            # Find where adoption is mentioned
+            adoption_mentions = [i for i, word in enumerate(content_lower.split()) if 'adoption' in word]
+            print(f"DEBUG: 'adoption' appears at word positions: {adoption_mentions[:5]}")
     
     if conclusion_start != -1:
         conclusion_text = content[conclusion_start:].strip()
