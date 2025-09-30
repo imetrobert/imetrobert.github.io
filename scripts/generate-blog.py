@@ -33,377 +33,7 @@ def clean_perplexity_content(content):
     cleaned_lines = []
     
     for line in lines:
-if dev_items:
-            dev_list = '\n'.join(['                        ' + item for item in dev_items])
-            content_html.append(f'<div class="section"><h2 class="section-title">Key AI Developments This Month</h2><ul class="bullet-list">\n{dev_list}\n                    </ul></div>')
-    
-    if sections['canadian_impact']:
-        impact_text = sections['canadian_impact']
-        impact_text = re.sub(r'[-•*]\s*[-•*]\s*', '', impact_text)
-        impact_text = re.sub(r'^\s*[-•*]\s*', '', impact_text)
-        content_html.append(f'<div class="section"><h2 class="section-title">Impact on Canadian Businesses</h2><p>{impact_text}</p></div>')
-    
-    if sections['recommendations']:
-        rec_items = []
-        for i, item in enumerate(sections['recommendations']):
-            clean_item = item.strip()
-            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
-            clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
-            
-            if ':' in clean_item:
-                parts = clean_item.split(':', 1)
-                rec_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
-            else:
-                rec_items.append(f'<li><strong>Strategic Action {i+1}:</strong> {clean_item}</li>')
-        
-        if rec_items:
-            rec_list = '\n'.join(['                        ' + item for item in rec_items])
-            content_html.append(f'<div class="section"><h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2><ul class="bullet-list numbered">\n{rec_list}\n                    </ul></div>')
-    
-    if sections['adoption_metrics']:
-        adoption_items = []
-        for item in sections['adoption_metrics']:
-            clean_item = item.strip()
-            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
-            clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
-            
-            # Highlight percentages and numbers
-            clean_item = re.sub(r'(\d+\.?\d*%)', r'<strong>\1</strong>', clean_item)
-            clean_item = re.sub(r'(\d+\.?\d*x)', r'<strong>\1</strong>', clean_item)
-            
-            if ':' in clean_item:
-                parts = clean_item.split(':', 1)
-                adoption_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
-            else:
-                adoption_items.append(f'<li>{clean_item}</li>')
-        
-        if adoption_items:
-            adoption_list = '\n'.join(['                        ' + item for item in adoption_items])
-            content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><ul class="bullet-list">\n{adoption_list}\n                    </ul></div>')
-    
-    if sections['conclusion']:
-        conclusion_text = sections['conclusion']
-    else:
-        conclusion_text = generate_dynamic_conclusion(sections)
-    
-    conclusion_text = re.sub(r'[-•*]\s*[-•*]\s*', '', conclusion_text)
-    conclusion_text = re.sub(r'^\s*[-•*]\s*', '', conclusion_text)
-    
-    all_content = '\n'.join(content_html)
-    
-    html_template = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title} | Robert Simon - AI Insights</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <style>
-        :root {{
-            --primary-blue: #2563eb;
-            --accent-cyan: #06b6d4;
-            --dark-navy: #1e293b;
-            --medium-gray: #64748b;
-            --white: #ffffff;
-        }}
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); color: var(--dark-navy); line-height: 1.6; }}
-        .nav-bar {{ background: var(--white); padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
-        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem; }}
-        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); transition: all 0.3s ease; flex-shrink: 0; }}
-        .nav-link:hover {{ transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }}
-        .blog-meta {{ font-size: 0.85rem; color: var(--medium-gray); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }}
-        .header {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 4rem 0 3rem; text-align: center; }}
-        .header-content {{ max-width: 1000px; margin: 0 auto; padding: 0 2rem; }}
-        .header h1 {{ font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; }}
-        .header .subtitle {{ font-size: 1.2rem; font-weight: 500; opacity: 0.9; margin-bottom: 1.5rem; }}
-        .header .intro {{ font-size: 1.05rem; opacity: 0.85; max-width: 800px; margin: 0 auto; }}
-        .container {{ max-width: 1000px; margin: 0 auto; padding: 3rem 2rem 4rem; }}
-        .article-container {{ background: white; border-radius: 20px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); overflow: hidden; }}
-        .article-content {{ padding: 3rem; }}
-        .section {{ margin-bottom: 3rem; }}
-        .section-title {{ font-size: 2rem; color: var(--dark-navy); margin-bottom: 1.5rem; margin-top: 2rem; font-weight: 700; padding-left: 1.5rem; position: relative; }}
-        .section-title::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--primary-blue); border-radius: 2px; }}
-        .bullet-list {{ margin-bottom: 2rem; padding-left: 0; list-style: none; }}
-        .bullet-list li {{ margin-bottom: 1.5rem; line-height: 1.8; color: var(--medium-gray); position: relative; padding-left: 2.5rem; }}
-        .bullet-list li::before {{ content: '●'; position: absolute; left: 0; color: var(--primary-blue); font-weight: bold; top: 0.1rem; }}
-        .bullet-list.numbered {{ counter-reset: list-counter; }}
-        .bullet-list.numbered li {{ counter-increment: list-counter; }}
-        .bullet-list.numbered li::before {{ content: counter(list-counter) '.'; background: var(--primary-blue); color: white; width: 1.8rem; height: 1.8rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }}
-        p {{ margin-bottom: 1.2rem; line-height: 1.7; color: var(--medium-gray); }}
-        strong {{ color: var(--dark-navy); font-weight: 600; }}
-        .conclusion {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 2.5rem; border-radius: 15px; margin-top: 3rem; }}
-        .conclusion p {{ color: rgba(255, 255, 255, 0.95); font-size: 1.1rem; font-weight: 500; margin-bottom: 0; }}
-        .conclusion strong {{ color: white; }}
-        @media (max-width: 768px) {{ 
-            .header h1 {{ font-size: 2.2rem; }} 
-            .container {{ padding: 2rem 1rem 3rem; }} 
-            .article-content {{ padding: 2rem 1.5rem; }}
-            .nav-content {{ flex-direction: column; gap: 1rem; align-items: flex-start; }}
-            .blog-meta {{ width: 100%; }}
-        }}
-    </style>
-</head>
-<body>
-    <nav class="nav-bar">
-        <div class="nav-content">
-            <a href="https://www.imetrobert.com/blog/" class="nav-link">
-                ← Back to Blog Homepage
-            </a>
-            <div class="blog-meta">
-                <span>AI Insights for Canadian Business</span>
-                <span>•</span>
-                <span>{formatted_date}</span>
-            </div>
-        </div>
-    </nav>
-
-    <header class="header">
-        <div class="header-content">
-            <h1>AI Insights for {month_year}</h1>
-            <div class="subtitle">Key AI Developments & Canadian Business Impact</div>
-            <div class="intro">{excerpt}</div>
-        </div>
-    </header>
-
-    <div class="container">
-        <article class="article-container">
-            <div class="article-content">
-                {all_content}
-                <div class="conclusion">
-                    <p><strong>Strategic Imperative for Canadian Businesses:</strong> {conclusion_text}</p>
-                </div>
-            </div>
-        </article>
-    </div>
-</body>
-</html>'''
-    
-    return html_template
-
-def extract_post_info(html_file):
-    """Extract title, date, and excerpt from an HTML blog post"""
-    with open(html_file, "r", encoding="utf-8") as f:
-        soup = BeautifulSoup(f, "html.parser")
-
-    title_tag = soup.find("h1")
-    title = title_tag.get_text(strip=True) if title_tag else "AI Insights"
-
-    date_text = None
-    blog_meta = soup.find("div", class_="blog-meta")
-    if blog_meta:
-        meta_text = blog_meta.get_text()
-        if "•" in meta_text:
-            date_text = meta_text.split("•")[-1].strip()
-    
-    if not date_text:
-        basename = os.path.basename(html_file)
-        match = re.match(r"(\d{4}-\d{2}-\d{2})-", basename)
-        if match:
-            date_obj = datetime.strptime(match.group(1), "%Y-%m-%d")
-            date_text = date_obj.strftime("%B %d, %Y")
-        else:
-            date_text = datetime.now().strftime("%B %d, %Y")
-
-    excerpt = None
-    intro_div = soup.find("div", class_="intro")
-    if intro_div:
-        excerpt = re.sub(r'\s+', ' ', intro_div.get_text()).strip()
-    
-    if not excerpt:
-        article_content = soup.find("div", class_="article-content")
-        if article_content:
-            p_tag = article_content.find("p")
-            if p_tag:
-                excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
-    
-    if not excerpt:
-        excerpt = "Read the latest AI insights and business applications."
-
-    if len(excerpt) > 200:
-        excerpt = excerpt[:200] + "..."
-
-    return {
-        "title": title,
-        "date": date_text,
-        "excerpt": excerpt,
-        "filename": os.path.basename(html_file)
-    }
-
-def create_blog_index_html(posts):
-    """Create blog index page"""
-    if not posts:
-        return None
-    
-    validated_posts = []
-    posts_dir = "blog/posts"
-    
-    for post in posts:
-        file_path = os.path.join(posts_dir, post['filename'])
-        if os.path.exists(file_path):
-            validated_posts.append(post)
-    
-    if not validated_posts:
-        return None
-    
-    latest_post = validated_posts[0]
-    older_posts = validated_posts[1:] if len(validated_posts) > 1 else []
-    
-    older_posts_html = ""
-    for post in older_posts:
-        older_posts_html += f'''
-                <div class="older-post-item">
-                    <a href="/blog/posts/{post['filename']}" class="older-post-link">
-                        <div class="older-post-title">{post['title']}</div>
-                        <div class="older-post-date">{post['date']}</div>
-                    </a>
-                </div>'''
-    
-    older_posts_section = ""
-    if older_posts:
-        older_posts_section = f'''<section class="older-posts-section">
-            <h3 class="older-posts-title">Previous Insights</h3>
-            <div class="older-posts-grid">
-                {older_posts_html}
-            </div>
-        </section>'''
-
-    blog_index_html = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Insights Blog - Robert Simon</title>
-    <style>
-        body {{ font-family: Inter, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); margin: 0; padding: 0; }}
-        .container {{ max-width: 1200px; margin: 0 auto; padding: 2rem; }}
-        header {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 3rem; border-radius: 20px; }}
-        h1 {{ font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; }}
-        .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
-        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: flex-start; }}
-        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
-        .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }}
-        .latest-badge {{ background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }}
-        .latest-post-title {{ font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }}
-        .read-latest-btn {{ background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; }}
-        .older-posts-section {{ background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }}
-        .older-posts-title {{ font-size: 1.8rem; margin-bottom: 2rem; text-align: center; }}
-        .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 1rem; }}
-        .older-post-link {{ display: block; padding: 1.5rem; text-decoration: none; color: inherit; }}
-        .older-post-title {{ font-size: 1.3rem; font-weight: 600; color: #2563eb; margin-bottom: 0.5rem; }}
-        .older-post-date {{ font-size: 0.9rem; color: #64748b; }}
-    </style>
-</head>
-<body>
-    <nav class="nav-bar">
-        <div class="nav-content">
-            <a href="https://www.imetrobert.com" class="nav-link">← Back to Homepage</a>
-        </div>
-    </nav>
-    
-    <div class="container">
-        <header>
-            <h1>AI Insights Blog</h1>
-            <p>Strategic Intelligence for Digital Leaders</p>
-        </header>
-
-        <section class="latest-post-section">
-            <div class="latest-badge">Latest</div>
-            <h2 class="latest-post-title">{latest_post['title']}</h2>
-            <div>{latest_post['date']}</div>
-            <p>{latest_post['excerpt']}</p>
-            <a href="/blog/posts/{latest_post['filename']}" class="read-latest-btn">Read Full Analysis →</a>
-        </section>
-
-        {older_posts_section}
-    </div>
-</body>
-</html>'''
-
-    return blog_index_html
-
-def update_blog_index():
-    """Update blog index"""
-    posts_dir = "blog/posts"
-    index_file = "blog/index.html"
-    
-    if not os.path.exists(posts_dir):
-        return []
-    
-    posts = []
-    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html"]
-    
-    for file in sorted(html_files, reverse=True):
-        file_path = os.path.join(posts_dir, file)
-        try:
-            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                post_info = extract_post_info(file_path)
-                if post_info.get('title') and post_info.get('filename'):
-                    posts.append(post_info)
-        except Exception as e:
-            continue
-
-    new_blog_index = create_blog_index_html(posts)
-    if not new_blog_index:
-        return posts
-    
-    try:
-        with open(index_file, "w", encoding="utf-8") as f:
-            f.write(new_blog_index)
-        print(f"✅ Blog index recreated with {len(posts)} posts")
-    except Exception as e:
-        print(f"❌ Error writing blog index: {e}")
-    
-    return posts
-
-def main():
-    parser = argparse.ArgumentParser(description="Blog Generator")
-    parser.add_argument("--topic", help="Custom topic")
-    parser.add_argument("--output", default="posts", choices=["staging", "posts"])
-    args = parser.parse_args()
-    
-    print("🔧 RUNNING BLOG GENERATOR")
-    
-    api_key = os.getenv("PERPLEXITY_API_KEY")
-    if not api_key:
-        print("❌ PERPLEXITY_API_KEY not set")
-        sys.exit(1)
-    
-    try:
-        result = generate_blog_with_perplexity(api_key, args.topic)
-        title, excerpt = extract_title_and_excerpt(result["content"])
-        html_content = create_html_blog_post(result["content"], title, excerpt)
-        
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        filename_html = f"{current_date}-{clean_filename(title)}.html"
-        
-        output_dir = os.path.join("blog", args.output)
-        os.makedirs(output_dir, exist_ok=True)
-        
-        path_html = os.path.join(output_dir, filename_html)
-        
-        with open(path_html, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        print(f"✅ Blog post saved: {path_html}")
-        
-        latest_path = os.path.join("blog", "posts", "latest.html")
-        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
-        with open(latest_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        print(f"✅ Latest post updated")
-        
-        posts = update_blog_index()
-        print(f"✅ Blog index updated with {len(posts)} posts")
-        print("🎉 SUCCESS!")
-        
-    except Exception as e:
-        print(f"💥 Failed: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()line = line.strip()
+        line = line.strip()
         if not line:
             cleaned_lines.append(line)
             continue
@@ -1071,3 +701,375 @@ def create_html_blog_post(content, title, excerpt):
                         clean_item = clean_item.replace(company, f'<strong>{company}</strong>')
                         break
                 dev_items.append(f'<li>{clean_item}</li>')
+        
+        if dev_items:
+            dev_list = '\n'.join(['                        ' + item for item in dev_items])
+            content_html.append(f'<div class="section"><h2 class="section-title">Key AI Developments This Month</h2><ul class="bullet-list">\n{dev_list}\n                    </ul></div>')
+    
+    if sections['canadian_impact']:
+        impact_text = sections['canadian_impact']
+        impact_text = re.sub(r'[-•*]\s*[-•*]\s*', '', impact_text)
+        impact_text = re.sub(r'^\s*[-•*]\s*', '', impact_text)
+        content_html.append(f'<div class="section"><h2 class="section-title">Impact on Canadian Businesses</h2><p>{impact_text}</p></div>')
+    
+    if sections['recommendations']:
+        rec_items = []
+        for i, item in enumerate(sections['recommendations']):
+            clean_item = item.strip()
+            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
+            clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
+            
+            if ':' in clean_item:
+                parts = clean_item.split(':', 1)
+                rec_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
+            else:
+                rec_items.append(f'<li><strong>Strategic Action {i+1}:</strong> {clean_item}</li>')
+        
+        if rec_items:
+            rec_list = '\n'.join(['                        ' + item for item in rec_items])
+            content_html.append(f'<div class="section"><h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2><ul class="bullet-list numbered">\n{rec_list}\n                    </ul></div>')
+    
+    if sections['adoption_metrics']:
+        adoption_items = []
+        for item in sections['adoption_metrics']:
+            clean_item = item.strip()
+            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
+            clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
+            
+            # Highlight percentages and numbers
+            clean_item = re.sub(r'(\d+\.?\d*%)', r'<strong>\1</strong>', clean_item)
+            clean_item = re.sub(r'(\d+\.?\d*x)', r'<strong>\1</strong>', clean_item)
+            
+            if ':' in clean_item:
+                parts = clean_item.split(':', 1)
+                adoption_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
+            else:
+                adoption_items.append(f'<li>{clean_item}</li>')
+        
+        if adoption_items:
+            adoption_list = '\n'.join(['                        ' + item for item in adoption_items])
+            content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><ul class="bullet-list">\n{adoption_list}\n                    </ul></div>')
+    
+    if sections['conclusion']:
+        conclusion_text = sections['conclusion']
+    else:
+        conclusion_text = generate_dynamic_conclusion(sections)
+    
+    conclusion_text = re.sub(r'[-•*]\s*[-•*]\s*', '', conclusion_text)
+    conclusion_text = re.sub(r'^\s*[-•*]\s*', '', conclusion_text)
+    
+    all_content = '\n'.join(content_html)
+    
+    html_template = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title} | Robert Simon - AI Insights</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {{
+            --primary-blue: #2563eb;
+            --accent-cyan: #06b6d4;
+            --dark-navy: #1e293b;
+            --medium-gray: #64748b;
+            --white: #ffffff;
+        }}
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); color: var(--dark-navy); line-height: 1.6; }}
+        .nav-bar {{ background: var(--white); padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
+        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem; }}
+        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); transition: all 0.3s ease; flex-shrink: 0; }}
+        .nav-link:hover {{ transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }}
+        .blog-meta {{ font-size: 0.85rem; color: var(--medium-gray); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }}
+        .header {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 4rem 0 3rem; text-align: center; }}
+        .header-content {{ max-width: 1000px; margin: 0 auto; padding: 0 2rem; }}
+        .header h1 {{ font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; }}
+        .header .subtitle {{ font-size: 1.2rem; font-weight: 500; opacity: 0.9; margin-bottom: 1.5rem; }}
+        .header .intro {{ font-size: 1.05rem; opacity: 0.85; max-width: 800px; margin: 0 auto; }}
+        .container {{ max-width: 1000px; margin: 0 auto; padding: 3rem 2rem 4rem; }}
+        .article-container {{ background: white; border-radius: 20px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); overflow: hidden; }}
+        .article-content {{ padding: 3rem; }}
+        .section {{ margin-bottom: 3rem; }}
+        .section-title {{ font-size: 2rem; color: var(--dark-navy); margin-bottom: 1.5rem; margin-top: 2rem; font-weight: 700; padding-left: 1.5rem; position: relative; }}
+        .section-title::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--primary-blue); border-radius: 2px; }}
+        .bullet-list {{ margin-bottom: 2rem; padding-left: 0; list-style: none; }}
+        .bullet-list li {{ margin-bottom: 1.5rem; line-height: 1.8; color: var(--medium-gray); position: relative; padding-left: 2.5rem; }}
+        .bullet-list li::before {{ content: '●'; position: absolute; left: 0; color: var(--primary-blue); font-weight: bold; top: 0.1rem; }}
+        .bullet-list.numbered {{ counter-reset: list-counter; }}
+        .bullet-list.numbered li {{ counter-increment: list-counter; }}
+        .bullet-list.numbered li::before {{ content: counter(list-counter) '.'; background: var(--primary-blue); color: white; width: 1.8rem; height: 1.8rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }}
+        p {{ margin-bottom: 1.2rem; line-height: 1.7; color: var(--medium-gray); }}
+        strong {{ color: var(--dark-navy); font-weight: 600; }}
+        .conclusion {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 2.5rem; border-radius: 15px; margin-top: 3rem; }}
+        .conclusion p {{ color: rgba(255, 255, 255, 0.95); font-size: 1.1rem; font-weight: 500; margin-bottom: 0; }}
+        .conclusion strong {{ color: white; }}
+        @media (max-width: 768px) {{ 
+            .header h1 {{ font-size: 2.2rem; }} 
+            .container {{ padding: 2rem 1rem 3rem; }} 
+            .article-content {{ padding: 2rem 1.5rem; }}
+            .nav-content {{ flex-direction: column; gap: 1rem; align-items: flex-start; }}
+            .blog-meta {{ width: 100%; }}
+        }}
+    </style>
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-content">
+            <a href="https://www.imetrobert.com/blog/" class="nav-link">
+                ← Back to Blog Homepage
+            </a>
+            <div class="blog-meta">
+                <span>AI Insights for Canadian Business</span>
+                <span>•</span>
+                <span>{formatted_date}</span>
+            </div>
+        </div>
+    </nav>
+
+    <header class="header">
+        <div class="header-content">
+            <h1>AI Insights for {month_year}</h1>
+            <div class="subtitle">Key AI Developments & Canadian Business Impact</div>
+            <div class="intro">{excerpt}</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <article class="article-container">
+            <div class="article-content">
+                {all_content}
+                <div class="conclusion">
+                    <p><strong>Strategic Imperative for Canadian Businesses:</strong> {conclusion_text}</p>
+                </div>
+            </div>
+        </article>
+    </div>
+</body>
+</html>'''
+    
+    return html_template
+
+def extract_post_info(html_file):
+    """Extract title, date, and excerpt from an HTML blog post"""
+    with open(html_file, "r", encoding="utf-8") as f:
+        soup = BeautifulSoup(f, "html.parser")
+
+    title_tag = soup.find("h1")
+    title = title_tag.get_text(strip=True) if title_tag else "AI Insights"
+
+    date_text = None
+    blog_meta = soup.find("div", class_="blog-meta")
+    if blog_meta:
+        meta_text = blog_meta.get_text()
+        if "•" in meta_text:
+            date_text = meta_text.split("•")[-1].strip()
+    
+    if not date_text:
+        basename = os.path.basename(html_file)
+        match = re.match(r"(\d{4}-\d{2}-\d{2})-", basename)
+        if match:
+            date_obj = datetime.strptime(match.group(1), "%Y-%m-%d")
+            date_text = date_obj.strftime("%B %d, %Y")
+        else:
+            date_text = datetime.now().strftime("%B %d, %Y")
+
+    excerpt = None
+    intro_div = soup.find("div", class_="intro")
+    if intro_div:
+        excerpt = re.sub(r'\s+', ' ', intro_div.get_text()).strip()
+    
+    if not excerpt:
+        article_content = soup.find("div", class_="article-content")
+        if article_content:
+            p_tag = article_content.find("p")
+            if p_tag:
+                excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
+    
+    if not excerpt:
+        excerpt = "Read the latest AI insights and business applications."
+
+    if len(excerpt) > 200:
+        excerpt = excerpt[:200] + "..."
+
+    return {
+        "title": title,
+        "date": date_text,
+        "excerpt": excerpt,
+        "filename": os.path.basename(html_file)
+    }
+
+def create_blog_index_html(posts):
+    """Create blog index page"""
+    if not posts:
+        return None
+    
+    validated_posts = []
+    posts_dir = "blog/posts"
+    
+    for post in posts:
+        file_path = os.path.join(posts_dir, post['filename'])
+        if os.path.exists(file_path):
+            validated_posts.append(post)
+    
+    if not validated_posts:
+        return None
+    
+    latest_post = validated_posts[0]
+    older_posts = validated_posts[1:] if len(validated_posts) > 1 else []
+    
+    older_posts_html = ""
+    for post in older_posts:
+        older_posts_html += f'''
+                <div class="older-post-item">
+                    <a href="/blog/posts/{post['filename']}" class="older-post-link">
+                        <div class="older-post-title">{post['title']}</div>
+                        <div class="older-post-date">{post['date']}</div>
+                    </a>
+                </div>'''
+    
+    older_posts_section = ""
+    if older_posts:
+        older_posts_section = f'''<section class="older-posts-section">
+            <h3 class="older-posts-title">Previous Insights</h3>
+            <div class="older-posts-grid">
+                {older_posts_html}
+            </div>
+        </section>'''
+
+    blog_index_html = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Insights Blog - Robert Simon</title>
+    <style>
+        body {{ font-family: Inter, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); margin: 0; padding: 0; }}
+        .container {{ max-width: 1200px; margin: 0 auto; padding: 2rem; }}
+        header {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 3rem; border-radius: 20px; }}
+        h1 {{ font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; }}
+        .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
+        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: flex-start; }}
+        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
+        .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }}
+        .latest-badge {{ background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }}
+        .latest-post-title {{ font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }}
+        .read-latest-btn {{ background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; }}
+        .older-posts-section {{ background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }}
+        .older-posts-title {{ font-size: 1.8rem; margin-bottom: 2rem; text-align: center; }}
+        .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 1rem; }}
+        .older-post-link {{ display: block; padding: 1.5rem; text-decoration: none; color: inherit; }}
+        .older-post-title {{ font-size: 1.3rem; font-weight: 600; color: #2563eb; margin-bottom: 0.5rem; }}
+        .older-post-date {{ font-size: 0.9rem; color: #64748b; }}
+    </style>
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-content">
+            <a href="https://www.imetrobert.com" class="nav-link">← Back to Homepage</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <header>
+            <h1>AI Insights Blog</h1>
+            <p>Strategic Intelligence for Digital Leaders</p>
+        </header>
+
+        <section class="latest-post-section">
+            <div class="latest-badge">Latest</div>
+            <h2 class="latest-post-title">{latest_post['title']}</h2>
+            <div>{latest_post['date']}</div>
+            <p>{latest_post['excerpt']}</p>
+            <a href="/blog/posts/{latest_post['filename']}" class="read-latest-btn">Read Full Analysis →</a>
+        </section>
+
+        {older_posts_section}
+    </div>
+</body>
+</html>'''
+
+    return blog_index_html
+
+def update_blog_index():
+    """Update blog index"""
+    posts_dir = "blog/posts"
+    index_file = "blog/index.html"
+    
+    if not os.path.exists(posts_dir):
+        return []
+    
+    posts = []
+    html_files = [f for f in os.listdir(posts_dir) if f.endswith(".html") and f != "index.html"]
+    
+    for file in sorted(html_files, reverse=True):
+        file_path = os.path.join(posts_dir, file)
+        try:
+            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                post_info = extract_post_info(file_path)
+                if post_info.get('title') and post_info.get('filename'):
+                    posts.append(post_info)
+        except Exception as e:
+            continue
+
+    new_blog_index = create_blog_index_html(posts)
+    if not new_blog_index:
+        return posts
+    
+    try:
+        with open(index_file, "w", encoding="utf-8") as f:
+            f.write(new_blog_index)
+        print(f"✅ Blog index recreated with {len(posts)} posts")
+    except Exception as e:
+        print(f"❌ Error writing blog index: {e}")
+    
+    return posts
+
+def main():
+    parser = argparse.ArgumentParser(description="Blog Generator")
+    parser.add_argument("--topic", help="Custom topic")
+    parser.add_argument("--output", default="posts", choices=["staging", "posts"])
+    args = parser.parse_args()
+    
+    print("🔧 RUNNING BLOG GENERATOR")
+    
+    api_key = os.getenv("PERPLEXITY_API_KEY")
+    if not api_key:
+        print("❌ PERPLEXITY_API_KEY not set")
+        sys.exit(1)
+    
+    try:
+        result = generate_blog_with_perplexity(api_key, args.topic)
+        title, excerpt = extract_title_and_excerpt(result["content"])
+        html_content = create_html_blog_post(result["content"], title, excerpt)
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        filename_html = f"{current_date}-{clean_filename(title)}.html"
+        
+        output_dir = os.path.join("blog", args.output)
+        os.makedirs(output_dir, exist_ok=True)
+        
+        path_html = os.path.join(output_dir, filename_html)
+        
+        with open(path_html, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        print(f"✅ Blog post saved: {path_html}")
+        
+        latest_path = os.path.join("blog", "posts", "latest.html")
+        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
+        with open(latest_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        print(f"✅ Latest post updated")
+        
+        posts = update_blog_index()
+        print(f"✅ Blog index updated with {len(posts)} posts")
+        print("🎉 SUCCESS!")
+        
+    except Exception as e:
+        print(f"💥 Failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
