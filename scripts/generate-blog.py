@@ -841,6 +841,16 @@ def create_html_blog_post(content, title, excerpt):
     
     # ... [all the existing content_html building code stays the same] ...
     
+    # Extract or generate conclusion
+    if sections['conclusion']:
+        conclusion_text = sections['conclusion']
+    else:
+        conclusion_text = generate_dynamic_conclusion(sections)
+    
+    # Clean up conclusion text
+    conclusion_text = re.sub(r'[-•*]\s*[-•*]\s*', '', conclusion_text)
+    conclusion_text = re.sub(r'^\s*[-•*]\s*', '', conclusion_text)
+    
     all_content = '\n'.join(content_html)
     
     html_template = f'''<!DOCTYPE html>
