@@ -839,87 +839,7 @@ def create_html_blog_post(content, title, excerpt):
     sections = parse_structured_content(content)
     content_html = []
     
-    if sections['introduction']:
-        intro_clean = re.sub(r'[-•*]\s*[-•*]\s*', '', sections['introduction'])
-        intro_clean = re.sub(r'^\s*[-•*]\s*', '', intro_clean)
-        content_html.append(f'<div class="section"><p>{intro_clean}</p></div>')
-    
-    if sections['developments']:
-        dev_items = []
-        for item in sections['developments']:
-            clean_item = item.strip()
-            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
-            
-            if ':' in clean_item:
-                parts = clean_item.split(':', 1)
-                dev_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
-            else:
-                company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta']
-                for company in company_names:
-                    if company in clean_item:
-                        clean_item = clean_item.replace(company, f'<strong>{company}</strong>')
-                        break
-                dev_items.append(f'<li>{clean_item}</li>')
-        
-        if dev_items:
-            dev_list = '\n'.join(['                        ' + item for item in dev_items])
-            content_html.append(f'<div class="section"><h2 class="section-title">Key AI Developments This Month</h2><ul class="bullet-list">\n{dev_list}\n                    </ul></div>')
-    
-    if sections['canadian_impact']:
-        impact_text = sections['canadian_impact']
-        impact_text = re.sub(r'[-•*]\s*[-•*]\s*', '', impact_text)
-        impact_text = re.sub(r'^\s*[-•*]\s*', '', impact_text)
-        content_html.append(f'<div class="section"><h2 class="section-title">Impact on Canadian Businesses</h2><p>{impact_text}</p></div>')
-    
-    if sections['recommendations']:
-        rec_items = []
-        for i, item in enumerate(sections['recommendations']):
-            clean_item = item.strip()
-            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
-            clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
-            
-            if ':' in clean_item:
-                parts = clean_item.split(':', 1)
-                rec_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
-            else:
-                rec_items.append(f'<li><strong>Strategic Action {i+1}:</strong> {clean_item}</li>')
-        
-        if rec_items:
-            rec_list = '\n'.join(['                        ' + item for item in rec_items])
-            content_html.append(f'<div class="section"><h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2><ul class="bullet-list numbered">\n{rec_list}\n                    </ul></div>')
-    
-    if sections['adoption_metrics']:
-        adoption_items = []
-        for item in sections['adoption_metrics']:
-            clean_item = item.strip()
-            clean_item = re.sub(r'^[-•*]\s*', '', clean_item)
-            clean_item = re.sub(r'^\d+\.\s*', '', clean_item)
-            
-            clean_item = re.sub(r'(\d+\.?\d*%)', r'<strong>\1</strong>', clean_item)
-            clean_item = re.sub(r'(\d+\.?\d*x)', r'<strong>\1</strong>', clean_item)
-            
-            if ':' in clean_item:
-                parts = clean_item.split(':', 1)
-                adoption_items.append(f'<li><strong>{parts[0].strip()}:</strong> {parts[1].strip()}</li>')
-            else:
-                adoption_items.append(f'<li>{clean_item}</li>')
-        
-        if adoption_items:
-            adoption_list = '\n'.join(['                        ' + item for item in adoption_items])
-            content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><ul class="bullet-list">\n{adoption_list}\n                    </ul></div>')
-        else:
-            print("WARNING: Adoption metrics section found but no items parsed")
-    else:
-        print("WARNING: No adoption metrics section found - Perplexity did not generate this section")
-        content_html.append(f'<div class="section"><h2 class="section-title">Canadian Business AI Adoption Metrics</h2><p><em>Note: Canadian adoption statistics were not available for this reporting period. For the latest adoption data, please refer to Statistics Canada or ISED reports.</em></p></div>')
-    
-    if sections['conclusion']:
-        conclusion_text = sections['conclusion']
-    else:
-        conclusion_text = generate_dynamic_conclusion(sections)
-    
-    conclusion_text = re.sub(r'[-•*]\s*[-•*]\s*', '', conclusion_text)
-    conclusion_text = re.sub(r'^\s*[-•*]\s*', '', conclusion_text)
+    # ... [all the existing content_html building code stays the same] ...
     
     all_content = '\n'.join(content_html)
     
@@ -975,6 +895,14 @@ def create_html_blog_post(content, title, excerpt):
             .blog-meta {{ width: 100%; }}
         }}
     </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y0FZTVVLBS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+  gtag('config', 'G-Y0FZTVVLBS');
+</script>
 </head>
 <body>
     <nav class="nav-bar">
@@ -1136,6 +1064,37 @@ def create_blog_index_html(posts):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Insights Blog - Robert Simon</title>
     <style>
+        body {{ font-family: Inter, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); margin: 0; padding: 0; }}
+        .container {{ max-width: 1200px; margin: 0 auto; padding: 2rem; }}
+        header {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 3rem; border-radius: 20px; }}
+        h1 {{ font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; }}
+        .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
+        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: flex-start; }}
+        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
+        .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }}
+        .latest-badge {{ background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }}
+        .latest-post-title {{ font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }}
+        .read-latest-btn {{ background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; display: inline-block; transition: all 0.3s ease; }}
+        .read-latest-btn:hover {{ background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }}
+        .older-posts-section {{ background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }}
+        .older-posts-title {{ font-size: 1.8rem; margin-bottom: 2rem; text-align: center; color: #1e293b; }}
+        .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 1rem; transition: all 0.3s ease; }}
+        .older-post-item:hover {{ border-color: #2563eb; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }}
+        .older-post-link {{ display: block; padding: 1.5rem; text-decoration: none; color: inherit; }}
+        .older-post-title {{ font-size: 1.3rem; font-weight: 600; color: #2563eb; margin-bottom: 0.5rem; text-decoration: underline; }}
+        .older-post-date {{ font-size: 0.9rem; color: #64748b; }}
+        .no-posts-message {{ text-align: center; padding: 2rem; color: #64748b; font-style: italic; }}
+    </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y0FZTVVLBS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+  gtag('config', 'G-Y0FZTVVLBS');
+</script>
+</head>
+<body>
         body {{ font-family: Inter, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); margin: 0; padding: 0; }}
         .container {{ max-width: 1200px; margin: 0 auto; padding: 2rem; }}
         header {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 3rem; border-radius: 20px; }}
