@@ -1054,10 +1054,7 @@ def create_blog_index_html(posts):
                     </a>
                 </div>'''
     else:
-        older_posts_html = '''
-                <div class="no-posts-message">
-                    <p>Previous blogs will be available here</p>
-                </div>'''
+        older_posts_html = '<div class="no-posts-message"><p>Previous blogs will be available here</p></div>'
     
     # Always show the older posts section
     older_posts_section = f'''<section class="older-posts-section">
