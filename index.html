@@ -1033,6 +1033,263 @@
       <div class="ai-circuit">
       </div>
      </section>
+     <!-- AI-POWERED ROI CALCULATOR SECTION -->
+<section id="roi-calculator" class="content-section fade-in" style="background: var(--gradient-card); border: 2px solid rgba(37, 99, 235, 0.15);">
+  <h2 class="section-title">💡 AI ROI Calculator</h2>
+  
+  <div style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(6, 182, 212, 0.05)); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
+    <p style="color: var(--dark-navy); line-height: 1.7; margin-bottom: 0.5rem;">
+      Discover your potential savings and efficiency gains from AI implementation. Enter your business metrics below to see personalized insights.
+    </p>
+  </div>
+
+  <!-- Calculator Inputs -->
+  <div class="roi-inputs" style="display: grid; gap: 1.5rem; margin-bottom: 2rem;">
+    <div class="input-group">
+      <label for="companySize" style="display: block; font-weight: 600; color: var(--dark-navy); margin-bottom: 0.5rem;">
+        Company Size
+      </label>
+      <select id="companySize" class="calc-select" style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; background: white; cursor: pointer;">
+        <option value="small">Small (1-50 employees)</option>
+        <option value="medium" selected>Medium (51-500 employees)</option>
+        <option value="large">Large (500+ employees)</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label for="supportCost" style="display: block; font-weight: 600; color: var(--dark-navy); margin-bottom: 0.5rem;">
+        Monthly Customer Support Cost ($)
+      </label>
+      <input type="number" id="supportCost" value="15000" min="0" step="1000" class="calc-input" style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+    </div>
+
+    <div class="input-group">
+      <label for="transactions" style="display: block; font-weight: 600; color: var(--dark-navy); margin-bottom: 0.5rem;">
+        Monthly Customer Transactions
+      </label>
+      <input type="number" id="transactions" value="5000" min="0" step="500" class="calc-input" style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+    </div>
+
+    <div class="input-group">
+      <label for="avgHandleTime" style="display: block; font-weight: 600; color: var(--dark-navy); margin-bottom: 0.5rem;">
+        Average Handle Time (minutes)
+      </label>
+      <input type="number" id="avgHandleTime" value="8" min="1" max="60" class="calc-input" style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+    </div>
+
+    <button id="calculateBtn" style="background: var(--gradient-primary); color: white; border: none; padding: 1rem 2rem; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow-md);">
+      🚀 Calculate My AI ROI
+    </button>
+  </div>
+
+  <!-- Results Display -->
+  <div id="resultsContainer" style="display: none;">
+    <div style="background: var(--gradient-ai); color: white; padding: 2rem; border-radius: 16px; margin-bottom: 1.5rem; box-shadow: var(--shadow-lg);">
+      <h3 style="font-size: 1.4rem; margin-bottom: 1.5rem; text-align: center;">Your AI Implementation Potential</h3>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="background: rgba(255,255,255,0.15); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.2);">
+          <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;" id="monthlySavings">$0</div>
+          <div style="font-size: 0.9rem; opacity: 0.9;">Monthly Savings</div>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.15); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.2);">
+          <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;" id="annualSavings">$0</div>
+          <div style="font-size: 0.9rem; opacity: 0.9;">Annual Savings</div>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.15); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.2);">
+          <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;" id="efficiencyGain">0%</div>
+          <div style="font-size: 0.9rem; opacity: 0.9;">Efficiency Gain</div>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.15); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.2);">
+          <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;" id="roiTimeline">0</div>
+          <div style="font-size: 0.9rem; opacity: 0.9;">ROI Timeline</div>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div style="margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem;">
+          <span>Implementation Progress</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.2); height: 10px; border-radius: 5px; overflow: hidden;">
+          <div id="progressBar" style="background: white; height: 100%; width: 0%; transition: width 2s ease;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Insights -->
+    <div id="aiInsights" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(6, 182, 212, 0.08)); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(37, 99, 235, 0.2);">
+      <h4 style="color: var(--primary-blue); font-size: 1.2rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🤖</span> Smart Insights
+      </h4>
+      <div id="insightsList" style="color: var(--dark-navy); line-height: 1.7;">
+        <!-- Insights will be inserted here -->
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div style="text-align: center; margin-top: 2rem;">
+      <a href="mailto:robert@imetrobert.com?subject=AI Implementation Discussion" style="background: var(--gradient-primary); color: white; padding: 1rem 2.5rem; border-radius: 30px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease;">
+        📧 Let's Discuss Your AI Strategy
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .calc-input:focus, .calc-select:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  #calculateBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-xl);
+  }
+
+  .calc-input::-webkit-outer-spin-button,
+  .calc-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .calc-input[type=number] {
+    -moz-appearance: textfield;
+  }
+</style>
+
+<script>
+  document.getElementById('calculateBtn').addEventListener('click', function() {
+    // Get input values
+    const companySize = document.getElementById('companySize').value;
+    const supportCost = parseFloat(document.getElementById('supportCost').value) || 0;
+    const transactions = parseFloat(document.getElementById('transactions').value) || 0;
+    const avgHandleTime = parseFloat(document.getElementById('avgHandleTime').value) || 0;
+
+    // AI Implementation multipliers based on company size
+    const sizeMultipliers = {
+      small: { efficiency: 0.25, automation: 0.30, timeline: 3 },
+      medium: { efficiency: 0.35, automation: 0.40, timeline: 6 },
+      large: { efficiency: 0.45, automation: 0.50, timeline: 9 }
+    };
+
+    const multiplier = sizeMultipliers[companySize];
+
+    // Calculate savings
+    const automationSavings = supportCost * multiplier.automation;
+    const efficiencyImprovement = supportCost * multiplier.efficiency;
+    const monthlySavings = automationSavings + efficiencyImprovement;
+    const annualSavings = monthlySavings * 12;
+
+    // Calculate efficiency gain
+    const timeReduction = avgHandleTime * multiplier.efficiency;
+    const efficiencyGain = Math.round((timeReduction / avgHandleTime) * 100);
+
+    // Calculate additional metrics
+    const automatedTransactions = Math.round(transactions * multiplier.automation);
+    const hoursSaved = Math.round((automatedTransactions * timeReduction) / 60);
+
+    // Animate results
+    document.getElementById('resultsContainer').style.display = 'block';
+    
+    // Scroll to results smoothly
+    document.getElementById('resultsContainer').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Animate counters
+    animateCounter('monthlySavings', monthlySavings, '$', 0);
+    animateCounter('annualSavings', annualSavings, '$', 0);
+    animateCounter('efficiencyGain', efficiencyGain, '', '%');
+    document.getElementById('roiTimeline').textContent = multiplier.timeline + ' months';
+
+    // Animate progress bar
+    setTimeout(() => {
+      document.getElementById('progressBar').style.width = '85%';
+      document.getElementById('progressPercent').textContent = '85%';
+    }, 100);
+
+    // Generate smart insights
+    const insights = generateInsights(companySize, monthlySavings, efficiencyGain, automatedTransactions, hoursSaved, multiplier.timeline);
+    document.getElementById('insightsList').innerHTML = insights;
+  });
+
+  function animateCounter(elementId, target, prefix = '', suffix = '') {
+    const element = document.getElementById(elementId);
+    const duration = 2000;
+    const steps = 60;
+    const increment = target / steps;
+    let current = 0;
+
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= target) {
+        current = target;
+        clearInterval(timer);
+      }
+      
+      const displayValue = prefix + Math.round(current).toLocaleString() + suffix;
+      element.textContent = displayValue;
+    }, duration / steps);
+  }
+
+  function generateInsights(size, savings, efficiency, automated, hours, timeline) {
+    const sizeLabels = {
+      small: 'small business',
+      medium: 'mid-sized organization',
+      large: 'enterprise'
+    };
+
+    let insights = '<ul style="list-style: none; padding: 0; margin: 0;">';
+    
+    insights += `<li style="margin-bottom: 1rem; padding-left: 1.5rem; position: relative;">
+      <span style="position: absolute; left: 0;">✓</span>
+      <strong>Quick Wins:</strong> Your ${sizeLabels[size]} could automate approximately ${automated.toLocaleString()} customer interactions monthly, freeing up ${hours} staff hours for high-value activities.
+    </li>`;
+
+    insights += `<li style="margin-bottom: 1rem; padding-left: 1.5rem; position: relative;">
+      <span style="position: absolute; left: 0;">✓</span>
+      <strong>Efficiency Boost:</strong> AI-powered self-service and intelligent routing can reduce average handle time by ${efficiency}%, dramatically improving customer satisfaction.
+    </li>`;
+
+    if (size === 'small') {
+      insights += `<li style="margin-bottom: 1rem; padding-left: 1.5rem; position: relative;">
+        <span style="position: absolute; left: 0;">✓</span>
+        <strong>Growth Enabler:</strong> These savings provide budget flexibility for innovation and expansion while maintaining service quality.
+      </li>`;
+    } else if (size === 'medium') {
+      insights += `<li style="margin-bottom: 1rem; padding-left: 1.5rem; position: relative;">
+        <span style="position: absolute; left: 0;">✓</span>
+        <strong>Scale Advantage:</strong> AI implementation at your scale offers optimal ROI with manageable change management and rapid adoption curves.
+      </li>`;
+    } else {
+      insights += `<li style="margin-bottom: 1rem; padding-left: 1.5rem; position: relative;">
+        <span style="position: absolute; left: 0;">✓</span>
+        <strong>Enterprise Impact:</strong> At your scale, AI creates compound benefits across departments with potential for $${(savings * 12 * 2).toLocaleString()}+ annual value within 18 months.
+      </li>`;
+    }
+
+    insights += `<li style="margin-bottom: 0; padding-left: 1.5rem; position: relative;">
+      <span style="position: absolute; left: 0;">✓</span>
+      <strong>Implementation Path:</strong> With a phased ${timeline}-month rollout, you can validate results early and scale proven solutions across the organization.
+    </li>`;
+
+    insights += '</ul>';
+    return insights;
+  }
+
+  // Add hover effect to calculate button
+  const calcBtn = document.getElementById('calculateBtn');
+  calcBtn.addEventListener('mouseenter', function() {
+    this.style.transform = 'translateY(-2px)';
+  });
+  calcBtn.addEventListener('mouseleave', function() {
+    this.style.transform = 'translateY(0)';
+  });
+</script>
      <section class="content-section fade-in">
       <h2 class="section-title">
        Journey Highlights
@@ -1146,5 +1403,25 @@
     </div>
    </div>
   </div>
- </body>
+  <script>
+  // Smooth scroll to anchor on page load with offset for header
+  window.addEventListener('load', function() {
+    if (window.location.hash) {
+      setTimeout(() => {
+        const element = document.querySelector(window.location.hash);
+        if (element) {
+          const offset = 20; // pixels from top
+          const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+          const offsetPosition = elementPosition - offset;
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  });
+</script>
+</body>
 </html>
