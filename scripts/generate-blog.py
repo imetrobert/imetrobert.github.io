@@ -839,7 +839,43 @@ def create_html_blog_post(content, title, excerpt):
     sections = parse_structured_content(content)
     content_html = []
     
-    # ... [all the existing content_html building code stays the same] ...
+    # Introduction section
+if sections['introduction']:
+    content_html.append(f'<div class="section"><p>{sections["introduction"]}</p></div>')
+
+# Key Developments section
+if sections['developments']:
+    content_html.append('<div class="section">')
+    content_html.append('<h2 class="section-title">Key AI Developments This Month</h2>')
+    content_html.append('<ul class="bullet-list">')
+    for item in sections['developments']:
+        content_html.append(f'<li>{item}</li>')
+    content_html.append('</ul></div>')
+
+# Canadian Impact section
+if sections['canadian_impact']:
+    content_html.append('<div class="section">')
+    content_html.append('<h2 class="section-title">Impact on Canadian Businesses</h2>')
+    content_html.append(f'<p>{sections["canadian_impact"]}</p>')
+    content_html.append('</div>')
+
+# Strategic Recommendations section
+if sections['recommendations']:
+    content_html.append('<div class="section">')
+    content_html.append('<h2 class="section-title">Strategic Recommendations for Canadian Leaders</h2>')
+    content_html.append('<ul class="bullet-list numbered">')
+    for item in sections['recommendations']:
+        content_html.append(f'<li>{item}</li>')
+    content_html.append('</ul></div>')
+
+# Adoption Metrics section
+if sections['adoption_metrics']:
+    content_html.append('<div class="section">')
+    content_html.append('<h2 class="section-title">Canadian Business AI Adoption Metrics</h2>')
+    content_html.append('<ul class="bullet-list">')
+    for item in sections['adoption_metrics']:
+        content_html.append(f'<li>{item}</li>')
+    content_html.append('</ul></div>')
     
     # Extract or generate conclusion
     if sections['conclusion']:
