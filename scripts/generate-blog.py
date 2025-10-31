@@ -889,7 +889,17 @@ def create_html_blog_post(content, title, excerpt):
     
     all_content = '\n'.join(content_html)
     
-    html_template = f'''<!DOCTYPE html>
+    html_template = '''
+    html_template = html_template.format(
+        title=title,
+        formatted_date=formatted_date,
+        month_year=month_year,
+        excerpt=excerpt,
+        all_content=all_content,
+        conclusion_text=conclusion_text
+    )
+    
+    return html_template
     # ... rest of the HTML template ...
     '''
     
