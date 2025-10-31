@@ -1,10 +1,9 @@
 name: Generate Monthly AI Blog Post - Last Day of Month
 
 on:
+  # Run daily at 9:00 AM UTC, but only proceed on the last day of the month
   schedule:
-    # Run daily from 28th-31st at 9:00 AM UTC, but only execute on last day
-    - cron: '0 9 28-31 * *'
-  
+    - cron: '0 9 * * *'
   # Allow manual triggering for testing
   workflow_dispatch:
     inputs:
@@ -243,4 +242,4 @@ jobs:
           echo "1. Use **'Run workflow'** manually with **'Force run'** = true" >> $GITHUB_STEP_SUMMARY
           echo "2. Verify PERPLEXITY_API_KEY secret is valid" >> $GITHUB_STEP_SUMMARY
           echo "3. Check API usage limits" >> $GITHUB_STEP_SUMMARY
-          echo "4. Review workflow logs above for specific errors" >> $GITHUB_STEP_SUMMARY>
+          echo "4. Review workflow logs above for specific errors" >> $GITHUB_STEP_SUMMARY
