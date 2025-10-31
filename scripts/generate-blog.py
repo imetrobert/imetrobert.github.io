@@ -494,6 +494,123 @@ def parse_development_items(text):
         else:
             if current_item:
                 current_item.append(line)
+            elif len(line) > 20:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 20:
+            item_lower = item_text.lower()
+            if not any(header in item_lower for header in header_keywords):
+                items.append(item_text)
+    
+    if len(items) < 2:
+        print("DEBUG: Numbered list parsing found < 2 adoption items, trying sentence-based parsing")
+        
+        sentences = []
+        current_sentence = []
+        
+        for line in lines:
+            line = line.strip()
+            line_lower = line.lower()
+            
+            if any(header in line_lower for header in header_keywords):
+                continue
+            
+            if not line:
+                if current_sentence:
+                    sentences.append(' '.join(current_sentence))
+                    current_sentence = []
+            else:
+                if '%' in line or 'adoption' in line_lower:
+                    if current_sentence:
+                        sentences.append(' '.join(current_sentence))
+                    current_sentence = [line]
+                elif current_sentence:
+                    current_sentence.append(line)
+        
+        if current_sentence:
+            sentences.append(' '.join(current_sentence))
+        
+        sentence_items = []
+        for sent in sentences:
+            sent = sent.strip()
+            if len(sent) > 20 and ('%' in sent or 'adoption' in sent.lower()):
+                sent_lower = sent.lower()
+                if not any(header in sent_lower for header in header_keywords):
+                    sentence_items.append(sent)
+        
+        if len(sentence_items) > len(items):
+            items = sentence_items
+    
+    print(f"DEBUG parse_adoption_metrics: Found {len(items)} items")
+    for i, item in enumerate(items[:3]):
+        print(f"DEBUG adoption item {i+1}: {item[:100]}...")
+    
+    return items[:5]
+
+def generate_dynamic_conclusion(sections):
+    """Generate a dynamic Strategic Imperative based on the blog content"""
+    key_themes = []
+    companies = []
+    
+    if sections['developments']:
+        for item in sections['developments']:
+            item_lower = item.lower()
+            
+            company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']
+            for company in company_names:
+                if company.lower() in item_lower and company not in companies:
+                    companies.append(company)
+            
+            tech_keywords = {
+                'AI models': ['model', 'llm', 'gpt', 'claude', 'chatgpt'],
+                'enterprise AI': ['enterprise', 'business', 'copilot', 'office'],
+                'automation': ['automation', 'workflow', 'process'],
+                'partnerships': ['partnership', 'collaboration', 'integration']
+            }
+            
+            for theme, keywords in tech_keywords.items():
+                if any(keyword in item_lower for keyword in keywords) and theme not in key_themes:
+                    key_themes.append(theme)
+    
+    conclusion_parts = []
+    
+    if len(key_themes) >= 2:
+        conclusion_parts.append(f"With significant developments in {' and '.join(key_themes[:2])}")
+    elif key_themes:
+        conclusion_parts.append(f"With critical advances in {key_themes[0]}")
+    else:
+        conclusion_parts.append("With accelerating AI innovation")
+    
+    if len(companies) >= 2:
+        conclusion_parts.append(f"from {' and '.join(companies[:2])}")
+    
+    conclusion_parts.append("Canadian businesses must act decisively to harness these breakthroughs")
+    conclusion_parts.append("to remain competitive in the global AI-driven economy")
+    
+    conclusion = ' '.join(conclusion_parts)
+    
+    if not conclusion.endswith('.'):
+        conclusion += '.'
+    
+    return conclusion[0].upper() + conclusion[1:] if conclusion else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
+
+def extract_title_and_excerpt(content):
+    """Enhanced title and excerpt extraction with ROBUST cleaning"""
+    current_date = datetime.now()
+    month_year = current_date.strftime("%B %Y")
+    
+    clean_content = clean_perplexity_content(content)
+    lines = [line.strip() for line in clean_content.split("\n") if line.strip()]
+    
+    potential_title = None
+    for line in lines[:5]:
+        if line and len(line) > 10 and len(line) < 100:
+            line_lower = line.lower()
+            if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
+                clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
+                clean_title = re.sub(r'\s*[•\-–—:]+.append(line)
             elif len(line) > 50:
                 current_item = [line]
     
@@ -682,124 +799,7 @@ def parse_adoption_metrics(text):
             current_item = [re.sub(r'^\d+\.\s*', '', line)]
         else:
             if current_item:
-                current_item.append(line)
-            elif len(line) > 20:
-                current_item = [line]
-    
-    if current_item:
-        item_text = ' '.join(current_item).strip()
-        if len(item_text) > 20:
-            item_lower = item_text.lower()
-            if not any(header in item_lower for header in header_keywords):
-                items.append(item_text)
-    
-    if len(items) < 2:
-        print("DEBUG: Numbered list parsing found < 2 adoption items, trying sentence-based parsing")
-        
-        sentences = []
-        current_sentence = []
-        
-        for line in lines:
-            line = line.strip()
-            line_lower = line.lower()
-            
-            if any(header in line_lower for header in header_keywords):
-                continue
-            
-            if not line:
-                if current_sentence:
-                    sentences.append(' '.join(current_sentence))
-                    current_sentence = []
-            else:
-                if '%' in line or 'adoption' in line_lower:
-                    if current_sentence:
-                        sentences.append(' '.join(current_sentence))
-                    current_sentence = [line]
-                elif current_sentence:
-                    current_sentence.append(line)
-        
-        if current_sentence:
-            sentences.append(' '.join(current_sentence))
-        
-        sentence_items = []
-        for sent in sentences:
-            sent = sent.strip()
-            if len(sent) > 20 and ('%' in sent or 'adoption' in sent.lower()):
-                sent_lower = sent.lower()
-                if not any(header in sent_lower for header in header_keywords):
-                    sentence_items.append(sent)
-        
-        if len(sentence_items) > len(items):
-            items = sentence_items
-    
-    print(f"DEBUG parse_adoption_metrics: Found {len(items)} items")
-    for i, item in enumerate(items[:3]):
-        print(f"DEBUG adoption item {i+1}: {item[:100]}...")
-    
-    return items[:5]
-
-def generate_dynamic_conclusion(sections):
-    """Generate a dynamic Strategic Imperative based on the blog content"""
-    key_themes = []
-    companies = []
-    
-    if sections['developments']:
-        for item in sections['developments']:
-            item_lower = item.lower()
-            
-            company_names = ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']
-            for company in company_names:
-                if company.lower() in item_lower and company not in companies:
-                    companies.append(company)
-            
-            tech_keywords = {
-                'AI models': ['model', 'llm', 'gpt', 'claude', 'chatgpt'],
-                'enterprise AI': ['enterprise', 'business', 'copilot', 'office'],
-                'automation': ['automation', 'workflow', 'process'],
-                'partnerships': ['partnership', 'collaboration', 'integration']
-            }
-            
-            for theme, keywords in tech_keywords.items():
-                if any(keyword in item_lower for keyword in keywords) and theme not in key_themes:
-                    key_themes.append(theme)
-    
-    conclusion_parts = []
-    
-    if len(key_themes) >= 2:
-        conclusion_parts.append(f"With significant developments in {' and '.join(key_themes[:2])}")
-    elif key_themes:
-        conclusion_parts.append(f"With critical advances in {key_themes[0]}")
-    else:
-        conclusion_parts.append("With accelerating AI innovation")
-    
-    if len(companies) >= 2:
-        conclusion_parts.append(f"from {' and '.join(companies[:2])}")
-    
-    conclusion_parts.append("Canadian businesses must act decisively to harness these breakthroughs")
-    conclusion_parts.append("to remain competitive in the global AI-driven economy")
-    
-    conclusion = ' '.join(conclusion_parts)
-    
-    if not conclusion.endswith('.'):
-        conclusion += '.'
-    
-    return conclusion[0].upper() + conclusion[1:] if conclusion else "Canadian businesses must act decisively to harness AI breakthroughs while maintaining competitive advantage in the global marketplace."
-
-def extract_title_and_excerpt(content):
-    """Enhanced title and excerpt extraction with ROBUST cleaning"""
-    current_date = datetime.now()
-    month_year = current_date.strftime("%B %Y")
-    
-    clean_content = clean_perplexity_content(content)
-    lines = [line.strip() for line in clean_content.split("\n") if line.strip()]
-    
-    potential_title = None
-    for line in lines[:5]:
-        if line and len(line) > 10 and len(line) < 100:
-            line_lower = line.lower()
-            if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
-                clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+$', '', clean_title)
+                current_item, '', clean_title)
                 clean_title = re.sub(r'[•\-–—]', '', clean_title)
                 clean_title = clean_title.strip()
                 
@@ -818,7 +818,196 @@ def extract_title_and_excerpt(content):
             header_keywords = ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']
             if not any(header in line.lower() for header in header_keywords):
                 clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_excerpt = re.sub(r'\s*[•\-–—:]+$', '', clean_excerpt)
+                clean_excerpt = re.sub(r'\s*[•\-–—:]+.append(line)
+            elif len(line) > 50:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 50:
+            items.append(item_text)
+    
+    if len(items) < 5:
+        smart_items = []
+        
+        protected_text = text
+        abbreviations = {
+            'U.S.': 'USPROTECTED',
+            'U.K.': 'UKPROTECTED', 
+            'E.U.': 'EUPROTECTED',
+            'A.I.': 'AIPROTECTED',
+            'Inc.': 'IncPROTECTED',
+            'Corp.': 'CorpPROTECTED'
+        }
+        
+        version_pattern = r'\b(\d+\.\d+)\b'
+        version_matches = re.findall(version_pattern, protected_text)
+        version_replacements = {}
+        for i, version in enumerate(version_matches):
+            replacement = f'VERSION{i}PROTECTED'
+            version_replacements[replacement] = version
+            protected_text = protected_text.replace(version, replacement)
+        
+        for abbrev, replacement in abbreviations.items():
+            protected_text = protected_text.replace(abbrev, replacement)
+
+        sentences = re.split(r'[.!?]+', protected_text)
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            
+            for replacement, original in abbreviations.items():
+                sentence = sentence.replace(replacement, original)
+            for replacement, original in version_replacements.items():
+                sentence = sentence.replace(replacement, original)
+            
+            if (len(sentence) > 50 and 
+                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
+                not re.match(r'^\d+\.\s', sentence)):
+                smart_items.append(sentence)
+        
+        if len(smart_items) >= len(items):
+            items = smart_items
+    
+    filtered_items = []
+    for item in items:
+        item_lower = item.lower()
+        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
+            filtered_items.append(item)
+            
+    return filtered_items[:15]
+
+def parse_recommendation_items(text):
+    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
+    items = []
+    
+    header_keywords = [
+        'strategic recommendation', 
+        'recommendations for canadian leaders',
+        'recommendations for', 
+        'strategic action',
+        'for canadian leaders',
+        'for canadian business',
+        'action steps'
+    ]
+    
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        line_lower = line.strip().lower()
+        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
+            cleaned_lines.append(line.strip())
+    
+    text = '\n'.join(cleaned_lines)
+    
+    current_item = []
+    
+    for line in cleaned_lines:
+        if not line:
+            continue
+        
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
+        
+        if is_list_number:
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 30:
+                    items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if len(line) > 30 and ':' in line and not current_item:
+                current_item = [line]
+            elif current_item:
+                current_item.append(line)
+            elif len(line) > 30:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 30:
+            items.append(item_text)
+    
+    if len(items) < 3:
+        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
+        
+        paragraphs = []
+        current_para = []
+        
+        for line in cleaned_lines:
+            if not line:
+                if current_para:
+                    paragraphs.append(' '.join(current_para))
+                    current_para = []
+            else:
+                if current_para and len(line) > 30 and line[0].isupper():
+                    paragraphs.append(' '.join(current_para))
+                    current_para = [line]
+                else:
+                    current_para.append(line)
+        
+        if current_para:
+            paragraphs.append(' '.join(current_para))
+        
+        paragraph_items = []
+        for para in paragraphs:
+            para = para.strip()
+            if len(para) > 30:
+                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
+                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
+                               'strengthen', 'leverage', 'foster', 'collaborate']
+                
+                para_lower = para.lower()
+                if any(word in para_lower for word in action_words):
+                    paragraph_items.append(para)
+        
+        if len(paragraph_items) > len(items):
+            items = paragraph_items
+    
+    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
+    for i, item in enumerate(items[:3]):
+        print(f"DEBUG rec item {i+1}: {item[:100]}...")
+    
+    return items[:5]
+
+def parse_adoption_metrics(text):
+    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
+    items = []
+    
+    lines = text.split('\n')
+    current_item = []
+    
+    header_keywords = [
+        'canadian business ai adoption',
+        'ai adoption metrics',
+        'adoption metrics',
+        'adoption statistics'
+    ]
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        line_lower = line.lower()
+        if any(header in line_lower for header in header_keywords):
+            continue
+            
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        
+        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 20:
+                    item_lower = item_text.lower()
+                    if not any(header in item_lower for header in header_keywords):
+                        items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if current_item:
+                current_item, '', clean_excerpt)
                 clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt)
                 clean_excerpt = clean_excerpt.strip()
                 
@@ -830,6 +1019,7 @@ def extract_title_and_excerpt(content):
         excerpt = f"Strategic insights and practical guidance for Canadian business leaders - {month_year} analysis."
     
     return title, excerpt
+
 def create_html_blog_post(content, title, excerpt):
     """Create complete HTML blog post with PROPERLY FORMATTED content sections"""
     current_date = datetime.now()
@@ -889,21 +1079,7 @@ def create_html_blog_post(content, title, excerpt):
     
     all_content = '\n'.join(content_html)
     
-    html_template = '''
-    html_template = html_template.format(
-        title=title,
-        formatted_date=formatted_date,
-        month_year=month_year,
-        excerpt=excerpt,
-        all_content=all_content,
-        conclusion_text=conclusion_text
-    )
-    
-    return html_template
-    # ... rest of the HTML template ...
-    '''
-    
-    return html_template
+    html_template = '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -911,55 +1087,55 @@ def create_html_blog_post(content, title, excerpt):
     <title>{title} | Robert Simon - AI Insights</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-        :root {{
+        :root {{{{
             --primary-blue: #2563eb;
             --accent-cyan: #06b6d4;
             --dark-navy: #1e293b;
             --medium-gray: #64748b;
             --white: #ffffff;
-        }}
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); color: var(--dark-navy); line-height: 1.6; }}
-        .nav-bar {{ background: var(--white); padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
-        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem; }}
-        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); transition: all 0.3s ease; flex-shrink: 0; }}
-        .nav-link:hover {{ transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }}
-        .blog-meta {{ font-size: 0.85rem; color: var(--medium-gray); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }}
-        .header {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 4rem 0 3rem; text-align: center; }}
-        .header-content {{ max-width: 1000px; margin: 0 auto; padding: 0 2rem; }}
-        .header h1 {{ font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; }}
-        .header .subtitle {{ font-size: 1.2rem; font-weight: 500; opacity: 0.9; margin-bottom: 1.5rem; }}
-        .header .intro {{ font-size: 1.05rem; opacity: 0.85; max-width: 800px; margin: 0 auto; }}
-        .container {{ max-width: 1000px; margin: 0 auto; padding: 3rem 2rem 4rem; }}
-        .article-container {{ background: white; border-radius: 20px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); overflow: hidden; }}
-        .article-content {{ padding: 3rem; }}
-        .section {{ margin-bottom: 3rem; }}
-        .section-title {{ font-size: 2rem; color: var(--dark-navy); margin-bottom: 1.5rem; margin-top: 2rem; font-weight: 700; padding-left: 1.5rem; position: relative; }}
-        .section-title::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--primary-blue); border-radius: 2px; }}
-        .bullet-list {{ margin-bottom: 2rem; padding-left: 0; list-style: none; }}
-        .bullet-list li {{ margin-bottom: 1.5rem; line-height: 1.8; color: var(--medium-gray); position: relative; padding-left: 2.5rem; }}
-        .bullet-list li::before {{ content: '●'; position: absolute; left: 0; color: var(--primary-blue); font-weight: bold; top: 0.1rem; }}
-        .bullet-list.numbered {{ counter-reset: list-counter; }}
-        .bullet-list.numbered li {{ counter-increment: list-counter; }}
-        .bullet-list.numbered li::before {{ content: counter(list-counter) '.'; background: var(--primary-blue); color: white; width: 1.8rem; height: 1.8rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }}
-        p {{ margin-bottom: 1.2rem; line-height: 1.7; color: var(--medium-gray); }}
-        strong {{ color: var(--dark-navy); font-weight: 600; }}
-        .conclusion {{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 2.5rem; border-radius: 15px; margin-top: 3rem; }}
-        .conclusion p {{ color: rgba(255, 255, 255, 0.95); font-size: 1.1rem; font-weight: 500; margin-bottom: 0; }}
-        .conclusion strong {{ color: white; }}
-        @media (max-width: 768px) {{ 
-            .header h1 {{ font-size: 2.2rem; }} 
-            .container {{ padding: 2rem 1rem 3rem; }} 
-            .article-content {{ padding: 2rem 1.5rem; }}
-            .nav-content {{ flex-direction: column; gap: 1rem; align-items: flex-start; }}
-            .blog-meta {{ width: 100%; }}
-        }}
+        }}}}
+        * {{{{ margin: 0; padding: 0; box-sizing: border-box; }}}}
+        body {{{{ font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); color: var(--dark-navy); line-height: 1.6; }}}}
+        .nav-bar {{{{ background: var(--white); padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}}}
+        .nav-content {{{{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem; }}}}
+        .nav-link {{{{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan)); transition: all 0.3s ease; flex-shrink: 0; }}}}
+        .nav-link:hover {{{{ transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }}}}
+        .blog-meta {{{{ font-size: 0.85rem; color: var(--medium-gray); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }}}}
+        .header {{{{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 4rem 0 3rem; text-align: center; }}}}
+        .header-content {{{{ max-width: 1000px; margin: 0 auto; padding: 0 2rem; }}}}
+        .header h1 {{{{ font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; }}}}
+        .header .subtitle {{{{ font-size: 1.2rem; font-weight: 500; opacity: 0.9; margin-bottom: 1.5rem; }}}}
+        .header .intro {{{{ font-size: 1.05rem; opacity: 0.85; max-width: 800px; margin: 0 auto; }}}}
+        .container {{{{ max-width: 1000px; margin: 0 auto; padding: 3rem 2rem 4rem; }}}}
+        .article-container {{{{ background: white; border-radius: 20px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); overflow: hidden; }}}}
+        .article-content {{{{ padding: 3rem; }}}}
+        .section {{{{ margin-bottom: 3rem; }}}}
+        .section-title {{{{ font-size: 2rem; color: var(--dark-navy); margin-bottom: 1.5rem; margin-top: 2rem; font-weight: 700; padding-left: 1.5rem; position: relative; }}}}
+        .section-title::before {{{{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--primary-blue); border-radius: 2px; }}}}
+        .bullet-list {{{{ margin-bottom: 2rem; padding-left: 0; list-style: none; }}}}
+        .bullet-list li {{{{ margin-bottom: 1.5rem; line-height: 1.8; color: var(--medium-gray); position: relative; padding-left: 2.5rem; }}}}
+        .bullet-list li::before {{{{ content: '●'; position: absolute; left: 0; color: var(--primary-blue); font-weight: bold; top: 0.1rem; }}}}
+        .bullet-list.numbered {{{{ counter-reset: list-counter; }}}}
+        .bullet-list.numbered li {{{{ counter-increment: list-counter; }}}}
+        .bullet-list.numbered li::before {{{{ content: counter(list-counter) '.'; background: var(--primary-blue); color: white; width: 1.8rem; height: 1.8rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }}}}
+        p {{{{ margin-bottom: 1.2rem; line-height: 1.7; color: var(--medium-gray); }}}}
+        strong {{{{ color: var(--dark-navy); font-weight: 600; }}}}
+        .conclusion {{{{ background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-cyan) 100%); color: white; padding: 2.5rem; border-radius: 15px; margin-top: 3rem; }}}}
+        .conclusion p {{{{ color: rgba(255, 255, 255, 0.95); font-size: 1.1rem; font-weight: 500; margin-bottom: 0; }}}}
+        .conclusion strong {{{{ color: white; }}}}
+        @media (max-width: 768px) {{{{ 
+            .header h1 {{{{ font-size: 2.2rem; }}}} 
+            .container {{{{ padding: 2rem 1rem 3rem; }}}} 
+            .article-content {{{{ padding: 2rem 1.5rem; }}}}
+            .nav-content {{{{ flex-direction: column; gap: 1rem; align-items: flex-start; }}}}
+            .blog-meta {{{{ width: 100%; }}}}
+        }}}}
     </style>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y0FZTVVLBS"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
-  function gtag(){{dataLayer.push(arguments);}}
+  function gtag(){{{{dataLayer.push(arguments);}}}}
   gtag('js', new Date());
   gtag('config', 'G-Y0FZTVVLBS');
 </script>
@@ -999,333 +1175,202 @@ def create_html_blog_post(content, title, excerpt):
 </body>
 </html>'''
     
-    return html_template
-
-def extract_post_info(html_file):
-    """Extract title, date, and excerpt from an HTML blog post"""
-    # Ensure file exists and is not empty
-    if not os.path.exists(html_file) or os.path.getsize(html_file) == 0:
-        return None
+    html_template = html_template.format(
+        title=title,
+        formatted_date=formatted_date,
+        month_year=month_year,
+        excerpt=excerpt,
+        all_content=all_content,
+        conclusion_text=conclusion_text
+    )
+    
+    return html_template.append(line)
+            elif len(line) > 50:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 50:
+            items.append(item_text)
+    
+    if len(items) < 5:
+        smart_items = []
         
-    with open(html_file, "r", encoding="utf-8") as f:
-        html_content = f.read()
-    
-    soup = BeautifulSoup(html_content, "html.parser")
+        protected_text = text
+        abbreviations = {
+            'U.S.': 'USPROTECTED',
+            'U.K.': 'UKPROTECTED', 
+            'E.U.': 'EUPROTECTED',
+            'A.I.': 'AIPROTECTED',
+            'Inc.': 'IncPROTECTED',
+            'Corp.': 'CorpPROTECTED'
+        }
+        
+        version_pattern = r'\b(\d+\.\d+)\b'
+        version_matches = re.findall(version_pattern, protected_text)
+        version_replacements = {}
+        for i, version in enumerate(version_matches):
+            replacement = f'VERSION{i}PROTECTED'
+            version_replacements[replacement] = version
+            protected_text = protected_text.replace(version, replacement)
+        
+        for abbrev, replacement in abbreviations.items():
+            protected_text = protected_text.replace(abbrev, replacement)
 
-    title_tag = soup.find("h1")
-    title = title_tag.get_text(strip=True) if title_tag else "AI Insights"
-
-    date_text = None
-    blog_meta = soup.find("div", class_="blog-meta")
-    if blog_meta:
-        meta_text = blog_meta.get_text()
-        if "•" in meta_text:
-            date_text = meta_text.split("•")[-1].strip()
-    
-    if not date_text:
-        basename = os.path.basename(html_file)
-        match = re.match(r"(\d{4}-\d{2}-\d{2})-", basename)
-        if match:
-            date_obj = datetime.strptime(match.group(1), "%Y-%m-%d")
-            date_text = date_obj.strftime("%B %d, %Y")
-        else:
-            date_text = datetime.now().strftime("%B %d, %Y")
-
-    excerpt = None
-    
-    # FIRST: Try to get the intro from the header section (most reliable for new posts)
-    intro_div = soup.find("div", class_="intro")
-    if intro_div:
-        excerpt = re.sub(r'\s+', ' ', intro_div.get_text()).strip()
-        # Clean up any truncation markers or markdown artifacts
-        excerpt = re.sub(r'\.\.\.f$', '...', excerpt)
-        excerpt = re.sub(r'f\.\.\.$', '...', excerpt)
-        excerpt = re.sub(r'\.\.\.$', '', excerpt).strip()  # Remove trailing ...
-    
-    # SECOND: If no intro div, try the first paragraph in article-content
-    if not excerpt:
-        article_content = soup.find("div", class_="article-content")
-        if article_content:
-            # Find the first section div with a paragraph
-            first_section = article_content.find("div", class_="section")
-            if first_section:
-                p_tag = first_section.find("p")
-                if p_tag:
-                    excerpt = re.sub(r'\s+', ' ', p_tag.get_text()).strip()
-    
-    if not excerpt:
-        excerpt = "Read the latest AI insights and business applications."
-
-    # Ensure excerpt is properly truncated to 200 chars
-    if len(excerpt) > 200:
-        # Find a good breaking point (end of sentence or word)
-        truncated = excerpt[:200].rstrip()
-        excerpt = truncated + "..."
-    elif not excerpt.endswith('...') and len(excerpt) < 200:
-        # For shorter excerpts, add ... if it seems incomplete
-        if not excerpt.endswith('.'):
-            excerpt = excerpt + "..."
-
-    return {
-        "title": title,
-        "date": date_text,
-        "excerpt": excerpt,
-        "filename": os.path.basename(html_file)
-    }
-
-def create_blog_index_html(posts):
-    """Create blog index page"""
-    if not posts:
-        return None
-    
-    validated_posts = []
-    posts_dir = "blog/posts"
-    
-    for post in posts:
-        file_path = os.path.join(posts_dir, post['filename'])
-        if os.path.exists(file_path):
-            validated_posts.append(post)
-    
-    if not validated_posts:
-        return None
-    
-    latest_post = validated_posts[0]
-    older_posts = validated_posts[1:] if len(validated_posts) > 1 else []
-    
-    # Build older posts HTML
-    older_posts_html = ""
-    if older_posts:
-        for post in older_posts:
-            older_posts_html += f'''
-                <div class="older-post-item">
-                    <a href="/blog/posts/{post['filename']}" class="older-post-link">
-                        <div class="older-post-title">{post['title']}</div>
-                        <div class="older-post-date">{post['date']}</div>
-                    </a>
-                </div>'''
-    else:
-        older_posts_html = '<div class="no-posts-message"><p>Previous blogs will be available here</p></div>'
-    
-    # Always show the older posts section
-    older_posts_section = f'''<section class="older-posts-section">
-            <h3 class="older-posts-title">Previous Insights</h3>
-            <div class="older-posts-grid">
-                {older_posts_html}
-            </div>
-        </section>'''
-
-    blog_index_html = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Insights Blog - Robert Simon</title>
-    <style>
-        body {{ font-family: Inter, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); margin: 0; padding: 0; }}
-        .container {{ max-width: 1200px; margin: 0 auto; padding: 2rem; }}
-        header {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 3rem; border-radius: 20px; }}
-        h1 {{ font-size: 3.5rem; font-weight: 700; margin-bottom: 0.5rem; }}
-        .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); position: sticky; top: 0; z-index: 100; }}
-        .nav-content {{ max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: flex-start; }}
-        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
-        .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #8b5cf6 100%); color: white; padding: 3rem; border-radius: 20px; margin-bottom: 3rem; }}
-        .latest-badge {{ background: rgba(255, 255, 255, 0.25); color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; }}
-        .latest-post-title {{ font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }}
-        .read-latest-btn {{ background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 0.75rem 2rem; border-radius: 25px; text-decoration: none; display: inline-block; transition: all 0.3s ease; }}
-        .read-latest-btn:hover {{ background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }}
-        .older-posts-section {{ background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }}
-        .older-posts-title {{ font-size: 1.8rem; margin-bottom: 2rem; text-align: center; color: #1e293b; }}
-        .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 1rem; transition: all 0.3s ease; }}
-        .older-post-item:hover {{ border-color: #2563eb; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }}
-        .older-post-link {{ display: block; padding: 1.5rem; text-decoration: none; color: inherit; }}
-        .older-post-title {{ font-size: 1.3rem; font-weight: 600; color: #2563eb; margin-bottom: 0.5rem; text-decoration: underline; }}
-        .older-post-date {{ font-size: 0.9rem; color: #64748b; }}
-        .no-posts-message {{ text-align: center; padding: 2rem; color: #64748b; font-style: italic; }}
-    </style>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y0FZTVVLBS"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){{dataLayer.push(arguments);}}
-  gtag('js', new Date());
-  gtag('config', 'G-Y0FZTVVLBS');
-</script>
-</head>
-<body>
-    <nav class="nav-bar">
-        <div class="nav-content">
-            <a href="https://www.imetrobert.com" class="nav-link">← Back to Homepage</a>
-        </div>
-    </nav>
-    
-    <div class="container">
-        <header>
-            <h1>AI Insights Blog</h1>
-            <p>Strategic Intelligence for Digital Leaders</p>
-        </header>
-
-        <section class="latest-post-section">
-            <div class="latest-badge">Latest</div>
-            <h2 class="latest-post-title">{latest_post['title']}</h2>
-            <div style="margin-bottom: 1rem; opacity: 0.9;">{latest_post['date']}</div>
-            <p style="line-height: 1.6; margin-bottom: 1.5rem;">{latest_post['excerpt']}</p>
-            <a href="/blog/posts/latest.html" class="read-latest-btn">Read Full Analysis →</a>
-        </section>
-
-        {older_posts_section}
-    </div>
-</body>
-</html>'''
-
-    return blog_index_html
-
-def update_blog_index():
-    """Update blog index"""
-    posts_dir = "blog/posts"
-    index_file = "blog/index.html"
-    
-    if not os.path.exists(posts_dir):
-        return []
-    
-    # ALWAYS read latest.html first
-    latest_path = os.path.join(posts_dir, "latest.html")
-    posts = []
-    
-    # Extract info from latest.html first
-    if os.path.exists(latest_path) and os.path.getsize(latest_path) > 100:
-        try:
-            latest_info = extract_post_info(latest_path)
-            if latest_info and latest_info.get('title') and latest_info.get('excerpt'):
-                # Change filename to latest.html for the link
-                latest_info['filename'] = 'latest.html'
-                posts.append(latest_info)
-                print(f"✅ Loaded latest post: {latest_info['title']}")
-                print(f"   Excerpt: {latest_info['excerpt'][:100]}...")
-        except Exception as e:
-            print(f"Warning: Could not process latest.html: {e}")
-    
-    # Then get all other dated posts for the "Previous" section
-    html_files = [f for f in os.listdir(posts_dir) 
-                  if f.endswith(".html") 
-                  and f != "latest.html" 
-                  and not f.startswith("{")  # Skip template files
-                  and f != "index.html"]
-    
-    for file in sorted(html_files, reverse=True):
-        file_path = os.path.join(posts_dir, file)
-        try:
-            if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
-                post_info = extract_post_info(file_path)
-                if post_info and post_info.get('title') and post_info.get('filename'):
-                    posts.append(post_info)
-        except Exception as e:
-            print(f"Warning: Could not process {file}: {e}")
-            continue
-
-    if not posts:
-        print("Warning: No valid posts found")
-        return []
-    
-    # The first post is always the latest
-    latest_post = posts[0]
-    
-    # Filter older posts by month to show only one per month
-    older_posts = []
-    seen_months = set()
-    
-    # Add the current month from latest post to seen
-    try:
-        latest_date = datetime.strptime(latest_post['date'], "%B %d, %Y")
-        latest_month_year = latest_date.strftime("%Y-%m")
-        seen_months.add(latest_month_year)
-    except:
-        pass
-    
-    # Go through remaining posts and take one per month
-    for post in posts[1:]:
-        try:
-            post_date = datetime.strptime(post['date'], "%B %d, %Y")
-            post_month_year = post_date.strftime("%Y-%m")
+        sentences = re.split(r'[.!?]+', protected_text)
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
             
-            if post_month_year not in seen_months:
-                older_posts.append(post)
-                seen_months.add(post_month_year)
-        except:
-            # If date parsing fails, include it anyway
-            older_posts.append(post)
+            for replacement, original in abbreviations.items():
+                sentence = sentence.replace(replacement, original)
+            for replacement, original in version_replacements.items():
+                sentence = sentence.replace(replacement, original)
+            
+            if (len(sentence) > 50 and 
+                any(company in sentence for company in ['Microsoft', 'OpenAI', 'Google', 'Anthropic', 'NVIDIA', 'Meta', 'Amazon', 'Apple']) and
+                not re.match(r'^\d+\.\s', sentence)):
+                smart_items.append(sentence)
+        
+        if len(smart_items) >= len(items):
+            items = smart_items
     
-    print(f"Found {len(posts)} total posts, showing latest and {len(older_posts)} from previous months")
+    filtered_items = []
+    for item in items:
+        item_lower = item.lower()
+        if not any(header in item_lower for header in ['key ai development', 'major development', 'key insights']):
+            filtered_items.append(item)
+            
+    return filtered_items[:15]
 
-    # Create the new index with the latest post info
-    new_blog_index = create_blog_index_html([latest_post] + older_posts)
-    if not new_blog_index:
-        return []
+def parse_recommendation_items(text):
+    """Parse recommendation items - handles both numbered lists AND paragraph-separated items"""
+    items = []
     
-    try:
-        with open(index_file, "w", encoding="utf-8") as f:
-            f.write(new_blog_index)
-        print(f"✅ Blog index recreated with latest post + {len(older_posts)} previous months")
-    except Exception as e:
-        print(f"❌ Error writing blog index: {e}")
+    header_keywords = [
+        'strategic recommendation', 
+        'recommendations for canadian leaders',
+        'recommendations for', 
+        'strategic action',
+        'for canadian leaders',
+        'for canadian business',
+        'action steps'
+    ]
     
-    return posts
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        line_lower = line.strip().lower()
+        if line_lower and not any(line_lower == header or line_lower.startswith(header + ':') for header in header_keywords):
+            cleaned_lines.append(line.strip())
+    
+    text = '\n'.join(cleaned_lines)
+    
+    current_item = []
+    
+    for line in cleaned_lines:
+        if not line:
+            continue
+        
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
+        is_list_number = re.match(list_start_pattern, line) and not re.search(r'^\d+\.\d+', line[:15])
+        
+        if is_list_number:
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 30:
+                    items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if len(line) > 30 and ':' in line and not current_item:
+                current_item = [line]
+            elif current_item:
+                current_item.append(line)
+            elif len(line) > 30:
+                current_item = [line]
+    
+    if current_item:
+        item_text = ' '.join(current_item).strip()
+        if len(item_text) > 30:
+            items.append(item_text)
+    
+    if len(items) < 3:
+        print("DEBUG: Numbered list parsing found < 3 items, trying paragraph-based parsing")
+        
+        paragraphs = []
+        current_para = []
+        
+        for line in cleaned_lines:
+            if not line:
+                if current_para:
+                    paragraphs.append(' '.join(current_para))
+                    current_para = []
+            else:
+                if current_para and len(line) > 30 and line[0].isupper():
+                    paragraphs.append(' '.join(current_para))
+                    current_para = [line]
+                else:
+                    current_para.append(line)
+        
+        if current_para:
+            paragraphs.append(' '.join(current_para))
+        
+        paragraph_items = []
+        for para in paragraphs:
+            para = para.strip()
+            if len(para) > 30:
+                action_words = ['prioritize', 'invest', 'develop', 'establish', 'implement', 
+                               'create', 'build', 'focus', 'ensure', 'adopt', 'enhance',
+                               'strengthen', 'leverage', 'foster', 'collaborate']
+                
+                para_lower = para.lower()
+                if any(word in para_lower for word in action_words):
+                    paragraph_items.append(para)
+        
+        if len(paragraph_items) > len(items):
+            items = paragraph_items
+    
+    print(f"DEBUG parse_recommendation_items: Found {len(items)} items")
+    for i, item in enumerate(items[:3]):
+        print(f"DEBUG rec item {i+1}: {item[:100]}...")
+    
+    return items[:5]
 
-def main():
-    parser = argparse.ArgumentParser(description="Blog Generator")
-    parser.add_argument("--topic", help="Custom topic")
-    parser.add_argument("--output", default="posts", choices=["staging", "posts"])
-    args = parser.parse_args()
+def parse_adoption_metrics(text):
+    """Parse adoption metrics - handles both numbered lists AND paragraph-separated items"""
+    items = []
     
-    print("🔧 RUNNING BLOG GENERATOR")
+    lines = text.split('\n')
+    current_item = []
     
-    api_key = os.getenv("PERPLEXITY_API_KEY")
-    if not api_key:
-        print("❌ PERPLEXITY_API_KEY not set")
-        sys.exit(1)
+    header_keywords = [
+        'canadian business ai adoption',
+        'ai adoption metrics',
+        'adoption metrics',
+        'adoption statistics'
+    ]
     
-    try:
-        result = generate_blog_with_perplexity(api_key, args.topic)
-        title, excerpt = extract_title_and_excerpt(result["content"])
-        html_content = create_html_blog_post(result["content"], title, excerpt)
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
         
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        filename_html = f"{current_date}-{clean_filename(title)}.html"
+        line_lower = line.lower()
+        if any(header in line_lower for header in header_keywords):
+            continue
+            
+        list_start_pattern = r'^(\d+)\.\s+([A-Z].*)'
         
-        output_dir = os.path.join("blog", args.output)
-        os.makedirs(output_dir, exist_ok=True)
-        
-        path_html = os.path.join(output_dir, filename_html)
-        
-        # Save to dated filename
-        with open(path_html, "w", encoding="utf-8") as f:
-            f.write(html_content)
-            f.flush()  # Ensure it's written to disk
-            os.fsync(f.fileno())  # Force write to disk
-        print(f"✅ Blog post saved: {path_html}")
-        
-        # Save to latest.html
-        latest_path = os.path.join("blog", "posts", "latest.html")
-        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
-        with open(latest_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-            f.flush()  # Ensure it's written to disk
-            os.fsync(f.fileno())  # Force write to disk
-        print(f"✅ Latest post updated")
-        
-        # Small delay to ensure filesystem sync
-        import time
-        time.sleep(0.1)
-        
-        # Now update the blog index
-        posts = update_blog_index()
-        print(f"✅ Blog index updated with {len(posts)} posts")
-        print("🎉 SUCCESS!")
-        
-    except Exception as e:
-        print(f"💥 Failed: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
+        if re.match(list_start_pattern, line) and not re.search(r'\d+\.\d+', line[:15]):
+            if current_item:
+                item_text = ' '.join(current_item).strip()
+                if len(item_text) > 20:
+                    item_lower = item_text.lower()
+                    if not any(header in item_lower for header in header_keywords):
+                        items.append(item_text)
+            
+            current_item = [re.sub(r'^\d+\.\s*', '', line)]
+        else:
+            if current_item:
+                current_item
