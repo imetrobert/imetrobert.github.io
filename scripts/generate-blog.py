@@ -839,7 +839,60 @@ def create_html_blog_post(content, title, excerpt):
     sections = parse_structured_content(content)
     content_html = []
     
-    # ... [all the existing content_html building code stays the same] ...
+    # Introduction
+    if sections['introduction']:
+        content_html.append(
+            f'<div class="section"><p>{sections["introduction"]}</p></div>'
+        )
+
+    # Key Developments/Insights
+    if sections['developments']:
+        content_html.append(
+            '<div class="section">'
+            '<div class="section-title">Key AI Developments This Month</div>'
+            '<ul class="bullet-list numbered">'
+            + ''.join(f'<li>{item}</li>' for item in sections['developments'])
+            + '</ul></div>'
+        )
+
+    # Impact on Canadian Businesses
+    if sections['canadian_impact']:
+        content_html.append(
+            f'<div class="section"><div class="section-title">Impact on Canadian Businesses</div>'
+            f'<p>{sections["canadian_impact"]}</p></div>'
+        )
+
+    # Recommendations
+    if sections['recommendations']:
+        content_html.append(
+            '<div class="section"><div class="section-title">Strategic Recommendations for Canadian Leaders</div>'
+            '<ul class="bullet-list">'
+            + ''.join(f'<li>{item}</li>' for item in sections['recommendations'])
+            + '</ul></div>'
+        )
+
+    # Adoption Metrics
+    if sections['adoption_metrics']:
+        content_html.append(
+            '<div class="section"><div class="section-title">Canadian Business AI Adoption Metrics</div>'
+            '<ul class="bullet-list">'
+            + ''.join(f'<li>{item}</li>' for item in sections['adoption_metrics'])
+            + '</ul></div>'
+        )
+
+    # Extract or generate conclusion
+    if sections['conclusion']:
+        conclusion_text = sections['conclusion']
+    else:
+        conclusion_text = generate_dynamic_conclusion(sections)
+
+    # Clean up conclusion text
+    conclusion_text = re.sub(r'[-•*]\s*[-•*]\s*', '', conclusion_text)
+    conclusion_text = re.sub(r'^\s*[-•*]\s*', '', conclusion_text)
+    
+    all_content = '\n'.join(content_html)
+    
+    # ... rest of your html_template code ...
     
     # Extract or generate conclusion
     if sections['conclusion']:
