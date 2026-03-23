@@ -50,156 +50,181 @@ def clean_perplexity_content(content):
     content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
     return content.strip()
 
+# This is a drop-in replacement for generate_blog_with_gemini() in scripts/generate-blog.py
+# It uses a simpler single-message format that works reliably on the free tier
+
 def generate_blog_with_gemini(api_key, topic=None):
-    """Generate blog content using Google Gemini API (free tier)"""
+    """Generate blog content using Google Gemini API (free tier) - robust version"""
     current_date = datetime.now()
     month_year = current_date.strftime("%B %Y")
+
     if not topic:
         topic_type = "monthly_ai"
-        topic = f"Latest AI developments and technology launches since last month - {month_year} focus on Canadian business impact"
     else:
         topic_lower = topic.lower()
-        ai_keywords = ['ai', 'artificial intelligence', 'machine learning', 'automation', 'technology', 'digital', 'innovation']
-        if any(keyword in topic_lower for keyword in ai_keywords):
-            topic_type = "custom_ai"
-        else:
-            topic_type = "custom_business"
+        ai_keywords = ['ai', 'artificial intelligence', 'machine learning',
+                       'automation', 'technology', 'digital', 'innovation']
+        topic_type = "custom_ai" if any(k in topic_lower for k in ai_keywords) else "custom_business"
 
     base_url = "https://generativelanguage.googleapis.com/v1beta/models"
+    # Free tier models in order of preference
     models_to_try = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"]
 
     if topic_type == "monthly_ai":
-        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
+        full_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
 
-Create a monthly AI insights post for {month_year} with EXACTLY these 6 sections in this EXACT order:
+Write a monthly AI insights blog post for {month_year} with EXACTLY these 6 sections in order:
 
-SECTION 1 - NO HEADING: Write 1 paragraph introduction (do NOT include a heading like "Introduction")
+SECTION 1 (no heading): One paragraph introduction summarising the month in AI.
 
-SECTION 2 - HEADING "Key AI Developments This Month": List exactly 15 major AI developments from the past month with specific dates and company names. Write each as a separate paragraph or bullet point.
+SECTION 2 - Key AI Developments This Month: List exactly 15 major AI developments from the past month with specific dates and company names.
 
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs analyzing how these developments affect Canadian businesses
+SECTION 3 - Impact on Canadian Businesses: One to two paragraphs on how these developments affect Canadian businesses.
 
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": Provide exactly 5 actionable recommendations. Write each recommendation as a separate paragraph starting with an action verb like "Prioritize", "Invest", "Develop", "Establish", or "Implement".
+SECTION 4 - Strategic Recommendations for Canadian Leaders: Five actionable recommendations, each starting with a strong action verb (Prioritize, Invest, Develop, Establish, Implement).
 
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": Provide 3-5 separate data points with percentages. Write each metric as a separate sentence or paragraph.
+SECTION 5 - Canadian Business AI Adoption Metrics: Three to five statistics with percentage numbers showing Canadian AI adoption. THIS SECTION IS MANDATORY.
 
-SECTION 6 - HEADING "Conclusion": Write 1 paragraph strategic imperative
+SECTION 6 - Conclusion: One paragraph strategic imperative for Canadian businesses.
 
-CRITICAL FORMATTING RULES:
-- Do NOT use markdown heading syntax like ##, ###, or #### anywhere in your response
-- Do NOT use asterisks for bold (**text**) or italic (*text*)
-- Write in plain text only
-- Section headings should be written as plain text on their own line, not with # symbols
-- SECTION 5 (Canadian Business AI Adoption Metrics) is MANDATORY and must contain 3-5 statistics with percentages"""
-        user_prompt = f"""Write an AI insights blog post for {month_year} with EXACTLY 6 sections in this order:
-
-1. Introduction paragraph (NO HEADING) - 1 paragraph
-2. Key AI Developments This Month - 15 separate items with dates
-3. Impact on Canadian Businesses - 1-2 paragraphs
-4. Strategic Recommendations for Canadian Leaders - 5 separate recommendations, each starting with action words
-5. Canadian Business AI Adoption Metrics - 3-5 separate statistics with percentages (THIS IS MANDATORY)
-6. Conclusion - 1 paragraph
-
-IMPORTANT: Do NOT use any markdown formatting (no ##, ###, no **bold**, no *italic*). Write in plain text only.
-DO NOT SKIP SECTION 5. It must have real statistics with percentage numbers."""
+CRITICAL RULES:
+- Do NOT use markdown heading symbols like # ## ### anywhere
+- Do NOT use **bold** or *italic* markdown
+- Write section headings as plain text on their own line
+- Write in plain text only throughout"""
 
     elif topic_type == "custom_ai":
-        system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
-Create an AI insights post about "{topic}" with EXACTLY these 6 sections:
-SECTION 1 - NO HEADING: 1 paragraph introduction
-SECTION 2 - HEADING "Key AI Developments": 8-10 major points
-SECTION 3 - HEADING "Impact on Canadian Businesses": 1-2 paragraphs
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": 5 actionable recommendations
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": 3-5 data points with percentages (MANDATORY)
-SECTION 6 - HEADING "Conclusion": 1 paragraph
-Do NOT use markdown heading syntax (##, ###). Plain text only."""
-        user_prompt = f"""Write an AI insights blog post for Canadian business leaders about "{topic}".
-Include EXACTLY 6 sections. No markdown formatting. DO NOT SKIP SECTION 5."""
+        full_prompt = f"""You are Robert Simon, an AI expert with 25+ years of experience, writing for Canadian business leaders.
+
+Write an AI insights blog post about "{topic}" with EXACTLY these 6 sections:
+
+SECTION 1 (no heading): One paragraph introduction.
+SECTION 2 - Key AI Developments: Eight to ten major points related to the topic.
+SECTION 3 - Impact on Canadian Businesses: One to two paragraphs.
+SECTION 4 - Strategic Recommendations for Canadian Leaders: Five actionable recommendations.
+SECTION 5 - Canadian Business AI Adoption Metrics: Three to five statistics with percentages. MANDATORY.
+SECTION 6 - Conclusion: One paragraph.
+
+Write in plain text only. No markdown symbols."""
 
     else:
-        system_prompt = f"""You are Robert Simon, a digital transformation leader, writing for Canadian business leaders.
-Create a business insights post about "{topic}" with EXACTLY these 6 sections:
-SECTION 1 - NO HEADING: 1 paragraph introduction
-SECTION 2 - HEADING "Key Insights": 8-10 major points
-SECTION 3 - HEADING "Impact on Canadian Businesses": 1-2 paragraphs
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": 5 recommendations
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": 3-5 data points (MANDATORY)
-SECTION 6 - HEADING "Conclusion": 1 paragraph
-Plain text only, no markdown."""
-        user_prompt = f"""Write a business insights blog post about "{topic}" for Canadian leaders.
-6 sections, plain text, DO NOT SKIP SECTION 5."""
+        full_prompt = f"""You are Robert Simon, a digital transformation leader, writing for Canadian business leaders.
+
+Write a business insights post about "{topic}" with EXACTLY these 6 sections:
+
+SECTION 1 (no heading): One paragraph introduction.
+SECTION 2 - Key Insights: Eight to ten major points.
+SECTION 3 - Impact on Canadian Businesses: One to two paragraphs.
+SECTION 4 - Strategic Recommendations for Canadian Leaders: Five recommendations.
+SECTION 5 - Canadian Business AI Adoption Metrics: Three to five statistics with percentages. MANDATORY.
+SECTION 6 - Conclusion: One paragraph.
+
+Plain text only. No markdown."""
 
     for model in models_to_try:
-        print(f"Trying Gemini model: {model} for topic type: {topic_type}")
+        print(f"Trying Gemini model: {model}")
         url = f"{base_url}/{model}:generateContent?key={api_key}"
+
+        # Simple single-turn format — most compatible with free tier
         payload = {
-            "systemInstruction": {
-                "parts": [{"text": system_prompt}]
-            },
             "contents": [
                 {
                     "role": "user",
-                    "parts": [{"text": user_prompt}]
+                    "parts": [{"text": full_prompt}]
                 }
             ],
             "generationConfig": {
-                "maxOutputTokens": 4000,
-                "temperature": 0.7
-            }
+                "maxOutputTokens": 4096,
+                "temperature": 0.7,
+                "candidateCount": 1
+            },
+            "safetySettings": [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+            ]
         }
 
         try:
-            response = requests.post(url, json=payload, timeout=90)
-            print(f"API status code: {response.status_code}")
+            print(f"  Sending request to {url[:60]}...")
+            response = requests.post(url, json=payload, timeout=120)
+            print(f"  HTTP status: {response.status_code}")
+
+            if response.status_code == 429:
+                print(f"  Rate limited on {model}, trying next...")
+                continue
+
+            if response.status_code == 403:
+                print(f"  API key rejected (403). Verify GEMINI_API_KEY starts with 'AIza'")
+                print(f"  Response: {response.text[:300]}")
+                continue
 
             if response.status_code != 200:
-                print(f"Failed model {model}: {response.text[:500]}")
+                print(f"  Failed {model} ({response.status_code}): {response.text[:400]}")
                 continue
 
             data = response.json()
 
-            # Check for safety blocks or empty candidates
+            # Validate response structure
+            if 'error' in data:
+                print(f"  API error: {data['error']}")
+                continue
+
             candidates = data.get('candidates', [])
             if not candidates:
-                print(f"No candidates returned from {model}")
+                print(f"  No candidates in response. promptFeedback: {data.get('promptFeedback', 'none')}")
                 continue
 
             candidate = candidates[0]
-            finish_reason = candidate.get('finishReason', '')
-            if finish_reason == 'SAFETY':
-                print(f"Model {model} blocked response for safety reasons, trying next")
+            finish_reason = candidate.get('finishReason', 'UNKNOWN')
+            print(f"  Finish reason: {finish_reason}")
+
+            if finish_reason in ('SAFETY', 'RECITATION'):
+                print(f"  Blocked ({finish_reason}), trying next model...")
                 continue
 
-            parts = candidate.get('content', {}).get('parts', [])
-            if not parts:
-                print(f"Empty content parts from {model}")
+            content_parts = candidate.get('content', {}).get('parts', [])
+            if not content_parts:
+                print(f"  Empty content parts, finish_reason was: {finish_reason}")
                 continue
 
-            content = parts[0].get('text', '').strip()
-            if not content:
-                print(f"Empty text from {model}")
+            raw_text = content_parts[0].get('text', '').strip()
+            if not raw_text or len(raw_text) < 200:
+                print(f"  Response too short ({len(raw_text)} chars), trying next model...")
                 continue
 
-            cleaned_content = clean_perplexity_content(content)
-            print(f"Content received from {model} ({len(cleaned_content)} characters)")
+            cleaned = clean_perplexity_content(raw_text)
+            print(f"  SUCCESS: {len(cleaned)} chars from {model}")
             return {
-                "content": cleaned_content,
+                "content": cleaned,
                 "citations": [],
                 "usage": data.get("usageMetadata", {}),
                 "topic_type": topic_type
             }
 
-        except requests.exceptions.RequestException as e:
-            print(f"Request exception with model {model}: {e}")
+        except requests.exceptions.Timeout:
+            print(f"  Timeout on {model} (120s exceeded), trying next...")
             continue
-        except (KeyError, IndexError) as e:
-            print(f"Response parsing error with model {model}: {e}")
+        except requests.exceptions.ConnectionError as e:
+            print(f"  Connection error on {model}: {e}")
+            continue
+        except (KeyError, IndexError, ValueError) as e:
+            print(f"  Response parse error on {model}: {e}")
+            import traceback; traceback.print_exc()
             continue
         except Exception as e:
-            print(f"Unexpected error with model {model}: {e}")
+            print(f"  Unexpected error on {model}: {e}")
+            import traceback; traceback.print_exc()
             continue
 
-    raise Exception("All Gemini models failed. Check your GEMINI_API_KEY secret and ensure it starts with 'AIza'. Get a free key at https://aistudio.google.com/app/apikey")
+    raise Exception(
+        "All Gemini models failed. "
+        "Check: 1) GEMINI_API_KEY secret starts with 'AIza' "
+        "2) Key is active at https://aistudio.google.com/app/apikey "
+        "3) Free tier quota not exceeded (1500 req/day)"
+    )
+
 
 def parse_structured_content(content):
     sections = {
