@@ -4,21 +4,34 @@
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
             http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-<!-- created with Free Online Sitemap Generator www.xml-sitemaps.com -->
-
 
 <url>
   <loc>https://www.imetrobert.com/</loc>
-  <lastmod>2025-12-31T09:20:40+00:00</lastmod>
+  <lastmod>2026-02-28T00:00:00+00:00</lastmod>
   <priority>1.00</priority>
 </url>
 <url>
   <loc>https://www.imetrobert.com/blog/</loc>
-  <lastmod>2025-12-31T09:20:39+00:00</lastmod>
+  <lastmod>2026-02-28T00:00:00+00:00</lastmod>
   <priority>0.80</priority>
 </url>
 <url>
   <loc>https://www.imetrobert.com/blog/posts/latest.html</loc>
+  <lastmod>2026-02-28T00:00:00+00:00</lastmod>
+  <priority>0.90</priority>
+</url>
+<url>
+  <loc>https://www.imetrobert.com/blog/posts/2026-02-28-key-ai-developments-this-month.html</loc>
+  <lastmod>2026-02-28T00:00:00+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.imetrobert.com/blog/posts/2026-01-31-key-ai-developments-this-month.html</loc>
+  <lastmod>2026-01-31T00:00:00+00:00</lastmod>
+  <priority>0.64</priority>
+</url>
+<url>
+  <loc>https://www.imetrobert.com/blog/posts/2025-12-31-key-ai-developments-this-month.html</loc>
   <lastmod>2025-12-31T09:20:40+00:00</lastmod>
   <priority>0.64</priority>
 </url>
@@ -37,6 +50,5 @@
   <lastmod>2025-12-31T09:20:40+00:00</lastmod>
   <priority>0.64</priority>
 </url>
-
 
 </urlset>
