@@ -1,0 +1,47 @@
+name: Patch Existing Posts (Run Once)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install beautifulsoup4 lxml
+
+      - name: Run patch script
+        run: python patch-existing-posts.py
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "SEO Patch Bot"
+
+      - name: Commit and push patched files
+        run: |
+          git add blog/posts/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Retrofit SEO/GEO meta tags on existing blog posts"
+            git push
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Patch complete" >> $GITHUB_STEP_SUMMARY
+          echo "All existing posts now have full SEO meta, structured data, and author bylines." >> $GITHUB_STEP_SUMMARY
+          echo "Next: replace scripts/generate-blog.py with the new version and run the monthly workflow." >> $GITHUB_STEP_SUMMARY
