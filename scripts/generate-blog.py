@@ -66,9 +66,14 @@ def generate_blog_with_gemini(api_key, topic=None):
                        'automation', 'technology', 'digital', 'innovation']
         topic_type = "custom_ai" if any(k in topic_lower for k in ai_keywords) else "custom_business"
 
-    base_url = "https://generativelanguage.googleapis.com/v1beta/models"
-    # Free tier models in order of preference
-    models_to_try = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"]
+    # Use v1 (stable) for 1.5 models, v1beta only for experimental 2.0
+    # Model names verified against Google AI Studio free tier (March 2026)
+    models_to_try = [
+        ("https://generativelanguage.googleapis.com/v1/models", "gemini-1.5-flash"),
+        ("https://generativelanguage.googleapis.com/v1/models", "gemini-1.5-flash-8b"),
+        ("https://generativelanguage.googleapis.com/v1/models", "gemini-1.5-pro"),
+        ("https://generativelanguage.googleapis.com/v1beta/models", "gemini-2.0-flash-lite"),
+    ]
 
     if topic_type == "monthly_ai":
         full_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
@@ -121,8 +126,9 @@ SECTION 6 - Conclusion: One paragraph.
 
 Plain text only. No markdown."""
 
-    for model in models_to_try:
-        print(f"Trying Gemini model: {model}")
+    import time
+    for base_url, model in models_to_try:
+        print(f"Trying Gemini model: {model} via {base_url.split('/v')[1].split('/')[0]}...")
         url = f"{base_url}/{model}:generateContent?key={api_key}"
 
         # Simple single-turn format — most compatible with free tier
@@ -152,7 +158,8 @@ Plain text only. No markdown."""
             print(f"  HTTP status: {response.status_code}")
 
             if response.status_code == 429:
-                print(f"  Rate limited on {model}, trying next...")
+                print(f"  Rate limited on {model}, waiting 3s then trying next...")
+                time.sleep(3)
                 continue
 
             if response.status_code == 403:
