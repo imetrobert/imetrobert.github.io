@@ -1,4 +1,4 @@
-name: Test Perplexity API
+name: Test Gemini API
 on:
   workflow_dispatch:
 
@@ -14,5 +14,5 @@ jobs:
       run: pip install requests
     - name: Test API
       env:
-        PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
-      run: python scripts/test_perplexity.py
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: python scripts/test_gemini.py
