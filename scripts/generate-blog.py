@@ -50,7 +50,8 @@ def clean_perplexity_content(content):
     content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
     return content.strip()
 
-def generate_blog_with_perplexity(api_key, topic=None):
+def generate_blog_with_gemini(api_key, topic=None):
+    """Generate blog content using Google Gemini API (free tier)"""
     current_date = datetime.now()
     month_year = current_date.strftime("%B %Y")
     if not topic:
@@ -63,12 +64,10 @@ def generate_blog_with_perplexity(api_key, topic=None):
             topic_type = "custom_ai"
         else:
             topic_type = "custom_business"
-    url = "https://api.perplexity.ai/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    models_to_try = ["sonar-pro", "sonar", "sonar-reasoning"]
+
+    base_url = "https://generativelanguage.googleapis.com/v1beta/models"
+    models_to_try = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"]
+
     if topic_type == "monthly_ai":
         system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
 
@@ -102,85 +101,105 @@ CRITICAL FORMATTING RULES:
 6. Conclusion - 1 paragraph
 
 IMPORTANT: Do NOT use any markdown formatting (no ##, ###, no **bold**, no *italic*). Write in plain text only.
-
 DO NOT SKIP SECTION 5. It must have real statistics with percentage numbers."""
+
     elif topic_type == "custom_ai":
         system_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
-
-Create an AI insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
-
-SECTION 1 - NO HEADING: Write 1 paragraph introduction
-SECTION 2 - HEADING "Key AI Developments": List 8-10 major points related to "{topic}"
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs
+Create an AI insights post about "{topic}" with EXACTLY these 6 sections:
+SECTION 1 - NO HEADING: 1 paragraph introduction
+SECTION 2 - HEADING "Key AI Developments": 8-10 major points
+SECTION 3 - HEADING "Impact on Canadian Businesses": 1-2 paragraphs
 SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": 5 actionable recommendations
 SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": 3-5 data points with percentages (MANDATORY)
-SECTION 6 - HEADING "Conclusion": 1 paragraph strategic imperative
-
-CRITICAL: Do NOT use markdown heading syntax (##, ###). Write section headings as plain text only."""
+SECTION 6 - HEADING "Conclusion": 1 paragraph
+Do NOT use markdown heading syntax (##, ###). Plain text only."""
         user_prompt = f"""Write an AI insights blog post for Canadian business leaders about "{topic}".
+Include EXACTLY 6 sections. No markdown formatting. DO NOT SKIP SECTION 5."""
 
-Include EXACTLY 6 sections. Do NOT use markdown formatting (no ##, ###, no **bold**). Write in plain text.
-
-DO NOT SKIP SECTION 5 (Canadian Business AI Adoption Metrics)."""
     else:
-        system_prompt = f"""You are Robert Simon, a digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
+        system_prompt = f"""You are Robert Simon, a digital transformation leader, writing for Canadian business leaders.
+Create a business insights post about "{topic}" with EXACTLY these 6 sections:
+SECTION 1 - NO HEADING: 1 paragraph introduction
+SECTION 2 - HEADING "Key Insights": 8-10 major points
+SECTION 3 - HEADING "Impact on Canadian Businesses": 1-2 paragraphs
+SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": 5 recommendations
+SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": 3-5 data points (MANDATORY)
+SECTION 6 - HEADING "Conclusion": 1 paragraph
+Plain text only, no markdown."""
+        user_prompt = f"""Write a business insights blog post about "{topic}" for Canadian leaders.
+6 sections, plain text, DO NOT SKIP SECTION 5."""
 
-Create a business insights post about "{topic}" with EXACTLY these 6 sections in this EXACT order:
-
-SECTION 1 - NO HEADING: Write 1 paragraph introduction
-SECTION 2 - HEADING "Key Insights": List 8-10 major points related to "{topic}"
-SECTION 3 - HEADING "Impact on Canadian Businesses": Write 1-2 paragraphs
-SECTION 4 - HEADING "Strategic Recommendations for Canadian Leaders": 5 actionable recommendations
-SECTION 5 - HEADING "Canadian Business AI Adoption Metrics": 3-5 data points with percentages (MANDATORY)
-SECTION 6 - HEADING "Conclusion": 1 paragraph strategic imperative
-
-CRITICAL: Do NOT use markdown heading syntax (##, ###). Write section headings as plain text only."""
-        user_prompt = f"""Write a business insights blog post for Canadian business leaders about "{topic}".
-
-Include EXACTLY 6 sections. Do NOT use markdown formatting. Write in plain text.
-
-DO NOT SKIP SECTION 5."""
     for model in models_to_try:
-        print(f"Trying Perplexity model: {model} for topic type: {topic_type}")
+        print(f"Trying Gemini model: {model} for topic type: {topic_type}")
+        url = f"{base_url}/{model}:generateContent?key={api_key}"
         payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+            "systemInstruction": {
+                "parts": [{"text": system_prompt}]
+            },
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": user_prompt}]
+                }
             ],
-            "max_tokens": 3000,
-            "temperature": 0.7
+            "generationConfig": {
+                "maxOutputTokens": 4000,
+                "temperature": 0.7
+            }
         }
+
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=60)
+            response = requests.post(url, json=payload, timeout=90)
             print(f"API status code: {response.status_code}")
+
             if response.status_code != 200:
                 print(f"Failed model {model}: {response.text[:500]}")
                 continue
+
             data = response.json()
-            if 'choices' in data and len(data['choices']) > 0:
-                content = data['choices'][0]['message']['content'].strip()
-                if not content:
-                    print("API returned empty content")
-                    continue
-                cleaned_content = clean_perplexity_content(content)
-                print(f"Content received from model {model} ({len(cleaned_content)} characters)")
-                return {
-                    "content": cleaned_content,
-                    "citations": data.get("citations", []),
-                    "usage": data.get("usage", {}),
-                    "topic_type": topic_type
-                }
-            else:
-                print(f"Unexpected response structure: {data}")
+
+            # Check for safety blocks or empty candidates
+            candidates = data.get('candidates', [])
+            if not candidates:
+                print(f"No candidates returned from {model}")
                 continue
+
+            candidate = candidates[0]
+            finish_reason = candidate.get('finishReason', '')
+            if finish_reason == 'SAFETY':
+                print(f"Model {model} blocked response for safety reasons, trying next")
+                continue
+
+            parts = candidate.get('content', {}).get('parts', [])
+            if not parts:
+                print(f"Empty content parts from {model}")
+                continue
+
+            content = parts[0].get('text', '').strip()
+            if not content:
+                print(f"Empty text from {model}")
+                continue
+
+            cleaned_content = clean_perplexity_content(content)
+            print(f"Content received from {model} ({len(cleaned_content)} characters)")
+            return {
+                "content": cleaned_content,
+                "citations": [],
+                "usage": data.get("usageMetadata", {}),
+                "topic_type": topic_type
+            }
+
         except requests.exceptions.RequestException as e:
             print(f"Request exception with model {model}: {e}")
+            continue
+        except (KeyError, IndexError) as e:
+            print(f"Response parsing error with model {model}: {e}")
             continue
         except Exception as e:
             print(f"Unexpected error with model {model}: {e}")
             continue
-    raise Exception("All Perplexity models failed to generate content. Check your PERPLEXITY_API_KEY secret and billing status.")
+
+    raise Exception("All Gemini models failed. Check your GEMINI_API_KEY secret and ensure it starts with 'AIza'. Get a free key at https://aistudio.google.com/app/apikey")
 
 def parse_structured_content(content):
     sections = {
@@ -1158,12 +1177,12 @@ def main():
     parser.add_argument("--output", default="posts", choices=["staging", "posts"])
     args = parser.parse_args()
     print("RUNNING BLOG GENERATOR")
-    api_key = os.getenv("PERPLEXITY_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        print("PERPLEXITY_API_KEY not set. Check your GitHub Actions secret.")
+        print("GEMINI_API_KEY not set. Check your GitHub Actions secret. Get a free key at https://aistudio.google.com/app/apikey")
         sys.exit(1)
     try:
-        result = generate_blog_with_perplexity(api_key, args.topic)
+        result = generate_blog_with_gemini(api_key, args.topic)
         title, excerpt = extract_title_and_excerpt(result["content"])
         html_content = create_html_blog_post(result["content"], title, excerpt)
         current_date = datetime.now().strftime("%Y-%m-%d")
