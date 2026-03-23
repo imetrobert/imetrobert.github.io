@@ -66,13 +66,13 @@ def generate_blog_with_gemini(api_key, topic=None):
                        'automation', 'technology', 'digital', 'innovation']
         topic_type = "custom_ai" if any(k in topic_lower for k in ai_keywords) else "custom_business"
 
-    # Use v1 (stable) for 1.5 models, v1beta only for experimental 2.0
-    # Model names verified against Google AI Studio free tier (March 2026)
+    # All models use v1beta — confirmed working with Google AI Studio free tier keys
+    BASE = "https://generativelanguage.googleapis.com/v1beta/models"
     models_to_try = [
-        ("https://generativelanguage.googleapis.com/v1/models", "gemini-1.5-flash"),
-        ("https://generativelanguage.googleapis.com/v1/models", "gemini-1.5-flash-8b"),
-        ("https://generativelanguage.googleapis.com/v1/models", "gemini-1.5-pro"),
-        ("https://generativelanguage.googleapis.com/v1beta/models", "gemini-2.0-flash-lite"),
+        (BASE, "gemini-1.5-flash"),
+        (BASE, "gemini-1.5-flash-8b"),
+        (BASE, "gemini-2.0-flash-lite"),
+        (BASE, "gemini-1.5-pro"),
     ]
 
     if topic_type == "monthly_ai":
