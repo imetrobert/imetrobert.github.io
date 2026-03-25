@@ -54,7 +54,8 @@ def clean_perplexity_content(content):
 # It uses a simpler single-message format that works reliably on the free tier
 
 def generate_blog_with_gemini(api_key, topic=None):
-    """Generate blog content using Google Gemini API (free tier) - robust version"""
+    """Generate blog content using Google Gemini API (free tier)"""
+    import time
     current_date = datetime.now()
     month_year = current_date.strftime("%B %Y")
 
@@ -66,80 +67,73 @@ def generate_blog_with_gemini(api_key, topic=None):
                        'automation', 'technology', 'digital', 'innovation']
         topic_type = "custom_ai" if any(k in topic_lower for k in ai_keywords) else "custom_business"
 
-    # Only Gemini 2.0 models — confirmed available on free tier AI Studio keys
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+    # Only Gemini 2.0 models — confirmed present on free AI Studio keys
     models_to_try = [
         (BASE, "gemini-2.0-flash"),
         (BASE, "gemini-2.0-flash-lite"),
-        (BASE, "gemini-2.0-flash-exp"),
     ]
 
     if topic_type == "monthly_ai":
-        full_prompt = f"""You are Robert Simon, an AI expert and digital transformation leader with 25+ years of experience, writing for Canadian business leaders.
+        prompt = f"""You are Robert Simon, AI Evangelist at Bell Canada, writing for Canadian business leaders.
 
-Write a monthly AI insights blog post for {month_year} with EXACTLY these 6 sections in order:
+Write a monthly AI blog post for {month_year} in plain text only (no markdown, no ## symbols, no **bold**).
 
-SECTION 1 (no heading): One paragraph introduction summarising the month in AI.
+Use these exact section headings as plain text on their own line:
 
-SECTION 2 - Key AI Developments This Month: List exactly 15 major AI developments from the past month with specific dates and company names.
+Key AI Developments This Month
+Impact on Canadian Businesses
+Strategic Recommendations for Canadian Leaders
+Canadian Business AI Adoption Metrics
+Conclusion
 
-SECTION 3 - Impact on Canadian Businesses: One to two paragraphs on how these developments affect Canadian businesses.
+Start with one introduction paragraph (no heading).
+Under Key AI Developments: list 10 developments with dates and company names.
+Under Impact on Canadian Businesses: 1-2 paragraphs.
+Under Strategic Recommendations: 5 recommendations starting with action verbs.
+Under Canadian Business AI Adoption Metrics: 3-5 statistics with percentages.
+Under Conclusion: 1 paragraph strategic imperative.
 
-SECTION 4 - Strategic Recommendations for Canadian Leaders: Five actionable recommendations, each starting with a strong action verb (Prioritize, Invest, Develop, Establish, Implement).
-
-SECTION 5 - Canadian Business AI Adoption Metrics: Three to five statistics with percentage numbers showing Canadian AI adoption. THIS SECTION IS MANDATORY.
-
-SECTION 6 - Conclusion: One paragraph strategic imperative for Canadian businesses.
-
-CRITICAL RULES:
-- Do NOT use markdown heading symbols like # ## ### anywhere
-- Do NOT use **bold** or *italic* markdown
-- Write section headings as plain text on their own line
-- Write in plain text only throughout"""
-
-    elif topic_type == "custom_ai":
-        full_prompt = f"""You are Robert Simon, an AI expert with 25+ years of experience, writing for Canadian business leaders.
-
-Write an AI insights blog post about "{topic}" with EXACTLY these 6 sections:
-
-SECTION 1 (no heading): One paragraph introduction.
-SECTION 2 - Key AI Developments: Eight to ten major points related to the topic.
-SECTION 3 - Impact on Canadian Businesses: One to two paragraphs.
-SECTION 4 - Strategic Recommendations for Canadian Leaders: Five actionable recommendations.
-SECTION 5 - Canadian Business AI Adoption Metrics: Three to five statistics with percentages. MANDATORY.
-SECTION 6 - Conclusion: One paragraph.
-
-Write in plain text only. No markdown symbols."""
+Write in plain text only. No # symbols. No asterisks."""
 
     else:
-        full_prompt = f"""You are Robert Simon, a digital transformation leader, writing for Canadian business leaders.
+        prompt = f"""You are Robert Simon, AI Evangelist at Bell Canada, writing for Canadian business leaders.
 
-Write a business insights post about "{topic}" with EXACTLY these 6 sections:
+Write an AI insights blog post about "{topic}" in plain text only (no markdown, no ## symbols, no **bold**).
 
-SECTION 1 (no heading): One paragraph introduction.
-SECTION 2 - Key Insights: Eight to ten major points.
-SECTION 3 - Impact on Canadian Businesses: One to two paragraphs.
-SECTION 4 - Strategic Recommendations for Canadian Leaders: Five recommendations.
-SECTION 5 - Canadian Business AI Adoption Metrics: Three to five statistics with percentages. MANDATORY.
-SECTION 6 - Conclusion: One paragraph.
+Use these exact section headings as plain text on their own line:
 
-Plain text only. No markdown."""
+Key AI Developments
+Impact on Canadian Businesses
+Strategic Recommendations for Canadian Leaders
+Canadian Business AI Adoption Metrics
+Conclusion
 
-    import time
-    for base_url, model in models_to_try:
-        print(f"Trying Gemini model: {model} via {base_url.split('/v')[1].split('/')[0]}...")
+Start with one introduction paragraph (no heading).
+Under each heading write the relevant content.
+Under Canadian Business AI Adoption Metrics: include 3-5 statistics with percentages. This is mandatory.
+
+Write in plain text only. No # symbols. No asterisks."""
+
+    for attempt, (base_url, model) in enumerate(models_to_try):
+        # Progressive wait: 0s first attempt, 60s second attempt
+        wait_seconds = 0 if attempt == 0 else 60
+        if wait_seconds > 0:
+            print(f"  Waiting {wait_seconds}s before trying {model}...")
+            time.sleep(wait_seconds)
+
+        print(f"Trying Gemini model: {model} (attempt {attempt + 1}/{len(models_to_try)})")
         url = f"{base_url}/{model}:generateContent?key={api_key}"
 
-        # Simple single-turn format — most compatible with free tier
         payload = {
             "contents": [
                 {
                     "role": "user",
-                    "parts": [{"text": full_prompt}]
+                    "parts": [{"text": prompt}]
                 }
             ],
             "generationConfig": {
-                "maxOutputTokens": 4096,
+                "maxOutputTokens": 2048,
                 "temperature": 0.7,
                 "candidateCount": 1
             },
@@ -152,17 +146,16 @@ Plain text only. No markdown."""
         }
 
         try:
-            print(f"  Sending request to {url[:60]}...")
+            print(f"  Sending request...")
             response = requests.post(url, json=payload, timeout=120)
             print(f"  HTTP status: {response.status_code}")
 
             if response.status_code == 429:
-                print(f"  Rate limited on {model}, waiting 15s for quota reset then trying next...")
-                time.sleep(15)
+                print(f"  Rate limited on {model}. Will try next model after wait.")
                 continue
 
             if response.status_code == 403:
-                print(f"  API key rejected (403). Verify GEMINI_API_KEY starts with 'AIza'")
+                print(f"  403 Forbidden — check GEMINI_API_KEY value in GitHub secrets")
                 print(f"  Response: {response.text[:300]}")
                 continue
 
@@ -172,14 +165,13 @@ Plain text only. No markdown."""
 
             data = response.json()
 
-            # Validate response structure
             if 'error' in data:
-                print(f"  API error: {data['error']}")
+                print(f"  API error in response: {data['error']}")
                 continue
 
             candidates = data.get('candidates', [])
             if not candidates:
-                print(f"  No candidates in response. promptFeedback: {data.get('promptFeedback', 'none')}")
+                print(f"  No candidates returned. Full response: {str(data)[:300]}")
                 continue
 
             candidate = candidates[0]
@@ -187,17 +179,17 @@ Plain text only. No markdown."""
             print(f"  Finish reason: {finish_reason}")
 
             if finish_reason in ('SAFETY', 'RECITATION'):
-                print(f"  Blocked ({finish_reason}), trying next model...")
+                print(f"  Blocked by {finish_reason}")
                 continue
 
             content_parts = candidate.get('content', {}).get('parts', [])
             if not content_parts:
-                print(f"  Empty content parts, finish_reason was: {finish_reason}")
+                print(f"  Empty content parts")
                 continue
 
             raw_text = content_parts[0].get('text', '').strip()
-            if not raw_text or len(raw_text) < 200:
-                print(f"  Response too short ({len(raw_text)} chars), trying next model...")
+            if not raw_text or len(raw_text) < 100:
+                print(f"  Response too short: {len(raw_text)} chars")
                 continue
 
             cleaned = clean_perplexity_content(raw_text)
@@ -210,27 +202,18 @@ Plain text only. No markdown."""
             }
 
         except requests.exceptions.Timeout:
-            print(f"  Timeout on {model} (120s exceeded), trying next...")
-            continue
-        except requests.exceptions.ConnectionError as e:
-            print(f"  Connection error on {model}: {e}")
-            continue
-        except (KeyError, IndexError, ValueError) as e:
-            print(f"  Response parse error on {model}: {e}")
-            import traceback; traceback.print_exc()
+            print(f"  Timeout (120s) on {model}")
             continue
         except Exception as e:
-            print(f"  Unexpected error on {model}: {e}")
+            print(f"  Error on {model}: {e}")
             import traceback; traceback.print_exc()
             continue
 
     raise Exception(
-        "All Gemini models failed. "
-        "Check: 1) GEMINI_API_KEY secret starts with 'AIza' "
-        "2) Key is active at https://aistudio.google.com/app/apikey "
-        "3) Free tier quota not exceeded (1500 req/day)"
+        "All Gemini models returned 429 rate limit errors. "
+        "You have run the workflow too many times today. "
+        "Wait 1 hour and try again. Free tier limit: 15 requests/minute, 1500/day."
     )
-
 
 def parse_structured_content(content):
     sections = {
