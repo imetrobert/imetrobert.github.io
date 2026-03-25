@@ -54,15 +54,8 @@ def clean_perplexity_content(content):
 # It uses a simpler single-message format that works reliably on the free tier
 
 def generate_blog_with_gemini(api_key, topic=None):
-    """Generate blog content using Google Gemini via official SDK"""
+    """Generate blog content using Gemini API via direct HTTP requests"""
     import time
-    try:
-        import google.generativeai as genai
-    except ImportError:
-        raise Exception(
-            "google-generativeai package not installed. "
-            "Check that scripts/requirements.txt includes google-generativeai>=0.8.0"
-        )
 
     current_date = datetime.now()
     month_year = current_date.strftime("%B %Y")
@@ -75,22 +68,15 @@ def generate_blog_with_gemini(api_key, topic=None):
                        'automation', 'technology', 'digital', 'innovation']
         topic_type = "custom_ai" if any(k in topic_lower for k in ai_keywords) else "custom_business"
 
-    genai.configure(api_key=api_key)
-
-    # Models to try in order
-    models_to_try = [
-        "models/gemini-2.0-flash",
-        "models/gemini-2.0-flash-lite",
-        "models/gemini-1.5-flash-latest",
-        "models/gemini-1.5-flash",
-    ]
+    BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+    models_to_try = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
 
     if topic_type == "monthly_ai":
-        prompt = f"""You are Robert Simon, AI Evangelist at Bell Canada, writing for Canadian business leaders.
+        prompt = f"""You are Robert Simon, AI Evangelist at Bell Canada, writing a monthly AI insights blog post for {month_year}.
 
-Write a monthly AI blog post for {month_year} in plain text only. No markdown symbols. No # headings. No **bold**.
+Write in plain text only. Do not use any markdown, hashtags, asterisks, or special formatting symbols.
 
-Write these section headings as plain text on their own line (exactly as shown):
+Structure the post with these plain-text section headings on their own lines:
 
 Key AI Developments This Month
 Impact on Canadian Businesses
@@ -98,21 +84,21 @@ Strategic Recommendations for Canadian Leaders
 Canadian Business AI Adoption Metrics
 Conclusion
 
-Start with one introduction paragraph before the first heading.
-Key AI Developments: 10 developments with dates and company names.
-Impact on Canadian Businesses: 1-2 paragraphs.
-Strategic Recommendations: 5 recommendations starting with action verbs.
-Canadian Business AI Adoption Metrics: 3-5 statistics with real percentage numbers. MANDATORY.
-Conclusion: 1 paragraph.
+Begin with one introduction paragraph before the first heading.
+Key AI Developments This Month: list 10 AI news items from {month_year} with dates and company names.
+Impact on Canadian Businesses: write 1-2 paragraphs on business implications for Canada.
+Strategic Recommendations for Canadian Leaders: write 5 recommendations beginning with action verbs.
+Canadian Business AI Adoption Metrics: include 3-5 Canadian AI adoption statistics with specific percentages.
+Conclusion: write one strategic paragraph for Canadian business leaders.
 
-Plain text only throughout. No symbols."""
+Use plain text only throughout. No symbols."""
 
     else:
-        prompt = f"""You are Robert Simon, AI Evangelist at Bell Canada, writing for Canadian business leaders.
+        prompt = f"""You are Robert Simon, AI Evangelist at Bell Canada, writing an AI blog post about: {topic}
 
-Write an AI insights blog post about "{topic}" in plain text only. No markdown. No # symbols. No **bold**.
+Write in plain text only. No markdown, no hashtags, no asterisks.
 
-Use these section headings as plain text on their own line:
+Structure with these plain-text headings on their own lines:
 
 Key AI Developments
 Impact on Canadian Businesses
@@ -120,103 +106,108 @@ Strategic Recommendations for Canadian Leaders
 Canadian Business AI Adoption Metrics
 Conclusion
 
-Start with one introduction paragraph. Under Canadian Business AI Adoption Metrics include 3-5 statistics with percentages (mandatory).
-Plain text only."""
+Begin with one introduction paragraph. Include 3-5 Canadian AI adoption statistics with percentages under the metrics section.
+Plain text only throughout."""
 
-    generation_config = genai.GenerationConfig(
-        max_output_tokens=2048,
-        temperature=0.7,
-    )
-
-    safety_settings = {
-        "HARASSMENT": "block_none",
-        "HATE_SPEECH": "block_none",
-        "SEXUALLY_EXPLICIT": "block_none",
-        "DANGEROUS_CONTENT": "block_none",
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "maxOutputTokens": 2048,
+            "temperature": 0.7,
+            "candidateCount": 1
+        },
+        "safetySettings": [
+            {"category": "HARM_CATEGORY_HARASSMENT",        "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH",        "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",  "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT",  "threshold": "BLOCK_ONLY_HIGH"}
+        ]
     }
 
-    last_error = None
-    for i, model_name in enumerate(models_to_try):
-        if i > 0:
-            wait = 30
-            print(f"  Waiting {wait}s before next model...")
-            time.sleep(wait)
+    for attempt, model in enumerate(models_to_try):
+        if attempt > 0:
+            print(f"  Waiting 30s before trying {model}...")
+            time.sleep(30)
 
-        print(f"Trying model: {model_name} (attempt {i+1}/{len(models_to_try)})")
+        print(f"Trying model: {model} (attempt {attempt+1}/{len(models_to_try)})")
+        url = f"{BASE}/{model}:generateContent?key={api_key}"
+
         try:
-            model = genai.GenerativeModel(
-                model_name=model_name,
-                generation_config=generation_config,
-                safety_settings=safety_settings,
-            )
+            response = requests.post(url, json=payload, timeout=120)
+            print(f"  HTTP status: {response.status_code}")
 
-            response = model.generate_content(prompt)
-
-            # Check for blocked response
-            if not response.candidates:
-                print(f"  No candidates returned — prompt may have been blocked")
-                print(f"  Prompt feedback: {response.prompt_feedback}")
-                last_error = "no candidates"
+            if response.status_code == 429:
+                print(f"  Rate limited. Will try next model after wait.")
                 continue
 
-            candidate = response.candidates[0]
-            finish_reason = str(candidate.finish_reason)
+            if response.status_code == 403:
+                raise Exception(
+                    f"API key rejected (403). Check your GEMINI_API_KEY secret in GitHub. "
+                    f"Get a fresh key at https://aistudio.google.com/app/apikey"
+                )
+
+            if response.status_code == 404:
+                print(f"  Model {model} not found (404), trying next.")
+                continue
+
+            if response.status_code != 200:
+                print(f"  Unexpected status {response.status_code}: {response.text[:300]}")
+                continue
+
+            data = response.json()
+
+            if 'error' in data:
+                print(f"  API error: {data['error']}")
+                continue
+
+            candidates = data.get('candidates', [])
+            if not candidates:
+                feedback = data.get('promptFeedback', {})
+                print(f"  No candidates. Prompt feedback: {feedback}")
+                continue
+
+            candidate = candidates[0]
+            finish_reason = candidate.get('finishReason', '')
             print(f"  Finish reason: {finish_reason}")
 
-            if 'SAFETY' in finish_reason or 'RECITATION' in finish_reason:
-                print(f"  Blocked: {finish_reason}")
-                last_error = finish_reason
+            if finish_reason in ('SAFETY', 'RECITATION'):
+                ratings = candidate.get('safetyRatings', [])
+                print(f"  Safety blocked. Ratings: {ratings}")
                 continue
 
-            raw_text = response.text.strip()
-            if not raw_text or len(raw_text) < 100:
-                print(f"  Response too short: {len(raw_text)} chars")
-                last_error = "too short"
+            parts = candidate.get('content', {}).get('parts', [])
+            if not parts:
+                print(f"  Empty content parts.")
+                continue
+
+            raw_text = parts[0].get('text', '').strip()
+            if len(raw_text) < 100:
+                print(f"  Response too short ({len(raw_text)} chars).")
                 continue
 
             cleaned = clean_perplexity_content(raw_text)
-            print(f"  SUCCESS: {len(cleaned)} chars from {model_name}")
+            print(f"  SUCCESS: {len(cleaned)} chars from {model}")
             return {
                 "content": cleaned,
                 "citations": [],
-                "usage": {},
+                "usage": data.get("usageMetadata", {}),
                 "topic_type": topic_type
             }
 
+        except requests.exceptions.Timeout:
+            print(f"  Timeout on {model}.")
+            continue
         except Exception as e:
-            err_str = str(e).lower()
-            print(f"  Error on {model_name}: {e}")
-
-            if '429' in str(e) or 'quota' in err_str or 'resource_exhausted' in err_str:
-                print(f"  Rate limited — will wait before next model")
-                last_error = "rate_limited"
-                time.sleep(30)
-                continue
-
-            if '404' in str(e) or 'not found' in err_str:
-                print(f"  Model not found, skipping")
-                last_error = "not_found"
-                continue
-
-            if '403' in str(e) or 'permission' in err_str or 'api_key' in err_str:
-                raise Exception(
-                    f"API key rejected (403). "
-                    f"Go to https://aistudio.google.com/app/apikey, check your key has no "
-                    f"IP restrictions set, and confirm it is enabled. Error: {e}"
-                )
-
-            last_error = str(e)
+            if '403' in str(e):
+                raise
+            print(f"  Error on {model}: {e}")
             continue
 
     raise Exception(
-        f"All Gemini models failed. Last error: {last_error}. "
-        f"Actions to take: "
-        f"1) Go to https://aistudio.google.com/app/apikey and verify the key has NO restrictions "
-        f"(no IP whitelist, no referrer restrictions). "
-        f"2) Confirm the key is not expired. "
-        f"3) Check https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com "
-        f"and confirm the API is enabled and quota > 0. "
-        f"4) If all else fails, delete the key and create a new one."
+        "All Gemini models failed. "
+        "If you see 429 errors: quota exhausted, wait 1 hour. "
+        "If you see 404 errors: wrong model name. "
+        "If you see 403 errors: check GEMINI_API_KEY in GitHub secrets."
     )
 
 def parse_structured_content(content):
