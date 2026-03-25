@@ -66,13 +66,12 @@ def generate_blog_with_gemini(api_key, topic=None):
                        'automation', 'technology', 'digital', 'innovation']
         topic_type = "custom_ai" if any(k in topic_lower for k in ai_keywords) else "custom_business"
 
-    # All models use v1beta — confirmed working with Google AI Studio free tier keys
+    # Only Gemini 2.0 models — confirmed available on free tier AI Studio keys
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
     models_to_try = [
-        (BASE, "gemini-1.5-flash"),
-        (BASE, "gemini-1.5-flash-8b"),
+        (BASE, "gemini-2.0-flash"),
         (BASE, "gemini-2.0-flash-lite"),
-        (BASE, "gemini-1.5-pro"),
+        (BASE, "gemini-2.0-flash-exp"),
     ]
 
     if topic_type == "monthly_ai":
@@ -158,8 +157,8 @@ Plain text only. No markdown."""
             print(f"  HTTP status: {response.status_code}")
 
             if response.status_code == 429:
-                print(f"  Rate limited on {model}, waiting 3s then trying next...")
-                time.sleep(3)
+                print(f"  Rate limited on {model}, waiting 15s for quota reset then trying next...")
+                time.sleep(15)
                 continue
 
             if response.status_code == 403:
