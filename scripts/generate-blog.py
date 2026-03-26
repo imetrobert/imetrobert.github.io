@@ -69,7 +69,7 @@ def generate_blog_with_gemini(api_key, topic=None):
         topic_type = "custom_ai" if any(k in topic_lower for k in ai_keywords) else "custom_business"
 
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-    models_to_try = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
+    models_to_try = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
 
     if topic_type == "monthly_ai":
         prompt = f"""You are Robert Simon, AI Evangelist at Bell Canada, writing a monthly AI insights blog post for {month_year}.
