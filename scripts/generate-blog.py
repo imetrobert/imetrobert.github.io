@@ -473,30 +473,31 @@ def generate_dynamic_conclusion(sections):
 def extract_title_and_excerpt(content):
     current_date = datetime.now()
     month_year = current_date.strftime("%B %Y")
+    # Always use a clean standard title - never try to parse it from AI content
+    # (AI content starts with development items, not a title)
+    title = f"AI Insights for {month_year}"
+    # Find a good excerpt from the intro paragraph
     clean_content = clean_perplexity_content(content)
     lines = [line.strip() for line in clean_content.split("\n") if line.strip()]
-    potential_title = None
-    for line in lines[:5]:
-        if line and len(line) > 10 and len(line) < 100:
-            line_lower = line.lower()
-            if not line_lower.startswith(('introduction', 'key', 'major', '1.', '2.', '•', '-')):
-                clean_title = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_title = re.sub(r'\s*[•\-–—:]+$', '', clean_title)
-                clean_title = re.sub(r'[•\-–—]', '', clean_title).strip()
-                if clean_title and len(clean_title) > 10: potential_title = clean_title; break
-    title = f"AI Insights for {month_year}" if not potential_title or potential_title.lower().startswith('ai insights') else potential_title
     excerpt = ""
+    skip_patterns = ['key ai development', 'key ai developments', 'impact on canadian',
+                     'strategic recommendation', 'conclusion', 'key insights',
+                     'canadian business ai', 'adoption metrics']
     for line in lines:
-        if line and len(line) > 100 and not line.startswith(('#', '1.', '2.', '3.', '4.', '5.', '•', '-', '*')):
-            if not any(h in line.lower() for h in ['key ai development', 'canadian business impact', 'strategic recommendation', 'conclusion', 'key insights', 'major points']):
-                clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line)
-                clean_excerpt = re.sub(r'\s*[•\-–—:]+$', '', clean_excerpt)
-                clean_excerpt = re.sub(r'[•\-–—]', '', clean_excerpt).strip()
-                if clean_excerpt:
-                    excerpt = clean_excerpt[:200] + "..." if len(clean_excerpt) > 200 else clean_excerpt
-                    break
+        if len(line) < 80:
+            continue
+        if line[0].isdigit():
+            continue
+        if line.startswith(('•', '-', '*', '#')):
+            continue
+        if any(h in line.lower() for h in skip_patterns):
+            continue
+        clean_excerpt = re.sub(r'^[•\-–—:]+\s*', '', line).strip()
+        if clean_excerpt and len(clean_excerpt) > 60:
+            excerpt = clean_excerpt[:200] + "..." if len(clean_excerpt) > 200 else clean_excerpt
+            break
     if not excerpt:
-        excerpt = f"Strategic insights and practical guidance for Canadian business leaders - {month_year} analysis."
+        excerpt = f"Monthly AI insights and strategic analysis for Canadian business leaders — {month_year}."
     return title, excerpt
 
 
