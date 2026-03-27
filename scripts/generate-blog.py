@@ -72,7 +72,7 @@ def generate_blog_with_gemini(api_key, topic=None):
     models_to_try = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
 
     if topic_type == "monthly_ai":
-        prompt = f"""You are Robert Simon, AI Evangelist at Bell Canada, writing a monthly AI insights blog post for {month_year}.
+        prompt = f"""You are Robert Simon, an independent AI thought leader and digital transformation expert, writing a monthly AI insights blog post for {month_year}.
 
 Write in plain text only. Do not use any markdown, hashtags, asterisks, or special formatting symbols.
 
@@ -94,7 +94,7 @@ Conclusion: write one strategic paragraph for Canadian business leaders.
 Use plain text only throughout. No symbols."""
 
     else:
-        prompt = f"""You are Robert Simon, AI Evangelist at Bell Canada, writing an AI blog post about: {topic}
+        prompt = f"""You are Robert Simon, an independent AI thought leader and digital transformation expert, writing an AI blog post about: {topic}
 
 Write in plain text only. No markdown, no hashtags, no asterisks.
 
@@ -665,7 +665,6 @@ def create_html_blog_post(content, title, excerpt):
     "name": "Robert Simon",
     "url": "https://www.imetrobert.com",
     "jobTitle": "AI Evangelist & Digital Sales Leader",
-    "worksFor": {{"@type": "Organization", "name": "Bell Canada"}},
     "address": {{"@type": "PostalAddress", "addressLocality": "Montreal", "addressRegion": "QC", "addressCountry": "CA"}}
   }},
   "publisher": {{
@@ -712,7 +711,7 @@ def create_html_blog_post(content, title, excerpt):
     <!-- ═══ SEO: Primary meta ═══ -->
     <title>{seo_title}</title>
     <meta name="description" content="{meta_desc}">
-    <meta name="keywords" content="AI Canada {month_year}, Canadian AI news, artificial intelligence Canada, AI business strategy Canada, AI adoption Canada, Montreal AI, Bell Canada AI, Canadian digital transformation, AI news for Canadians, AI insights {month_year}">
+    <meta name="keywords" content="AI Canada {month_year}, Canadian AI news, artificial intelligence Canada, AI business strategy Canada, AI adoption Canada, Montreal AI, Canadian digital transformation, AI news for Canadians, AI insights {month_year}">
     <meta name="author" content="Robert Simon">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
     <meta name="language" content="en-CA">
@@ -875,7 +874,7 @@ def create_html_blog_post(content, title, excerpt):
                 <img src="https://imetrobert.github.io/profile.jpg" alt="Robert Simon - AI Evangelist, Montreal" loading="lazy">
                 <div>
                     <div class="author-name">Robert Simon</div>
-                    <div class="author-role">AI Evangelist &amp; Digital Sales Leader, Bell Canada &mdash; Montreal, QC</div>
+                    <div class="author-role">AI Thought Leader &amp; Digital Transformation Expert &mdash; Montreal, QC</div>
                 </div>
             </div>
 
@@ -981,7 +980,7 @@ def create_blog_index_html(posts):
     <!-- ═══ SEO: Primary meta ═══ -->
     <title>AI News for Canadians | Monthly AI Insights Blog | Robert Simon</title>
     <meta name="description" content="Monthly AI insights for Canadian business leaders. Stay ahead with expert analysis of AI breakthroughs, Canadian AI adoption data, and practical implementation strategies from Montreal-based AI Evangelist Robert Simon.">
-    <meta name="keywords" content="AI blog Canada, Canadian AI insights, AI news for Canadians, artificial intelligence Canada, AI strategy Canada, Montreal AI expert, Canadian business AI, AI adoption Canada, Bell Canada AI, digital transformation Canada">
+    <meta name="keywords" content="AI blog Canada, Canadian AI insights, AI news for Canadians, artificial intelligence Canada, AI strategy Canada, Montreal AI expert, Canadian business AI, AI adoption Canada, digital transformation Canada">
     <meta name="author" content="Robert Simon">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
     <meta name="language" content="en-CA">
@@ -1018,15 +1017,14 @@ def create_blog_index_html(posts):
       "@context": "https://schema.org",
       "@type": "Blog",
       "name": "AI Insights for Canadian Business",
-      "description": "Monthly AI innovation analysis for Canadian business leaders by Robert Simon, AI Evangelist at Bell Canada.",
+      "description": "Monthly AI innovation analysis for Canadian business leaders by Robert Simon.",
       "url": "https://www.imetrobert.com/blog/",
       "inLanguage": "en-CA",
       "author": {{
         "@type": "Person",
         "name": "Robert Simon",
         "url": "https://www.imetrobert.com",
-        "jobTitle": "AI Evangelist & Digital Sales Leader",
-        "worksFor": {{"@type": "Organization", "name": "Bell Canada"}},
+        "jobTitle": "AI Thought Leader & Digital Transformation Expert",
         "address": {{"@type": "PostalAddress", "addressLocality": "Montreal", "addressRegion": "QC", "addressCountry": "CA"}}
       }},
       "about": [
