@@ -1,0 +1,42 @@
+name: Update Post Styles (Run Once)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-styles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run style update script
+        run: python update-post-styles.py
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Style Update Bot"
+
+      - name: Commit and push
+        run: |
+          git add blog/posts/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Unify mobile CSS across all blog posts"
+            git push
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Style update complete" >> $GITHUB_STEP_SUMMARY
+          echo "All posts now use the same mobile-optimised CSS as the March 2026 post." >> $GITHUB_STEP_SUMMARY
