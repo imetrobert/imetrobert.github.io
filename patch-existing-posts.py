@@ -86,8 +86,7 @@ def build_seo_head(title, meta_desc, canonical_url, iso_date, og_image, month_ye
             "@type": "Person",
             "name": "Robert Simon",
             "url": "https://www.imetrobert.com",
-            "jobTitle": "AI Evangelist & Digital Sales Leader",
-            "worksFor": {"@type": "Organization", "name": "Bell Canada"},
+            "jobTitle": "AI Thought Leader & Digital Transformation Expert",
             "address": {"@type": "PostalAddress", "addressLocality": "Montreal", "addressRegion": "QC", "addressCountry": "CA"}
         },
         "publisher": {"@type": "Person", "name": "Robert Simon", "url": "https://www.imetrobert.com"},
