@@ -78,6 +78,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
+          pip install beautifulsoup4 lxml
 
       - name: Verify Gemini API key and quota
         env:
@@ -90,7 +91,6 @@ jobs:
               print("ERROR: GEMINI_API_KEY is empty")
               sys.exit(1)
           print(f"Key prefix: {key[:8]}... (length: {len(key)})")
-          # List available models to confirm key works
           url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
           r = requests.get(url, timeout=15)
           print(f"ListModels status: {r.status_code}")
@@ -106,7 +106,6 @@ jobs:
               sys.exit(1)
           elif r.status_code == 429:
               print("WARNING: 429 on ListModels — daily quota may be exhausted")
-              print("Check quota at: https://aistudio.google.com/app/apikey (tap the bar chart icon)")
               print(r.text[:300])
               sys.exit(1)
           else:
@@ -124,6 +123,65 @@ jobs:
           else
             python scripts/generate-blog.py --output ${{ github.event.inputs.output || 'posts' }}
           fi
+
+      - name: Regenerate sitemap.xml
+        run: |
+          python3 - << 'PYEOF'
+          import os, re
+          from datetime import datetime
+
+          POSTS_DIR = "blog/posts"
+          BASE_URL  = "https://www.imetrobert.com"
+
+          EXCLUDE = {
+            "latest.html", "index.html",
+            "2026-03-26-march-1-2026-openai-announces-gpt5-boasting-enhanced-reasoning-and-multimodal-capabilities.html",
+            "2026-03-27-ai-insights-for-march-2026.html",
+            "2025-10-01-key-ai-developments-this-month.html",
+          }
+
+          def iso_date(filename):
+              m = re.match(r"(\d{4}-\d{2}-\d{2})", filename)
+              return (m.group(1) + "T00:00:00+00:00") if m else datetime.now().strftime("%Y-%m-%dT00:00:00+00:00")
+
+          posts = sorted(
+              [f for f in os.listdir(POSTS_DIR)
+               if f.endswith(".html") and f not in EXCLUDE
+               and not f.startswith("{") and "{" not in f],
+              reverse=True
+          )
+
+          today = datetime.now().strftime("%Y-%m-%dT00:00:00+00:00")
+
+          entries = [
+              (f"{BASE_URL}/",      today, "1.00"),
+              (f"{BASE_URL}/blog/", today, "0.80"),
+          ]
+          for i, fname in enumerate(posts):
+              priority = "0.90" if i == 0 else ("0.75" if i == 1 else "0.65")
+              entries.append((f"{BASE_URL}/blog/posts/{fname}", iso_date(fname), priority))
+
+          lines = [
+              '<?xml version="1.0" encoding="UTF-8"?>',
+              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+              '        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"',
+              '        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9',
+              '              http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">',
+              "",
+          ]
+          for loc, lastmod, priority in entries:
+              lines += ["<url>", f"  <loc>{loc}</loc>",
+                        f"  <lastmod>{lastmod}</lastmod>",
+                        f"  <priority>{priority}</priority>", "</url>"]
+          lines.append("</urlset>")
+
+          with open("sitemap.xml", "w", encoding="utf-8") as f:
+              f.write("\n".join(lines))
+
+          print(f"sitemap.xml regenerated with {len(entries)} URLs")
+          for loc, _, priority in entries:
+              print(f"  [{priority}] {loc}")
+          PYEOF
 
       - name: Configure Git
         run: |
@@ -144,17 +202,39 @@ jobs:
         if: steps.git-check.outputs.changes == 'true'
         run: |
           git commit -m "Monthly AI Insights - ${{ needs.check-last-day.outputs.month_year }}
-          
+
           Generated: ${{ needs.check-last-day.outputs.current_date }}
-          Model: Gemini free tier"
+          Model: Gemini free tier
+          Sitemap: regenerated"
           git push
+
+      - name: Ping Google to recrawl sitemap
+        if: steps.git-check.outputs.changes == 'true'
+        run: |
+          echo "Pinging Google sitemap endpoint..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://www.google.com/ping?sitemap=https://www.imetrobert.com/sitemap.xml")
+          echo "Google ping response: HTTP $RESPONSE"
+          if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "301" ] || [ "$RESPONSE" = "302" ]; then
+            echo "Sitemap ping successful"
+          else
+            echo "Warning: unexpected response $RESPONSE — sitemap still updated, Google will crawl on schedule"
+          fi
 
       - name: Summary
         if: steps.git-check.outputs.changes == 'true'
         run: |
-          echo "## Monthly AI Insights Posted!" >> $GITHUB_STEP_SUMMARY
-          echo "**Generated:** ${{ needs.check-last-day.outputs.current_date }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Model:** Gemini free tier" >> $GITHUB_STEP_SUMMARY
+          echo "## Monthly AI Insights Posted! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Detail |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Generated | ${{ needs.check-last-day.outputs.current_date }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Month | ${{ needs.check-last-day.outputs.month_year }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Model | Gemini free tier |" >> $GITHUB_STEP_SUMMARY
+          echo "| Sitemap | Regenerated ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Google pinged | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Optional:** Use URL Inspection in Search Console to manually request indexing on the new post for fastest results." >> $GITHUB_STEP_SUMMARY
 
   skipped-not-last-day:
     runs-on: ubuntu-latest
@@ -174,6 +254,6 @@ jobs:
     steps:
       - name: Failure summary
         run: |
-          echo "## Blog Generation Failed" >> $GITHUB_STEP_SUMMARY
+          echo "## Blog Generation Failed ❌" >> $GITHUB_STEP_SUMMARY
           echo "Check the 'Verify Gemini API key and quota' step above for the specific error." >> $GITHUB_STEP_SUMMARY
           echo "Quota usage: https://aistudio.google.com/app/apikey (tap bar chart icon)" >> $GITHUB_STEP_SUMMARY
