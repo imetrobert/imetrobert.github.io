@@ -1,54 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset
-      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+              http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 
 <url>
   <loc>https://www.imetrobert.com/</loc>
-  <lastmod>2026-02-28T00:00:00+00:00</lastmod>
+  <lastmod>2026-04-30T00:00:00+00:00</lastmod>
   <priority>1.00</priority>
 </url>
 <url>
   <loc>https://www.imetrobert.com/blog/</loc>
-  <lastmod>2026-02-28T00:00:00+00:00</lastmod>
+  <lastmod>2026-04-30T00:00:00+00:00</lastmod>
   <priority>0.80</priority>
 </url>
+
+<!-- Latest post — highest crawl priority after homepage -->
 <url>
-  <loc>https://www.imetrobert.com/blog/posts/latest.html</loc>
-  <lastmod>2026-02-28T00:00:00+00:00</lastmod>
+  <loc>https://www.imetrobert.com/blog/posts/2026-04-30-ai-insights-for-april-2026.html</loc>
+  <lastmod>2026-04-30T00:00:00+00:00</lastmod>
   <priority>0.90</priority>
+</url>
+
+<!-- Previous posts — descending priority by age -->
+<url>
+  <loc>https://www.imetrobert.com/blog/posts/2026-03-31-ai-insights-for-march-2026.html</loc>
+  <lastmod>2026-03-31T00:00:00+00:00</lastmod>
+  <priority>0.75</priority>
 </url>
 <url>
   <loc>https://www.imetrobert.com/blog/posts/2026-02-28-key-ai-developments-this-month.html</loc>
   <lastmod>2026-02-28T00:00:00+00:00</lastmod>
-  <priority>0.80</priority>
+  <priority>0.70</priority>
 </url>
 <url>
   <loc>https://www.imetrobert.com/blog/posts/2026-01-31-key-ai-developments-this-month.html</loc>
   <lastmod>2026-01-31T00:00:00+00:00</lastmod>
-  <priority>0.64</priority>
+  <priority>0.65</priority>
 </url>
 <url>
   <loc>https://www.imetrobert.com/blog/posts/2025-12-31-key-ai-developments-this-month.html</loc>
-  <lastmod>2025-12-31T09:20:40+00:00</lastmod>
-  <priority>0.64</priority>
+  <lastmod>2025-12-31T00:00:00+00:00</lastmod>
+  <priority>0.65</priority>
 </url>
 <url>
   <loc>https://www.imetrobert.com/blog/posts/2025-11-30-key-ai-developments-this-month.html</loc>
-  <lastmod>2025-12-31T09:20:40+00:00</lastmod>
-  <priority>0.64</priority>
+  <lastmod>2025-11-30T00:00:00+00:00</lastmod>
+  <priority>0.65</priority>
 </url>
 <url>
   <loc>https://www.imetrobert.com/blog/posts/2025-10-31-key-ai-developments-this-month.html</loc>
-  <lastmod>2025-12-31T09:20:40+00:00</lastmod>
-  <priority>0.64</priority>
+  <lastmod>2025-10-31T00:00:00+00:00</lastmod>
+  <priority>0.65</priority>
 </url>
 <url>
   <loc>https://www.imetrobert.com/blog/posts/2025-09-30-key-ai-developments-this-month.html</loc>
-  <lastmod>2025-12-31T09:20:40+00:00</lastmod>
-  <priority>0.64</priority>
+  <lastmod>2025-09-30T00:00:00+00:00</lastmod>
+  <priority>0.65</priority>
 </url>
 
 </urlset>
