@@ -1,0 +1,98 @@
+name: Repo Cleanup (Run Once)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Remove one-time-use files
+        run: |
+          # ── Root-level Python scripts (all already run, no longer needed) ──
+          rm -f add_analytics.py
+          rm -f patch-existing-posts.py
+          rm -f seo-cleanup.py
+          rm -f seo-fixes-2.py
+          rm -f update-post-styles.py
+          rm -f apply-ebook-patch.py
+
+          # ── Dead blog template (replaced by generate-blog.py) ──
+          rm -f blog/templates/blog-template.html
+          rmdir blog/templates 2>/dev/null || true
+
+          # ── Template artifact that was never a real post ──
+          rm -f "blog/posts/{current_date}-{clean_filename(title)}.html"
+
+          # ── One-time-use GitHub Actions workflows ──
+          rm -f .github/workflows/add-analytics.yml
+          rm -f .github/workflows/main.yml
+          rm -f .github/workflows/patch-existing-posts.yml
+          rm -f .github/workflows/seo-cleanup.yml
+          rm -f .github/workflows/seo-fixes-2.yml
+          rm -f .github/workflows/update-post-styles.yml
+          rm -f .github/workflows/update-ebook-section.yml
+
+          echo "Files removed. Remaining workflows:"
+          ls .github/workflows/
+
+          echo ""
+          echo "Remaining root-level files:"
+          ls *.py *.xml *.html *.md 2>/dev/null || true
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Cleanup Bot"
+
+      - name: Commit and push
+        run: |
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Nothing to remove — already clean."
+          else
+            git commit -m "Repo cleanup: remove one-time scripts and stale workflows"
+            git push
+            echo "Done."
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Repo Cleanup Complete ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Removed" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Reason |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| add_analytics.py | Already run — GA in all files |" >> $GITHUB_STEP_SUMMARY
+          echo "| patch-existing-posts.py | Already run — posts patched |" >> $GITHUB_STEP_SUMMARY
+          echo "| seo-cleanup.py | Already run — schemas cleaned |" >> $GITHUB_STEP_SUMMARY
+          echo "| seo-fixes-2.py | Already run — internal links added |" >> $GITHUB_STEP_SUMMARY
+          echo "| update-post-styles.py | Already run — CSS updated |" >> $GITHUB_STEP_SUMMARY
+          echo "| apply-ebook-patch.py | Already run — homepage updated |" >> $GITHUB_STEP_SUMMARY
+          echo "| blog/templates/ | Replaced by generate-blog.py |" >> $GITHUB_STEP_SUMMARY
+          echo "| blog/posts/{current_date}... | Template artifact, not a real post |" >> $GITHUB_STEP_SUMMARY
+          echo "| add-analytics.yml | One-time workflow |" >> $GITHUB_STEP_SUMMARY
+          echo "| main.yml | Test workflow |" >> $GITHUB_STEP_SUMMARY
+          echo "| patch-existing-posts.yml | One-time workflow |" >> $GITHUB_STEP_SUMMARY
+          echo "| seo-cleanup.yml | One-time workflow |" >> $GITHUB_STEP_SUMMARY
+          echo "| seo-fixes-2.yml | One-time workflow |" >> $GITHUB_STEP_SUMMARY
+          echo "| update-post-styles.yml | One-time workflow |" >> $GITHUB_STEP_SUMMARY
+          echo "| update-ebook-section.yml | One-time workflow |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Kept" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Purpose |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| monthly-blog.yml | Runs last day of every month |" >> $GITHUB_STEP_SUMMARY
+          echo "| ai-blog.yml | Manual blog generation |" >> $GITHUB_STEP_SUMMARY
+          echo "| scripts/generate-blog.py | Core blog generator |" >> $GITHUB_STEP_SUMMARY
+          echo "| scripts/test_gemini.py | API key debugging |" >> $GITHUB_STEP_SUMMARY
+          echo "| scripts/requirements.txt | Python dependencies |" >> $GITHUB_STEP_SUMMARY
+          echo "| index.html | Homepage |" >> $GITHUB_STEP_SUMMARY
+          echo "| sitemap.xml | SEO sitemap |" >> $GITHUB_STEP_SUMMARY
