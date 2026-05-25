@@ -1,0 +1,135 @@
+name: Add Homepage Anchor Links (Run Once)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  add-anchors:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Inject anchor IDs into homepage sections
+        run: |
+          python3 - << 'PYEOF'
+          import re, sys
+
+          with open("index.html", "r", encoding="utf-8") as f:
+              src = f.read()
+
+          original = src
+
+          # ── Each tuple: (unique string to find, id to inject on that element) ──
+          # Strategy: find the opening tag of each section and add id="..." to it.
+
+          ANCHORS = [
+            # ── Ebook / book section ──────────────────────────────────────────
+            (
+              '<section class="content-section ebook-section fade-in">',
+              '<section id="ebook" class="content-section ebook-section fade-in">'
+            ),
+            # ── Stats / Impact at a Glance ────────────────────────────────────
+            (
+              '<section class="content-section fade-in">\n      <h2 class="section-title">\n       Impact at a Glance',
+              '<section id="impact" class="content-section fade-in">\n      <h2 class="section-title">\n       Impact at a Glance'
+            ),
+            # ── AI Thought Leadership / video ─────────────────────────────────
+            (
+              '<section class="content-section" style="background: var(--gradient-ai); color: white;">\n  <h2 class="section-title" style="color: white;">\n   AI Thought Leadership',
+              '<section id="video" class="content-section" style="background: var(--gradient-ai); color: white;">\n  <h2 class="section-title" style="color: white;">\n   AI Thought Leadership'
+            ),
+            # ── Blog section ──────────────────────────────────────────────────
+            (
+              '<!-- UPDATED AI INSIGHTS BLOG SECTION -->',
+              '<!-- UPDATED AI INSIGHTS BLOG SECTION -->'  # placeholder, handled below
+            ),
+            # ── ROI Calculator ────────────────────────────────────────────────
+            (
+              '<section id="roi-calculator"',
+              '<section id="roi-calculator"'  # already has id, skip
+            ),
+            # ── Journey / Experience ──────────────────────────────────────────
+            (
+              '<section class="content-section fade-in">\n      <h2 class="section-title">\n       Journey Highlights',
+              '<section id="journey" class="content-section fade-in">\n      <h2 class="section-title">\n       Journey Highlights'
+            ),
+            # ── The Story ─────────────────────────────────────────────────────
+            (
+              '<section class="content-section fade-in">\n      <h2 class="section-title">\n       The Story',
+              '<section id="story" class="content-section fade-in">\n      <h2 class="section-title">\n       The Story'
+            ),
+            # ── Arsenal / Skills ──────────────────────────────────────────────
+            (
+              '<section class="content-section fade-in">\n      <h2 class="section-title">\n       Arsenal',
+              '<section id="skills" class="content-section fade-in">\n      <h2 class="section-title">\n       Arsenal'
+            ),
+          ]
+
+          for old, new in ANCHORS:
+            if old == new:
+              continue  # skip no-op placeholders
+            if old in src:
+              src = src.replace(old, new, 1)
+              print(f"  ✅ Added anchor: {new[:60]}...")
+            else:
+              print(f"  ⚠️  Not found (may already have id): {old[:60]}...")
+
+          # ── Blog section needs special handling (it's a <section> after a comment) ──
+          blog_old = '<section class="content-section" style="background: var(--gradient-ai); color: white;">\n      <h2 class="section-title" style="color: white;">\n       📝 Latest AI Insights'
+          blog_new = '<section id="blog" class="content-section" style="background: var(--gradient-ai); color: white;">\n      <h2 class="section-title" style="color: white;">\n       📝 Latest AI Insights'
+          if blog_old in src:
+            src = src.replace(blog_old, blog_new, 1)
+            print("  ✅ Added anchor: #blog")
+          else:
+            print("  ⚠️  Blog section not found by exact match, trying regex...")
+            src = re.sub(
+              r'(<section class="content-section"[^>]*>)\s*(<h2[^>]*>)\s*(📝 Latest AI Insights)',
+              lambda m: m.group(0).replace(m.group(1), m.group(1).replace('<section ', '<section id="blog" ')),
+              src, count=1
+            )
+
+          if src == original:
+            print("No changes made — anchors may already be present.")
+          else:
+            with open("index.html", "w", encoding="utf-8") as f:
+              f.write(src)
+            print("\nindex.html updated with anchor IDs.")
+          PYEOF
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Anchor Bot"
+
+      - name: Commit and push
+        run: |
+          git add index.html
+          if git diff --staged --quiet; then
+            echo "No changes — anchors may already exist."
+          else
+            git commit -m "Homepage: add anchor IDs to all major sections"
+            git push
+            echo "Pushed."
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Homepage Anchors Added ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "You can now link directly to any section:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Section | Link |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 📚 Book / Ebook | \`https://www.imetrobert.com/#ebook\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📊 Impact Stats | \`https://www.imetrobert.com/#impact\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🎬 Video / Thought Leadership | \`https://www.imetrobert.com/#video\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📝 AI Insights Blog | \`https://www.imetrobert.com/#blog\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 💡 ROI Calculator | \`https://www.imetrobert.com/#roi-calculator\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📖 The Story | \`https://www.imetrobert.com/#story\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏆 Journey / Experience | \`https://www.imetrobert.com/#journey\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🛠️ Skills / Arsenal | \`https://www.imetrobert.com/#skills\` |" >> $GITHUB_STEP_SUMMARY
