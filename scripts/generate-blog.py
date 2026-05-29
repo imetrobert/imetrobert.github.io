@@ -46,36 +46,21 @@ def get_issue_number():
     return max(1, (now.year - start.year) * 12 + now.month - start.month + 1)
 
 
-def validate_url(url, company=""):
+def build_search_url(publication, headline):
     """
-    Check if a URL is reachable. Returns:
-      - the original URL if it returns 200-399
-      - a Google News search fallback URL if broken/unreachable
-      - None if no URL provided or explicitly marked unavailable
+    Build a Google search URL for a given publication and article headline.
+    This always works — no dead links ever.
+    Format: https://www.google.com/search?q="Reuters"+"Article+Headline"
     """
-    if not url or url.strip() == "" or "NO_URL_AVAILABLE" in url.upper():
+    if not publication and not headline:
         return None
-
-    query = f"{company} AI {datetime.now().strftime('%B %Y')}".strip()
-    fallback = "https://news.google.com/search?q=" + requests.utils.quote(query)
-
-    try:
-        headers = {"User-Agent": "Mozilla/5.0 (compatible; BlogValidator/1.0)"}
-        r = requests.head(url, timeout=6, allow_redirects=True, headers=headers)
-        if r.status_code < 400:
-            return url
-        # Some servers reject HEAD — retry with GET
-        if r.status_code in (405, 403):
-            r2 = requests.get(url, timeout=8, allow_redirects=True,
-                              headers=headers, stream=True)
-            r2.close()
-            if r2.status_code < 400:
-                return url
-        print(f"  URL broken ({r.status_code}), switching to search fallback: {url[:70]}")
-        return fallback
-    except Exception as e:
-        print(f"  URL unreachable ({type(e).__name__}), switching to search fallback: {url[:70]}")
-        return fallback
+    query_parts = []
+    if publication:
+        query_parts.append(f'"{publication.strip()}"')
+    if headline:
+        query_parts.append(f'"{headline.strip()}"')
+    query = " ".join(query_parts)
+    return "https://www.google.com/search?q=" + requests.utils.quote(query)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -222,14 +207,15 @@ Open with a single specific fact or event from {month_year} — something that h
 
 KEY AI DEVELOPMENTS (exactly 8 items):
 CRITICAL DATE RULE: Include ONLY events that occurred in {month_year}. Do NOT include events from prior months even if they are recent. If you cannot find 8 verified events from {month_year}, include fewer — never fabricate or substitute events from other months.
-Format: [Month Day]: [Company name] — [What they did, one sentence]. [Why it matters for Canadian business, one sentence]. Source: [Publication name] — [full URL]
+Format: [Month Day]: [Company name] — [What they did, one sentence]. [Why it matters for Canadian business, one sentence]. Source: [Publication name] | [Exact article headline]
 Requirements:
 - Use real events you can verify with grounding search
 - Include exact dates — only from {month_year}
 - Make the Canadian relevance specific, not generic
 - Vary the companies — not all big US tech
-- Every item MUST end with a Source line containing the publication name and a direct URL to the article
-- CRITICAL: Only use URLs that were returned directly by your Google Search grounding tool. Do NOT construct or guess URLs. If grounding did not return a direct URL for an item, write Source: [Publication name] — NO_URL_AVAILABLE instead of inventing one
+- Every item MUST end with a Source line with the publication name and the exact article headline as it appeared
+- Do NOT include URLs — the system will generate a search link automatically
+- Example source line: Source: Reuters | OpenAI Launches GPT-5 With Enhanced Reasoning
 
 CANADIAN SPOTLIGHT (3-4 items):
 Include ONLY genuinely Canadian content:
@@ -399,17 +385,26 @@ def parse_developments(text):
             source_name = ""
             source_url  = ""
 
-            # Extract source line: "Source: Publication — https://..."
+            # Extract source line: "Source: Publication | Article Headline"
+            # Also handles em-dash separator: "Source: Publication — Headline"
             import re as _re
             source_match = _re.search(
-                r'Source[:\s]+([^\r\n\u2014\u2013\-]+?)[\s]*[\u2014\u2013\-]+[\s]*(https?://[^\s]+)',
+                r'Source[:\s]+([^|\r\n]+?)\s*\|\s*([^\r\n]+)',
                 body, _re.IGNORECASE
             )
+            if not source_match:
+                # Fallback: try em-dash separator without URL pattern
+                source_match = _re.search(
+                    r'Source[:\s]+([^\u2014\u2013\r\n]{3,60})[\u2014\u2013]+([^\r\n]{5,120})',
+                    body, _re.IGNORECASE
+                )
             if source_match:
-                source_name = source_match.group(1).strip().rstrip('.,')
-                raw_url     = source_match.group(2).strip().rstrip('.,)')
-                # Validate URL — replace broken ones with a search fallback
-                source_url  = validate_url(raw_url, company=company) or ""
+                source_name     = source_match.group(1).strip().rstrip('.,')
+                source_headline = source_match.group(2).strip().rstrip('.,')
+                # Strip any leftover URL from headline if Gemini included one
+                source_headline = _re.sub(r'https?://\S+', '', source_headline).strip().rstrip('.,')
+                # Build a guaranteed Google search URL — never breaks
+                source_url      = build_search_url(source_name, source_headline)
                 # Remove the source line from the body text
                 body = body[:source_match.start()].strip()
                 desc = body
@@ -513,13 +508,11 @@ def create_html_blog_post(content, title, excerpt):
             source_html  = ""
             if d.get("source_url"):
                 src_label = d.get("source_name") or "Source"
-                is_fallback = "news.google.com/search" in d["source_url"]
-                link_label  = f"🔍 Search: {src_label}" if is_fallback else f"📎 {src_label}"
-                link_title  = "Original URL unavailable — click to search Google News" if is_fallback else f"Read source: {src_label}"
                 source_html = (
                     f'<div class="dev-source">'
-                    f'<a href="{d["source_url"]}" target="_blank" rel="noopener noreferrer" title="{link_title}">'
-                    f'{link_label}'
+                    f'<a href="{d["source_url"]}" target="_blank" rel="noopener noreferrer" '
+                    f'title="Search Google for this article">'
+                    f'🔍 {src_label}'
                     f'</a></div>'
                 )
             dev_cards += (
