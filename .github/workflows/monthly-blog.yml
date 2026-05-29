@@ -9,6 +9,14 @@ on:
         description: 'Custom blog topic (optional)'
         required: false
         type: string
+      output:
+        description: 'Output directory (staging = preview first, posts = publish directly)'
+        required: false
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - posts
       force_run:
         description: 'Force run regardless of date (for testing)'
         required: false
@@ -55,6 +63,7 @@ jobs:
     outputs:
       staging_filename: ${{ steps.generate.outputs.staging_filename }}
       preview_url: ${{ steps.generate.outputs.preview_url }}
+      output_dir: ${{ steps.generate.outputs.output_dir }}
 
     steps:
       - name: Checkout repository
@@ -78,51 +87,43 @@ jobs:
       - name: Verify Gemini API key
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          python3 - << 'PYEOF'
-          import os, requests, sys
-          key = os.environ.get("GEMINI_API_KEY", "")
-          if not key:
-              print("ERROR: GEMINI_API_KEY is empty")
-              sys.exit(1)
-          url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
-          r = requests.get(url, timeout=15)
-          if r.status_code == 200:
-              print("API key VALID")
-          else:
-              print(f"ERROR: {r.status_code}: {r.text[:200]}")
-              sys.exit(1)
-          PYEOF
+        run: python3 scripts/verify_gemini_key.py
 
-      - name: Generate blog post to staging
+      - name: Generate blog post
         id: generate
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          OUTPUT_DIR="${{ github.event.inputs.output || 'staging' }}"
           TOPIC="${{ github.event.inputs.topic }}"
+
+          echo "Output directory: $OUTPUT_DIR"
+
           if [ -n "$TOPIC" ]; then
-            python scripts/generate-blog.py --topic "$TOPIC" --output staging
+            python scripts/generate-blog.py --topic "$TOPIC" --output "$OUTPUT_DIR"
           else
-            python scripts/generate-blog.py --output staging
+            python scripts/generate-blog.py --output "$OUTPUT_DIR"
           fi
 
-          # Find the generated file
-          STAGING_FILE=$(find blog/staging/ -name "*.html" -newer scripts/generate-blog.py 2>/dev/null | head -1)
-          if [ -z "$STAGING_FILE" ]; then
-            STAGING_FILE=$(ls -t blog/staging/*.html 2>/dev/null | grep -v preview | head -1)
+          # Find the generated file in the correct output directory
+          GENERATED_FILE=$(find "blog/$OUTPUT_DIR/" -name "*.html" -newer scripts/generate-blog.py 2>/dev/null | grep -v preview | head -1)
+          if [ -z "$GENERATED_FILE" ]; then
+            GENERATED_FILE=$(ls -t "blog/$OUTPUT_DIR/"*.html 2>/dev/null | grep -v preview | head -1)
           fi
 
-          if [ -z "$STAGING_FILE" ]; then
-            echo "ERROR: No staged file found"
+          if [ -z "$GENERATED_FILE" ]; then
+            echo "ERROR: No generated file found in blog/$OUTPUT_DIR/"
             exit 1
           fi
 
-          FILENAME=$(basename "$STAGING_FILE")
+          FILENAME=$(basename "$GENERATED_FILE")
           echo "staging_filename=$FILENAME" >> $GITHUB_OUTPUT
+          echo "output_dir=$OUTPUT_DIR" >> $GITHUB_OUTPUT
           echo "preview_url=https://www.imetrobert.com/blog/staging/preview.html" >> $GITHUB_OUTPUT
-          echo "Generated: $FILENAME"
+          echo "Generated: $FILENAME in $OUTPUT_DIR"
 
       - name: Generate preview approval page
+        if: ${{ github.event.inputs.output != 'posts' }}
         run: |
           python3 scripts/generate-preview-page.py \
             --filename "${{ steps.generate.outputs.staging_filename }}" \
@@ -134,18 +135,28 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "Blog Generator"
 
-      - name: Commit staging files
+      - name: Commit generated files
         run: |
-          git add blog/staging/
+          git add blog/
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Staging: ${{ needs.check-last-day.outputs.month_year }} post ready for review"
+            OUTPUT_DIR="${{ github.event.inputs.output || 'staging' }}"
+            if [ "$OUTPUT_DIR" = "posts" ]; then
+              git commit -m "Publish: ${{ needs.check-last-day.outputs.month_year }} — published directly"
+            else
+              git commit -m "Staging: ${{ needs.check-last-day.outputs.month_year }} post ready for review"
+            fi
             git push
-            echo "Staging committed and pushed"
+            echo "Committed and pushed"
           fi
 
+      - name: Regenerate sitemap (if published directly to posts)
+        if: ${{ github.event.inputs.output == 'posts' }}
+        run: python3 scripts/regenerate_sitemap.py
+
       - name: Send email notification
+        if: ${{ github.event.inputs.output != 'posts' }}
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
@@ -154,8 +165,25 @@ jobs:
           STAGING_FILENAME: ${{ steps.generate.outputs.staging_filename }}
           GITHUB_REPO: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
+        run: python3 scripts/send-notification.py
+
+      - name: Summary
         run: |
-          python3 scripts/send-notification.py
+          OUTPUT_DIR="${{ github.event.inputs.output || 'staging' }}"
+          echo "## Blog Post Generated ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Detail |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Month | ${{ needs.check-last-day.outputs.month_year }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| File | ${{ steps.generate.outputs.staging_filename }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Output | $OUTPUT_DIR |" >> $GITHUB_STEP_SUMMARY
+          if [ "$OUTPUT_DIR" = "staging" ]; then
+            echo "| Preview | https://www.imetrobert.com/blog/staging/preview.html |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "> Visit the preview URL above to review, regenerate, or approve the post." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Live URL | https://www.imetrobert.com/blog/posts/${{ steps.generate.outputs.staging_filename }} |" >> $GITHUB_STEP_SUMMARY
+          fi
 
   skipped:
     runs-on: ubuntu-latest
@@ -166,4 +194,4 @@ jobs:
         run: |
           echo "## Blog Generation Skipped" >> $GITHUB_STEP_SUMMARY
           echo "Not the last day of ${{ needs.check-last-day.outputs.month_year }}." >> $GITHUB_STEP_SUMMARY
-          echo "Use Force run = true to generate immediately." >> $GITHUB_STEP_SUMMARY
+          echo "Use **Force run = true** to generate immediately." >> $GITHUB_STEP_SUMMARY
