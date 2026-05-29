@@ -979,7 +979,7 @@ def create_html_blog_post(content, title, excerpt):
         .stat-highlight {{ font-weight: 800; color: var(--green); font-size: 1rem; }}
         .stat-note {{ font-size: 0.72rem; color: var(--gray-light); margin-top: 0.875rem; font-style: italic; }}
         .roberts-take {{
-            background: linear-gradient(135deg, var(--navy) 0%, #1e3a5f 100%);
+            background: linear-gradient(135deg, #1e3a6e 0%, #1a5276 100%);
             border-radius: 16px;
             padding: 1.75rem;
             color: var(--white);
@@ -1002,7 +1002,7 @@ def create_html_blog_post(content, title, excerpt):
         }}
         .roberts-label {{ font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 0.1rem; }}
         .roberts-name {{ font-weight: 700; font-size: 0.9rem; }}
-        .roberts-body {{ font-size: 0.925rem; line-height: 1.75; opacity: 0.95; font-style: italic; }}
+        .roberts-body {{ font-size: 0.925rem; line-height: 1.85; color: #ffffff; font-style: normal; font-weight: 400; }}
         .roberts-placeholder {{
             font-size: 0.825rem;
             line-height: 1.7;
