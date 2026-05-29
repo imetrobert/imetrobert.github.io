@@ -170,7 +170,7 @@ WRITING RULES — follow these exactly:
 4. Ground everything in Canadian business reality: US-Canada trade tensions under the Carney government, Bill C-27 (AIDA) working through Parliament, Quebec Law 25 privacy requirements, PIPEDA, the Canadian dollar, AI talent competition between Toronto/Montreal/Vancouver
 5. Name real Canadian companies and institutions where relevant: Shopify, Cohere, D-Wave, Ada, Coveo, RBC, TD, Scotiabank, CIBC, Manulife, Sun Life, Bell, Rogers, Telus, BCE, Loblaw, Couche-Tard, CAE, BRP, Bombardier, Mila, Vector Institute, Amii, Ivey Business School, Rotman School of Management
 
-Use Google Search grounding to find REAL AI news events from {prev_month} and {month_year}. Do not invent events, dates, companies, or statistics.
+Use Google Search grounding to find REAL AI news events from {month_year} ONLY. Do NOT use events from {prev_month} or any prior month. Do not invent events, dates, companies, or statistics.
 
 OUTPUT FORMAT
 Write plain text only. No markdown formatting (no *, no **, no #). Use EXACTLY these section headers on their own lines with nothing else on those lines:
@@ -249,7 +249,7 @@ Follow the same writing rules as the monthly newsletter:
 - Ground in Canadian business reality (US-Canada trade, Carney government, Bill C-27, Quebec Law 25)
 - Name real Canadian companies where relevant
 
-Use Google Search grounding. Only include verifiable events and statistics.
+Use Google Search grounding. Only include verifiable events and statistics from {month_year}. Do not include events from prior months.
 
 Write plain text only. Use EXACTLY these section headers on their own lines:
 
@@ -1523,7 +1523,14 @@ def main():
             print("Staging mode — latest.html NOT updated (production unchanged)")
 
         import time; time.sleep(0.2)
-        update_blog_index()
+
+        # Only update blog index when publishing to production
+        if args.output == "posts":
+            update_blog_index()
+            print("Blog index updated.")
+        else:
+            print("Staging mode — blog/index.html NOT updated (production unchanged)")
+
         print("SUCCESS.")
 
     except Exception as e:
