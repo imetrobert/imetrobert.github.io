@@ -46,6 +46,38 @@ def get_issue_number():
     return max(1, (now.year - start.year) * 12 + now.month - start.month + 1)
 
 
+def validate_url(url, company=""):
+    """
+    Check if a URL is reachable. Returns:
+      - the original URL if it returns 200-399
+      - a Google News search fallback URL if broken/unreachable
+      - None if no URL provided or explicitly marked unavailable
+    """
+    if not url or url.strip() == "" or "NO_URL_AVAILABLE" in url.upper():
+        return None
+
+    query = f"{company} AI {datetime.now().strftime('%B %Y')}".strip()
+    fallback = "https://news.google.com/search?q=" + requests.utils.quote(query)
+
+    try:
+        headers = {"User-Agent": "Mozilla/5.0 (compatible; BlogValidator/1.0)"}
+        r = requests.head(url, timeout=6, allow_redirects=True, headers=headers)
+        if r.status_code < 400:
+            return url
+        # Some servers reject HEAD — retry with GET
+        if r.status_code in (405, 403):
+            r2 = requests.get(url, timeout=8, allow_redirects=True,
+                              headers=headers, stream=True)
+            r2.close()
+            if r2.status_code < 400:
+                return url
+        print(f"  URL broken ({r.status_code}), switching to search fallback: {url[:70]}")
+        return fallback
+    except Exception as e:
+        print(f"  URL unreachable ({type(e).__name__}), switching to search fallback: {url[:70]}")
+        return fallback
+
+
 # ══════════════════════════════════════════════════════════════════
 # GEMINI API
 # ══════════════════════════════════════════════════════════════════
@@ -197,6 +229,7 @@ Requirements:
 - Make the Canadian relevance specific, not generic
 - Vary the companies — not all big US tech
 - Every item MUST end with a Source line containing the publication name and a direct URL to the article
+- CRITICAL: Only use URLs that were returned directly by your Google Search grounding tool. Do NOT construct or guess URLs. If grounding did not return a direct URL for an item, write Source: [Publication name] — NO_URL_AVAILABLE instead of inventing one
 
 CANADIAN SPOTLIGHT (3-4 items):
 Include ONLY genuinely Canadian content:
@@ -374,7 +407,9 @@ def parse_developments(text):
             )
             if source_match:
                 source_name = source_match.group(1).strip().rstrip('.,')
-                source_url  = source_match.group(2).strip().rstrip('.,)')
+                raw_url     = source_match.group(2).strip().rstrip('.,)')
+                # Validate URL — replace broken ones with a search fallback
+                source_url  = validate_url(raw_url, company=company) or ""
                 # Remove the source line from the body text
                 body = body[:source_match.start()].strip()
                 desc = body
@@ -478,10 +513,13 @@ def create_html_blog_post(content, title, excerpt):
             source_html  = ""
             if d.get("source_url"):
                 src_label = d.get("source_name") or "Source"
+                is_fallback = "news.google.com/search" in d["source_url"]
+                link_label  = f"🔍 Search: {src_label}" if is_fallback else f"📎 {src_label}"
+                link_title  = "Original URL unavailable — click to search Google News" if is_fallback else f"Read source: {src_label}"
                 source_html = (
                     f'<div class="dev-source">'
-                    f'<a href="{d["source_url"]}" target="_blank" rel="noopener noreferrer">'
-                    f'📎 {src_label}'
+                    f'<a href="{d["source_url"]}" target="_blank" rel="noopener noreferrer" title="{link_title}">'
+                    f'{link_label}'
                     f'</a></div>'
                 )
             dev_cards += (
