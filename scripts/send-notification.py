@@ -2,25 +2,23 @@
 """
 send-notification.py
 Sends an email notification when a new blog post is ready for review.
-Uses SendGrid if SENDGRID_API_KEY is set, otherwise prints instructions
-for GitHub's native notification (which triggers when you watch the repo).
+Uses Resend.com (free, permanent tier — 100 emails/day, no expiry).
+Falls back to GitHub Actions Step Summary if RESEND_API_KEY is not set.
 """
 
 import os
-import sys
-import json
 import requests
 from datetime import datetime
 
 
-def send_sendgrid(api_key: str, to_email: str, subject: str, html_body: str) -> bool:
-    """Send via SendGrid API."""
-    url = "https://api.sendgrid.com/v3/mail/send"
+def send_resend(api_key: str, to_email: str, subject: str, html_body: str) -> bool:
+    """Send via Resend API — https://resend.com"""
+    url = "https://api.resend.com/emails"
     payload = {
-        "personalizations": [{"to": [{"email": to_email}]}],
-        "from": {"email": "noreply@imetrobert.com", "name": "Robert Simon Blog"},
+        "from": "Robert Simon Blog <noreply@imetrobert.com>",
+        "to": [to_email],
         "subject": subject,
-        "content": [{"type": "text/html", "value": html_body}]
+        "html": html_body
     }
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -28,21 +26,20 @@ def send_sendgrid(api_key: str, to_email: str, subject: str, html_body: str) -> 
     }
     try:
         r = requests.post(url, json=payload, headers=headers, timeout=15)
-        if r.status_code in (200, 202):
-            print(f"✅ Email sent via SendGrid to {to_email}")
+        if r.status_code in (200, 201):
+            print(f"✅ Email sent via Resend to {to_email}")
             return True
         else:
-            print(f"⚠️  SendGrid returned {r.status_code}: {r.text[:200]}")
+            print(f"⚠️  Resend returned {r.status_code}: {r.text[:300]}")
             return False
     except Exception as e:
-        print(f"⚠️  SendGrid error: {e}")
+        print(f"⚠️  Resend error: {e}")
         return False
 
 
 def build_email_html(month_year: str, preview_url: str, staging_filename: str, github_repo: str) -> str:
     """Build the HTML email body."""
     actions_url = f"https://github.com/{github_repo}/actions"
-    approve_url = f"https://github.com/{github_repo}/actions/workflows/approve-blog.yml"
     now = datetime.now().strftime("%B %d, %Y at %I:%M %p UTC")
 
     return f"""<!DOCTYPE html>
@@ -121,7 +118,7 @@ def build_email_html(month_year: str, preview_url: str, staging_filename: str, g
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;margin-bottom:8px;">
             <tr>
               <td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6;">
-                <strong>Don't forget:</strong> Add your personal "Robert's Take" paragraph before approving — it's the E-E-A-T signal that makes the post yours. You can do this in the regenerate prompt or edit the file directly on GitHub.
+                <strong>Don't forget:</strong> Add your personal "Robert's Take" paragraph before approving — it's the E-E-A-T signal that makes the post yours. Use the regenerate prompt on the preview page to include it.
               </td>
             </tr>
           </table>
@@ -147,7 +144,7 @@ def build_email_html(month_year: str, preview_url: str, staging_filename: str, g
 
 
 def main():
-    sendgrid_key   = os.environ.get("SENDGRID_API_KEY", "")
+    resend_key     = os.environ.get("RESEND_API_KEY", "")
     to_email       = os.environ.get("NOTIFICATION_EMAIL", "")
     month_year     = os.environ.get("MONTH_YEAR", "")
     preview_url    = os.environ.get("PREVIEW_URL", "https://www.imetrobert.com/blog/staging/preview.html")
@@ -161,15 +158,15 @@ def main():
     subject = f"✅ Review Ready: AI Insights — {month_year}"
     html    = build_email_html(month_year, preview_url, staging_file, github_repo)
 
-    # ── Try SendGrid ───────────────────────────────────────────────
-    if sendgrid_key and to_email:
-        success = send_sendgrid(sendgrid_key, to_email, subject, html)
+    # ── Try Resend ─────────────────────────────────────────────────
+    if resend_key and to_email:
+        success = send_resend(resend_key, to_email, subject, html)
         if success:
             return
-        print("Falling back to GitHub notification method.")
+        print("Resend failed — falling back to GitHub Step Summary.")
     else:
-        print("SENDGRID_API_KEY or NOTIFICATION_EMAIL not set — skipping email.")
-        print("Set these secrets to enable email notifications.")
+        print("RESEND_API_KEY or NOTIFICATION_EMAIL not set — skipping email.")
+        print("Add these as GitHub repo secrets to enable email notifications.")
 
     # ── GitHub Actions Step Summary fallback ───────────────────────
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "")
@@ -190,7 +187,7 @@ def main():
 
 > 💡 Add your personal "Robert's Take" paragraph before approving.
 """)
-        print("GitHub Step Summary updated.")
+        print("GitHub Step Summary updated as fallback.")
 
 
 if __name__ == "__main__":
