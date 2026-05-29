@@ -147,7 +147,7 @@ jobs:
 
       - name: Send email notification
         env:
-          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
           MONTH_YEAR: ${{ needs.check-last-day.outputs.month_year }}
           PREVIEW_URL: ${{ steps.generate.outputs.preview_url }}
