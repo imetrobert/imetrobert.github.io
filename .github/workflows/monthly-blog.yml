@@ -6,17 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       topic:
-        description: 'Custom blog topic (optional - will use default Canadian business focus)'
+        description: 'Custom blog topic (optional)'
         required: false
         type: string
-      output:
-        description: 'Output directory'
-        required: false
-        default: 'posts'
-        type: choice
-        options:
-        - posts
-        - staging
       force_run:
         description: 'Force run regardless of date (for testing)'
         required: false
@@ -60,6 +52,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: check-last-day
     if: needs.check-last-day.outputs.is_last_day == 'true'
+    outputs:
+      staging_filename: ${{ steps.generate.outputs.staging_filename }}
+      preview_url: ${{ steps.generate.outputs.preview_url }}
 
     steps:
       - name: Checkout repository
@@ -80,7 +75,7 @@ jobs:
           pip install -r scripts/requirements.txt
           pip install beautifulsoup4 lxml
 
-      - name: Verify Gemini API key and quota
+      - name: Verify Gemini API key
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
@@ -90,153 +85,79 @@ jobs:
           if not key:
               print("ERROR: GEMINI_API_KEY is empty")
               sys.exit(1)
-          print(f"Key prefix: {key[:8]}... (length: {len(key)})")
           url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
           r = requests.get(url, timeout=15)
-          print(f"ListModels status: {r.status_code}")
           if r.status_code == 200:
-              models = [m['name'] for m in r.json().get('models', [])
-                        if 'generateContent' in m.get('supportedGenerationMethods', [])]
-              gemini2 = [m for m in models if 'gemini-2' in m]
-              print(f"Available Gemini 2.x models: {gemini2}")
-              print("API key is VALID and working")
-          elif r.status_code == 400:
-              print("ERROR: API key invalid or malformed")
-              print(r.text[:300])
-              sys.exit(1)
-          elif r.status_code == 429:
-              print("WARNING: 429 on ListModels — daily quota may be exhausted")
-              print(r.text[:300])
-              sys.exit(1)
+              print("API key VALID")
           else:
-              print(f"Unexpected status {r.status_code}: {r.text[:300]}")
+              print(f"ERROR: {r.status_code}: {r.text[:200]}")
               sys.exit(1)
           PYEOF
 
-      - name: Generate monthly AI insights blog post
+      - name: Generate blog post to staging
+        id: generate
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          echo "Generating blog post for ${{ needs.check-last-day.outputs.month_year }}"
-          if [ -n "${{ github.event.inputs.topic }}" ]; then
-            python scripts/generate-blog.py --topic "${{ github.event.inputs.topic }}" --output ${{ github.event.inputs.output || 'posts' }}
+          TOPIC="${{ github.event.inputs.topic }}"
+          if [ -n "$TOPIC" ]; then
+            python scripts/generate-blog.py --topic "$TOPIC" --output staging
           else
-            python scripts/generate-blog.py --output ${{ github.event.inputs.output || 'posts' }}
+            python scripts/generate-blog.py --output staging
           fi
 
-      - name: Regenerate sitemap.xml
+          # Find the generated file
+          STAGING_FILE=$(find blog/staging/ -name "*.html" -newer scripts/generate-blog.py 2>/dev/null | head -1)
+          if [ -z "$STAGING_FILE" ]; then
+            STAGING_FILE=$(ls -t blog/staging/*.html 2>/dev/null | grep -v preview | head -1)
+          fi
+
+          if [ -z "$STAGING_FILE" ]; then
+            echo "ERROR: No staged file found"
+            exit 1
+          fi
+
+          FILENAME=$(basename "$STAGING_FILE")
+          echo "staging_filename=$FILENAME" >> $GITHUB_OUTPUT
+          echo "preview_url=https://www.imetrobert.com/blog/staging/preview.html" >> $GITHUB_OUTPUT
+          echo "Generated: $FILENAME"
+
+      - name: Generate preview approval page
         run: |
-          python3 - << 'PYEOF'
-          import os, re
-          from datetime import datetime
-
-          POSTS_DIR = "blog/posts"
-          BASE_URL  = "https://www.imetrobert.com"
-
-          EXCLUDE = {
-            "latest.html", "index.html",
-            "2026-03-26-march-1-2026-openai-announces-gpt5-boasting-enhanced-reasoning-and-multimodal-capabilities.html",
-            "2026-03-27-ai-insights-for-march-2026.html",
-            "2025-10-01-key-ai-developments-this-month.html",
-          }
-
-          def iso_date(filename):
-              m = re.match(r"(\d{4}-\d{2}-\d{2})", filename)
-              return (m.group(1) + "T00:00:00+00:00") if m else datetime.now().strftime("%Y-%m-%dT00:00:00+00:00")
-
-          posts = sorted(
-              [f for f in os.listdir(POSTS_DIR)
-               if f.endswith(".html") and f not in EXCLUDE
-               and not f.startswith("{") and "{" not in f],
-              reverse=True
-          )
-
-          today = datetime.now().strftime("%Y-%m-%dT00:00:00+00:00")
-
-          entries = [
-              (f"{BASE_URL}/",      today, "1.00"),
-              (f"{BASE_URL}/blog/", today, "0.80"),
-          ]
-          for i, fname in enumerate(posts):
-              priority = "0.90" if i == 0 else ("0.75" if i == 1 else "0.65")
-              entries.append((f"{BASE_URL}/blog/posts/{fname}", iso_date(fname), priority))
-
-          lines = [
-              '<?xml version="1.0" encoding="UTF-8"?>',
-              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
-              '        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"',
-              '        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9',
-              '              http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">',
-              "",
-          ]
-          for loc, lastmod, priority in entries:
-              lines += ["<url>", f"  <loc>{loc}</loc>",
-                        f"  <lastmod>{lastmod}</lastmod>",
-                        f"  <priority>{priority}</priority>", "</url>"]
-          lines.append("</urlset>")
-
-          with open("sitemap.xml", "w", encoding="utf-8") as f:
-              f.write("\n".join(lines))
-
-          print(f"sitemap.xml regenerated with {len(entries)} URLs")
-          for loc, _, priority in entries:
-              print(f"  [{priority}] {loc}")
-          PYEOF
+          python3 scripts/generate-preview-page.py \
+            --filename "${{ steps.generate.outputs.staging_filename }}" \
+            --month "${{ needs.check-last-day.outputs.month_year }}" \
+            --run-id "${{ github.run_id }}"
 
       - name: Configure Git
         run: |
           git config --local user.email "action@github.com"
-          git config --local user.name "AI Blog Generator"
+          git config --local user.name "Blog Generator"
 
-      - name: Check for changes
-        id: git-check
+      - name: Commit staging files
         run: |
-          git add .
+          git add blog/staging/
           if git diff --staged --quiet; then
-            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No changes to commit"
           else
-            echo "changes=true" >> $GITHUB_OUTPUT
+            git commit -m "Staging: ${{ needs.check-last-day.outputs.month_year }} post ready for review"
+            git push
+            echo "Staging committed and pushed"
           fi
 
-      - name: Commit and push changes
-        if: steps.git-check.outputs.changes == 'true'
+      - name: Send email notification
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
+          MONTH_YEAR: ${{ needs.check-last-day.outputs.month_year }}
+          PREVIEW_URL: ${{ steps.generate.outputs.preview_url }}
+          STAGING_FILENAME: ${{ steps.generate.outputs.staging_filename }}
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
-          git commit -m "Monthly AI Insights - ${{ needs.check-last-day.outputs.month_year }}
+          python3 scripts/send-notification.py
 
-          Generated: ${{ needs.check-last-day.outputs.current_date }}
-          Model: Gemini free tier
-          Sitemap: regenerated"
-          git push
-
-      - name: Ping Google to recrawl sitemap
-        if: steps.git-check.outputs.changes == 'true'
-        run: |
-          echo "Pinging Google sitemap endpoint..."
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://www.google.com/ping?sitemap=https://www.imetrobert.com/sitemap.xml")
-          echo "Google ping response: HTTP $RESPONSE"
-          if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "301" ] || [ "$RESPONSE" = "302" ]; then
-            echo "Sitemap ping successful"
-          else
-            echo "Warning: unexpected response $RESPONSE — sitemap still updated, Google will crawl on schedule"
-          fi
-
-      - name: Summary
-        if: steps.git-check.outputs.changes == 'true'
-        run: |
-          echo "## Monthly AI Insights Posted! 🚀" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Item | Detail |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Generated | ${{ needs.check-last-day.outputs.current_date }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Month | ${{ needs.check-last-day.outputs.month_year }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Model | Gemini free tier |" >> $GITHUB_STEP_SUMMARY
-          echo "| Sitemap | Regenerated ✅ |" >> $GITHUB_STEP_SUMMARY
-          echo "| Google pinged | ✅ |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Optional:** Use URL Inspection in Search Console to manually request indexing on the new post for fastest results." >> $GITHUB_STEP_SUMMARY
-
-  skipped-not-last-day:
+  skipped:
     runs-on: ubuntu-latest
     needs: check-last-day
     if: needs.check-last-day.outputs.is_last_day == 'false'
@@ -246,14 +167,3 @@ jobs:
           echo "## Blog Generation Skipped" >> $GITHUB_STEP_SUMMARY
           echo "Not the last day of ${{ needs.check-last-day.outputs.month_year }}." >> $GITHUB_STEP_SUMMARY
           echo "Use Force run = true to generate immediately." >> $GITHUB_STEP_SUMMARY
-
-  notify-on-failure:
-    runs-on: ubuntu-latest
-    needs: [check-last-day, generate-blog]
-    if: failure() && needs.check-last-day.outputs.is_last_day == 'true'
-    steps:
-      - name: Failure summary
-        run: |
-          echo "## Blog Generation Failed ❌" >> $GITHUB_STEP_SUMMARY
-          echo "Check the 'Verify Gemini API key and quota' step above for the specific error." >> $GITHUB_STEP_SUMMARY
-          echo "Quota usage: https://aistudio.google.com/app/apikey (tap bar chart icon)" >> $GITHUB_STEP_SUMMARY

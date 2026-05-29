@@ -1,0 +1,107 @@
+name: Regenerate Blog Post with Custom Prompt
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Custom refinement prompt for Gemini'
+        required: true
+        type: string
+      staging_filename:
+        description: 'Existing staging filename to replace'
+        required: false
+        type: string
+      month_year:
+        description: 'Month/year label'
+        required: false
+        type: string
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+          pip install beautifulsoup4 lxml
+
+      - name: Remove old staging file
+        run: |
+          if [ -n "${{ github.event.inputs.staging_filename }}" ]; then
+            OLD_FILE="blog/staging/${{ github.event.inputs.staging_filename }}"
+            if [ -f "$OLD_FILE" ]; then
+              rm -f "$OLD_FILE"
+              echo "Removed old staging file: $OLD_FILE"
+            fi
+          fi
+
+      - name: Regenerate blog post with custom prompt
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python scripts/generate-blog.py \
+            --topic "${{ github.event.inputs.prompt }}" \
+            --output staging
+
+      - name: Find new staging file
+        id: find-file
+        run: |
+          NEW_FILE=$(ls -t blog/staging/*.html 2>/dev/null | grep -v preview | head -1)
+          if [ -z "$NEW_FILE" ]; then
+            echo "ERROR: No staging file generated"
+            exit 1
+          fi
+          FILENAME=$(basename "$NEW_FILE")
+          echo "staging_filename=$FILENAME" >> $GITHUB_OUTPUT
+          echo "New staging file: $FILENAME"
+
+      - name: Regenerate preview page
+        run: |
+          MONTH="${{ github.event.inputs.month_year }}"
+          if [ -z "$MONTH" ]; then
+            MONTH=$(date +"%B %Y")
+          fi
+          python3 scripts/generate-preview-page.py \
+            --filename "${{ steps.find-file.outputs.staging_filename }}" \
+            --month "$MONTH" \
+            --run-id "${{ github.run_id }}" \
+            --regenerated
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Blog Regenerator"
+
+      - name: Commit regenerated staging files
+        run: |
+          git add blog/staging/
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Staging: Regenerated with custom prompt — $(date +%Y-%m-%d)"
+            git push
+            echo "Pushed regenerated post"
+          fi
+
+      - name: Summary
+        run: |
+          echo "## 🔄 Blog Post Regenerated!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Prompt used:** ${{ github.event.inputs.prompt }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Preview:** https://www.imetrobert.com/blog/staging/preview.html" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> ⏱ Allow 2-3 minutes for GitHub Pages to rebuild before refreshing preview." >> $GITHUB_STEP_SUMMARY
