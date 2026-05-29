@@ -20,17 +20,14 @@ def clean_filename(title):
 
 
 def clean_ai_content(content):
-    """Strip markdown artifacts, stray symbols, and parsing noise from Gemini output."""
-    content = re.sub(r'\[\d+\]', '', content)                        # citation numbers
-    content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)               # bold
-    content = re.sub(r'\*(.*?)\*', r'\1', content)                    # italic
-    content = re.sub(r'^#{1,6}\s*', '', content, flags=re.MULTILINE)  # headings
+    content = re.sub(r'\[\d+\]', '', content)
+    content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)
+    content = re.sub(r'\*(.*?)\*', r'\1', content)
+    content = re.sub(r'^#{1,6}\s*', '', content, flags=re.MULTILINE)
     content = re.sub(r'•\s*[-–—]\s*', '', content)
     content = re.sub(r'[-–—]\s*•\s*', '', content)
-    # Strip orphaned "Businesses" label that Gemini adds before impact paragraphs
     content = re.sub(r'\nBusinesses\s*\n', '\n', content)
     content = re.sub(r'^Businesses\s*$', '', content, flags=re.MULTILINE)
-    # Strip stray ## that bleed through
     content = re.sub(r'##\s*', '', content)
     content = re.sub(r'###\s*', '', content)
     content = re.sub(r' +', ' ', content)
@@ -44,7 +41,6 @@ def estimate_reading_time(text):
 
 
 def get_issue_number():
-    """Approximate issue number based on months since September 2025 launch."""
     start = datetime(2025, 9, 1)
     now = datetime.now()
     return max(1, (now.year - start.year) * 12 + now.month - start.month + 1)
@@ -101,9 +97,7 @@ def generate_blog_with_gemini(api_key, topic=None):
                 print("  Rate limited. Trying next model after wait.")
                 continue
             if response.status_code == 403:
-                raise Exception(
-                    "API key rejected (403). Check your GEMINI_API_KEY secret."
-                )
+                raise Exception("API key rejected (403). Check your GEMINI_API_KEY secret.")
             if response.status_code in (404, 400):
                 print(f"  {response.status_code} on {model}. Retrying without grounding.")
                 payload_no_ground = {k: v for k, v in payload.items() if k != "tools"}
@@ -309,7 +303,6 @@ def parse_sections(content):
             start += 1
         end = positions[sorted_headers[i + 1]] if i + 1 < len(sorted_headers) else len(content)
         raw = content[start:end].strip()
-        # Strip orphaned "Businesses" label from impact section
         raw = re.sub(r'^Businesses\s*\n?', '', raw).strip()
         sections[header] = raw
 
@@ -317,10 +310,8 @@ def parse_sections(content):
 
 
 def parse_list_items(text, min_length=40):
-    """Extract list items with sentence-splitting fallback for prose-formatted stats."""
     items = []
 
-    # 1. Try numbered list
     numbered = re.findall(r'^\d+\.\s+(.+?)(?=\n\d+\.|\Z)', text, re.MULTILINE | re.DOTALL)
     if numbered:
         for item in numbered:
@@ -330,7 +321,6 @@ def parse_list_items(text, min_length=40):
         if items:
             return items
 
-    # 2. Try newline / bullet splitting
     line_items = []
     for line in text.split('\n'):
         line = line.strip()
@@ -341,7 +331,6 @@ def parse_list_items(text, min_length=40):
     if len(line_items) > 1:
         return line_items
 
-    # 3. Sentence splitting fallback — handles adoption stats as prose
     sentences = re.split(r'(?<=[.!?])\s+', text.strip())
     sentence_items = [s.strip() for s in sentences if len(s.strip()) >= min_length]
     if len(sentence_items) > 1:
@@ -366,10 +355,10 @@ def parse_developments(text):
     while i + 1 < len(splits):
         date_str = splits[i].strip().rstrip(',.')
         body     = splits[i + 1].strip()
+        body     = body.lstrip(': ')          # ← FIX: strip leading colon/space after date
         body     = ' '.join(body.split())
 
         if len(body) > 30:
-            # Try to split company name from body using em-dash
             company = ""
             desc = body
             for sep in [" — ", " – ", " - "]:
@@ -446,10 +435,8 @@ def create_html_blog_post(content, title, excerpt):
     actions      = parse_list_items(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""), min_length=40)
     adoption     = parse_list_items(adoption_raw, min_length=20)
 
-    # ── Build article sections ────────────────────────────────────
     article_parts = []
 
-    # Introduction
     if intro_text:
         article_parts.append(
             f'<div class="section intro-section">'
@@ -457,7 +444,6 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    # Key AI Developments
     if developments:
         dev_cards = ""
         for d in developments:
@@ -476,7 +462,6 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    # Canadian Spotlight
     if canadian_spot:
         spot_items = parse_list_items(canadian_spot, min_length=30)
         if spot_items:
@@ -504,7 +489,6 @@ def create_html_blog_post(content, title, excerpt):
                 f'</div>'
             )
 
-    # Business Impact
     if business_impact:
         paras = [p.strip() for p in business_impact.split('\n\n') if len(p.strip()) > 40]
         if not paras:
@@ -519,7 +503,6 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    # Strategic Actions
     if actions:
         action_cards = ""
         for i, a in enumerate(actions[:5]):
@@ -536,11 +519,9 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    # Adoption Snapshot
     if adoption:
         stat_items = ""
         for item in adoption:
-            # Try to extract a leading percentage or number for visual emphasis
             num_match = re.match(r'^([\d.]+\s*(?:%|percent|billion|million|B|M))', item, re.IGNORECASE)
             num_html = f'<span class="stat-highlight">{num_match.group(1)}</span> ' if num_match else ''
             stat_text = item[len(num_match.group(0)):].strip() if num_match else item
@@ -558,12 +539,10 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    # Robert's Take
     article_parts.append(_build_roberts_take(roberts_raw, month_year))
 
     article_html = "\n".join(article_parts)
 
-    # ── FAQ schema ────────────────────────────────────────────────
     faq_qs = [
         f"What AI developments matter most for Canadian businesses in {month_year}?",
         "What should Canadian executives do about AI right now?",
@@ -590,7 +569,6 @@ def create_html_blog_post(content, title, excerpt):
     }}
     </script>"""
 
-    # ── Full HTML ─────────────────────────────────────────────────
     html = f'''<!DOCTYPE html>
 <html lang="en-CA">
 <head>
@@ -694,7 +672,6 @@ def create_html_blog_post(content, title, excerpt):
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* ── Variables ────────────────────────────────────────────── */
         :root {{
             --blue:        #2563eb;
             --blue-dark:   #1d4ed8;
@@ -713,11 +690,7 @@ def create_html_blog_post(content, title, excerpt):
             --shadow-md:   0 4px 16px rgb(0 0 0 / 0.08);
             --shadow-lg:   0 8px 32px rgb(0 0 0 / 0.10);
         }}
-
-        /* ── Reset ────────────────────────────────────────────────── */
         *, *::before, *::after {{ margin: 0; padding: 0; box-sizing: border-box; }}
-
-        /* ── Base ─────────────────────────────────────────────────── */
         body {{
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: linear-gradient(160deg, #f0f4ff 0%, #e8eef8 100%);
@@ -725,8 +698,6 @@ def create_html_blog_post(content, title, excerpt):
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
         }}
-
-        /* ── Nav ──────────────────────────────────────────────────── */
         .nav-bar {{
             background: var(--white);
             padding: 0.875rem 0;
@@ -766,8 +737,6 @@ def create_html_blog_post(content, title, excerpt):
             align-items: center;
             gap: 0.5rem;
         }}
-
-        /* ── Header ───────────────────────────────────────────────── */
         .header {{
             background: linear-gradient(135deg, var(--blue) 0%, #1a7fb5 50%, var(--cyan) 100%);
             color: var(--white);
@@ -837,15 +806,11 @@ def create_html_blog_post(content, title, excerpt):
             font-weight: 500;
             opacity: 0.85;
         }}
-
-        /* ── Container ────────────────────────────────────────────── */
         .container {{
             max-width: 900px;
             margin: 0 auto;
             padding: 2.5rem 1.5rem 5rem;
         }}
-
-        /* ── Article card ─────────────────────────────────────────── */
         .article-card {{
             background: var(--white);
             border-radius: 20px;
@@ -853,8 +818,6 @@ def create_html_blog_post(content, title, excerpt):
             overflow: hidden;
             border: 1px solid rgba(226,232,240,0.6);
         }}
-
-        /* ── Breadcrumb ───────────────────────────────────────────── */
         .breadcrumb {{
             font-size: 0.72rem;
             color: var(--gray-light);
@@ -863,8 +826,6 @@ def create_html_blog_post(content, title, excerpt):
             border-bottom: 1px solid var(--border);
         }}
         .breadcrumb a {{ color: var(--blue); text-decoration: none; }}
-
-        /* ── Author byline ────────────────────────────────────────── */
         .author-byline {{
             display: flex;
             align-items: center;
@@ -883,13 +844,8 @@ def create_html_blog_post(content, title, excerpt):
         }}
         .author-name  {{ font-weight: 700; color: var(--navy); font-size: 0.875rem; }}
         .author-role  {{ font-size: 0.75rem; color: var(--gray-light); margin-top: 0.1rem; }}
-
-        /* ── Article content ──────────────────────────────────────── */
         .article-content {{ padding: 2.25rem 2rem; }}
-
-        /* ── Sections ─────────────────────────────────────────────── */
         .section {{ margin-bottom: 3rem; }}
-
         .section-title {{
             font-size: 1.2rem;
             font-weight: 700;
@@ -909,8 +865,6 @@ def create_html_blog_post(content, title, excerpt):
             background: linear-gradient(to bottom, var(--blue), var(--cyan));
             border-radius: 2px;
         }}
-
-        /* ── Intro lead ───────────────────────────────────────────── */
         .intro-section {{ border-left: 3px solid var(--cyan); padding-left: 1.25rem; }}
         .intro-lead {{
             font-size: 1.05rem;
@@ -918,12 +872,7 @@ def create_html_blog_post(content, title, excerpt):
             color: var(--gray-dark);
             font-weight: 400;
         }}
-
-        /* ── Dev grid ─────────────────────────────────────────────── */
-        .dev-grid {{
-            display: grid;
-            gap: 0.75rem;
-        }}
+        .dev-grid {{ display: grid; gap: 0.75rem; }}
         .dev-card {{
             padding: 1rem 1.25rem;
             border: 1px solid var(--border);
@@ -932,11 +881,7 @@ def create_html_blog_post(content, title, excerpt):
             border-left: 3px solid var(--blue);
             background: #fafbff;
         }}
-        .dev-card:hover {{
-            border-color: var(--blue);
-            box-shadow: var(--shadow-md);
-            background: var(--white);
-        }}
+        .dev-card:hover {{ border-color: var(--blue); box-shadow: var(--shadow-md); background: var(--white); }}
         .dev-header {{
             display: flex;
             align-items: center;
@@ -955,18 +900,8 @@ def create_html_blog_post(content, title, excerpt):
             white-space: nowrap;
             letter-spacing: 0.03em;
         }}
-        .dev-company {{
-            font-weight: 700;
-            color: var(--navy);
-            font-size: 0.85rem;
-        }}
-        .dev-body {{
-            font-size: 0.875rem;
-            color: var(--gray);
-            line-height: 1.65;
-        }}
-
-        /* ── Canadian spotlight ───────────────────────────────────── */
+        .dev-company {{ font-weight: 700; color: var(--navy); font-size: 0.85rem; }}
+        .dev-body {{ font-size: 0.875rem; color: var(--gray); line-height: 1.65; }}
         .canada-section {{
             background: linear-gradient(135deg, #fff5f5 0%, #fffbfb 100%);
             border: 1px solid #fecaca;
@@ -989,12 +924,7 @@ def create_html_blog_post(content, title, excerpt):
         }}
         .canada-label::before {{ content: "🍁"; font-size: 0.75rem; }}
         .canada-title::before {{ background: var(--canada-red) !important; }}
-        .spot-list {{
-            list-style: none;
-            padding: 0;
-            display: grid;
-            gap: 0.75rem;
-        }}
+        .spot-list {{ list-style: none; padding: 0; display: grid; gap: 0.75rem; }}
         .spot-list li {{
             display: flex;
             gap: 0.6rem;
@@ -1008,17 +938,8 @@ def create_html_blog_post(content, title, excerpt):
             border: 1px solid #fde8e8;
         }}
         .spot-bullet {{ flex-shrink: 0; margin-top: 0.05rem; font-size: 0.85rem; }}
-
-        /* ── Impact section ───────────────────────────────────────── */
-        .impact-section p {{
-            font-size: 0.9rem;
-            line-height: 1.8;
-            color: var(--gray);
-            margin-bottom: 1rem;
-        }}
+        .impact-section p {{ font-size: 0.9rem; line-height: 1.8; color: var(--gray); margin-bottom: 1rem; }}
         .impact-section p:last-child {{ margin-bottom: 0; }}
-
-        /* ── Actions grid ─────────────────────────────────────────── */
         .actions-grid {{ display: grid; gap: 0.875rem; }}
         .action-card {{
             display: flex;
@@ -1046,14 +967,7 @@ def create_html_blog_post(content, title, excerpt):
             border-radius: 50%;
             margin-top: 0.1rem;
         }}
-        .action-body {{
-            font-size: 0.875rem;
-            color: var(--gray-dark);
-            line-height: 1.7;
-            flex: 1;
-        }}
-
-        /* ── Adoption snapshot ────────────────────────────────────── */
+        .action-body {{ font-size: 0.875rem; color: var(--gray-dark); line-height: 1.7; flex: 1; }}
         .stat-grid {{ display: grid; gap: 0.75rem; }}
         .stat-item {{
             padding: 1rem 1.25rem;
@@ -1061,24 +975,9 @@ def create_html_blog_post(content, title, excerpt):
             border-left: 3px solid var(--green);
             border-radius: 0 10px 10px 0;
         }}
-        .stat-text {{
-            font-size: 0.875rem;
-            color: var(--gray-dark);
-            line-height: 1.65;
-        }}
-        .stat-highlight {{
-            font-weight: 800;
-            color: var(--green);
-            font-size: 1rem;
-        }}
-        .stat-note {{
-            font-size: 0.72rem;
-            color: var(--gray-light);
-            margin-top: 0.875rem;
-            font-style: italic;
-        }}
-
-        /* ── Robert's Take ────────────────────────────────────────── */
+        .stat-text {{ font-size: 0.875rem; color: var(--gray-dark); line-height: 1.65; }}
+        .stat-highlight {{ font-weight: 800; color: var(--green); font-size: 1rem; }}
+        .stat-note {{ font-size: 0.72rem; color: var(--gray-light); margin-top: 0.875rem; font-style: italic; }}
         .roberts-take {{
             background: linear-gradient(135deg, var(--navy) 0%, #1e3a5f 100%);
             border-radius: 16px;
@@ -1101,20 +1000,9 @@ def create_html_blog_post(content, title, excerpt):
             border: 2px solid rgba(255,255,255,0.25);
             flex-shrink: 0;
         }}
-        .roberts-label {{
-            font-size: 0.62rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            opacity: 0.6;
-            margin-bottom: 0.1rem;
-        }}
+        .roberts-label {{ font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 0.1rem; }}
         .roberts-name {{ font-weight: 700; font-size: 0.9rem; }}
-        .roberts-body {{
-            font-size: 0.925rem;
-            line-height: 1.75;
-            opacity: 0.95;
-            font-style: italic;
-        }}
+        .roberts-body {{ font-size: 0.925rem; line-height: 1.75; opacity: 0.95; font-style: italic; }}
         .roberts-placeholder {{
             font-size: 0.825rem;
             line-height: 1.7;
@@ -1124,8 +1012,6 @@ def create_html_blog_post(content, title, excerpt):
             border-radius: 10px;
         }}
         .roberts-placeholder strong {{ color: var(--white); opacity: 1; font-style: normal; }}
-
-        /* ── Conclusion ───────────────────────────────────────────── */
         .conclusion {{
             background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%);
             color: var(--white);
@@ -1133,35 +1019,11 @@ def create_html_blog_post(content, title, excerpt):
             border-radius: 14px;
             margin-top: 2.5rem;
         }}
-        .conclusion-label {{
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            opacity: 0.75;
-            margin-bottom: 0.5rem;
-        }}
-        .conclusion p {{
-            color: rgba(255,255,255,0.95);
-            font-size: 0.95rem;
-            font-weight: 500;
-            line-height: 1.75;
-        }}
+        .conclusion-label {{ font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.75; margin-bottom: 0.5rem; }}
+        .conclusion p {{ color: rgba(255,255,255,0.95); font-size: 0.95rem; font-weight: 500; line-height: 1.75; }}
         .conclusion strong {{ color: var(--white); font-weight: 700; }}
-
-        /* ── Earlier insights ─────────────────────────────────────── */
-        .earlier-insights {{
-            margin-top: 2.5rem;
-            padding-top: 2rem;
-            border-top: 1px solid var(--border);
-        }}
-        .earlier-title {{
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--gray);
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
-            margin-bottom: 1rem;
-        }}
+        .earlier-insights {{ margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--border); }}
+        .earlier-title {{ font-size: 0.85rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 1rem; }}
         .earlier-posts-grid {{ display: grid; gap: 0.65rem; }}
         .earlier-post-link {{
             display: block;
@@ -1173,19 +1035,11 @@ def create_html_blog_post(content, title, excerpt):
             transition: all 0.2s;
             background: var(--surface);
         }}
-        .earlier-post-link:hover {{
-            border-color: var(--blue);
-            background: var(--white);
-            transform: translateX(3px);
-        }}
+        .earlier-post-link:hover {{ border-color: var(--blue); background: var(--white); transform: translateX(3px); }}
         .earlier-post-title {{ font-size: 0.875rem; font-weight: 600; color: var(--blue); margin-bottom: 0.15rem; }}
         .earlier-post-date  {{ font-size: 0.75rem; color: var(--gray-light); }}
-
-        /* ── General prose ────────────────────────────────────────── */
         p {{ margin-bottom: 1rem; line-height: 1.75; color: var(--gray); font-size: 0.9rem; }}
         strong {{ color: var(--navy); font-weight: 600; }}
-
-        /* ── Mobile ───────────────────────────────────────────────── */
         @media (max-width: 640px) {{
             .header {{ padding: 2.5rem 0 2.25rem; }}
             .header h1 {{ font-size: 1.6rem; }}
@@ -1475,7 +1329,7 @@ def create_blog_index_html(posts):
         .read-latest-btn {{ background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.35); padding: 0.65rem 1.5rem; border-radius: 25px; text-decoration: none; display: inline-block; transition: all 0.25s; font-weight: 600; font-size: 0.875rem; }}
         .read-latest-btn:hover {{ background: rgba(255,255,255,0.3); transform: translateY(-2px); }}
         .older-posts-section {{ background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 4px 16px rgb(0 0 0 / 0.06); border: 1px solid #e2e8f0; }}
-        .older-posts-title {{ font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem; color: #0f172a; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8rem; color: #94a3b8; }}
+        .older-posts-title {{ font-size: 0.8rem; font-weight: 700; margin-bottom: 1.25rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }}
         .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 0.65rem; transition: all 0.2s; }}
         .older-post-item:hover {{ border-color: #2563eb; box-shadow: 0 4px 12px rgb(37 99 235 / 0.08); }}
         .older-post-link {{ display: block; padding: 1rem 1.25rem; text-decoration: none; color: inherit; }}
