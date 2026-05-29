@@ -189,12 +189,14 @@ INTRODUCTION (3 sentences, no more):
 Open with a single specific fact or event from {month_year} — something that happened, not a trend. Second sentence: what it means for Canadian business specifically. Third sentence: what this month's analysis will help the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase.
 
 KEY AI DEVELOPMENTS (exactly 8 items):
-Format: [Month Day]: [Company name] — [What they did, one sentence]. [Why it matters for Canadian business, one sentence].
+CRITICAL DATE RULE: Include ONLY events that occurred in {month_year}. Do NOT include events from prior months even if they are recent. If you cannot find 8 verified events from {month_year}, include fewer — never fabricate or substitute events from other months.
+Format: [Month Day]: [Company name] — [What they did, one sentence]. [Why it matters for Canadian business, one sentence]. Source: [Publication name] — [full URL]
 Requirements:
-- Use real events you can verify with grounding
-- Include exact dates
+- Use real events you can verify with grounding search
+- Include exact dates — only from {month_year}
 - Make the Canadian relevance specific, not generic
 - Vary the companies — not all big US tech
+- Every item MUST end with a Source line containing the publication name and a direct URL to the article
 
 CANADIAN SPOTLIGHT (3-4 items):
 Include ONLY genuinely Canadian content:
@@ -361,23 +363,47 @@ def parse_developments(text):
         if len(body) > 30:
             company = ""
             desc = body
+            source_name = ""
+            source_url  = ""
+
+            # Extract source line: "Source: Publication — https://..."
+            import re as _re
+            source_match = _re.search(
+                r'Source[:\s]+([^\r\n\u2014\u2013\-]+?)[\s]*[\u2014\u2013\-]+[\s]*(https?://[^\s]+)',
+                body, _re.IGNORECASE
+            )
+            if source_match:
+                source_name = source_match.group(1).strip().rstrip('.,')
+                source_url  = source_match.group(2).strip().rstrip('.,)')
+                # Remove the source line from the body text
+                body = body[:source_match.start()].strip()
+                desc = body
+
             for sep in [" — ", " – ", " - "]:
                 if sep in body:
                     parts = body.split(sep, 1)
                     company = parts[0].strip().rstrip(":")
                     desc    = parts[1].strip()
+                    # Remove source from desc if it ended up there
+                    if source_match:
+                        sm2 = _re.search(r'Source:', desc, _re.IGNORECASE)
+                        if sm2:
+                            desc = desc[:sm2.start()].strip()
                     break
 
-            items.append({"date": date_str, "company": company, "body": desc})
+            items.append({"date": date_str, "company": company, "body": desc,
+                           "source_name": source_name, "source_url": source_url})
         i += 2
 
     if not items:
         for raw in parse_list_items(text):
             m = re.match(r'^([A-Z][a-z]+ \d{1,2})[:\-–—]\s*(.*)', raw)
             if m:
-                items.append({"date": m.group(1), "company": "", "body": m.group(2)})
+                items.append({"date": m.group(1), "company": "", "body": m.group(2),
+                               "source_name": "", "source_url": ""})
             else:
-                items.append({"date": "", "company": "", "body": raw})
+                items.append({"date": "", "company": "", "body": raw,
+                               "source_name": "", "source_url": ""})
 
     return items[:10]
 
@@ -449,10 +475,20 @@ def create_html_blog_post(content, title, excerpt):
         for d in developments:
             date_html    = f'<span class="dev-date">{d["date"]}</span>' if d["date"] else ""
             company_html = f'<div class="dev-company">{d["company"]}</div>' if d["company"] else ""
+            source_html  = ""
+            if d.get("source_url"):
+                src_label = d.get("source_name") or "Source"
+                source_html = (
+                    f'<div class="dev-source">'
+                    f'<a href="{d["source_url"]}" target="_blank" rel="noopener noreferrer">'
+                    f'📎 {src_label}'
+                    f'</a></div>'
+                )
             dev_cards += (
                 f'<div class="dev-card">'
                 f'  <div class="dev-header">{date_html}{company_html}</div>'
                 f'  <p class="dev-body">{d["body"]}</p>'
+                f'  {source_html}'
                 f'</div>\n'
             )
         article_parts.append(
@@ -902,6 +938,16 @@ def create_html_blog_post(content, title, excerpt):
         }}
         .dev-company {{ font-weight: 700; color: var(--navy); font-size: 0.85rem; }}
         .dev-body {{ font-size: 0.875rem; color: var(--gray); line-height: 1.65; }}
+        .dev-source {{ margin-top: 0.5rem; }}
+        .dev-source a {{
+            font-size: 0.72rem;
+            color: var(--blue);
+            text-decoration: none;
+            font-weight: 600;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }}
+        .dev-source a:hover {{ opacity: 1; text-decoration: underline; }}
         .canada-section {{
             background: linear-gradient(135deg, #fff5f5 0%, #fffbfb 100%);
             border: 1px solid #fecaca;
@@ -1464,13 +1510,17 @@ def main():
             os.fsync(f.fileno())
         print(f"Saved: {out_path}")
 
-        latest_path = os.path.join("blog", "posts", "latest.html")
-        os.makedirs(os.path.dirname(latest_path), exist_ok=True)
-        with open(latest_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-            f.flush()
-            os.fsync(f.fileno())
-        print("Updated latest.html")
+        # Only update latest.html when publishing to production, not staging
+        if args.output == "posts":
+            latest_path = os.path.join("blog", "posts", "latest.html")
+            os.makedirs(os.path.dirname(latest_path), exist_ok=True)
+            with open(latest_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+                f.flush()
+                os.fsync(f.fileno())
+            print("Updated latest.html")
+        else:
+            print("Staging mode — latest.html NOT updated (production unchanged)")
 
         import time; time.sleep(0.2)
         update_blog_index()
