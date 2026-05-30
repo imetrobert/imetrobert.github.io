@@ -119,6 +119,7 @@ Rules:
 - Every item ends with Source: [Publication] | [Headline] — no URLs, no brackets around the headline
 - Vary the companies — mix US tech, Canadian companies, global players
 - The Canadian relevance sentence must be specific, not generic
+- UNIQUENESS RULE: Every item must cover a distinct news event or announcement. The same company may appear more than once only if each appearance covers a completely different announcement, product, or decision. Do NOT list the same funding program, product launch, or policy announcement twice even with different wording.
 
 CANADIAN SPOTLIGHT (MINIMUM 3 items — hard requirement):
 Only genuinely Canadian content:
@@ -130,6 +131,8 @@ Only genuinely Canadian content:
 
 CRITICAL SOURCE RULE: Every single Canadian Spotlight item MUST end with a Source line.
 
+CRITICAL UNIQUENESS RULE: Canadian Spotlight items MUST NOT repeat any announcement, funding program, policy, or event that already appeared in KEY AI DEVELOPMENTS above. Before writing each Spotlight item, check: has this specific announcement already been covered above? If yes, choose a different Canadian news item. The same organization can appear in both sections only if each entry covers a completely separate announcement. Duplicate topics — even reworded — are a failure.
+
 Use this EXACT format for every item:
 [Company/Organization]: [What happened — one sentence]. [Why it matters — one sentence]. Source: [Publication name] | [Exact article headline as published]
 
@@ -140,6 +143,9 @@ Rules:
 - MINIMUM 3 items. Aim for 3-4.
 - No generic "Canada is positioning itself" filler
 - Every item ends with Source: [Publication] | [Headline]
+- Every item covers a news event NOT already listed in KEY AI DEVELOPMENTS
+
+SELF-CHECK BEFORE CONTINUING: Before writing WHAT THIS MEANS FOR CANADIAN BUSINESS, mentally scan all items in KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT. Verify: (1) no two items describe the same announcement or funding program, (2) no item in CANADIAN SPOTLIGHT restates an item already in KEY AI DEVELOPMENTS. If you find a duplicate, replace it with a different news event now. Only proceed once every item across both sections covers a unique topic.
 
 WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs):
 CRITICAL CROSS-REFERENCE RULE: Every paragraph MUST name at least one specific event, company, or statistic from KEY AI DEVELOPMENTS, CANADIAN SPOTLIGHT, or ADOPTION SNAPSHOT above. Do not introduce new information here — this section interprets what was already reported. Generic analysis with no link to the items above is a failure.
