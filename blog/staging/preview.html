@@ -419,6 +419,11 @@
         class="prompt-area"
         placeholder="e.g. Make the strategic recommendations more specific to manufacturing. Add more detail on Quebec AI regulation. Cut the intro and get to the insights faster."
       ></textarea>
+      <div id="last-prompt-box" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem;margin-bottom:0.75rem;">
+        <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#16a34a;margin-bottom:0.3rem;">Last prompt used</div>
+        <div id="last-prompt-text" style="font-size:0.78rem;color:#1e293b;line-height:1.5;"></div>
+        <button onclick="reuseLastPrompt()" style="margin-top:0.5rem;font-size:0.7rem;color:#16a34a;background:none;border:none;cursor:pointer;padding:0;font-weight:600;text-decoration:underline;">↩ Reuse this prompt</button>
+      </div>
       <p class="prompt-hint">
         Your prompt is passed to Gemini as a refinement topic. The full monthly newsletter format is preserved. Allow ~5 min for generation + GitHub Pages rebuild.
       </p>
@@ -493,7 +498,8 @@
   // ── Init iframe with cache-busting timestamp ───────────────────
   document.addEventListener("DOMContentLoaded", () => {
     loadPAT();
-    const runId = "26689611103";
+    loadLastPrompt();
+    const runId = "26689804819";
     if (runId && runId !== "0") {
       const row = document.getElementById("gen-info");
       const val = document.getElementById("gen-run");
@@ -557,6 +563,34 @@
       document.getElementById("pat-saved").style.display = "block";
     }
     return saved || "";
+  }
+
+  // ── Last prompt persistence ──────────────────────────────────────
+  const LAST_PROMPT_KEY = "blog_preview_last_prompt";
+
+  function saveLastPrompt(prompt) {
+    localStorage.setItem(LAST_PROMPT_KEY, prompt);
+  }
+
+  function loadLastPrompt() {
+    const saved = localStorage.getItem(LAST_PROMPT_KEY);
+    const box = document.getElementById("last-prompt-box");
+    const text = document.getElementById("last-prompt-text");
+    if (saved && saved.trim()) {
+      text.textContent = saved;
+      box.style.display = "block";
+    } else {
+      box.style.display = "none";
+    }
+  }
+
+  function reuseLastPrompt() {
+    const saved = localStorage.getItem(LAST_PROMPT_KEY);
+    if (saved) {
+      document.getElementById("prompt-input").value = saved;
+      document.getElementById("prompt-input").focus();
+      document.getElementById("prompt-input").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   }
 
   function savePAT() {
@@ -627,6 +661,8 @@
       document.getElementById("prompt-input").focus();
       return;
     }
+    // Save prompt to localStorage before firing so it survives the refresh
+    saveLastPrompt(prompt);
     showOverlay("loading", "🔄 Triggering regeneration...",
       "GitHub Actions will regenerate the post with your prompt. This takes ~5 minutes. The preview will update automatically."
     );
