@@ -78,7 +78,7 @@ def generate_blog_with_gemini(api_key, topic=None):
     models_to_try = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"]
 
     if topic:
-        prompt = _build_custom_prompt(topic, month_year)
+        prompt = _build_custom_prompt(topic, month_year, prev_month)
     else:
         prompt = _build_monthly_prompt(month_year, prev_month)
 
@@ -257,20 +257,46 @@ Write this exact placeholder and nothing else:
 Context: {month_year} edition"""
 
 
-def _build_custom_prompt(topic, month_year):
-    return f"""You are writing an AI insights article for Robert Simon — an independent AI thought leader in Montreal, QC, Canada.
+def _build_custom_prompt(topic, month_year, prev_month):
+    """
+    Custom prompt for regeneration requests.
+    Uses the EXACT same structural rules as the monthly prompt — only the
+    content focus changes. This preserves all formatting, source citations,
+    section counts, and output quality regardless of the user's prompt.
+    """
+    return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert has 25+ years in digital transformation and is known for direct, opinionated takes on AI adoption.
 
-Topic: {topic}
+AUDIENCE
+Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadian enterprises in financial services, retail, manufacturing, telecom, and healthcare. They are time-pressed and want signal, not noise.
 
-Follow the same writing rules as the monthly newsletter:
-- Direct, confident tone. Max 22 words per sentence.
-- No banned phrases (dual-edged sword, unprecedented, navigate, leverage, harness, landscape, stakeholders, game-changer)
-- Ground in Canadian business reality (US-Canada trade, Carney government, Bill C-27, Quebec Law 25)
-- Name real Canadian companies where relevant
+CONTENT FOCUS FOR THIS VERSION:
+{topic}
+Apply this focus throughout — especially in the KEY AI DEVELOPMENTS selection, CANADIAN SPOTLIGHT items, WHAT THIS MEANS analysis, and STRATEGIC ACTIONS. The focus changes WHAT you write about, not HOW you structure it. All structural rules below are mandatory regardless of the focus directive.
 
-Use Google Search grounding. Only include verifiable events and statistics from {month_year}. Do not include events from prior months.
+WRITING RULES — follow these exactly:
+1. Write like a trusted senior advisor talking to a peer. Confident. Direct. No hedging.
+2. Maximum 22 words per sentence. Short sentences hit harder.
+3. Never use these phrases (use the replacement in brackets):
+   - "dual-edged sword" → just describe the tension directly
+   - "unprecedented opportunities" → name the specific opportunity
+   - "navigate" → deal with / address / respond to
+   - "leverage" → use
+   - "harness" → use / deploy / apply
+   - "landscape" → market / industry / sector
+   - "stakeholders" → customers / employees / investors / regulators
+   - "game-changer" → describe why it changes things
+   - "paradigm shift" → describe the actual shift
+   - "move the needle" → describe the specific outcome
+   - "in today's fast-paced world" → delete entirely
+   - "Welcome to the [month] edition" → do not use
+   - "This month, the pace of AI innovation continues to accelerate" → do not use
+4. Ground everything in Canadian business reality: US-Canada trade tensions under the Carney government, Bill C-27 (AIDA) working through Parliament, Quebec Law 25 privacy requirements, PIPEDA, the Canadian dollar, AI talent competition between Toronto/Montreal/Vancouver
+5. Name real Canadian companies and institutions where relevant: Shopify, Cohere, D-Wave, Ada, Coveo, RBC, TD, Scotiabank, CIBC, Manulife, Sun Life, Bell, Rogers, Telus, BCE, Loblaw, Couche-Tard, CAE, BRP, Bombardier, Mila, Vector Institute, Amii, Ivey Business School, Rotman School of Management
 
-Write plain text only. Use EXACTLY these section headers on their own lines:
+Use Google Search grounding to find REAL AI news events from {month_year} ONLY. Do NOT use events from {prev_month} or any prior month. Do not invent events, dates, companies, or statistics.
+
+OUTPUT FORMAT
+Write plain text only. No markdown formatting (no *, no **, no #). Use EXACTLY these section headers on their own lines with nothing else on those lines:
 
 INTRODUCTION
 KEY AI DEVELOPMENTS
@@ -280,9 +306,62 @@ STRATEGIC ACTIONS FOR THIS MONTH
 ADOPTION SNAPSHOT
 ROBERTS TAKE
 
-Apply the same section requirements as the monthly newsletter. Each stat in ADOPTION SNAPSHOT must be on its own separate line.
+---
 
-Month context: {month_year}"""
+INTRODUCTION (3 sentences, no more):
+Open with a single specific fact or event from {month_year} relevant to the content focus — something that happened, not a trend. Second sentence: what it means for Canadian business specifically. Third sentence: what this month's analysis will help the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase.
+
+KEY AI DEVELOPMENTS (exactly 8 items):
+CRITICAL DATE RULE: Include ONLY events that occurred in {month_year}. Do NOT include events from prior months. If you cannot find 8 verified events from {month_year}, include fewer — never fabricate or substitute events from other months. Prioritise events relevant to the content focus, but include a mix if 8 focused events are unavailable.
+Format: [Month Day]: [Company name] — [What they did, one sentence]. [Why it matters for Canadian business, one sentence]. Source: [Publication name] | [Exact article headline]
+Requirements:
+- Use real events you can verify with grounding search
+- Include exact dates — only from {month_year}
+- Make the Canadian relevance specific, not generic
+- Vary the companies — not all big US tech
+- Every item MUST end with a Source line with the publication name and the exact article headline as it appeared
+- Do NOT include URLs — the system will generate a search link automatically
+- Example source line: Source: Reuters | OpenAI Launches GPT-5 With Enhanced Reasoning
+
+CANADIAN SPOTLIGHT (3-4 items):
+Include ONLY genuinely Canadian content relevant to the focus where possible:
+- Canadian AI companies (Cohere, Ada, Coveo, D-Wave, Mila spinouts)
+- Federal/provincial government AI moves (ISED funding, Bill C-27 updates, Quebec Law 25 enforcement)
+- Major international AI investments specifically into Canada
+- Canadian university AI research breakthroughs (Mila, Vector, Amii)
+- Canadian enterprise AI deployments (named company + what they deployed)
+If you cannot find 4 verified Canadian items, list 3. Never pad with generic filler.
+Format: [Company/Organization]: [What happened]. [Why it matters].
+
+WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs):
+Paragraph 1 — Financial services and technology: Name at least one specific Canadian bank, insurer, or tech company. Connect to the content focus where relevant.
+Paragraph 2 — Manufacturing, healthcare, or retail: Pick whichever is most relevant given the content focus. Name a real Canadian company or sector dynamic.
+Paragraph 3 — Regulatory and competitive risk: Reference a real Canadian regulation (Bill C-27, Quebec Law 25, PIPEDA, OSFI guidelines). What do Canadian leaders need to do before a specific deadline?
+Each paragraph: 3-4 sentences maximum.
+
+STRATEGIC ACTIONS FOR THIS MONTH (exactly 5 items):
+Each action must:
+- Start with a strong action verb: Audit, Pilot, Negotiate, Block time to, Commission, Assign, Test, Require, Demand, Sunset
+- Be shaped by the content focus — the actions should reflect the focus directive
+- Reference a specific tool, model, regulation, or company mentioned earlier in this newsletter
+- State WHO in the organization owns it (CTO, CFO, CHRO, Board Audit Committee, Legal team, etc.)
+- Include a specific deadline (this week, by end of Q2, before June 30, within 30 days)
+- Be 2-3 sentences
+Format as numbered list: 1. [Action]...
+
+ADOPTION SNAPSHOT (exactly 5 data points):
+CRITICAL: Each stat on its own separate line. This is mandatory — do not combine stats into a paragraph.
+Format for each line: [Specific statistic with number]. Source: [Organization name], [year or quarter].
+Use ONLY real, verifiable Canadian statistics from: Statistics Canada, BDC, ISED, CIRA, Conference Board of Canada, Deloitte Canada, KPMG Canada, PwC Canada, Mila Annual Report, Vector Institute Annual Report, or McKinsey Canada.
+If a real Canadian stat is unavailable, use a North American or global stat and label it clearly.
+Do NOT invent percentages. Do NOT attribute stats to vague sources.
+
+ROBERTS TAKE:
+Write this exact placeholder and nothing else:
+[PLACEHOLDER — Robert: add 2-3 sentences of your personal perspective before publishing. What surprised you most this month? What are you telling clients right now? What is the pattern others are missing?]
+
+---
+Context: {month_year} edition — focus: {topic[:80]}"""
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -376,7 +455,7 @@ def parse_developments(text):
     while i + 1 < len(splits):
         date_str = splits[i].strip().rstrip(',.')
         body     = splits[i + 1].strip()
-        body     = body.lstrip(': ')          # ← FIX: strip leading colon/space after date
+        body     = body.lstrip(': ')
         body     = ' '.join(body.split())
 
         if len(body) > 30:
@@ -385,15 +464,12 @@ def parse_developments(text):
             source_name = ""
             source_url  = ""
 
-            # Extract source line: "Source: Publication | Article Headline"
-            # Also handles em-dash separator: "Source: Publication — Headline"
             import re as _re
             source_match = _re.search(
                 r'Source[:\s]+([^|\r\n]+?)\s*\|\s*([^\r\n]+)',
                 body, _re.IGNORECASE
             )
             if not source_match:
-                # Fallback: try em-dash separator without URL pattern
                 source_match = _re.search(
                     r'Source[:\s]+([^\u2014\u2013\r\n]{3,60})[\u2014\u2013]+([^\r\n]{5,120})',
                     body, _re.IGNORECASE
@@ -401,11 +477,8 @@ def parse_developments(text):
             if source_match:
                 source_name     = source_match.group(1).strip().rstrip('.,')
                 source_headline = source_match.group(2).strip().rstrip('.,')
-                # Strip any leftover URL from headline if Gemini included one
                 source_headline = _re.sub(r'https?://\S+', '', source_headline).strip().rstrip('.,')
-                # Build a guaranteed Google search URL — never breaks
                 source_url      = build_search_url(source_name, source_headline)
-                # Remove the source line from the body text
                 body = body[:source_match.start()].strip()
                 desc = body
 
@@ -414,7 +487,6 @@ def parse_developments(text):
                     parts = body.split(sep, 1)
                     company = parts[0].strip().rstrip(":")
                     desc    = parts[1].strip()
-                    # Remove source from desc if it ended up there
                     if source_match:
                         sm2 = _re.search(r'Source:', desc, _re.IGNORECASE)
                         if sm2:
@@ -1541,7 +1613,6 @@ def main():
             os.fsync(f.fileno())
         print(f"Saved: {out_path}")
 
-        # Only update latest.html when publishing to production, not staging
         if args.output == "posts":
             latest_path = os.path.join("blog", "posts", "latest.html")
             os.makedirs(os.path.dirname(latest_path), exist_ok=True)
@@ -1555,7 +1626,6 @@ def main():
 
         import time; time.sleep(0.2)
 
-        # Only update blog index when publishing to production
         if args.output == "posts":
             update_blog_index()
             print("Blog index updated.")
