@@ -68,7 +68,7 @@ jobs:
           python3 -c "
           import importlib.util
           spec = importlib.util.spec_from_file_location('generate_blog', 'scripts/generate-blog.py')
-          m = importlib.util.load_from_spec(spec)
+          m = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(m)
           posts = m.update_blog_index()
           print(f'Blog index updated with {len(posts)} posts')
