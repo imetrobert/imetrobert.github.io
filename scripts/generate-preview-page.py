@@ -675,7 +675,10 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   }}
 
   function openStagingPost() {{
-    window.open(`/blog/staging/${{STAGING_FILE}}`, "_blank");
+    // Always open with a fresh cache-busting timestamp so the full-post
+    // tab shows the same version as the force-refreshed iframe.
+    const bust = Date.now() + "_" + Math.random().toString(36).slice(2);
+    window.open(`/blog/staging/${{STAGING_FILE}}?v=${{bust}}`, "_blank");
   }}
 
   // ── Toast ────────────────────────────────────────────────────────

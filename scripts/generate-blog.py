@@ -106,6 +106,7 @@ Open with one specific fact or event from {month_year}. Second sentence: what it
 KEY AI DEVELOPMENTS (MINIMUM 8 items — this is a hard requirement):
 CRITICAL DATE RULE: Include ONLY events from {month_year}. Never fabricate. Never use events from prior months.
 CRITICAL SOURCE RULE: Every single item MUST end with a Source line. No exceptions.
+CRITICAL DEDUPLICATION RULE: Treat KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT as one combined list. Every individual news event, announcement, funding program, product launch, or policy decision may appear ONCE across both sections combined — never twice. Before finalising your full response, scan every item in KEY AI DEVELOPMENTS and every item in CANADIAN SPOTLIGHT. If the same announcement appears in both (even reworded or described differently), DELETE it from CANADIAN SPOTLIGHT and replace it with a genuinely different Canadian news item. The AI Compute Access Fund, or any government funding program, or any company product launch, must not appear in both sections. This is a hard constraint with zero exceptions.
 
 Use this EXACT format for every item — copy it precisely:
 [Month Day]: [Company] — [One sentence: what they did]. [One sentence: why it matters for Canadian business]. Source: [Publication name] | [Exact article headline as published]
@@ -145,7 +146,12 @@ Rules:
 - Every item ends with Source: [Publication] | [Headline]
 - Every item covers a news event NOT already listed in KEY AI DEVELOPMENTS
 
-SELF-CHECK BEFORE CONTINUING: Before writing WHAT THIS MEANS FOR CANADIAN BUSINESS, mentally scan all items in KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT. Verify: (1) no two items describe the same announcement or funding program, (2) no item in CANADIAN SPOTLIGHT restates an item already in KEY AI DEVELOPMENTS. If you find a duplicate, replace it with a different news event now. Only proceed once every item across both sections covers a unique topic.
+MANDATORY SELF-CHECK — DO THIS BEFORE WRITING ANY FURTHER:
+List every news event you have written in KEY AI DEVELOPMENTS (by topic, one line each).
+Then list every news event in CANADIAN SPOTLIGHT (by topic, one line each).
+Compare the two lists. If ANY topic, announcement, funding program, or event appears in both lists — even described with different words — you MUST go back and replace the duplicate in CANADIAN SPOTLIGHT with a genuinely different Canadian news item before continuing.
+Example of a violation: "Government of Canada AI Compute Access Fund $66M" appearing in KEY AI DEVELOPMENTS AND also appearing in CANADIAN SPOTLIGHT under any wording. That is a hard failure. Remove it from one section.
+Only continue to WHAT THIS MEANS once every item across both sections is a unique, non-overlapping news event.
 
 WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs):
 CRITICAL CROSS-REFERENCE RULE: Every paragraph MUST name at least one specific event, company, or statistic from KEY AI DEVELOPMENTS, CANADIAN SPOTLIGHT, or ADOPTION SNAPSHOT above. Do not introduce new information here — this section interprets what was already reported. Generic analysis with no link to the items above is a failure.
