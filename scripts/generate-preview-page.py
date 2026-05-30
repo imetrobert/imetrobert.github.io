@@ -13,9 +13,6 @@ from datetime import datetime
 
 def build_preview_html(staging_filename: str, month_year: str, run_id: str, regenerated: bool = False) -> str:
     repo = os.environ.get("GITHUB_REPOSITORY", "imetrobert/imetrobert.github.io")
-    # The PAT must have Actions:write scope — stored as BLOG_PREVIEW_PAT secret
-    # We embed only the repo name; the token is entered by the user in the UI
-    # (they paste it once; it's stored in localStorage — never sent anywhere but GitHub API)
 
     regen_badge = ""
     if regenerated:
@@ -48,8 +45,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       min-height: 100vh;
       color: var(--navy);
     }}
-
-    /* ── Top bar ─────────────────────────────────── */
     .topbar {{
       background: var(--white);
       border-bottom: 1px solid var(--border);
@@ -75,8 +70,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       text-transform: uppercase;
     }}
     .topbar-right {{ display: flex; gap: 0.75rem; align-items: center; }}
-
-    /* ── Buttons ─────────────────────────────────── */
     .btn {{
       display: inline-flex;
       align-items: center;
@@ -109,22 +102,22 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       border: 1px solid var(--border);
     }}
     .btn-outline:hover {{ border-color: var(--blue); color: var(--blue); }}
-    .btn-danger {{
-      background: white;
-      color: var(--red);
-      border: 1px solid #fecaca;
+    .btn-force-refresh {{
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: white;
+      box-shadow: 0 2px 8px rgb(124 58 237 / 0.3);
     }}
-    .btn-danger:hover {{ background: #fef2f2; border-color: var(--red); }}
-
-    /* ── Layout ──────────────────────────────────── */
+    .btn-force-refresh:hover {{ transform: translateY(-1px); box-shadow: 0 4px 16px rgb(124 58 237 / 0.4); }}
+    .btn-force-refresh.spinning svg {{
+      animation: spin 0.7s linear infinite;
+    }}
+    @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
     .layout {{
       display: grid;
       grid-template-columns: 340px 1fr;
       gap: 0;
       min-height: calc(100vh - 65px);
     }}
-
-    /* ── Sidebar ─────────────────────────────────── */
     .sidebar {{
       background: var(--white);
       border-right: 1px solid var(--border);
@@ -145,8 +138,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       padding-bottom: 0.5rem;
       border-bottom: 1px solid var(--border);
     }}
-
-    /* Status */
     .status-card {{
       background: var(--light);
       border: 1px solid var(--border);
@@ -172,16 +163,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       font-size: 0.68rem;
       font-weight: 700;
     }}
-    .badge-done {{
-      background: #dcfce7;
-      color: var(--green);
-      padding: 0.15rem 0.5rem;
-      border-radius: 8px;
-      font-size: 0.68rem;
-      font-weight: 700;
-    }}
-
-    /* PAT setup */
     .pat-section input {{
       width: 100%;
       padding: 0.6rem 0.875rem;
@@ -202,8 +183,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }}
     .pat-hint a {{ color: var(--blue); }}
     .pat-saved {{ display: none; font-size: 0.75rem; color: var(--green); margin-top: 0.25rem; font-weight: 600; }}
-
-    /* Prompt area */
     .prompt-area {{
       width: 100%;
       min-height: 120px;
@@ -245,8 +224,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       transition: all 0.15s;
     }}
     .prompt-chip:hover {{ background: #dbeafe; border-color: var(--blue); }}
-
-    /* Approve section */
     .approve-confirm {{
       font-size: 0.78rem;
       color: var(--gray);
@@ -255,8 +232,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }}
     .approve-confirm ul {{ padding-left: 1.2rem; margin-top: 0.5rem; }}
     .approve-confirm li {{ margin-bottom: 0.3rem; }}
-
-    /* ── Main preview area ───────────────────────── */
     .preview-area {{
       padding: 2rem;
       overflow-y: auto;
@@ -281,6 +256,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       overflow: hidden;
       box-shadow: var(--shadow);
       background: white;
+      position: relative;
     }}
     .preview-frame iframe {{
       width: 100%;
@@ -288,8 +264,32 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       border: none;
       display: block;
     }}
-
-    /* ── Toast notifications ─────────────────────── */
+    /* Loading overlay on the iframe */
+    .iframe-loading {{
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(248,250,252,0.85);
+      border-radius: 16px;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 0.75rem;
+      z-index: 10;
+    }}
+    .iframe-loading.show {{ display: flex; }}
+    .iframe-loading-spinner {{
+      width: 36px; height: 36px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #7c3aed;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }}
+    .iframe-loading-text {{
+      font-size: 0.8rem;
+      color: var(--gray);
+      font-weight: 600;
+    }}
     #toast {{
       position: fixed;
       bottom: 2rem;
@@ -311,8 +311,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     #toast.success {{ background: var(--green); }}
     #toast.error   {{ background: var(--red); }}
     #toast.info    {{ background: var(--blue); }}
-
-    /* ── Status overlay ──────────────────────────── */
+    #toast.purple  {{ background: #7c3aed; }}
     #overlay {{
       display: none;
       position: fixed;
@@ -344,8 +343,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       animation: spin 0.8s linear infinite;
       margin: 0 auto 1rem;
     }}
-    @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
-
     .regen-badge {{
       background: #fef3c7;
       color: var(--amber);
@@ -357,7 +354,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       display: inline-block;
       margin-bottom: 0.75rem;
     }}
-
     @media (max-width: 900px) {{
       .layout {{ grid-template-columns: 1fr; }}
       .sidebar {{ position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }}
@@ -367,7 +363,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
 </head>
 <body>
 
-<!-- ── Top bar ───────────────────────────────────── -->
 <div class="topbar">
   <div class="topbar-left">
     <span class="logo">imetrobert.com</span>
@@ -377,19 +372,16 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     <a href="https://www.imetrobert.com/blog/" class="btn btn-outline" target="_blank">
       🌐 Live Blog
     </a>
-    <button id="btn-open-blog" class="btn btn-outline" onclick="openStagingPost()">
+    <button class="btn btn-outline" onclick="openStagingPost()">
       ↗ Open Full Post
     </button>
   </div>
 </div>
 
-<!-- ── Layout ─────────────────────────────────────── -->
 <div class="layout">
 
-  <!-- ── Sidebar ──────────────────────────────────── -->
   <div class="sidebar">
 
-    <!-- Status -->
     <div class="sidebar-section">
       <h3>Status</h3>
       <div class="status-card">
@@ -413,7 +405,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       {regen_badge}
     </div>
 
-    <!-- GitHub PAT -->
     <div class="sidebar-section pat-section" id="pat-section">
       <h3>GitHub Access Token</h3>
       <input
@@ -433,7 +424,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </button>
     </div>
 
-    <!-- Regenerate -->
     <div class="sidebar-section">
       <h3>Regenerate with Prompt</h3>
       <div class="prompt-examples">
@@ -457,7 +447,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </button>
     </div>
 
-    <!-- Approve -->
     <div class="sidebar-section">
       <h3>Approve &amp; Publish</h3>
       <p class="approve-confirm">
@@ -475,46 +464,112 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </button>
     </div>
 
-  </div><!-- /sidebar -->
+  </div>
 
-  <!-- ── Preview area ──────────────────────────────── -->
   <div class="preview-area">
     <div class="preview-toolbar">
       <div>
         <h2>Post Preview — {month_year}</h2>
         <div class="preview-meta">Staging file: {staging_filename}</div>
       </div>
-      <div style="display:flex;gap:0.5rem;">
-        <button class="btn btn-outline" onclick="reloadFrame()">↻ Refresh</button>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <span id="cache-hint" style="font-size:0.72rem;color:#94a3b8;display:none;">Seeing an old version?</span>
+        <button class="btn btn-force-refresh" id="force-refresh-btn" onclick="forceRefresh()" title="Bypass cache and reload the latest version">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M3 21v-5h5"/>
+          </svg>
+          Force Refresh
+        </button>
+        <button class="btn btn-outline" onclick="softReload()" title="Reload the iframe">↻ Reload</button>
       </div>
     </div>
-    <div class="preview-frame">
-      <iframe id="preview-iframe" src="/blog/staging/{staging_filename}" title="Blog post preview"></iframe>
+    <div class="preview-frame" id="preview-frame-wrapper">
+      <div class="iframe-loading" id="iframe-loading">
+        <div class="iframe-loading-spinner"></div>
+        <div class="iframe-loading-text">Loading latest version…</div>
+      </div>
+      <iframe id="preview-iframe" src="/blog/staging/{staging_filename}?v={{}}" title="Blog post preview" onload="onIframeLoad()"></iframe>
     </div>
   </div>
 
-</div><!-- /layout -->
+</div>
 
-<!-- ── Toast ──────────────────────────────────────── -->
 <div id="toast"></div>
-
-<!-- ── Overlay ────────────────────────────────────── -->
 <div id="overlay">
-  <div class="overlay-card" id="overlay-card">
-    <!-- content injected by JS -->
-  </div>
+  <div class="overlay-card" id="overlay-card"></div>
 </div>
 
 <script>
-  // ── Config ─────────────────────────────────────────
-  const REPO           = "{repo}";
-  const STAGING_FILE   = "{staging_filename}";
-  const MONTH_YEAR     = "{month_year}";
-  const APPROVE_WF     = "approve-blog.yml";
-  const REGENERATE_WF  = "regenerate-blog.yml";
-  const GITHUB_API     = "https://api.github.com";
+  const REPO          = "{repo}";
+  const STAGING_FILE  = "{staging_filename}";
+  const MONTH_YEAR    = "{month_year}";
+  const APPROVE_WF    = "approve-blog.yml";
+  const REGENERATE_WF = "regenerate-blog.yml";
+  const GITHUB_API    = "https://api.github.com";
 
-  // ── PAT management ─────────────────────────────────
+  // ── Init iframe with cache-busting timestamp ───────────────────
+  document.addEventListener("DOMContentLoaded", () => {{
+    loadPAT();
+    const runId = "{run_id}";
+    if (runId && runId !== "0") {{
+      const row = document.getElementById("gen-info");
+      const val = document.getElementById("gen-run");
+      if (row && val) {{
+        row.style.display = "flex";
+        val.innerHTML = `<a href="https://github.com/${{REPO}}/actions/runs/${{runId}}" target="_blank" style="color:var(--blue);">Run #${{runId}}</a>`;
+      }}
+    }}
+    // Set initial src with current timestamp to bust cache on first load
+    setIframeSrc();
+    // Show cache hint after 3 seconds in case content looks stale
+    setTimeout(() => {{
+      document.getElementById("cache-hint").style.display = "inline";
+    }}, 3000);
+  }});
+
+  function setIframeSrc(extraBust) {{
+    const iframe = document.getElementById("preview-iframe");
+    const ts = extraBust || Date.now();
+    iframe.src = `/blog/staging/${{STAGING_FILE}}?v=${{ts}}`;
+  }}
+
+  function onIframeLoad() {{
+    document.getElementById("iframe-loading").classList.remove("show");
+    const btn = document.getElementById("force-refresh-btn");
+    btn.classList.remove("spinning");
+    btn.disabled = false;
+  }}
+
+  // ── Force Refresh — bypasses all browser and CDN cache ─────────
+  function forceRefresh() {{
+    const btn = document.getElementById("force-refresh-btn");
+    btn.classList.add("spinning");
+    btn.disabled = true;
+    document.getElementById("iframe-loading").classList.add("show");
+    showToast("Fetching latest version, bypassing cache…", "purple");
+
+    // Use a unique timestamp + random to guarantee bypass
+    const bust = Date.now() + "_" + Math.random().toString(36).slice(2);
+    setIframeSrc(bust);
+
+    // Safety timeout — re-enable button after 10s in case onload never fires
+    setTimeout(() => {{
+      btn.classList.remove("spinning");
+      btn.disabled = false;
+      document.getElementById("iframe-loading").classList.remove("show");
+    }}, 10000);
+  }}
+
+  // ── Soft reload (existing behaviour) ───────────────────────────
+  function softReload() {{
+    const iframe = document.getElementById("preview-iframe");
+    iframe.src = iframe.src;
+  }}
+
+  // ── PAT management ─────────────────────────────────────────────
   function loadPAT() {{
     const saved = localStorage.getItem("blog_preview_pat");
     if (saved) {{
@@ -535,7 +590,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     showToast("Token saved in this browser ✓", "success");
   }}
 
-  // ── GitHub Actions trigger ──────────────────────────
+  // ── GitHub Actions trigger ──────────────────────────────────────
   async function triggerWorkflow(workflow, inputs) {{
     const pat = loadPAT();
     if (!pat) {{
@@ -543,25 +598,21 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       document.getElementById("pat-input").focus();
       return null;
     }}
-
     const url = `${{GITHUB_API}}/repos/${{REPO}}/actions/workflows/${{workflow}}/dispatches`;
-    const body = {{ ref: "main", inputs }};
-
     const res = await fetch(url, {{
       method: "POST",
       headers: {{
         "Authorization": `Bearer ${{pat}}`,
-        "Accept":        "application/vnd.github+json",
-        "Content-Type":  "application/json",
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json",
         "X-GitHub-Api-Version": "2022-11-28"
       }},
-      body: JSON.stringify(body)
+      body: JSON.stringify({{ ref: "main", inputs }})
     }});
-
     return res;
   }}
 
-  // ── Approve ────────────────────────────────────────
+  // ── Approve ─────────────────────────────────────────────────────
   async function triggerApprove() {{
     showOverlay("confirming");
   }}
@@ -569,30 +620,26 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   async function confirmApprove() {{
     hideOverlay();
     showOverlay("loading", "Publishing...", "Triggering the publish workflow on GitHub Actions.");
-
     const res = await triggerWorkflow(APPROVE_WF, {{
       staging_filename: STAGING_FILE,
       month_year: MONTH_YEAR
     }});
-
     if (!res) return;
-
     if (res.status === 204) {{
       showOverlay("success",
         "🎉 Post queued for publishing!",
-        "The approve-blog workflow is now running on GitHub Actions. Your post will be live in ~2 minutes.",
+        "The approve-blog workflow is now running. Your post will be live in ~2 minutes.",
         `https://github.com/${{REPO}}/actions/workflows/${{APPROVE_WF}}`
       );
     }} else {{
       const body = await res.json().catch(() => ({{}}));
-      showOverlay("error",
-        "Publish failed",
+      showOverlay("error", "Publish failed",
         `GitHub API returned ${{res.status}}: ${{body.message || "Unknown error"}}. Check your token has the 'workflow' scope.`
       );
     }}
   }}
 
-  // ── Regenerate ─────────────────────────────────────
+  // ── Regenerate ──────────────────────────────────────────────────
   async function triggerRegenerate() {{
     const prompt = document.getElementById("prompt-input").value.trim();
     if (!prompt) {{
@@ -600,24 +647,18 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       document.getElementById("prompt-input").focus();
       return;
     }}
-
-    showOverlay("loading",
-      "🔄 Triggering regeneration...",
-      "GitHub Actions will regenerate the post with your prompt. This takes ~5 minutes. The preview will update automatically once GitHub Pages rebuilds."
+    showOverlay("loading", "🔄 Triggering regeneration...",
+      "GitHub Actions will regenerate the post with your prompt. This takes ~5 minutes. The preview will update automatically."
     );
-
     const res = await triggerWorkflow(REGENERATE_WF, {{
       prompt: prompt,
       staging_filename: STAGING_FILE,
       month_year: MONTH_YEAR
     }});
-
     if (!res) {{ hideOverlay(); return; }}
-
     if (res.status === 204) {{
-      showOverlay("regen-queued",
-        "⏳ Regeneration queued!",
-        "Check GitHub Actions for progress. Once the workflow completes and GitHub Pages rebuilds (~5 min), refresh this page to see the new version.",
+      showOverlay("regen-queued", "⏳ Regeneration queued!",
+        "Once the workflow completes and GitHub Pages rebuilds (~5 min), use Force Refresh to see the new version.",
         `https://github.com/${{REPO}}/actions/workflows/${{REGENERATE_WF}}`
       );
     }} else {{
@@ -627,23 +668,17 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }}
   }}
 
-  // ── Prompt chips ───────────────────────────────────
+  // ── Prompt chips ────────────────────────────────────────────────
   function setPrompt(text) {{
     document.getElementById("prompt-input").value = text;
     document.getElementById("prompt-input").focus();
-  }}
-
-  // ── Frame helpers ──────────────────────────────────
-  function reloadFrame() {{
-    const frame = document.getElementById("preview-iframe");
-    frame.src = frame.src;
   }}
 
   function openStagingPost() {{
     window.open(`/blog/staging/${{STAGING_FILE}}`, "_blank");
   }}
 
-  // ── Toast ──────────────────────────────────────────
+  // ── Toast ────────────────────────────────────────────────────────
   let toastTimer;
   function showToast(msg, type = "info") {{
     const el = document.getElementById("toast");
@@ -653,30 +688,22 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     toastTimer = setTimeout(() => {{ el.className = ""; }}, 4000);
   }}
 
-  // ── Overlay ────────────────────────────────────────
+  // ── Overlay ──────────────────────────────────────────────────────
   function showOverlay(type, title = "", body = "", actionUrl = "") {{
     const card = document.getElementById("overlay-card");
     const overlay = document.getElementById("overlay");
-
     let html = "";
-
     if (type === "confirming") {{
       html = `
         <div class="overlay-icon">📤</div>
         <div class="overlay-title">Ready to publish?</div>
-        <div class="overlay-body">
-          This will promote the staging post to production, update <code>latest.html</code>,
-          regenerate the sitemap, and ping Google. It cannot be undone from this UI.
-        </div>
+        <div class="overlay-body">This will promote the staging post to production, update <code>latest.html</code>, regenerate the sitemap, and ping Google.</div>
         <div style="display:flex;gap:0.75rem;justify-content:center;">
           <button class="btn btn-outline" onclick="hideOverlay()">Cancel</button>
           <button class="btn btn-primary" onclick="confirmApprove()">Yes, Publish Now</button>
         </div>`;
     }} else if (type === "loading") {{
-      html = `
-        <div class="spinner"></div>
-        <div class="overlay-title">${{title}}</div>
-        <div class="overlay-body">${{body}}</div>`;
+      html = `<div class="spinner"></div><div class="overlay-title">${{title}}</div><div class="overlay-body">${{body}}</div>`;
     }} else if (type === "success") {{
       html = `
         <div class="overlay-icon">✅</div>
@@ -694,7 +721,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         <div class="overlay-body">${{body}}</div>
         <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
           ${{actionUrl ? `<a href="${{actionUrl}}" target="_blank" class="btn btn-secondary">Watch Workflow</a>` : ""}}
-          <button class="btn btn-primary" onclick="startPolling()">Auto-refresh when ready</button>
+          <button class="btn btn-force-refresh" onclick="hideOverlay(); startPolling();">Auto-refresh when ready</button>
           <button class="btn btn-outline" onclick="hideOverlay()">Dismiss</button>
         </div>`;
     }} else if (type === "error") {{
@@ -704,7 +731,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         <div class="overlay-body">${{body}}</div>
         <button class="btn btn-outline" onclick="hideOverlay()">Close</button>`;
     }}
-
     card.innerHTML = html;
     overlay.classList.add("show");
   }}
@@ -713,49 +739,29 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     document.getElementById("overlay").classList.remove("show");
   }}
 
-  // ── Auto-refresh polling after regeneration ─────────
+  // ── Auto-refresh polling after regeneration ─────────────────────
   let pollInterval;
   function startPolling() {{
-    hideOverlay();
-    showToast("Will auto-refresh preview when the page changes...", "info");
+    showToast("Will auto-refresh preview when the new version is live…", "info");
     let checks = 0;
-    const maxChecks = 40; // 10 minutes
     pollInterval = setInterval(async () => {{
       checks++;
-      if (checks > maxChecks) {{
+      if (checks > 40) {{
         clearInterval(pollInterval);
-        showToast("Timed out waiting. Try refreshing manually.", "error");
+        showToast("Timed out. Use Force Refresh to check manually.", "error");
         return;
       }}
       try {{
         const r = await fetch(`/blog/staging/preview.html?nocache=${{Date.now()}}`, {{ cache: "no-store" }});
         const text = await r.text();
-        // Check if the preview page has been regenerated (it will have a new timestamp)
         if (text.includes("🔄 Regenerated with custom prompt")) {{
           clearInterval(pollInterval);
-          showToast("✅ New version ready! Refreshing...", "success");
-          setTimeout(() => window.location.reload(), 1500);
+          showToast("✅ New version ready! Force refreshing…", "success");
+          setTimeout(() => forceRefresh(), 1500);
         }}
-      }} catch (e) {{
-        // Network error, keep polling
-      }}
-    }}, 15000); // check every 15s
+      }} catch (e) {{}}
+    }}, 15000);
   }}
-
-  // ── Init ───────────────────────────────────────────
-  document.addEventListener("DOMContentLoaded", () => {{
-    loadPAT();
-    // Show gen run ID if available
-    const runId = "{run_id}";
-    if (runId && runId !== "0") {{
-      const row = document.getElementById("gen-info");
-      const val = document.getElementById("gen-run");
-      if (row && val) {{
-        row.style.display = "flex";
-        val.innerHTML = `<a href="https://github.com/${{REPO}}/actions/runs/${{runId}}" target="_blank" style="color:var(--blue);">Run #${{runId}}</a>`;
-      }}
-    }}
-  }});
 </script>
 
 </body>
@@ -765,9 +771,9 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--filename", required=True, help="Staging HTML filename")
-    parser.add_argument("--month",    required=True, help="Month year label, e.g. May 2026")
-    parser.add_argument("--run-id",   default="0",   help="GitHub Actions run ID")
+    parser.add_argument("--filename",    required=True, help="Staging HTML filename")
+    parser.add_argument("--month",       required=True, help="Month year label, e.g. May 2026")
+    parser.add_argument("--run-id",      default="0",   help="GitHub Actions run ID")
     parser.add_argument("--regenerated", action="store_true", help="Flag post as regenerated")
     args = parser.parse_args()
 
