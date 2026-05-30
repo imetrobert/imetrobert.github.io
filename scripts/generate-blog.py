@@ -32,6 +32,32 @@ def clean_ai_content(content):
     content = re.sub(r'###\s*', '', content)
     content = re.sub(r' +', ' ', content)
     content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
+
+    # ── Strip Gemini self-check / correction commentary ──────────────
+    # Gemini sometimes includes its own reasoning in the output, e.g.:
+    # "Correction: The FedDev Ontario investment was listed in both sections..."
+    # "Note: I have removed the duplicate item..."
+    # "Self-check: ..."
+    # These must never appear in the published post.
+    meta_patterns = [
+        # "Correction: ..." paragraph
+        r'(?:^|\n)\s*(?:Correction|Note|Self-check|Self check|Clarification|Update|Revision)'
+        r'[:\s][^\n]{10,400}(?:\n[^\n]{0,300}){0,5}',
+        # "I will remove..." / "I have removed..." sentences
+        r'[^.\n]*\bI (?:will|have|am going to) (?:remove|replace|delete|correct|fix|update)'
+        r'[^.\n]*\.?',
+        # "This (?:item|entry|announcement) was listed in both..."
+        r'[^.\n]*\b(?:listed|appears?|appeared|duplicated?|repeated?)\s+in\s+both\s+sections[^.\n]*\.?',
+        # "...and replace it with a different Canadian..."
+        r'[^.\n]*and replace it with a (?:different|new|another)[^.\n]*\.?',
+        # MANDATORY SELF-CHECK output that leaked through
+        r'(?:^|\n)\s*(?:MANDATORY )?SELF-CHECK[^\n]*(?:\n[^\n]{0,200}){0,10}',
+    ]
+    for pattern in meta_patterns:
+        content = re.sub(pattern, '', content, flags=re.IGNORECASE | re.MULTILINE)
+
+    content = re.sub(r' +', ' ', content)
+    content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
     return content.strip()
 
 
@@ -506,6 +532,7 @@ def parse_developments(text):
             i += 2
 
         if len(items) >= 3:
+            items = [i for i in items if not _is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
             print(f"  parse_developments: strategy 1 found {len(items)} items")
             return items[:10]
 
@@ -604,8 +631,32 @@ def parse_developments(text):
             items.append({"date": "", "company": "", "body": block_clean,
                           "source_name": source_name, "source_url": source_url})
 
+    items = [i for i in items if not _is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
     print(f"  parse_developments: strategy 3 found {len(items)} items")
     return items[:10]
+
+
+def _is_meta_commentary(text):
+    """
+    Returns True if a parsed item looks like Gemini self-check commentary
+    that leaked into the output — should be filtered out before rendering.
+    """
+    triggers = [
+        r'\blisted in both\b',
+        r'\bwill remove\b',
+        r'\bhave removed\b',
+        r'\breplace it with\b',
+        r'\bself.?check\b',
+        r'^correction[:\s]',
+        r'^note[:\s]',
+        r'\bduplicate\b.{0,50}\bsection\b',
+        r'\bappears? in both\b',
+        r'\bremov(?:e|ed|ing) (?:it|this|the duplicate)\b',
+    ]
+    for t in triggers:
+        if re.search(t, text, re.IGNORECASE):
+            return True
+    return False
 
 
 def parse_spotlight_items(text):
@@ -640,6 +691,9 @@ def parse_spotlight_items(text):
                 "source_name": source_name,
                 "source_url": source_url
             })
+
+    # ── Filter out any Gemini self-correction items that slipped through ──
+    items = [i for i in items if not _is_meta_commentary(i.get('body', '') + ' ' + i.get('org', ''))]
 
     if len(items) >= 2:
         return items[:6]
