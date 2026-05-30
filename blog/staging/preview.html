@@ -376,7 +376,7 @@
         </div>
         <div class="status-row">
           <span class="status-label">File</span>
-          <span class="status-value" style="font-family:monospace;font-size:0.7rem;">2026-05-29-ai-insights-for-may-2026.html</span>
+          <span class="status-value" style="font-family:monospace;font-size:0.7rem;">2026-05-30-ai-insights-for-may-2026.html</span>
         </div>
         <div class="status-row">
           <span class="status-label">Status</span>
@@ -387,7 +387,7 @@
           <span class="status-value" id="gen-run">—</span>
         </div>
       </div>
-      
+      <div class="regen-badge">🔄 Regenerated with custom prompt</div>
     </div>
 
     <!-- GitHub PAT -->
@@ -459,14 +459,14 @@
     <div class="preview-toolbar">
       <div>
         <h2>Post Preview — May 2026</h2>
-        <div class="preview-meta">Staging file: 2026-05-29-ai-insights-for-may-2026.html</div>
+        <div class="preview-meta">Staging file: 2026-05-30-ai-insights-for-may-2026.html</div>
       </div>
       <div style="display:flex;gap:0.5rem;">
         <button class="btn btn-outline" onclick="reloadFrame()">↻ Refresh</button>
       </div>
     </div>
     <div class="preview-frame">
-      <iframe id="preview-iframe" src="/blog/staging/2026-05-29-ai-insights-for-may-2026.html" title="Blog post preview"></iframe>
+      <iframe id="preview-iframe" src="/blog/staging/2026-05-30-ai-insights-for-may-2026.html" title="Blog post preview"></iframe>
     </div>
   </div>
 
@@ -485,7 +485,7 @@
 <script>
   // ── Config ─────────────────────────────────────────
   const REPO           = "imetrobert/imetrobert.github.io";
-  const STAGING_FILE   = "2026-05-29-ai-insights-for-may-2026.html";
+  const STAGING_FILE   = "2026-05-30-ai-insights-for-may-2026.html";
   const MONTH_YEAR     = "May 2026";
   const APPROVE_WF     = "approve-blog.yml";
   const REGENERATE_WF  = "regenerate-blog.yml";
@@ -723,7 +723,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     loadPAT();
     // Show gen run ID if available
-    const runId = "26667332441";
+    const runId = "26674657316";
     if (runId && runId !== "0") {
       const row = document.getElementById("gen-info");
       const val = document.getElementById("gen-run");
