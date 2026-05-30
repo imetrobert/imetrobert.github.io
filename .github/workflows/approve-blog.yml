@@ -84,10 +84,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Publish: AI Insights — ${{ github.event.inputs.month_year }}
-
-Approved and published via review workflow.
-Sitemap regenerated."
+            git commit -m "Publish: AI Insights — ${{ github.event.inputs.month_year }} | Approved via review workflow | Sitemap regenerated"
             git push
             echo "Published successfully"
           fi
