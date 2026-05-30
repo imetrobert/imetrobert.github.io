@@ -176,9 +176,15 @@ Format: 1. [Action text]
 
 ADOPTION SNAPSHOT (exactly 5 data points):
 CRITICAL: Each stat on its own line. Never combine into a paragraph.
+CRITICAL FORMAT: The number MUST come first. Never start a line with "%" or "of". Always write "30% of Canadian businesses..." not "% of Canadian businesses...". Never omit the number.
+
+Correct format examples:
+30% of Canadian businesses have adopted AI in at least one function. Source: BDC, 2025.
+46% of employed Canadians say AI has impacted their career trajectory. Source: Borderless AI, 2026.
+Global: 70% of organizations have an AI strategy in place. Source: McKinsey, 2025.
 
 Format for each line:
-[Statistic with number]. Source: [Organization], [year].
+[Number]% [rest of stat]. Source: [Organization], [year].
 
 Use only real, verifiable Canadian stats from: Statistics Canada, BDC, ISED, CIRA, Conference Board of Canada, Deloitte Canada, KPMG Canada, PwC Canada, Mila Annual Report, Vector Institute Annual Report, McKinsey Canada.
 If no Canadian stat exists for a category, use a global stat and clearly label it "Global:".
@@ -657,21 +663,59 @@ def parse_adoption_stats(text):
     """
     Parse ADOPTION SNAPSHOT. Each stat is on its own line with a Source.
     Returns list of dicts: {stat_text, stat_number, source_name, source_url}
+
+    Handles all Gemini output patterns:
+      - "30% of Canadian businesses..."       (number at start)
+      - "% of Canadian businesses have..."    (% before the number — broken)
+      - "Canadian businesses: 30%..."         (number mid-sentence)
+      - "Nearly 70% of..."                    (preceded by a word)
     """
     items = []
     lines = [l.strip() for l in text.split('\n') if len(l.strip()) > 15]
 
     for line in lines:
-        line = re.sub(r'^[-•*\d.)\s]+', '', line).strip()
+        # Strip leading list markers but keep the content
+        line = re.sub(r'^[-•*]\s+', '', line).strip()
+        # Strip leading standalone % that Gemini sometimes outputs (broken format)
+        line = re.sub(r'^%\s+', '', line).strip()
         if len(line) < 15:
             continue
 
         source_name, source_url, line_clean = _extract_source_from_text(line)
 
-        # Try to find a leading number/percentage
-        num_match = re.match(r'^([\d.]+\s*(?:%|percent|billion|million|B|M|\+))', line_clean, re.IGNORECASE)
-        stat_number = num_match.group(1) if num_match else ""
-        stat_text = line_clean[len(stat_number):].strip() if num_match else line_clean
+        # Strategy 1: number at the very start (e.g. "30% of...")
+        num_match = re.match(
+            r'^([\d.]+\s*(?:%|percent|\+)?(?:\s*(?:billion|million|B|M))?)',
+            line_clean, re.IGNORECASE
+        )
+
+        # Strategy 2: preceded by a qualifier word (e.g. "Nearly 30%" or "Over 70%")
+        if not num_match or not num_match.group(1).strip():
+            num_match2 = re.search(
+                r'((?:nearly|over|about|approximately|around|almost|more than|less than|up to)?\s*[\d.]+\s*(?:%|percent|\+)?(?:\s*(?:billion|million|B|M))?)',
+                line_clean, re.IGNORECASE
+            )
+            if num_match2 and re.search(r'\d', num_match2.group(1)):
+                stat_number = num_match2.group(1).strip()
+                # Build display: bold the number inline, show full sentence
+                stat_text = line_clean
+                items.append({
+                    "stat_text": stat_text,
+                    "stat_number": stat_number,
+                    "source_name": source_name,
+                    "source_url": source_url
+                })
+                continue
+
+        if num_match and re.search(r'\d', num_match.group(1)):
+            stat_number = num_match.group(1).strip()
+            stat_text = line_clean[num_match.end():].strip().lstrip('of ').strip()
+            # If stripping the number leaves almost nothing, use full line
+            if len(stat_text) < 10:
+                stat_text = line_clean
+        else:
+            stat_number = ""
+            stat_text = line_clean
 
         items.append({
             "stat_text": stat_text,
@@ -857,8 +901,24 @@ def create_html_blog_post(content, title, excerpt):
     if adoption:
         stat_items_html = ""
         for item in adoption:
-            num_html  = f'<span class="stat-highlight">{item["stat_number"]}</span> ' if item["stat_number"] else ''
-            src_html  = ""
+            # If stat_number exists AND stat_text is the full sentence,
+            # highlight the number inline within the sentence.
+            # If stat_text is the remainder after stripping the number, prepend it.
+            if item["stat_number"] and item["stat_text"] and item["stat_number"] in item["stat_text"]:
+                # Number appears inside the full sentence — highlight it inline
+                highlighted = item["stat_text"].replace(
+                    item["stat_number"],
+                    f'<span class="stat-highlight">{item["stat_number"]}</span>',
+                    1
+                )
+                stat_content = f'<p class="stat-text">{highlighted}</p>'
+            elif item["stat_number"]:
+                # Number was at the start, stat_text is the remainder
+                stat_content = f'<p class="stat-text"><span class="stat-highlight">{item["stat_number"]}</span> {item["stat_text"]}</p>'
+            else:
+                stat_content = f'<p class="stat-text">{item["stat_text"]}</p>'
+
+            src_html = ""
             if item.get("source_url"):
                 src_html = (
                     f'<div class="stat-source">'
@@ -869,9 +929,10 @@ def create_html_blog_post(content, title, excerpt):
                 )
             elif item.get("source_name"):
                 src_html = f'<div class="stat-source-plain">{item["source_name"]}</div>'
+
             stat_items_html += (
                 f'<div class="stat-item">'
-                f'  <p class="stat-text">{num_html}{item["stat_text"]}</p>'
+                f'  {stat_content}'
                 f'  {src_html}'
                 f'</div>\n'
             )
