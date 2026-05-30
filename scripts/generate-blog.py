@@ -789,7 +789,7 @@ def parse_adoption_stats(text):
 
         if num_match and re.search(r'\d', num_match.group(1)):
             stat_number = num_match.group(1).strip()
-            stat_text = line_clean[num_match.end():].strip().lstrip('of ').strip()
+            stat_text = re.sub(r'^of\s+', '', line_clean[num_match.end():].strip()).strip()
             if len(stat_text) < 10:
                 stat_text = line_clean
         else:
