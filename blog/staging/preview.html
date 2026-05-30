@@ -493,7 +493,7 @@
   // ── Init iframe with cache-busting timestamp ───────────────────
   document.addEventListener("DOMContentLoaded", () => {
     loadPAT();
-    const runId = "26688920622";
+    const runId = "26689338496";
     if (runId && runId !== "0") {
       const row = document.getElementById("gen-info");
       const val = document.getElementById("gen-run");
@@ -655,7 +655,10 @@
   }
 
   function openStagingPost() {
-    window.open(`/blog/staging/${STAGING_FILE}`, "_blank");
+    // Always open with a fresh cache-busting timestamp so the full-post
+    // tab shows the same version as the force-refreshed iframe.
+    const bust = Date.now() + "_" + Math.random().toString(36).slice(2);
+    window.open(`/blog/staging/${STAGING_FILE}?v=${bust}`, "_blank");
   }
 
   // ── Toast ────────────────────────────────────────────────────────
