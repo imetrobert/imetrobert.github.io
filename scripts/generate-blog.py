@@ -142,19 +142,34 @@ Rules:
 - Every item ends with Source: [Publication] | [Headline]
 
 WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs):
-Paragraph 1 — Financial services / technology: Name at least one specific Canadian bank, insurer, or tech company. Describe the direct operational or competitive impact.
-Paragraph 2 — Manufacturing, healthcare, or retail: Whichever is most relevant. Name a real Canadian company or sector dynamic. Be specific.
-Paragraph 3 — Regulatory and competitive risk: Reference a real Canadian regulation (Bill C-27, Quebec Law 25, PIPEDA, OSFI). Name a specific deadline Canadian leaders must meet.
-Each paragraph: 3-4 sentences maximum.
+CRITICAL CROSS-REFERENCE RULE: Every paragraph MUST name at least one specific event, company, or statistic from KEY AI DEVELOPMENTS, CANADIAN SPOTLIGHT, or ADOPTION SNAPSHOT above. Do not introduce new information here — this section interprets what was already reported. Generic analysis with no link to the items above is a failure.
+
+Paragraph 1 — Financial services / technology impact:
+- Open by naming a specific development from KEY AI DEVELOPMENTS (use the company name and what they did).
+- Explain the direct operational consequence for a named Canadian bank, insurer, or tech company (RBC, TD, Manulife, Cohere, etc.).
+- Connect to an adoption stat if one is relevant.
+- 3-4 sentences maximum.
+
+Paragraph 2 — Sector impact (manufacturing, healthcare, or retail):
+- Open by naming a specific item from CANADIAN SPOTLIGHT or KEY AI DEVELOPMENTS that affects this sector.
+- Name a real Canadian company or describe a real sector dynamic (not a hypothetical).
+- Make the opportunity or risk concrete and specific.
+- 3-4 sentences maximum.
+
+Paragraph 3 — Regulatory and competitive pressure:
+- Open by naming a specific regulation or policy item already referenced above (Bill C-27, Quebec Law 25, PIPEDA, OSFI guidelines, or a government funding program from CANADIAN SPOTLIGHT).
+- State a specific compliance deadline or decision point Canadian leaders face.
+- Connect to what the ADOPTION SNAPSHOT numbers mean for urgency.
+- 3-4 sentences maximum.
 
 STRATEGIC ACTIONS FOR THIS MONTH (exactly 5 items):
-CRITICAL: Each action MUST directly reference a specific development, company, or regulation mentioned in KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT above. The actions must connect to the news — they should feel like a direct response to what was reported.
+CRITICAL TRACEABILITY RULE: Each of the 5 actions MUST trace directly to a named item from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT. Write the action as a direct operational response to that specific news item. A reader should be able to look up the item in the sections above and see the connection immediately. Generic AI advice with no link to the reported news is a failure.
 
 Each action must:
 - Start with a strong verb: Audit, Pilot, Negotiate, Commission, Assign, Test, Require, Demand, Sunset, Block time to
-- Name the specific development, tool, model, regulation, or company it responds to
-- State WHO owns it (CTO, CFO, CHRO, Legal team, Board Audit Committee, etc.)
-- Include a deadline (this week / by end of Q2 / before June 30 / within 30 days)
+- Name the specific development, company, tool, regulation, or funding program it responds to (e.g. "In response to [company]'s [action] reported above...")
+- State WHO in the organization owns it (CTO, CFO, CHRO, Legal team, Board Audit Committee, etc.)
+- Include a specific deadline (this week / by end of Q2 / before June 30 / within 30 days)
 - Be 2-3 sentences
 
 Format: 1. [Action text]
@@ -168,10 +183,14 @@ Format for each line:
 Use only real, verifiable Canadian stats from: Statistics Canada, BDC, ISED, CIRA, Conference Board of Canada, Deloitte Canada, KPMG Canada, PwC Canada, Mila Annual Report, Vector Institute Annual Report, McKinsey Canada.
 If no Canadian stat exists for a category, use a global stat and clearly label it "Global:".
 Never invent percentages. Never attribute to vague sources.
+Where possible, choose stats that contextualise or add weight to the developments reported in KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT above.
 
 ROBERTS TAKE:
-Write this exact placeholder text and nothing else:
-[PLACEHOLDER — Robert: add 2-3 sentences of your personal perspective before publishing. What surprised you most this month? What are you telling clients right now? What is the pattern others are missing?]
+CRITICAL: This is NOT a summary of the newsletter. Robert speaks in first person with a direct, opinionated voice. He references 1-2 specific items from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT and offers a take that a reader would NOT get from reading those items alone — a pattern, a contradiction, a warning, or a client conversation that reveals something the headlines missed.
+
+Write 2-3 sentences. Start with "The [thing] that surprised me most this month was..." or "What I keep telling clients right now is..." or similar first-person opener. Never start with "This month" or "The AI landscape".
+
+Do NOT write the placeholder. Write actual content that Robert would say based on the specific news reported above.
 
 ---
 Context: {month_year} edition"""
@@ -1155,6 +1174,12 @@ def create_html_blog_post(content, title, excerpt):
 
 
 def _build_roberts_take(raw_text, month_year):
+    """
+    Renders Robert's Take section.
+    Gemini now generates real content here (not a placeholder).
+    We still show the editable placeholder UI if the content looks like
+    a placeholder or is too short, so Robert can override it before approving.
+    """
     is_placeholder = (
         not raw_text
         or 'PLACEHOLDER' in raw_text.upper()
@@ -1173,6 +1198,7 @@ def _build_roberts_take(raw_text, month_year):
     )
 
     if is_placeholder:
+        # Fallback: Gemini didn't produce content — show editable prompt
         body = (
             '<div class="roberts-placeholder">'
             '<strong>&#9998; Add your personal take before publishing.</strong><br><br>'
@@ -1182,10 +1208,21 @@ def _build_roberts_take(raw_text, month_year):
             '</div>'
         )
     else:
+        # Real content from Gemini — clean and render it
         cleaned = raw_text.strip()
+        # Strip any residual placeholder brackets if Gemini partially complied
         cleaned = re.sub(r'^\[.*?\]\s*', '', cleaned, flags=re.DOTALL).strip()
-        cleaned = re.sub(r'"', '&quot;', cleaned)
-        body = f'<p class="roberts-body">&#8220;{cleaned}&#8221;</p>'
+        # Strip markdown artifacts
+        cleaned = re.sub(r'\*\*(.*?)\*\*', r'\1', cleaned)
+        cleaned = re.sub(r'\*(.*?)\*', r'\1', cleaned)
+        # Escape quotes for HTML safety
+        cleaned = cleaned.replace('"', '&quot;').replace("'", '&#39;')
+        # Wrap in quotation marks
+        body = (
+            f'<p class="roberts-body">&#8220;{cleaned}&#8221;</p>'
+            f'<p style="font-size:0.72rem;opacity:0.5;margin-top:0.75rem;color:rgba(255,255,255,0.6);">'
+            f'&#9998; You can refine this in the regenerate prompt before approving.</p>'
+        )
 
     return f'<div class="section"><div class="roberts-take">{header}{body}</div></div>'
 
