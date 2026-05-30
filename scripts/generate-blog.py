@@ -410,32 +410,42 @@ def _extract_source_from_text(text):
     """
     Extract Source: Publication | Headline from a block of text.
     Returns (source_name, source_url, cleaned_text_without_source_line).
-    Handles multiple formatting variants Gemini may use.
+    Only matches Source: lines after a sentence boundary to avoid
+    truncating body text that contains colons or pipes.
     """
     source_name = ""
     source_url = ""
 
-    # Pattern 1: Source: Publication | Headline
-    m = re.search(r'Source[:\s]+([^|\r\n]{3,80}?)\s*\|\s*([^\r\n]{5,200})', text, re.IGNORECASE)
+    # Pattern 1: Source: Publication | Headline  (pipe — most reliable)
+    m = re.search(
+        r'(?:^|[.\n])\s*Source[:\s]+([^|\r\n]{3,80}?)\s*\|\s*([^\r\n]{5,200})',
+        text, re.IGNORECASE | re.MULTILINE
+    )
     if not m:
-        # Pattern 2: Source: Publication — Headline (em/en dash)
-        m = re.search(r'Source[:\s]+([^\u2014\u2013\r\n]{3,60})[\u2014\u2013]+([^\r\n]{5,200})', text, re.IGNORECASE)
+        # Pattern 2: Source: Publication — Headline  (em/en dash)
+        m = re.search(
+            r'(?:^|[.\n])\s*Source[:\s]+([^\u2014\u2013\r\n]{3,60})[\u2014\u2013]+([^\r\n]{5,200})',
+            text, re.IGNORECASE | re.MULTILINE
+        )
     if not m:
-        # Pattern 3: Source: Publication: Headline (colon after pub name)
-        m = re.search(r'Source[:\s]+([A-Z][^:\r\n]{3,60}):\s+([A-Z][^\r\n]{10,200})', text, re.IGNORECASE)
+        # Pattern 3: Source: OrganizationName, YYYY  (adoption stats format)
+        m = re.search(
+            r'(?:^|[.\n])\s*Source[:\s]+([A-Za-z][^\d\r\n,]{2,50}),\s*(\d{4}[^\r\n]{0,30})',
+            text, re.IGNORECASE | re.MULTILINE
+        )
 
     if m:
         source_name = m.group(1).strip().rstrip('.,')
         source_headline = m.group(2).strip().rstrip('.,')
-        # Strip any URLs Gemini may have accidentally included
         source_headline = re.sub(r'https?://\S+', '', source_headline).strip().rstrip('.,')
-        source_url = build_search_url(source_name, source_headline)
-        # Remove the entire source line from the text
-        cleaned = text[:m.start()].strip()
+        source_url = build_search_url(source_name, source_headline) if len(source_headline) > 6 else None
+        # Trim from where "Source" keyword starts (not match start, which may
+        # include the preceding period character from the lookahead)
+        source_kw = text.upper().rfind('SOURCE', 0, m.end())
+        cleaned = text[:source_kw].strip().rstrip('.') if source_kw > 0 else text[:m.start()].strip()
         return source_name, source_url, cleaned
 
     return "", "", text.strip()
-
 
 def parse_developments(text):
     """
@@ -661,47 +671,51 @@ def parse_spotlight_items(text):
 
 def parse_adoption_stats(text):
     """
-    Parse ADOPTION SNAPSHOT. Each stat is on its own line with a Source.
-    Returns list of dicts: {stat_text, stat_number, source_name, source_url}
-
-    Handles all Gemini output patterns:
-      - "30% of Canadian businesses..."       (number at start)
-      - "% of Canadian businesses have..."    (% before the number — broken)
-      - "Canadian businesses: 30%..."         (number mid-sentence)
-      - "Nearly 70% of..."                    (preceded by a word)
+    Parse ADOPTION SNAPSHOT stats. Handles:
+    - One stat per line (ideal Gemini output)
+    - Multiple stats packed into a paragraph (common Gemini failure)
+    - Stats with inline Source: attribution
+    - % appearing before the number (broken Gemini output)
+    - Leading fragments like ", showing..." (skipped)
     """
+    # ── Pre-process: split paragraph-packed stats into individual lines ──
+    # Handles: "37% of businesses... Source: X, 2025. 45% of businesses..."
+    text = re.sub(r'\.\s+(?=(?:Global:|Nearly|Over|About|Almost|\d))', '.\n', text)
+    text = re.sub(r'(Source:[^.\n]{5,100}\.)\s+(?=\d|Global:)', r'\1\n', text, flags=re.IGNORECASE)
+
     items = []
     lines = [l.strip() for l in text.split('\n') if len(l.strip()) > 15]
 
     for line in lines:
-        # Strip leading list markers but keep the content
-        line = re.sub(r'^[-•*]\s+', '', line).strip()
-        # Strip leading standalone % that Gemini sometimes outputs (broken format)
+        # Strip leading list markers
+        line = re.sub(r'^[-•*\d.)]+\s+', '', line).strip()
+        # Strip leading standalone % with no preceding digit (broken Gemini)
         line = re.sub(r'^%\s+', '', line).strip()
-        if len(line) < 15:
+        if len(line) < 10:
             continue
 
         source_name, source_url, line_clean = _extract_source_from_text(line)
 
-        # Strategy 1: number at the very start (e.g. "30% of...")
+        # Skip fragment lines (start with comma/semicolon or lowercase — mid-sentence leftovers)
+        if re.match(r'^[,;]|^[a-z]', line_clean.strip()):
+            continue
+
+        # Strategy 1: number at start
         num_match = re.match(
             r'^([\d.]+\s*(?:%|percent|\+)?(?:\s*(?:billion|million|B|M))?)',
             line_clean, re.IGNORECASE
         )
 
-        # Strategy 2: preceded by a qualifier word (e.g. "Nearly 30%" or "Over 70%")
-        if not num_match or not num_match.group(1).strip():
+        # Strategy 2: qualifier word + number (e.g. "Nearly 30%", "Over $500M")
+        if not num_match or not re.search(r'\d', num_match.group(1)):
             num_match2 = re.search(
-                r'((?:nearly|over|about|approximately|around|almost|more than|less than|up to)?\s*[\d.]+\s*(?:%|percent|\+)?(?:\s*(?:billion|million|B|M))?)',
+                r'((?:nearly|over|about|approximately|around|almost|more than|less than|up to|\$)?\s*[\d.]+\s*(?:%|percent|\+|\$)?(?:\s*(?:billion|million|B|M))?)',
                 line_clean, re.IGNORECASE
             )
             if num_match2 and re.search(r'\d', num_match2.group(1)):
-                stat_number = num_match2.group(1).strip()
-                # Build display: bold the number inline, show full sentence
-                stat_text = line_clean
                 items.append({
-                    "stat_text": stat_text,
-                    "stat_number": stat_number,
+                    "stat_text": line_clean,
+                    "stat_number": num_match2.group(1).strip(),
                     "source_name": source_name,
                     "source_url": source_url
                 })
@@ -710,22 +724,21 @@ def parse_adoption_stats(text):
         if num_match and re.search(r'\d', num_match.group(1)):
             stat_number = num_match.group(1).strip()
             stat_text = line_clean[num_match.end():].strip().lstrip('of ').strip()
-            # If stripping the number leaves almost nothing, use full line
             if len(stat_text) < 10:
                 stat_text = line_clean
         else:
             stat_number = ""
             stat_text = line_clean
 
-        items.append({
-            "stat_text": stat_text,
-            "stat_number": stat_number,
-            "source_name": source_name,
-            "source_url": source_url
-        })
+        if len(stat_text) > 5:
+            items.append({
+                "stat_text": stat_text,
+                "stat_number": stat_number,
+                "source_name": source_name,
+                "source_url": source_url
+            })
 
     return items[:8]
-
 
 def extract_title_and_excerpt(content, month_year):
     title   = f"AI Insights for {month_year}"
