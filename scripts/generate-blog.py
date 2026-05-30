@@ -47,11 +47,7 @@ def get_issue_number():
 
 
 def build_search_url(publication, headline):
-    """
-    Build a Google search URL for a given publication and article headline.
-    This always works — no dead links ever.
-    Format: https://www.google.com/search?q="Reuters"+"Article+Headline"
-    """
+    """Build a Google search URL. Always works — no dead links."""
     if not publication and not headline:
         return None
     query_parts = []
@@ -61,6 +57,124 @@ def build_search_url(publication, headline):
         query_parts.append(f'"{headline.strip()}"')
     query = " ".join(query_parts)
     return "https://www.google.com/search?q=" + requests.utils.quote(query)
+
+
+# ══════════════════════════════════════════════════════════════════
+# SHARED PROMPT RULES (used by both monthly and custom prompts)
+# ══════════════════════════════════════════════════════════════════
+
+def _shared_rules_block(month_year, prev_month):
+    """Returns the invariant rules/format block shared by all prompt variants."""
+    return f"""WRITING RULES — follow these exactly:
+1. Write like a trusted senior advisor talking to a peer. Confident. Direct. No hedging.
+2. Maximum 22 words per sentence. Short sentences hit harder.
+3. Never use these phrases:
+   - "dual-edged sword" → describe the tension directly
+   - "unprecedented opportunities" → name the specific opportunity
+   - "navigate" → deal with / address / respond to
+   - "leverage" → use
+   - "harness" → use / deploy / apply
+   - "landscape" → market / industry / sector
+   - "stakeholders" → customers / employees / investors / regulators
+   - "game-changer" → describe why it changes things
+   - "paradigm shift" → describe the actual shift
+   - "move the needle" → describe the specific outcome
+   - "in today's fast-paced world" → delete entirely
+   - "Welcome to the [month] edition" → do not use
+   - "This month, the pace of AI innovation continues to accelerate" → do not use
+4. Ground everything in Canadian business reality: US-Canada trade tensions under the Carney government, Bill C-27 (AIDA) working through Parliament, Quebec Law 25 privacy requirements, PIPEDA, the Canadian dollar, AI talent competition between Toronto/Montreal/Vancouver.
+5. Name real Canadian companies and institutions where relevant: Shopify, Cohere, D-Wave, Ada, Coveo, RBC, TD, Scotiabank, CIBC, Manulife, Sun Life, Bell, Rogers, Telus, BCE, Loblaw, Couche-Tard, CAE, BRP, Bombardier, Mila, Vector Institute, Amii, Ivey Business School, Rotman School of Management.
+
+Use Google Search grounding to find REAL AI news events from {month_year} ONLY. Do NOT use events from {prev_month} or any prior month. Do not invent events, dates, companies, or statistics.
+
+OUTPUT FORMAT
+Write plain text only. No markdown (no *, no **, no #). Use EXACTLY these section headers on their own lines:
+
+INTRODUCTION
+KEY AI DEVELOPMENTS
+CANADIAN SPOTLIGHT
+WHAT THIS MEANS FOR CANADIAN BUSINESS
+STRATEGIC ACTIONS FOR THIS MONTH
+ADOPTION SNAPSHOT
+ROBERTS TAKE
+
+---
+
+INTRODUCTION (3 sentences maximum):
+Open with one specific fact or event from {month_year}. Second sentence: what it means for Canadian business. Third sentence: what this analysis helps the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase.
+
+KEY AI DEVELOPMENTS (MINIMUM 8 items — this is a hard requirement):
+CRITICAL DATE RULE: Include ONLY events from {month_year}. Never fabricate. Never use events from prior months.
+CRITICAL SOURCE RULE: Every single item MUST end with a Source line. No exceptions.
+
+Use this EXACT format for every item — copy it precisely:
+[Month Day]: [Company] — [One sentence: what they did]. [One sentence: why it matters for Canadian business]. Source: [Publication name] | [Exact article headline as published]
+
+Example of correct format:
+May 15: Google — Released Gemini 3.1 with enhanced reasoning for enterprise. Canadian financial services firms can now deploy it within existing Google Workspace contracts. Source: The Verge | Google Releases Gemini 3.1 With Stronger Reasoning
+
+Rules:
+- MINIMUM 8 items. Aim for 8-10.
+- Every item has a date from {month_year}
+- Every item ends with Source: [Publication] | [Headline] — no URLs, no brackets around the headline
+- Vary the companies — mix US tech, Canadian companies, global players
+- The Canadian relevance sentence must be specific, not generic
+
+CANADIAN SPOTLIGHT (MINIMUM 3 items — hard requirement):
+Only genuinely Canadian content:
+- Canadian AI companies making news (Cohere, Ada, Coveo, D-Wave, Mila spinouts, etc.)
+- Federal or provincial government AI funding, policy, or regulation updates
+- Major foreign AI investment specifically into Canada
+- Canadian enterprise AI deployments (named company + what they did)
+- Canadian university or research breakthroughs (Mila, Vector Institute, Amii)
+
+CRITICAL SOURCE RULE: Every single Canadian Spotlight item MUST end with a Source line.
+
+Use this EXACT format for every item:
+[Company/Organization]: [What happened — one sentence]. [Why it matters — one sentence]. Source: [Publication name] | [Exact article headline as published]
+
+Example:
+Cohere: Launched Command R+ with enhanced bilingual French-English support. Quebec enterprises can now deploy a Canadian-built model for both official languages without US data residency concerns. Source: Globe and Mail | Cohere Launches Bilingual AI Model Built for Canadian Enterprises
+
+Rules:
+- MINIMUM 3 items. Aim for 3-4.
+- No generic "Canada is positioning itself" filler
+- Every item ends with Source: [Publication] | [Headline]
+
+WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs):
+Paragraph 1 — Financial services / technology: Name at least one specific Canadian bank, insurer, or tech company. Describe the direct operational or competitive impact.
+Paragraph 2 — Manufacturing, healthcare, or retail: Whichever is most relevant. Name a real Canadian company or sector dynamic. Be specific.
+Paragraph 3 — Regulatory and competitive risk: Reference a real Canadian regulation (Bill C-27, Quebec Law 25, PIPEDA, OSFI). Name a specific deadline Canadian leaders must meet.
+Each paragraph: 3-4 sentences maximum.
+
+STRATEGIC ACTIONS FOR THIS MONTH (exactly 5 items):
+CRITICAL: Each action MUST directly reference a specific development, company, or regulation mentioned in KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT above. The actions must connect to the news — they should feel like a direct response to what was reported.
+
+Each action must:
+- Start with a strong verb: Audit, Pilot, Negotiate, Commission, Assign, Test, Require, Demand, Sunset, Block time to
+- Name the specific development, tool, model, regulation, or company it responds to
+- State WHO owns it (CTO, CFO, CHRO, Legal team, Board Audit Committee, etc.)
+- Include a deadline (this week / by end of Q2 / before June 30 / within 30 days)
+- Be 2-3 sentences
+
+Format: 1. [Action text]
+
+ADOPTION SNAPSHOT (exactly 5 data points):
+CRITICAL: Each stat on its own line. Never combine into a paragraph.
+
+Format for each line:
+[Statistic with number]. Source: [Organization], [year].
+
+Use only real, verifiable Canadian stats from: Statistics Canada, BDC, ISED, CIRA, Conference Board of Canada, Deloitte Canada, KPMG Canada, PwC Canada, Mila Annual Report, Vector Institute Annual Report, McKinsey Canada.
+If no Canadian stat exists for a category, use a global stat and clearly label it "Global:".
+Never invent percentages. Never attribute to vague sources.
+
+ROBERTS TAKE:
+Write this exact placeholder text and nothing else:
+[PLACEHOLDER — Robert: add 2-3 sentences of your personal perspective before publishing. What surprised you most this month? What are you telling clients right now? What is the pattern others are missing?]
+
+---
+Context: {month_year} edition"""
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -86,7 +200,7 @@ def generate_blog_with_gemini(api_key, topic=None):
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "tools": [{"google_search": {}}],
         "generationConfig": {
-            "maxOutputTokens": 3500,
+            "maxOutputTokens": 4000,
             "temperature": 0.55,
             "candidateCount": 1
         },
@@ -162,206 +276,34 @@ def generate_blog_with_gemini(api_key, topic=None):
 
 
 def _build_monthly_prompt(month_year, prev_month):
+    rules = _shared_rules_block(month_year, prev_month)
     return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert has 25+ years in digital transformation and is known for direct, opinionated takes on AI adoption.
 
 AUDIENCE
 Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadian enterprises in financial services, retail, manufacturing, telecom, and healthcare. They are time-pressed and want signal, not noise.
 
-WRITING RULES — follow these exactly:
-1. Write like a trusted senior advisor talking to a peer. Confident. Direct. No hedging.
-2. Maximum 22 words per sentence. Short sentences hit harder.
-3. Never use these phrases (use the replacement in brackets):
-   - "dual-edged sword" → just describe the tension directly
-   - "unprecedented opportunities" → name the specific opportunity
-   - "navigate" → deal with / address / respond to
-   - "leverage" → use
-   - "harness" → use / deploy / apply
-   - "landscape" → market / industry / sector
-   - "stakeholders" → customers / employees / investors / regulators
-   - "game-changer" → describe why it changes things
-   - "paradigm shift" → describe the actual shift
-   - "move the needle" → describe the specific outcome
-   - "in today's fast-paced world" → delete entirely
-   - "Welcome to the [month] edition" → do not use
-   - "This month, the pace of AI innovation continues to accelerate" → do not use
-4. Ground everything in Canadian business reality: US-Canada trade tensions under the Carney government, Bill C-27 (AIDA) working through Parliament, Quebec Law 25 privacy requirements, PIPEDA, the Canadian dollar, AI talent competition between Toronto/Montreal/Vancouver
-5. Name real Canadian companies and institutions where relevant: Shopify, Cohere, D-Wave, Ada, Coveo, RBC, TD, Scotiabank, CIBC, Manulife, Sun Life, Bell, Rogers, Telus, BCE, Loblaw, Couche-Tard, CAE, BRP, Bombardier, Mila, Vector Institute, Amii, Ivey Business School, Rotman School of Management
-
-Use Google Search grounding to find REAL AI news events from {month_year} ONLY. Do NOT use events from {prev_month} or any prior month. Do not invent events, dates, companies, or statistics.
-
-OUTPUT FORMAT
-Write plain text only. No markdown formatting (no *, no **, no #). Use EXACTLY these section headers on their own lines with nothing else on those lines:
-
-INTRODUCTION
-KEY AI DEVELOPMENTS
-CANADIAN SPOTLIGHT
-WHAT THIS MEANS FOR CANADIAN BUSINESS
-STRATEGIC ACTIONS FOR THIS MONTH
-ADOPTION SNAPSHOT
-ROBERTS TAKE
-
----
-
-INTRODUCTION (3 sentences, no more):
-Open with a single specific fact or event from {month_year} — something that happened, not a trend. Second sentence: what it means for Canadian business specifically. Third sentence: what this month's analysis will help the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase.
-
-KEY AI DEVELOPMENTS (exactly 8 items):
-CRITICAL DATE RULE: Include ONLY events that occurred in {month_year}. Do NOT include events from prior months even if they are recent. If you cannot find 8 verified events from {month_year}, include fewer — never fabricate or substitute events from other months.
-Format: [Month Day]: [Company name] — [What they did, one sentence]. [Why it matters for Canadian business, one sentence]. Source: [Publication name] | [Exact article headline]
-Requirements:
-- Use real events you can verify with grounding search
-- Include exact dates — only from {month_year}
-- Make the Canadian relevance specific, not generic
-- Vary the companies — not all big US tech
-- Every item MUST end with a Source line with the publication name and the exact article headline as it appeared
-- Do NOT include URLs — the system will generate a search link automatically
-- Example source line: Source: Reuters | OpenAI Launches GPT-5 With Enhanced Reasoning
-
-CANADIAN SPOTLIGHT (3-4 items):
-Include ONLY genuinely Canadian content:
-- Canadian AI companies (Cohere, Ada, Coveo, D-Wave, Mila spinouts)
-- Federal/provincial government AI moves (ISED funding, Bill C-27 updates, Quebec Law 25 enforcement)
-- Major international AI investments specifically into Canada
-- Canadian university AI research breakthroughs (Mila, Vector, Amii)
-- Canadian enterprise AI deployments (named company + what they deployed)
-If you cannot find 4 verified Canadian items, list 3. Never pad with generic "Canada is positioning itself" filler.
-Format: [Company/Organization]: [What happened]. [Why it matters].
-
-WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs):
-Paragraph 1 — Financial services and technology: Name at least one specific Canadian bank, insurer, or tech company. Describe the direct impact of this month's developments on their operations or competitive position.
-Paragraph 2 — Manufacturing, healthcare, or retail: Pick whichever is most relevant this month. Name a real Canadian company or sector dynamic. Be specific about the opportunity or risk.
-Paragraph 3 — Regulatory and competitive risk: Reference a real Canadian regulation (Bill C-27, Quebec Law 25, PIPEDA, OSFI guidelines). What do Canadian leaders need to do before a specific deadline?
-Each paragraph: 3-4 sentences maximum.
-
-STRATEGIC ACTIONS FOR THIS MONTH (exactly 5 items):
-Each action must:
-- Start with a strong action verb: Audit, Pilot, Negotiate, Block time to, Commission, Assign, Test, Require, Demand, Sunset
-- Reference a specific tool, model, regulation, or company mentioned earlier in this newsletter
-- State WHO in the organization owns it (CTO, CFO, CHRO, Board Audit Committee, Legal team, etc.)
-- Include a specific deadline (this week, by end of Q2, before June 30, within 30 days)
-- Be 2-3 sentences
-Format as numbered list: 1. [Action]...
-
-ADOPTION SNAPSHOT (exactly 5 data points):
-CRITICAL: Each stat on its own separate line. This is mandatory — do not combine stats into a paragraph.
-Format for each line: [Specific statistic with number]. Source: [Organization name], [year or quarter].
-Use ONLY real, verifiable Canadian statistics from: Statistics Canada, BDC (Business Development Bank of Canada), ISED, CIRA, Conference Board of Canada, Deloitte Canada, KPMG Canada, PwC Canada, Mila Annual Report, Vector Institute Annual Report, or McKinsey Canada.
-If a real Canadian stat is unavailable for a category, use a North American or global stat and label it clearly.
-Do NOT invent percentages. Do NOT attribute stats to vague "recent surveys" or "Canadian AI Council."
-
-ROBERTS TAKE:
-Write this exact placeholder and nothing else:
-[PLACEHOLDER — Robert: add 2-3 sentences of your personal perspective before publishing. What surprised you most this month? What are you telling clients right now? What is the pattern others are missing?]
-
----
-Context: {month_year} edition"""
+{rules}"""
 
 
 def _build_custom_prompt(topic, month_year, prev_month):
     """
-    Custom prompt for regeneration requests.
-    Uses the EXACT same structural rules as the monthly prompt — only the
-    content focus changes. This preserves all formatting, source citations,
-    section counts, and output quality regardless of the user's prompt.
+    Custom/regeneration prompt. Identical structure to monthly prompt.
+    The topic is a CONTENT FOCUS DIRECTIVE only — it changes what events
+    and examples are chosen, never the format or structural requirements.
+    All section counts, source citation rules, and format specs are identical.
     """
+    rules = _shared_rules_block(month_year, prev_month)
     return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert has 25+ years in digital transformation and is known for direct, opinionated takes on AI adoption.
 
 AUDIENCE
 Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadian enterprises in financial services, retail, manufacturing, telecom, and healthcare. They are time-pressed and want signal, not noise.
 
-CONTENT FOCUS FOR THIS VERSION:
+CONTENT FOCUS DIRECTIVE:
 {topic}
-Apply this focus throughout — especially in the KEY AI DEVELOPMENTS selection, CANADIAN SPOTLIGHT items, WHAT THIS MEANS analysis, and STRATEGIC ACTIONS. The focus changes WHAT you write about, not HOW you structure it. All structural rules below are mandatory regardless of the focus directive.
 
-WRITING RULES — follow these exactly:
-1. Write like a trusted senior advisor talking to a peer. Confident. Direct. No hedging.
-2. Maximum 22 words per sentence. Short sentences hit harder.
-3. Never use these phrases (use the replacement in brackets):
-   - "dual-edged sword" → just describe the tension directly
-   - "unprecedented opportunities" → name the specific opportunity
-   - "navigate" → deal with / address / respond to
-   - "leverage" → use
-   - "harness" → use / deploy / apply
-   - "landscape" → market / industry / sector
-   - "stakeholders" → customers / employees / investors / regulators
-   - "game-changer" → describe why it changes things
-   - "paradigm shift" → describe the actual shift
-   - "move the needle" → describe the specific outcome
-   - "in today's fast-paced world" → delete entirely
-   - "Welcome to the [month] edition" → do not use
-   - "This month, the pace of AI innovation continues to accelerate" → do not use
-4. Ground everything in Canadian business reality: US-Canada trade tensions under the Carney government, Bill C-27 (AIDA) working through Parliament, Quebec Law 25 privacy requirements, PIPEDA, the Canadian dollar, AI talent competition between Toronto/Montreal/Vancouver
-5. Name real Canadian companies and institutions where relevant: Shopify, Cohere, D-Wave, Ada, Coveo, RBC, TD, Scotiabank, CIBC, Manulife, Sun Life, Bell, Rogers, Telus, BCE, Loblaw, Couche-Tard, CAE, BRP, Bombardier, Mila, Vector Institute, Amii, Ivey Business School, Rotman School of Management
+This directive changes WHAT events and examples you select and emphasise. It does NOT change the structure, section counts, formatting rules, or citation requirements. All structural rules below are mandatory and unchanged. The focus applies to which developments you prioritise in KEY AI DEVELOPMENTS, which items you choose for CANADIAN SPOTLIGHT, how you frame WHAT THIS MEANS FOR CANADIAN BUSINESS, and which STRATEGIC ACTIONS you recommend. The newsletter must still contain ALL sections with ALL minimum item counts and ALL source citations.
 
-Use Google Search grounding to find REAL AI news events from {month_year} ONLY. Do NOT use events from {prev_month} or any prior month. Do not invent events, dates, companies, or statistics.
-
-OUTPUT FORMAT
-Write plain text only. No markdown formatting (no *, no **, no #). Use EXACTLY these section headers on their own lines with nothing else on those lines:
-
-INTRODUCTION
-KEY AI DEVELOPMENTS
-CANADIAN SPOTLIGHT
-WHAT THIS MEANS FOR CANADIAN BUSINESS
-STRATEGIC ACTIONS FOR THIS MONTH
-ADOPTION SNAPSHOT
-ROBERTS TAKE
-
----
-
-INTRODUCTION (3 sentences, no more):
-Open with a single specific fact or event from {month_year} relevant to the content focus — something that happened, not a trend. Second sentence: what it means for Canadian business specifically. Third sentence: what this month's analysis will help the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase.
-
-KEY AI DEVELOPMENTS (exactly 8 items):
-CRITICAL DATE RULE: Include ONLY events that occurred in {month_year}. Do NOT include events from prior months. If you cannot find 8 verified events from {month_year}, include fewer — never fabricate or substitute events from other months. Prioritise events relevant to the content focus, but include a mix if 8 focused events are unavailable.
-Format: [Month Day]: [Company name] — [What they did, one sentence]. [Why it matters for Canadian business, one sentence]. Source: [Publication name] | [Exact article headline]
-Requirements:
-- Use real events you can verify with grounding search
-- Include exact dates — only from {month_year}
-- Make the Canadian relevance specific, not generic
-- Vary the companies — not all big US tech
-- Every item MUST end with a Source line with the publication name and the exact article headline as it appeared
-- Do NOT include URLs — the system will generate a search link automatically
-- Example source line: Source: Reuters | OpenAI Launches GPT-5 With Enhanced Reasoning
-
-CANADIAN SPOTLIGHT (3-4 items):
-Include ONLY genuinely Canadian content relevant to the focus where possible:
-- Canadian AI companies (Cohere, Ada, Coveo, D-Wave, Mila spinouts)
-- Federal/provincial government AI moves (ISED funding, Bill C-27 updates, Quebec Law 25 enforcement)
-- Major international AI investments specifically into Canada
-- Canadian university AI research breakthroughs (Mila, Vector, Amii)
-- Canadian enterprise AI deployments (named company + what they deployed)
-If you cannot find 4 verified Canadian items, list 3. Never pad with generic filler.
-Format: [Company/Organization]: [What happened]. [Why it matters].
-
-WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs):
-Paragraph 1 — Financial services and technology: Name at least one specific Canadian bank, insurer, or tech company. Connect to the content focus where relevant.
-Paragraph 2 — Manufacturing, healthcare, or retail: Pick whichever is most relevant given the content focus. Name a real Canadian company or sector dynamic.
-Paragraph 3 — Regulatory and competitive risk: Reference a real Canadian regulation (Bill C-27, Quebec Law 25, PIPEDA, OSFI guidelines). What do Canadian leaders need to do before a specific deadline?
-Each paragraph: 3-4 sentences maximum.
-
-STRATEGIC ACTIONS FOR THIS MONTH (exactly 5 items):
-Each action must:
-- Start with a strong action verb: Audit, Pilot, Negotiate, Block time to, Commission, Assign, Test, Require, Demand, Sunset
-- Be shaped by the content focus — the actions should reflect the focus directive
-- Reference a specific tool, model, regulation, or company mentioned earlier in this newsletter
-- State WHO in the organization owns it (CTO, CFO, CHRO, Board Audit Committee, Legal team, etc.)
-- Include a specific deadline (this week, by end of Q2, before June 30, within 30 days)
-- Be 2-3 sentences
-Format as numbered list: 1. [Action]...
-
-ADOPTION SNAPSHOT (exactly 5 data points):
-CRITICAL: Each stat on its own separate line. This is mandatory — do not combine stats into a paragraph.
-Format for each line: [Specific statistic with number]. Source: [Organization name], [year or quarter].
-Use ONLY real, verifiable Canadian statistics from: Statistics Canada, BDC, ISED, CIRA, Conference Board of Canada, Deloitte Canada, KPMG Canada, PwC Canada, Mila Annual Report, Vector Institute Annual Report, or McKinsey Canada.
-If a real Canadian stat is unavailable, use a North American or global stat and label it clearly.
-Do NOT invent percentages. Do NOT attribute stats to vague sources.
-
-ROBERTS TAKE:
-Write this exact placeholder and nothing else:
-[PLACEHOLDER — Robert: add 2-3 sentences of your personal perspective before publishing. What surprised you most this month? What are you telling clients right now? What is the pattern others are missing?]
-
----
-Context: {month_year} edition — focus: {topic[:80]}"""
+{rules}"""
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -439,75 +381,287 @@ def parse_list_items(text, min_length=40):
     return line_items if line_items else ([text.strip()] if len(text.strip()) >= min_length else [])
 
 
+def _extract_source_from_text(text):
+    """
+    Extract Source: Publication | Headline from a block of text.
+    Returns (source_name, source_url, cleaned_text_without_source_line).
+    Handles multiple formatting variants Gemini may use.
+    """
+    source_name = ""
+    source_url = ""
+
+    # Pattern 1: Source: Publication | Headline
+    m = re.search(r'Source[:\s]+([^|\r\n]{3,80}?)\s*\|\s*([^\r\n]{5,200})', text, re.IGNORECASE)
+    if not m:
+        # Pattern 2: Source: Publication — Headline (em/en dash)
+        m = re.search(r'Source[:\s]+([^\u2014\u2013\r\n]{3,60})[\u2014\u2013]+([^\r\n]{5,200})', text, re.IGNORECASE)
+    if not m:
+        # Pattern 3: Source: Publication: Headline (colon after pub name)
+        m = re.search(r'Source[:\s]+([A-Z][^:\r\n]{3,60}):\s+([A-Z][^\r\n]{10,200})', text, re.IGNORECASE)
+
+    if m:
+        source_name = m.group(1).strip().rstrip('.,')
+        source_headline = m.group(2).strip().rstrip('.,')
+        # Strip any URLs Gemini may have accidentally included
+        source_headline = re.sub(r'https?://\S+', '', source_headline).strip().rstrip('.,')
+        source_url = build_search_url(source_name, source_headline)
+        # Remove the entire source line from the text
+        cleaned = text[:m.start()].strip()
+        return source_name, source_url, cleaned
+
+    return "", "", text.strip()
+
+
 def parse_developments(text):
-    """Parse KEY AI DEVELOPMENTS into structured dicts with date, company, body."""
+    """
+    Parse KEY AI DEVELOPMENTS into structured dicts.
+    Robust multi-strategy parser: tries date-anchored splitting first,
+    then falls back to line-by-line and numbered-list approaches.
+    Always attempts to extract Source citations from each item.
+    """
     items = []
 
+    # ── Strategy 1: Split on date patterns ──────────────────────
     date_pattern = re.compile(
         r'(\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
         r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
-        r'[\s\.]?\d{1,2}[,.]?)',
+        r'\.?\s+\d{1,2}(?:st|nd|rd|th)?[,.]?)',
         re.IGNORECASE
     )
 
     splits = date_pattern.split(text)
-    i = 1
-    while i + 1 < len(splits):
-        date_str = splits[i].strip().rstrip(',.')
-        body     = splits[i + 1].strip()
-        body     = body.lstrip(': ')
-        body     = ' '.join(body.split())
+    if len(splits) >= 3:  # at least one date found
+        i = 1
+        while i + 1 < len(splits):
+            date_str = splits[i].strip().rstrip(',.')
+            body = splits[i + 1].strip().lstrip(': ')
+            body = ' '.join(body.split())
 
-        if len(body) > 30:
+            if len(body) > 30:
+                source_name, source_url, body_clean = _extract_source_from_text(body)
+                company = ""
+                desc = body_clean
+
+                for sep in [" — ", " – ", " - "]:
+                    if sep in body_clean:
+                        parts = body_clean.split(sep, 1)
+                        company = parts[0].strip().rstrip(":")
+                        desc = parts[1].strip()
+                        break
+
+                items.append({
+                    "date": date_str,
+                    "company": company,
+                    "body": desc,
+                    "source_name": source_name,
+                    "source_url": source_url
+                })
+            i += 2
+
+        if len(items) >= 3:
+            print(f"  parse_developments: strategy 1 found {len(items)} items")
+            return items[:10]
+
+    # ── Strategy 2: Numbered list items ─────────────────────────
+    items = []
+    numbered_blocks = re.findall(
+        r'^\d+[\.)]\s+(.+?)(?=^\d+[\.)]\s|\Z)',
+        text, re.MULTILINE | re.DOTALL
+    )
+    if numbered_blocks:
+        for block in numbered_blocks:
+            block = block.strip()
+            if len(block) < 30:
+                continue
+            source_name, source_url, block_clean = _extract_source_from_text(block)
+            # Try to extract date and company from the cleaned block
+            date_str = ""
             company = ""
-            desc = body
-            source_name = ""
-            source_url  = ""
+            desc = block_clean
 
-            import re as _re
-            source_match = _re.search(
-                r'Source[:\s]+([^|\r\n]+?)\s*\|\s*([^\r\n]+)',
-                body, _re.IGNORECASE
+            dm = re.match(
+                r'^((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
+                r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+                r'\.?\s+\d{1,2}(?:st|nd|rd|th)?[,.]?)[:\s]+(.+)',
+                block_clean, re.IGNORECASE | re.DOTALL
             )
-            if not source_match:
-                source_match = _re.search(
-                    r'Source[:\s]+([^\u2014\u2013\r\n]{3,60})[\u2014\u2013]+([^\r\n]{5,120})',
-                    body, _re.IGNORECASE
-                )
-            if source_match:
-                source_name     = source_match.group(1).strip().rstrip('.,')
-                source_headline = source_match.group(2).strip().rstrip('.,')
-                source_headline = _re.sub(r'https?://\S+', '', source_headline).strip().rstrip('.,')
-                source_url      = build_search_url(source_name, source_headline)
-                body = body[:source_match.start()].strip()
-                desc = body
+            if dm:
+                date_str = dm.group(1).strip().rstrip(',.')
+                desc = dm.group(2).strip().lstrip(': ')
 
             for sep in [" — ", " – ", " - "]:
-                if sep in body:
-                    parts = body.split(sep, 1)
+                if sep in desc:
+                    parts = desc.split(sep, 1)
                     company = parts[0].strip().rstrip(":")
-                    desc    = parts[1].strip()
-                    if source_match:
-                        sm2 = _re.search(r'Source:', desc, _re.IGNORECASE)
-                        if sm2:
-                            desc = desc[:sm2.start()].strip()
+                    desc = parts[1].strip()
+                    break
+
+            items.append({
+                "date": date_str,
+                "company": company,
+                "body": desc,
+                "source_name": source_name,
+                "source_url": source_url
+            })
+
+        if len(items) >= 3:
+            print(f"  parse_developments: strategy 2 found {len(items)} items")
+            return items[:10]
+
+    # ── Strategy 3: Line-by-line fallback ───────────────────────
+    items = []
+    lines = [l.strip() for l in text.split('\n') if len(l.strip()) > 40]
+    current_block = []
+
+    for line in lines:
+        # A new item starts when we see a date or a number at the start
+        is_new = bool(re.match(
+            r'^(\d+[\.)]\s+|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))',
+            line, re.IGNORECASE
+        ))
+        if is_new and current_block:
+            block_text = ' '.join(current_block)
+            source_name, source_url, block_clean = _extract_source_from_text(block_text)
+            date_str = ""
+            company = ""
+            desc = block_clean
+
+            dm = re.match(
+                r'^((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
+                r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+                r'\.?\s+\d{1,2}[,.]?)[:\s]+(.+)',
+                block_clean, re.IGNORECASE | re.DOTALL
+            )
+            if dm:
+                date_str = dm.group(1).strip().rstrip(',.')
+                desc = dm.group(2).strip().lstrip(': ')
+
+            for sep in [" — ", " – ", " - "]:
+                if sep in desc:
+                    parts = desc.split(sep, 1)
+                    company = parts[0].strip().rstrip(":")
+                    desc = parts[1].strip()
                     break
 
             items.append({"date": date_str, "company": company, "body": desc,
-                           "source_name": source_name, "source_url": source_url})
-        i += 2
+                          "source_name": source_name, "source_url": source_url})
+            current_block = [line]
+        else:
+            current_block.append(line)
 
-    if not items:
-        for raw in parse_list_items(text):
-            m = re.match(r'^([A-Z][a-z]+ \d{1,2})[:\-–—]\s*(.*)', raw)
-            if m:
-                items.append({"date": m.group(1), "company": "", "body": m.group(2),
-                               "source_name": "", "source_url": ""})
-            else:
-                items.append({"date": "", "company": "", "body": raw,
-                               "source_name": "", "source_url": ""})
+    # Don't forget the last block
+    if current_block:
+        block_text = ' '.join(current_block)
+        if len(block_text) > 40:
+            source_name, source_url, block_clean = _extract_source_from_text(block_text)
+            items.append({"date": "", "company": "", "body": block_clean,
+                          "source_name": source_name, "source_url": source_url})
 
+    print(f"  parse_developments: strategy 3 found {len(items)} items")
     return items[:10]
+
+
+def parse_spotlight_items(text):
+    """
+    Parse CANADIAN SPOTLIGHT items. Each should have company: body. Source: pub | headline.
+    Returns list of dicts with keys: org, body, source_name, source_url.
+    """
+    items = []
+
+    # Strategy 1: Split on lines that start with an org name followed by colon
+    # Look for patterns like "Cohere: ..." or "Government of Canada: ..."
+    blocks = re.split(r'\n(?=[A-Z][^\n:]{2,60}:)', text)
+
+    for block in blocks:
+        block = block.strip()
+        if len(block) < 30:
+            continue
+        source_name, source_url, block_clean = _extract_source_from_text(block)
+
+        # Extract org name (text before first colon)
+        org = ""
+        body = block_clean
+        colon_pos = block_clean.find(':')
+        if colon_pos > 0 and colon_pos < 80:
+            org = block_clean[:colon_pos].strip()
+            body = block_clean[colon_pos+1:].strip()
+
+        if len(body) > 20:
+            items.append({
+                "org": org,
+                "body": body,
+                "source_name": source_name,
+                "source_url": source_url
+            })
+
+    if len(items) >= 2:
+        return items[:6]
+
+    # Strategy 2: Numbered list fallback
+    items = []
+    numbered = re.findall(r'^\d+[\.)]\s+(.+?)(?=^\d+[\.)]\s|\Z)', text, re.MULTILINE | re.DOTALL)
+    for block in numbered:
+        block = block.strip()
+        if len(block) < 20:
+            continue
+        source_name, source_url, block_clean = _extract_source_from_text(block)
+        org = ""
+        body = block_clean
+        colon_pos = block_clean.find(':')
+        if colon_pos > 0 and colon_pos < 80:
+            org = block_clean[:colon_pos].strip()
+            body = block_clean[colon_pos+1:].strip()
+        items.append({"org": org, "body": body, "source_name": source_name, "source_url": source_url})
+
+    if items:
+        return items[:6]
+
+    # Strategy 3: Line fallback — treat each substantial line as an item
+    items = []
+    for line in text.split('\n'):
+        line = re.sub(r'^[-•*\d.)\s]+', '', line).strip()
+        if len(line) < 30:
+            continue
+        source_name, source_url, line_clean = _extract_source_from_text(line)
+        org = ""
+        body = line_clean
+        colon_pos = line_clean.find(':')
+        if colon_pos > 0 and colon_pos < 80:
+            org = line_clean[:colon_pos].strip()
+            body = line_clean[colon_pos+1:].strip()
+        items.append({"org": org, "body": body, "source_name": source_name, "source_url": source_url})
+
+    return items[:6]
+
+
+def parse_adoption_stats(text):
+    """
+    Parse ADOPTION SNAPSHOT. Each stat is on its own line with a Source.
+    Returns list of dicts: {stat_text, stat_number, source_name, source_url}
+    """
+    items = []
+    lines = [l.strip() for l in text.split('\n') if len(l.strip()) > 15]
+
+    for line in lines:
+        line = re.sub(r'^[-•*\d.)\s]+', '', line).strip()
+        if len(line) < 15:
+            continue
+
+        source_name, source_url, line_clean = _extract_source_from_text(line)
+
+        # Try to find a leading number/percentage
+        num_match = re.match(r'^([\d.]+\s*(?:%|percent|billion|million|B|M|\+))', line_clean, re.IGNORECASE)
+        stat_number = num_match.group(1) if num_match else ""
+        stat_text = line_clean[len(stat_number):].strip() if num_match else line_clean
+
+        items.append({
+            "stat_text": stat_text,
+            "stat_number": stat_number,
+            "source_name": source_name,
+            "source_url": source_url
+        })
+
+    return items[:8]
 
 
 def extract_title_and_excerpt(content, month_year):
@@ -530,7 +684,7 @@ def extract_title_and_excerpt(content, month_year):
 
 
 # ══════════════════════════════════════════════════════════════════
-# HTML GENERATION — premium template
+# HTML GENERATION
 # ══════════════════════════════════════════════════════════════════
 
 def create_html_blog_post(content, title, excerpt):
@@ -559,12 +713,16 @@ def create_html_blog_post(content, title, excerpt):
     roberts_raw     = sections.get("ROBERTS TAKE", "")
     adoption_raw    = sections.get("ADOPTION SNAPSHOT", "")
 
-    developments = parse_developments(sections.get("KEY AI DEVELOPMENTS", ""))
-    actions      = parse_list_items(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""), min_length=40)
-    adoption     = parse_list_items(adoption_raw, min_length=20)
+    developments    = parse_developments(sections.get("KEY AI DEVELOPMENTS", ""))
+    spotlight_items = parse_spotlight_items(canadian_spot)
+    actions         = parse_list_items(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""), min_length=40)
+    adoption        = parse_adoption_stats(adoption_raw)
+
+    print(f"  Parsed: {len(developments)} developments, {len(spotlight_items)} spotlight, {len(actions)} actions, {len(adoption)} stats")
 
     article_parts = []
 
+    # ── Introduction ────────────────────────────────────────────
     if intro_text:
         article_parts.append(
             f'<div class="section intro-section">'
@@ -572,6 +730,7 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
+    # ── Key AI Developments ──────────────────────────────────────
     if developments:
         dev_cards = ""
         for d in developments:
@@ -601,33 +760,49 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    if canadian_spot:
-        spot_items = parse_list_items(canadian_spot, min_length=30)
-        if spot_items:
-            items_html = "\n".join(
-                f'<li><span class="spot-bullet">🍁</span>{item}</li>'
-                for item in spot_items
+    # ── Canadian Spotlight ───────────────────────────────────────
+    if spotlight_items:
+        spot_cards = ""
+        for item in spotlight_items:
+            org_html = f'<div class="spot-org">{item["org"]}</div>' if item["org"] else ""
+            source_html = ""
+            if item.get("source_url"):
+                src_label = item.get("source_name") or "Source"
+                source_html = (
+                    f'<div class="spot-source">'
+                    f'<a href="{item["source_url"]}" target="_blank" rel="noopener noreferrer" '
+                    f'title="Search Google for this article">'
+                    f'🔍 {src_label}'
+                    f'</a></div>'
+                )
+            spot_cards += (
+                f'<li>'
+                f'<span class="spot-bullet">🍁</span>'
+                f'<div class="spot-content">'
+                f'{org_html}'
+                f'<div class="spot-body">{item["body"]}</div>'
+                f'{source_html}'
+                f'</div>'
+                f'</li>\n'
             )
-            article_parts.append(
-                f'<div class="section canada-section">'
-                f'<div class="canada-header">'
-                f'<span class="canada-label">Canadian Spotlight</span>'
-                f'</div>'
-                f'<h2 class="section-title canada-title">What\'s Happening in Canada</h2>'
-                f'<ul class="spot-list">{items_html}</ul>'
-                f'</div>'
-            )
-        elif len(canadian_spot) > 60:
-            article_parts.append(
-                f'<div class="section canada-section">'
-                f'<div class="canada-header">'
-                f'<span class="canada-label">Canadian Spotlight</span>'
-                f'</div>'
-                f'<h2 class="section-title canada-title">What\'s Happening in Canada</h2>'
-                f'<p>{canadian_spot}</p>'
-                f'</div>'
-            )
+        article_parts.append(
+            f'<div class="section canada-section">'
+            f'<div class="canada-header"><span class="canada-label">Canadian Spotlight</span></div>'
+            f'<h2 class="section-title canada-title">What\'s Happening in Canada</h2>'
+            f'<ul class="spot-list">{spot_cards}</ul>'
+            f'</div>'
+        )
+    elif canadian_spot and len(canadian_spot) > 60:
+        # Plain text fallback
+        article_parts.append(
+            f'<div class="section canada-section">'
+            f'<div class="canada-header"><span class="canada-label">Canadian Spotlight</span></div>'
+            f'<h2 class="section-title canada-title">What\'s Happening in Canada</h2>'
+            f'<p>{canadian_spot}</p>'
+            f'</div>'
+        )
 
+    # ── Business Impact ──────────────────────────────────────────
     if business_impact:
         paras = [p.strip() for p in business_impact.split('\n\n') if len(p.strip()) > 40]
         if not paras:
@@ -642,6 +817,7 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
+    # ── Strategic Actions ────────────────────────────────────────
     if actions:
         action_cards = ""
         for i, a in enumerate(actions[:5]):
@@ -658,30 +834,43 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
+    # ── Adoption Snapshot ────────────────────────────────────────
     if adoption:
-        stat_items = ""
+        stat_items_html = ""
         for item in adoption:
-            num_match = re.match(r'^([\d.]+\s*(?:%|percent|billion|million|B|M))', item, re.IGNORECASE)
-            num_html = f'<span class="stat-highlight">{num_match.group(1)}</span> ' if num_match else ''
-            stat_text = item[len(num_match.group(0)):].strip() if num_match else item
-            stat_items += (
+            num_html  = f'<span class="stat-highlight">{item["stat_number"]}</span> ' if item["stat_number"] else ''
+            src_html  = ""
+            if item.get("source_url"):
+                src_html = (
+                    f'<div class="stat-source">'
+                    f'<a href="{item["source_url"]}" target="_blank" rel="noopener noreferrer" '
+                    f'title="Search Google for this statistic">'
+                    f'🔍 {item["source_name"]}'
+                    f'</a></div>'
+                )
+            elif item.get("source_name"):
+                src_html = f'<div class="stat-source-plain">{item["source_name"]}</div>'
+            stat_items_html += (
                 f'<div class="stat-item">'
-                f'  <p class="stat-text">{num_html}{stat_text}</p>'
+                f'  <p class="stat-text">{num_html}{item["stat_text"]}</p>'
+                f'  {src_html}'
                 f'</div>\n'
             )
         article_parts.append(
             f'<div class="section adoption-section">'
             f'<h2 class="section-title">Canadian AI Adoption Snapshot</h2>'
-            f'<div class="stat-grid">{stat_items}</div>'
+            f'<div class="stat-grid">{stat_items_html}</div>'
             f'<p class="stat-note">Sources: Statistics Canada, BDC, ISED, Vector Institute, '
             f'Conference Board of Canada, Mila.</p>'
             f'</div>'
         )
 
+    # ── Robert's Take ────────────────────────────────────────────
     article_parts.append(_build_roberts_take(roberts_raw, month_year))
 
     article_html = "\n".join(article_parts)
 
+    # ── FAQ schema ───────────────────────────────────────────────
     faq_qs = [
         f"What AI developments matter most for Canadian businesses in {month_year}?",
         "What should Canadian executives do about AI right now?",
@@ -713,26 +902,18 @@ def create_html_blog_post(content, title, excerpt):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- ═══ SEO ═══ -->
     <title>{seo_title}</title>
     <meta name="description" content="{meta_desc}">
     <meta name="keywords" content="AI Canada {month_year}, Canadian AI news, artificial intelligence Canada, AI business strategy Canada, AI adoption Canada, Montreal AI, Canadian digital transformation, AI news for Canadians, AI insights {month_year}">
     <meta name="author" content="Robert Simon">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
     <meta name="language" content="en-CA">
-
-    <!-- ═══ GEO ═══ -->
     <meta name="geo.region" content="CA-QC">
     <meta name="geo.placename" content="Montreal, Quebec, Canada">
     <meta name="geo.position" content="45.5017;-73.5673">
     <meta name="ICBM" content="45.5017, -73.5673">
     <meta name="DC.coverage" content="Canada">
-
-    <!-- ═══ Canonical ═══ -->
     <link rel="canonical" href="{canonical}">
-
-    <!-- ═══ Open Graph ═══ -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="{canonical}">
     <meta property="og:title" content="{clean_title} | AI Insights for Canadian Business">
@@ -749,16 +930,12 @@ def create_html_blog_post(content, title, excerpt):
     <meta property="article:tag" content="Artificial Intelligence">
     <meta property="article:tag" content="Digital Transformation">
     <meta property="article:tag" content="Montreal">
-
-    <!-- ═══ Twitter / X ═══ -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{clean_title} | AI News for Canadian Business">
     <meta name="twitter:description" content="{meta_desc}">
     <meta name="twitter:image" content="{og_image}">
     <meta name="twitter:creator" content="@thedigitalrobert">
     <meta name="twitter:site" content="@thedigitalrobert">
-
-    <!-- ═══ Structured data ═══ -->
     <script type="application/ld+json">
     {{
       "@context": "https://schema.org",
@@ -799,8 +976,6 @@ def create_html_blog_post(content, title, excerpt):
       ]
     }}
     </script>
-
-    <!-- ═══ Google Analytics ═══ -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y0FZTVVLBS"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -808,7 +983,6 @@ def create_html_blog_post(content, title, excerpt):
       gtag('js', new Date());
       gtag('config', 'G-Y0FZTVVLBS');
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {{
@@ -830,363 +1004,86 @@ def create_html_blog_post(content, title, excerpt):
             --shadow-lg:   0 8px 32px rgb(0 0 0 / 0.10);
         }}
         *, *::before, *::after {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(160deg, #f0f4ff 0%, #e8eef8 100%);
-            color: var(--navy);
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-        }}
-        .nav-bar {{
-            background: var(--white);
-            padding: 0.875rem 0;
-            box-shadow: var(--shadow-sm);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border-bottom: 1px solid var(--border);
-        }}
-        .nav-content {{
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 0 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }}
-        .nav-link {{
-            color: var(--white);
-            text-decoration: none;
-            font-weight: 600;
-            padding: 0.4rem 1rem;
-            font-size: 0.8rem;
-            border-radius: 20px;
-            background: linear-gradient(135deg, var(--blue), var(--cyan));
-            transition: all 0.2s;
-            letter-spacing: 0.01em;
-            flex-shrink: 0;
-        }}
+        body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(160deg, #f0f4ff 0%, #e8eef8 100%); color: var(--navy); line-height: 1.6; -webkit-font-smoothing: antialiased; }}
+        .nav-bar {{ background: var(--white); padding: 0.875rem 0; box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }}
+        .nav-content {{ max-width: 900px; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }}
+        .nav-link {{ color: var(--white); text-decoration: none; font-weight: 600; padding: 0.4rem 1rem; font-size: 0.8rem; border-radius: 20px; background: linear-gradient(135deg, var(--blue), var(--cyan)); transition: all 0.2s; letter-spacing: 0.01em; flex-shrink: 0; }}
         .nav-link:hover {{ transform: translateY(-1px); box-shadow: 0 4px 12px rgb(37 99 235 / 0.3); }}
-        .nav-meta {{
-            font-size: 0.78rem;
-            color: var(--gray-light);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }}
-        .header {{
-            background: linear-gradient(135deg, var(--blue) 0%, #1a7fb5 50%, var(--cyan) 100%);
-            color: var(--white);
-            padding: 4rem 0 3.5rem;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }}
-        .header::before {{
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 15% 85%, rgba(255,255,255,0.07) 0%, transparent 45%),
-                radial-gradient(circle at 85% 15%, rgba(255,255,255,0.05) 0%, transparent 45%);
-            pointer-events: none;
-        }}
-        .header-content {{
-            max-width: 780px;
-            margin: 0 auto;
-            padding: 0 1.5rem;
-            position: relative;
-            z-index: 1;
-        }}
-        .issue-badge {{
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.25);
-            padding: 0.3rem 0.9rem;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            margin-bottom: 1.25rem;
-        }}
-        .header h1 {{
-            font-size: clamp(1.75rem, 4.5vw, 2.6rem);
-            font-weight: 800;
-            line-height: 1.15;
-            margin-bottom: 0.6rem;
-            letter-spacing: -0.02em;
-        }}
-        .header .subtitle {{
-            font-size: 0.95rem;
-            font-weight: 500;
-            opacity: 0.85;
-            margin-bottom: 1rem;
-        }}
-        .header .intro-text {{
-            font-size: 0.925rem;
-            opacity: 0.8;
-            max-width: 640px;
-            margin: 0 auto 1.25rem;
-            line-height: 1.65;
-        }}
-        .reading-badge {{
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            background: rgba(255,255,255,0.12);
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.72rem;
-            font-weight: 500;
-            opacity: 0.85;
-        }}
-        .container {{
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 2.5rem 1.5rem 5rem;
-        }}
-        .article-card {{
-            background: var(--white);
-            border-radius: 20px;
-            box-shadow: var(--shadow-lg);
-            overflow: hidden;
-            border: 1px solid rgba(226,232,240,0.6);
-        }}
-        .breadcrumb {{
-            font-size: 0.72rem;
-            color: var(--gray-light);
-            padding: 0.65rem 2rem;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-        }}
+        .nav-meta {{ font-size: 0.78rem; color: var(--gray-light); display: flex; align-items: center; gap: 0.5rem; }}
+        .header {{ background: linear-gradient(135deg, var(--blue) 0%, #1a7fb5 50%, var(--cyan) 100%); color: var(--white); padding: 4rem 0 3.5rem; text-align: center; position: relative; overflow: hidden; }}
+        .header::before {{ content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 15% 85%, rgba(255,255,255,0.07) 0%, transparent 45%), radial-gradient(circle at 85% 15%, rgba(255,255,255,0.05) 0%, transparent 45%); pointer-events: none; }}
+        .header-content {{ max-width: 780px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }}
+        .issue-badge {{ display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); padding: 0.3rem 0.9rem; border-radius: 20px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1.25rem; }}
+        .header h1 {{ font-size: clamp(1.75rem, 4.5vw, 2.6rem); font-weight: 800; line-height: 1.15; margin-bottom: 0.6rem; letter-spacing: -0.02em; }}
+        .header .subtitle {{ font-size: 0.95rem; font-weight: 500; opacity: 0.85; margin-bottom: 1rem; }}
+        .header .intro-text {{ font-size: 0.925rem; opacity: 0.8; max-width: 640px; margin: 0 auto 1.25rem; line-height: 1.65; }}
+        .reading-badge {{ display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(255,255,255,0.12); padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.72rem; font-weight: 500; opacity: 0.85; }}
+        .container {{ max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }}
+        .article-card {{ background: var(--white); border-radius: 20px; box-shadow: var(--shadow-lg); overflow: hidden; border: 1px solid rgba(226,232,240,0.6); }}
+        .breadcrumb {{ font-size: 0.72rem; color: var(--gray-light); padding: 0.65rem 2rem; background: var(--surface); border-bottom: 1px solid var(--border); }}
         .breadcrumb a {{ color: var(--blue); text-decoration: none; }}
-        .author-byline {{
-            display: flex;
-            align-items: center;
-            gap: 0.875rem;
-            padding: 1rem 2rem;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface);
-        }}
-        .author-byline img {{
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            object-fit: cover;
-            flex-shrink: 0;
-            border: 2px solid var(--border);
-        }}
+        .author-byline {{ display: flex; align-items: center; gap: 0.875rem; padding: 1rem 2rem; border-bottom: 1px solid var(--border); background: var(--surface); }}
+        .author-byline img {{ width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid var(--border); }}
         .author-name  {{ font-weight: 700; color: var(--navy); font-size: 0.875rem; }}
         .author-role  {{ font-size: 0.75rem; color: var(--gray-light); margin-top: 0.1rem; }}
         .article-content {{ padding: 2.25rem 2rem; }}
         .section {{ margin-bottom: 3rem; }}
-        .section-title {{
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--navy);
-            margin-bottom: 1.25rem;
-            padding-left: 0.875rem;
-            position: relative;
-            letter-spacing: -0.01em;
-        }}
-        .section-title::before {{
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0.1rem;
-            bottom: 0.1rem;
-            width: 3px;
-            background: linear-gradient(to bottom, var(--blue), var(--cyan));
-            border-radius: 2px;
-        }}
+        .section-title {{ font-size: 1.2rem; font-weight: 700; color: var(--navy); margin-bottom: 1.25rem; padding-left: 0.875rem; position: relative; letter-spacing: -0.01em; }}
+        .section-title::before {{ content: ''; position: absolute; left: 0; top: 0.1rem; bottom: 0.1rem; width: 3px; background: linear-gradient(to bottom, var(--blue), var(--cyan)); border-radius: 2px; }}
         .intro-section {{ border-left: 3px solid var(--cyan); padding-left: 1.25rem; }}
-        .intro-lead {{
-            font-size: 1.05rem;
-            line-height: 1.75;
-            color: var(--gray-dark);
-            font-weight: 400;
-        }}
+        .intro-lead {{ font-size: 1.05rem; line-height: 1.75; color: var(--gray-dark); font-weight: 400; }}
         .dev-grid {{ display: grid; gap: 0.75rem; }}
-        .dev-card {{
-            padding: 1rem 1.25rem;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            border-left: 3px solid var(--blue);
-            background: #fafbff;
-        }}
+        .dev-card {{ padding: 1rem 1.25rem; border: 1px solid var(--border); border-radius: 12px; transition: border-color 0.2s, box-shadow 0.2s; border-left: 3px solid var(--blue); background: #fafbff; }}
         .dev-card:hover {{ border-color: var(--blue); box-shadow: var(--shadow-md); background: var(--white); }}
-        .dev-header {{
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            margin-bottom: 0.4rem;
-            flex-wrap: wrap;
-        }}
-        .dev-date {{
-            display: inline-block;
-            background: linear-gradient(135deg, var(--blue), var(--cyan));
-            color: var(--white);
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 0.15rem 0.55rem;
-            border-radius: 10px;
-            white-space: nowrap;
-            letter-spacing: 0.03em;
-        }}
+        .dev-header {{ display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem; flex-wrap: wrap; }}
+        .dev-date {{ display: inline-block; background: linear-gradient(135deg, var(--blue), var(--cyan)); color: var(--white); font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 10px; white-space: nowrap; letter-spacing: 0.03em; }}
         .dev-company {{ font-weight: 700; color: var(--navy); font-size: 0.85rem; }}
         .dev-body {{ font-size: 0.875rem; color: var(--gray); line-height: 1.65; }}
         .dev-source {{ margin-top: 0.5rem; }}
-        .dev-source a {{
-            font-size: 0.72rem;
-            color: var(--blue);
-            text-decoration: none;
-            font-weight: 600;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }}
+        .dev-source a {{ font-size: 0.72rem; color: var(--blue); text-decoration: none; font-weight: 600; opacity: 0.8; transition: opacity 0.2s; }}
         .dev-source a:hover {{ opacity: 1; text-decoration: underline; }}
-        .canada-section {{
-            background: linear-gradient(135deg, #fff5f5 0%, #fffbfb 100%);
-            border: 1px solid #fecaca;
-            border-radius: 16px;
-            padding: 1.75rem;
-        }}
+        .canada-section {{ background: linear-gradient(135deg, #fff5f5 0%, #fffbfb 100%); border: 1px solid #fecaca; border-radius: 16px; padding: 1.75rem; }}
         .canada-header {{ margin-bottom: 0.75rem; }}
-        .canada-label {{
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            background: var(--canada-red);
-            color: var(--white);
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 0.2rem 0.7rem;
-            border-radius: 12px;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }}
+        .canada-label {{ display: inline-flex; align-items: center; gap: 0.35rem; background: var(--canada-red); color: var(--white); font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.7rem; border-radius: 12px; letter-spacing: 0.06em; text-transform: uppercase; }}
         .canada-label::before {{ content: "🍁"; font-size: 0.75rem; }}
         .canada-title::before {{ background: var(--canada-red) !important; }}
-        .spot-list {{ list-style: none; padding: 0; display: grid; gap: 0.75rem; }}
-        .spot-list li {{
-            display: flex;
-            gap: 0.6rem;
-            align-items: flex-start;
-            font-size: 0.875rem;
-            color: var(--gray);
-            line-height: 1.65;
-            padding: 0.75rem 1rem;
-            background: var(--white);
-            border-radius: 10px;
-            border: 1px solid #fde8e8;
-        }}
-        .spot-bullet {{ flex-shrink: 0; margin-top: 0.05rem; font-size: 0.85rem; }}
+        .spot-list {{ list-style: none; padding: 0; display: grid; gap: 0.875rem; }}
+        .spot-list li {{ display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.875rem; color: var(--gray); line-height: 1.65; padding: 0.875rem 1rem; background: var(--white); border-radius: 10px; border: 1px solid #fde8e8; }}
+        .spot-bullet {{ flex-shrink: 0; margin-top: 0.1rem; font-size: 0.85rem; }}
+        .spot-content {{ flex: 1; }}
+        .spot-org {{ font-weight: 700; color: var(--navy); font-size: 0.85rem; margin-bottom: 0.2rem; }}
+        .spot-body {{ font-size: 0.875rem; color: var(--gray); line-height: 1.6; }}
+        .spot-source {{ margin-top: 0.4rem; }}
+        .spot-source a {{ font-size: 0.72rem; color: var(--canada-red); text-decoration: none; font-weight: 600; opacity: 0.8; transition: opacity 0.2s; }}
+        .spot-source a:hover {{ opacity: 1; text-decoration: underline; }}
         .impact-section p {{ font-size: 0.9rem; line-height: 1.8; color: var(--gray); margin-bottom: 1rem; }}
         .impact-section p:last-child {{ margin-bottom: 0; }}
         .actions-grid {{ display: grid; gap: 0.875rem; }}
-        .action-card {{
-            display: flex;
-            gap: 1rem;
-            align-items: flex-start;
-            padding: 1.1rem 1.25rem;
-            background: #f8faff;
-            border: 1px solid #dbeafe;
-            border-radius: 12px;
-            border-left: 3px solid var(--blue);
-            transition: box-shadow 0.2s;
-        }}
+        .action-card {{ display: flex; gap: 1rem; align-items: flex-start; padding: 1.1rem 1.25rem; background: #f8faff; border: 1px solid #dbeafe; border-radius: 12px; border-left: 3px solid var(--blue); transition: box-shadow 0.2s; }}
         .action-card:hover {{ box-shadow: var(--shadow-md); background: var(--white); }}
-        .action-num {{
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 1.75rem;
-            height: 1.75rem;
-            min-width: 1.75rem;
-            background: linear-gradient(135deg, var(--blue), var(--cyan));
-            color: var(--white);
-            font-size: 0.72rem;
-            font-weight: 800;
-            border-radius: 50%;
-            margin-top: 0.1rem;
-        }}
+        .action-num {{ display: flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; min-width: 1.75rem; background: linear-gradient(135deg, var(--blue), var(--cyan)); color: var(--white); font-size: 0.72rem; font-weight: 800; border-radius: 50%; margin-top: 0.1rem; }}
         .action-body {{ font-size: 0.875rem; color: var(--gray-dark); line-height: 1.7; flex: 1; }}
         .stat-grid {{ display: grid; gap: 0.75rem; }}
-        .stat-item {{
-            padding: 1rem 1.25rem;
-            background: #f0fdf4;
-            border-left: 3px solid var(--green);
-            border-radius: 0 10px 10px 0;
-        }}
+        .stat-item {{ padding: 1rem 1.25rem; background: #f0fdf4; border-left: 3px solid var(--green); border-radius: 0 10px 10px 0; }}
         .stat-text {{ font-size: 0.875rem; color: var(--gray-dark); line-height: 1.65; }}
         .stat-highlight {{ font-weight: 800; color: var(--green); font-size: 1rem; }}
+        .stat-source {{ margin-top: 0.35rem; }}
+        .stat-source a {{ font-size: 0.7rem; color: var(--green); text-decoration: none; font-weight: 600; opacity: 0.75; transition: opacity 0.2s; }}
+        .stat-source a:hover {{ opacity: 1; text-decoration: underline; }}
+        .stat-source-plain {{ font-size: 0.7rem; color: var(--gray-light); margin-top: 0.35rem; }}
         .stat-note {{ font-size: 0.72rem; color: var(--gray-light); margin-top: 0.875rem; font-style: italic; }}
-        .roberts-take {{
-            background: linear-gradient(135deg, #1e3a6e 0%, #1a5276 100%);
-            border-radius: 16px;
-            padding: 1.75rem;
-            color: var(--white);
-        }}
-        .roberts-header {{
-            display: flex;
-            align-items: center;
-            gap: 0.875rem;
-            margin-bottom: 1.1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.12);
-        }}
-        .roberts-header img {{
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid rgba(255,255,255,0.25);
-            flex-shrink: 0;
-        }}
+        .roberts-take {{ background: linear-gradient(135deg, #1e3a6e 0%, #1a5276 100%); border-radius: 16px; padding: 1.75rem; color: var(--white); }}
+        .roberts-header {{ display: flex; align-items: center; gap: 0.875rem; margin-bottom: 1.1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.12); }}
+        .roberts-header img {{ width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.25); flex-shrink: 0; }}
         .roberts-label {{ font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 0.1rem; }}
         .roberts-name {{ font-weight: 700; font-size: 0.9rem; }}
         .roberts-body {{ font-size: 0.925rem; line-height: 1.85; color: #ffffff; font-style: normal; font-weight: 400; }}
-        .roberts-placeholder {{
-            font-size: 0.825rem;
-            line-height: 1.7;
-            opacity: 0.65;
-            border: 1px dashed rgba(255,255,255,0.25);
-            padding: 1rem 1.25rem;
-            border-radius: 10px;
-        }}
+        .roberts-placeholder {{ font-size: 0.825rem; line-height: 1.7; opacity: 0.65; border: 1px dashed rgba(255,255,255,0.25); padding: 1rem 1.25rem; border-radius: 10px; }}
         .roberts-placeholder strong {{ color: var(--white); opacity: 1; font-style: normal; }}
-        .conclusion {{
-            background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%);
-            color: var(--white);
-            padding: 2rem;
-            border-radius: 14px;
-            margin-top: 2.5rem;
-        }}
+        .conclusion {{ background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%); color: var(--white); padding: 2rem; border-radius: 14px; margin-top: 2.5rem; }}
         .conclusion-label {{ font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.75; margin-bottom: 0.5rem; }}
         .conclusion p {{ color: rgba(255,255,255,0.95); font-size: 0.95rem; font-weight: 500; line-height: 1.75; }}
         .conclusion strong {{ color: var(--white); font-weight: 700; }}
-        .earlier-insights {{ margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--border); }}
-        .earlier-title {{ font-size: 0.85rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 1rem; }}
-        .earlier-posts-grid {{ display: grid; gap: 0.65rem; }}
-        .earlier-post-link {{
-            display: block;
-            padding: 0.875rem 1.1rem;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.2s;
-            background: var(--surface);
-        }}
-        .earlier-post-link:hover {{ border-color: var(--blue); background: var(--white); transform: translateX(3px); }}
-        .earlier-post-title {{ font-size: 0.875rem; font-weight: 600; color: var(--blue); margin-bottom: 0.15rem; }}
-        .earlier-post-date  {{ font-size: 0.75rem; color: var(--gray-light); }}
         p {{ margin-bottom: 1rem; line-height: 1.75; color: var(--gray); font-size: 0.9rem; }}
         strong {{ color: var(--navy); font-weight: 600; }}
         @media (max-width: 640px) {{
@@ -1214,7 +1111,6 @@ def create_html_blog_post(content, title, excerpt):
             </div>
         </div>
     </nav>
-
     <header class="header">
         <div class="header-content">
             <div class="issue-badge">Issue #{issue_num} &nbsp;&#8226;&nbsp; {month_year}</div>
@@ -1224,7 +1120,6 @@ def create_html_blog_post(content, title, excerpt):
             <div class="reading-badge">&#9201; {reading_time} min read</div>
         </div>
     </header>
-
     <div class="container">
         <article class="article-card" itemscope itemtype="https://schema.org/BlogPosting">
             <meta itemprop="headline"      content="{clean_title}">
@@ -1232,13 +1127,11 @@ def create_html_blog_post(content, title, excerpt):
             <meta itemprop="dateModified"  content="{iso_date}">
             <meta itemprop="author"        content="Robert Simon">
             <meta itemprop="description"   content="{meta_desc}">
-
             <nav class="breadcrumb" aria-label="Breadcrumb">
                 <a href="https://www.imetrobert.com">Home</a> &#8250;
                 <a href="https://www.imetrobert.com/blog/">AI Insights Blog</a> &#8250;
                 <span>{clean_title}</span>
             </nav>
-
             <div class="author-byline">
                 <img src="https://imetrobert.github.io/profile.jpg" alt="Robert Simon" loading="lazy">
                 <div>
@@ -1246,10 +1139,8 @@ def create_html_blog_post(content, title, excerpt):
                     <div class="author-role">AI Thought Leader &amp; Digital Transformation Expert &mdash; Montreal, QC</div>
                 </div>
             </div>
-
             <div class="article-content" itemprop="articleBody">
                 {article_html}
-
                 <div class="conclusion">
                     <div class="conclusion-label">The Bottom Line</div>
                     <p>{_build_conclusion(sections, month_year)}</p>
@@ -1580,11 +1471,11 @@ def update_blog_index():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--topic",  help="Custom topic (optional)")
+    parser.add_argument("--topic",  help="Custom topic / focus directive (optional)")
     parser.add_argument("--output", default="posts", choices=["staging", "posts"])
     args = parser.parse_args()
 
-    print("=== Blog Generator (premium template) ===")
+    print("=== Blog Generator ===")
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
