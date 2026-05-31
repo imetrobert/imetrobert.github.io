@@ -33,24 +33,13 @@ def clean_ai_content(content):
     content = re.sub(r' +', ' ', content)
     content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
 
-    # ── Strip Gemini self-check / correction commentary ──────────────
-    # Gemini sometimes includes its own reasoning in the output, e.g.:
-    # "Correction: The FedDev Ontario investment was listed in both sections..."
-    # "Note: I have removed the duplicate item..."
-    # "Self-check: ..."
-    # These must never appear in the published post.
     meta_patterns = [
-        # "Correction: ..." paragraph
         r'(?:^|\n)\s*(?:Correction|Note|Self-check|Self check|Clarification|Update|Revision)'
         r'[:\s][^\n]{10,400}(?:\n[^\n]{0,300}){0,5}',
-        # "I will remove..." / "I have removed..." sentences
         r'[^.\n]*\bI (?:will|have|am going to) (?:remove|replace|delete|correct|fix|update)'
         r'[^.\n]*\.?',
-        # "This (?:item|entry|announcement) was listed in both..."
         r'[^.\n]*\b(?:listed|appears?|appeared|duplicated?|repeated?)\s+in\s+both\s+sections[^.\n]*\.?',
-        # "...and replace it with a different Canadian..."
         r'[^.\n]*and replace it with a (?:different|new|another)[^.\n]*\.?',
-        # MANDATORY SELF-CHECK output that leaked through
         r'(?:^|\n)\s*(?:MANDATORY )?SELF-CHECK[^\n]*(?:\n[^\n]{0,200}){0,10}',
     ]
     for pattern in meta_patterns:
@@ -73,7 +62,6 @@ def get_issue_number():
 
 
 def build_search_url(publication, headline):
-    """Build a Google search URL. Always works — no dead links."""
     if not publication and not headline:
         return None
     query_parts = []
@@ -85,12 +73,36 @@ def build_search_url(publication, headline):
     return "https://www.google.com/search?q=" + requests.utils.quote(query)
 
 
+def _is_episode_or_newsletter_item(body, company):
+    """
+    Returns True if a parsed development item looks like a newsletter issue
+    or podcast episode that was scraped by Gemini's search grounding.
+    e.g. "26: GPT-5.5, Claude Mythos & What It Means"
+         "Episode 14: AI in Canada"
+         "#42 - The Weekly AI Briefing"
+    """
+    if not body:
+        return False
+    stripped = body.strip()
+    # Matches: "26: ...", "Episode 14: ...", "#42 ...", "Issue 7: ..."
+    if re.match(r'^\d+\s*[:\-–—]', stripped):
+        return True
+    if re.match(r'^(?:Episode|Ep\.?|Issue|Vol\.?|#)\s*\d+', stripped, re.IGNORECASE):
+        return True
+    # No company AND body looks like a title (short, title-case, no sentence structure)
+    if not company and len(stripped) < 80 and re.match(r'^[A-Z0-9#]', stripped):
+        words = stripped.split()
+        if len(words) <= 10 and not stripped.endswith('.'):
+            # Likely a scraped headline with no context
+            return True
+    return False
+
+
 # ══════════════════════════════════════════════════════════════════
-# SHARED PROMPT RULES (used by both monthly and custom prompts)
+# SHARED PROMPT RULES
 # ══════════════════════════════════════════════════════════════════
 
 def _shared_rules_block(month_year, prev_month):
-    """Returns the invariant rules/format block shared by all prompt variants."""
     return f"""WRITING RULES — follow these exactly:
 1. Write like a trusted senior advisor talking to a peer. Confident. Direct. No hedging.
 2. Maximum 22 words per sentence. Short sentences hit harder.
@@ -113,6 +125,8 @@ def _shared_rules_block(month_year, prev_month):
 
 Use Google Search grounding to find REAL AI news events from {month_year} ONLY. Do NOT use events from {prev_month} or any prior month. Do not invent events, dates, companies, or statistics.
 
+SOURCE QUALITY RULE: Only cite primary sources — official company blogs, government press releases, major news outlets (Globe and Mail, Financial Post, CBC, Reuters, Bloomberg, TechCrunch, The Verge, Wired). Do NOT cite newsletters, podcast episodes, Substack posts, or aggregator summaries. If a result looks like "26: GPT-5.5, Claude Mythos & What It Means" or "Episode 14: ..." it is a newsletter/podcast — skip it and find the original primary source instead.
+
 OUTPUT FORMAT
 Write plain text only. No markdown (no *, no **, no #). Use EXACTLY these section headers on their own lines:
 
@@ -132,7 +146,8 @@ Open with one specific fact or event from {month_year}. Second sentence: what it
 KEY AI DEVELOPMENTS (MINIMUM 8 items — this is a hard requirement):
 CRITICAL DATE RULE: Include ONLY events from {month_year}. Never fabricate. Never use events from prior months.
 CRITICAL SOURCE RULE: Every single item MUST end with a Source line. No exceptions.
-CRITICAL DEDUPLICATION RULE: Treat KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT as one combined list. Every individual news event, announcement, funding program, product launch, or policy decision may appear ONCE across both sections combined — never twice. Before finalising your full response, scan every item in KEY AI DEVELOPMENTS and every item in CANADIAN SPOTLIGHT. If the same announcement appears in both (even reworded or described differently), DELETE it from CANADIAN SPOTLIGHT and replace it with a genuinely different Canadian news item. The AI Compute Access Fund, or any government funding program, or any company product launch, must not appear in both sections. This is a hard constraint with zero exceptions.
+CRITICAL SOURCE QUALITY RULE: Every source MUST be a primary source — official company announcements, government press releases, or major news publications. Newsletters, podcast episodes, Substack posts, and aggregator blogs are NEVER acceptable sources. If your search returns a newsletter item (e.g. "26: GPT-5.5..." or "Episode 14:..."), discard it and find the original primary source announcement instead.
+CRITICAL DEDUPLICATION RULE: Treat KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT as one combined list. Every individual news event may appear ONCE across both sections combined — never twice.
 
 Use this EXACT format for every item — copy it precisely:
 [Month Day]: [Company] — [One sentence: what they did]. [One sentence: why it matters for Canadian business]. Source: [Publication name] | [Exact article headline as published]
@@ -144,9 +159,10 @@ Rules:
 - MINIMUM 8 items. Aim for 8-10.
 - Every item has a date from {month_year}
 - Every item ends with Source: [Publication] | [Headline] — no URLs, no brackets around the headline
+- Every source is a PRIMARY source (company blog, government site, major news outlet) — NEVER a newsletter or podcast
 - Vary the companies — mix US tech, Canadian companies, global players
 - The Canadian relevance sentence must be specific, not generic
-- UNIQUENESS RULE: Every item must cover a distinct news event or announcement. The same company may appear more than once only if each appearance covers a completely different announcement, product, or decision. Do NOT list the same funding program, product launch, or policy announcement twice even with different wording.
+- UNIQUENESS RULE: Every item must cover a distinct news event or announcement.
 
 CANADIAN SPOTLIGHT (MINIMUM 3 items — hard requirement):
 Only genuinely Canadian content:
@@ -156,56 +172,49 @@ Only genuinely Canadian content:
 - Canadian enterprise AI deployments (named company + what they did)
 - Canadian university or research breakthroughs (Mila, Vector Institute, Amii)
 
-CRITICAL SOURCE RULE: Every single Canadian Spotlight item MUST end with a Source line.
+CRITICAL SOURCE RULE: Every single Canadian Spotlight item MUST end with a Source line using a PRIMARY source only.
 
-CRITICAL UNIQUENESS RULE: Canadian Spotlight items MUST NOT repeat any announcement, funding program, policy, or event that already appeared in KEY AI DEVELOPMENTS above. Before writing each Spotlight item, check: has this specific announcement already been covered above? If yes, choose a different Canadian news item. The same organization can appear in both sections only if each entry covers a completely separate announcement. Duplicate topics — even reworded — are a failure.
+CRITICAL UNIQUENESS RULE: Canadian Spotlight items MUST NOT repeat any announcement already in KEY AI DEVELOPMENTS.
 
 Use this EXACT format for every item:
 [Company/Organization]: [What happened — one sentence]. [Why it matters — one sentence]. Source: [Publication name] | [Exact article headline as published]
-
-Example:
-Cohere: Launched Command R+ with enhanced bilingual French-English support. Quebec enterprises can now deploy a Canadian-built model for both official languages without US data residency concerns. Source: Globe and Mail | Cohere Launches Bilingual AI Model Built for Canadian Enterprises
 
 Rules:
 - MINIMUM 3 items. Aim for 3-4.
 - No generic "Canada is positioning itself" filler
 - Every item ends with Source: [Publication] | [Headline]
-- Every item covers a news event NOT already listed in KEY AI DEVELOPMENTS
+- Every source is a PRIMARY source — NEVER a newsletter or podcast
 
 MANDATORY SELF-CHECK — DO THIS BEFORE WRITING ANY FURTHER:
 List every news event you have written in KEY AI DEVELOPMENTS (by topic, one line each).
 Then list every news event in CANADIAN SPOTLIGHT (by topic, one line each).
-Compare the two lists. If ANY topic, announcement, funding program, or event appears in both lists — even described with different words — you MUST go back and replace the duplicate in CANADIAN SPOTLIGHT with a genuinely different Canadian news item before continuing.
-Example of a violation: "Government of Canada AI Compute Access Fund $66M" appearing in KEY AI DEVELOPMENTS AND also appearing in CANADIAN SPOTLIGHT under any wording. That is a hard failure. Remove it from one section.
+Compare the two lists. If ANY topic appears in both lists — even described with different words — you MUST go back and replace the duplicate in CANADIAN SPOTLIGHT with a genuinely different Canadian news item before continuing.
 Only continue to WHAT THIS MEANS once every item across both sections is a unique, non-overlapping news event.
 
 WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs):
-CRITICAL CROSS-REFERENCE RULE: Every paragraph MUST name at least one specific event, company, or statistic from KEY AI DEVELOPMENTS, CANADIAN SPOTLIGHT, or ADOPTION SNAPSHOT above. Do not introduce new information here — this section interprets what was already reported. Generic analysis with no link to the items above is a failure.
+CRITICAL CROSS-REFERENCE RULE: Every paragraph MUST name at least one specific event, company, or statistic from KEY AI DEVELOPMENTS, CANADIAN SPOTLIGHT, or ADOPTION SNAPSHOT above.
 
 Paragraph 1 — Financial services / technology impact:
-- Open by naming a specific development from KEY AI DEVELOPMENTS (use the company name and what they did).
-- Explain the direct operational consequence for a named Canadian bank, insurer, or tech company (RBC, TD, Manulife, Cohere, etc.).
-- Connect to an adoption stat if one is relevant.
+- Open by naming a specific development from KEY AI DEVELOPMENTS.
+- Explain the direct operational consequence for a named Canadian bank, insurer, or tech company.
 - 3-4 sentences maximum.
 
 Paragraph 2 — Sector impact (manufacturing, healthcare, or retail):
 - Open by naming a specific item from CANADIAN SPOTLIGHT or KEY AI DEVELOPMENTS that affects this sector.
-- Name a real Canadian company or describe a real sector dynamic (not a hypothetical).
-- Make the opportunity or risk concrete and specific.
+- Name a real Canadian company or describe a real sector dynamic.
 - 3-4 sentences maximum.
 
 Paragraph 3 — Regulatory and competitive pressure:
-- Open by naming a specific regulation or policy item already referenced above (Bill C-27, Quebec Law 25, PIPEDA, OSFI guidelines, or a government funding program from CANADIAN SPOTLIGHT).
+- Open by naming a specific regulation or policy item already referenced above.
 - State a specific compliance deadline or decision point Canadian leaders face.
-- Connect to what the ADOPTION SNAPSHOT numbers mean for urgency.
 - 3-4 sentences maximum.
 
 STRATEGIC ACTIONS FOR THIS MONTH (exactly 5 items):
-CRITICAL TRACEABILITY RULE: Each of the 5 actions MUST trace directly to a named item from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT. Write the action as a direct operational response to that specific news item. A reader should be able to look up the item in the sections above and see the connection immediately. Generic AI advice with no link to the reported news is a failure.
+CRITICAL TRACEABILITY RULE: Each of the 5 actions MUST trace directly to a named item from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT.
 
 Each action must:
 - Start with a strong verb: Audit, Pilot, Negotiate, Commission, Assign, Test, Require, Demand, Sunset, Block time to
-- Name the specific development, company, tool, regulation, or funding program it responds to (e.g. "In response to [company]'s [action] reported above...")
+- Name the specific development, company, tool, regulation, or funding program it responds to
 - State WHO in the organization owns it (CTO, CFO, CHRO, Legal team, Board Audit Committee, etc.)
 - Include a specific deadline (this week / by end of Q2 / before June 30 / within 30 days)
 - Be 2-3 sentences
@@ -214,7 +223,7 @@ Format: 1. [Action text]
 
 ADOPTION SNAPSHOT (exactly 5 data points):
 CRITICAL: Each stat on its own line. Never combine into a paragraph.
-CRITICAL FORMAT: The number MUST come first. Never start a line with "%" or "of". Always write "30% of Canadian businesses..." not "% of Canadian businesses...". Never omit the number.
+CRITICAL FORMAT: The number MUST come first.
 
 Correct format examples:
 30% of Canadian businesses have adopted AI in at least one function. Source: BDC, 2025.
@@ -225,12 +234,9 @@ Format for each line:
 [Number]% [rest of stat]. Source: [Organization], [year].
 
 Use only real, verifiable Canadian stats from: Statistics Canada, BDC, ISED, CIRA, Conference Board of Canada, Deloitte Canada, KPMG Canada, PwC Canada, Mila Annual Report, Vector Institute Annual Report, McKinsey Canada.
-If no Canadian stat exists for a category, use a global stat and clearly label it "Global:".
-Never invent percentages. Never attribute to vague sources.
-Where possible, choose stats that contextualise or add weight to the developments reported in KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT above.
 
 ROBERTS TAKE:
-CRITICAL: This is NOT a summary of the newsletter. Robert speaks in first person with a direct, opinionated voice. He references 1-2 specific items from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT and offers a take that a reader would NOT get from reading those items alone — a pattern, a contradiction, a warning, or a client conversation that reveals something the headlines missed.
+CRITICAL: This is NOT a summary of the newsletter. Robert speaks in first person with a direct, opinionated voice. He references 1-2 specific items from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT and offers a take that a reader would NOT get from reading those items alone.
 
 Write 2-3 sentences. Start with "The [thing] that surprised me most this month was..." or "What I keep telling clients right now is..." or similar first-person opener. Never start with "This month" or "The AI landscape".
 
@@ -349,12 +355,6 @@ Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadi
 
 
 def _build_custom_prompt(topic, month_year, prev_month):
-    """
-    Custom/regeneration prompt. Identical structure to monthly prompt.
-    The topic is a CONTENT FOCUS DIRECTIVE only — it changes what events
-    and examples are chosen, never the format or structural requirements.
-    All section counts, source citation rules, and format specs are identical.
-    """
     rules = _shared_rules_block(month_year, prev_month)
     return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert has 25+ years in digital transformation and is known for direct, opinionated takes on AI adoption.
 
@@ -364,7 +364,7 @@ Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadi
 CONTENT FOCUS DIRECTIVE:
 {topic}
 
-This directive changes WHAT events and examples you select and emphasise. It does NOT change the structure, section counts, formatting rules, or citation requirements. All structural rules below are mandatory and unchanged. The focus applies to which developments you prioritise in KEY AI DEVELOPMENTS, which items you choose for CANADIAN SPOTLIGHT, how you frame WHAT THIS MEANS FOR CANADIAN BUSINESS, and which STRATEGIC ACTIONS you recommend. The newsletter must still contain ALL sections with ALL minimum item counts and ALL source citations.
+This directive changes WHAT events and examples you select and emphasise. It does NOT change the structure, section counts, formatting rules, or citation requirements. All structural rules below are mandatory and unchanged.
 
 {rules}"""
 
@@ -445,28 +445,19 @@ def parse_list_items(text, min_length=40):
 
 
 def _extract_source_from_text(text):
-    """
-    Extract Source: Publication | Headline from a block of text.
-    Returns (source_name, source_url, cleaned_text_without_source_line).
-    Only matches Source: lines after a sentence boundary to avoid
-    truncating body text that contains colons or pipes.
-    """
     source_name = ""
     source_url = ""
 
-    # Pattern 1: Source: Publication | Headline  (pipe — most reliable)
     m = re.search(
         r'(?:^|[.\n])\s*Source[:\s]+([^|\r\n]{3,80}?)\s*\|\s*([^\r\n]{5,200})',
         text, re.IGNORECASE | re.MULTILINE
     )
     if not m:
-        # Pattern 2: Source: Publication — Headline  (em/en dash)
         m = re.search(
             r'(?:^|[.\n])\s*Source[:\s]+([^\u2014\u2013\r\n]{3,60})[\u2014\u2013]+([^\r\n]{5,200})',
             text, re.IGNORECASE | re.MULTILINE
         )
     if not m:
-        # Pattern 3: Source: OrganizationName, YYYY  (adoption stats format)
         m = re.search(
             r'(?:^|[.\n])\s*Source[:\s]+([A-Za-z][^\d\r\n,]{2,50}),\s*(\d{4}[^\r\n]{0,30})',
             text, re.IGNORECASE | re.MULTILINE
@@ -477,24 +468,35 @@ def _extract_source_from_text(text):
         source_headline = m.group(2).strip().rstrip('.,')
         source_headline = re.sub(r'https?://\S+', '', source_headline).strip().rstrip('.,')
         source_url = build_search_url(source_name, source_headline) if len(source_headline) > 6 else None
-        # Trim from where "Source" keyword starts (not match start, which may
-        # include the preceding period character from the lookahead)
         source_kw = text.upper().rfind('SOURCE', 0, m.end())
         cleaned = text[:source_kw].strip().rstrip('.') if source_kw > 0 else text[:m.start()].strip()
         return source_name, source_url, cleaned
 
     return "", "", text.strip()
 
+
+def _is_meta_commentary(text):
+    triggers = [
+        r'\blisted in both\b',
+        r'\bwill remove\b',
+        r'\bhave removed\b',
+        r'\breplace it with\b',
+        r'\bself.?check\b',
+        r'^correction[:\s]',
+        r'^note[:\s]',
+        r'\bduplicate\b.{0,50}\bsection\b',
+        r'\bappears? in both\b',
+        r'\bremov(?:e|ed|ing) (?:it|this|the duplicate)\b',
+    ]
+    for t in triggers:
+        if re.search(t, text, re.IGNORECASE):
+            return True
+    return False
+
+
 def parse_developments(text):
-    """
-    Parse KEY AI DEVELOPMENTS into structured dicts.
-    Robust multi-strategy parser: tries date-anchored splitting first,
-    then falls back to line-by-line and numbered-list approaches.
-    Always attempts to extract Source citations from each item.
-    """
     items = []
 
-    # ── Strategy 1: Split on date patterns ──────────────────────
     date_pattern = re.compile(
         r'(\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
         r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
@@ -503,7 +505,7 @@ def parse_developments(text):
     )
 
     splits = date_pattern.split(text)
-    if len(splits) >= 3:  # at least one date found
+    if len(splits) >= 3:
         i = 1
         while i + 1 < len(splits):
             date_str = splits[i].strip().rstrip(',.')
@@ -532,11 +534,13 @@ def parse_developments(text):
             i += 2
 
         if len(items) >= 3:
+            # Filter meta commentary AND newsletter/podcast items
             items = [i for i in items if not _is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
+            items = [i for i in items if not _is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
             print(f"  parse_developments: strategy 1 found {len(items)} items")
             return items[:10]
 
-    # ── Strategy 2: Numbered list items ─────────────────────────
+    # Strategy 2: Numbered list items
     items = []
     numbered_blocks = re.findall(
         r'^\d+[\.)]\s+(.+?)(?=^\d+[\.)]\s|\Z)',
@@ -548,7 +552,6 @@ def parse_developments(text):
             if len(block) < 30:
                 continue
             source_name, source_url, block_clean = _extract_source_from_text(block)
-            # Try to extract date and company from the cleaned block
             date_str = ""
             company = ""
             desc = block_clean
@@ -579,16 +582,17 @@ def parse_developments(text):
             })
 
         if len(items) >= 3:
+            items = [i for i in items if not _is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
+            items = [i for i in items if not _is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
             print(f"  parse_developments: strategy 2 found {len(items)} items")
             return items[:10]
 
-    # ── Strategy 3: Line-by-line fallback ───────────────────────
+    # Strategy 3: Line-by-line fallback
     items = []
     lines = [l.strip() for l in text.split('\n') if len(l.strip()) > 40]
     current_block = []
 
     for line in lines:
-        # A new item starts when we see a date or a number at the start
         is_new = bool(re.match(
             r'^(\d+[\.)]\s+|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))',
             line, re.IGNORECASE
@@ -623,7 +627,6 @@ def parse_developments(text):
         else:
             current_block.append(line)
 
-    # Don't forget the last block
     if current_block:
         block_text = ' '.join(current_block)
         if len(block_text) > 40:
@@ -632,42 +635,14 @@ def parse_developments(text):
                           "source_name": source_name, "source_url": source_url})
 
     items = [i for i in items if not _is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
+    items = [i for i in items if not _is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
     print(f"  parse_developments: strategy 3 found {len(items)} items")
     return items[:10]
 
 
-def _is_meta_commentary(text):
-    """
-    Returns True if a parsed item looks like Gemini self-check commentary
-    that leaked into the output — should be filtered out before rendering.
-    """
-    triggers = [
-        r'\blisted in both\b',
-        r'\bwill remove\b',
-        r'\bhave removed\b',
-        r'\breplace it with\b',
-        r'\bself.?check\b',
-        r'^correction[:\s]',
-        r'^note[:\s]',
-        r'\bduplicate\b.{0,50}\bsection\b',
-        r'\bappears? in both\b',
-        r'\bremov(?:e|ed|ing) (?:it|this|the duplicate)\b',
-    ]
-    for t in triggers:
-        if re.search(t, text, re.IGNORECASE):
-            return True
-    return False
-
-
 def parse_spotlight_items(text):
-    """
-    Parse CANADIAN SPOTLIGHT items. Each should have company: body. Source: pub | headline.
-    Returns list of dicts with keys: org, body, source_name, source_url.
-    """
     items = []
 
-    # Strategy 1: Split on lines that start with an org name followed by colon
-    # Look for patterns like "Cohere: ..." or "Government of Canada: ..."
     blocks = re.split(r'\n(?=[A-Z][^\n:]{2,60}:)', text)
 
     for block in blocks:
@@ -676,7 +651,6 @@ def parse_spotlight_items(text):
             continue
         source_name, source_url, block_clean = _extract_source_from_text(block)
 
-        # Extract org name (text before first colon)
         org = ""
         body = block_clean
         colon_pos = block_clean.find(':')
@@ -692,8 +666,8 @@ def parse_spotlight_items(text):
                 "source_url": source_url
             })
 
-    # ── Filter out any Gemini self-correction items that slipped through ──
     items = [i for i in items if not _is_meta_commentary(i.get('body', '') + ' ' + i.get('org', ''))]
+    items = [i for i in items if not _is_episode_or_newsletter_item(i.get('body', ''), i.get('org', ''))]
 
     if len(items) >= 2:
         return items[:6]
@@ -715,9 +689,10 @@ def parse_spotlight_items(text):
         items.append({"org": org, "body": body, "source_name": source_name, "source_url": source_url})
 
     if items:
+        items = [i for i in items if not _is_episode_or_newsletter_item(i.get('body', ''), i.get('org', ''))]
         return items[:6]
 
-    # Strategy 3: Line fallback — treat each substantial line as an item
+    # Strategy 3: Line fallback
     items = []
     for line in text.split('\n'):
         line = re.sub(r'^[-•*\d.)\s]+', '', line).strip()
@@ -732,20 +707,11 @@ def parse_spotlight_items(text):
             body = line_clean[colon_pos+1:].strip()
         items.append({"org": org, "body": body, "source_name": source_name, "source_url": source_url})
 
+    items = [i for i in items if not _is_episode_or_newsletter_item(i.get('body', ''), i.get('org', ''))]
     return items[:6]
 
 
 def parse_adoption_stats(text):
-    """
-    Parse ADOPTION SNAPSHOT stats. Handles:
-    - One stat per line (ideal Gemini output)
-    - Multiple stats packed into a paragraph (common Gemini failure)
-    - Stats with inline Source: attribution
-    - % appearing before the number (broken Gemini output)
-    - Leading fragments like ", showing..." (skipped)
-    """
-    # ── Pre-process: split paragraph-packed stats into individual lines ──
-    # Handles: "37% of businesses... Source: X, 2025. 45% of businesses..."
     text = re.sub(r'\.\s+(?=(?:Global:|Nearly|Over|About|Almost|\d))', '.\n', text)
     text = re.sub(r'(Source:[^.\n]{5,100}\.)\s+(?=\d|Global:)', r'\1\n', text, flags=re.IGNORECASE)
 
@@ -753,26 +719,21 @@ def parse_adoption_stats(text):
     lines = [l.strip() for l in text.split('\n') if len(l.strip()) > 15]
 
     for line in lines:
-        # Strip leading list markers
         line = re.sub(r'^[-•*\d.)]+\s+', '', line).strip()
-        # Strip leading standalone % with no preceding digit (broken Gemini)
         line = re.sub(r'^%\s+', '', line).strip()
         if len(line) < 10:
             continue
 
         source_name, source_url, line_clean = _extract_source_from_text(line)
 
-        # Skip fragment lines (start with comma/semicolon or lowercase — mid-sentence leftovers)
         if re.match(r'^[,;]|^[a-z]', line_clean.strip()):
             continue
 
-        # Strategy 1: number at start
         num_match = re.match(
             r'^([\d.]+\s*(?:%|percent|\+)?(?:\s*(?:billion|million|B|M))?)',
             line_clean, re.IGNORECASE
         )
 
-        # Strategy 2: qualifier word + number (e.g. "Nearly 30%", "Over $500M")
         if not num_match or not re.search(r'\d', num_match.group(1)):
             num_match2 = re.search(
                 r'((?:nearly|over|about|approximately|around|almost|more than|less than|up to|\$)?\s*[\d.]+\s*(?:%|percent|\+|\$)?(?:\s*(?:billion|million|B|M))?)',
@@ -805,6 +766,7 @@ def parse_adoption_stats(text):
             })
 
     return items[:8]
+
 
 def extract_title_and_excerpt(content, month_year):
     title   = f"AI Insights for {month_year}"
@@ -864,7 +826,6 @@ def create_html_blog_post(content, title, excerpt):
 
     article_parts = []
 
-    # ── Introduction ────────────────────────────────────────────
     if intro_text:
         article_parts.append(
             f'<div class="section intro-section">'
@@ -872,7 +833,6 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    # ── Key AI Developments ──────────────────────────────────────
     if developments:
         dev_cards = ""
         for d in developments:
@@ -902,7 +862,6 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    # ── Canadian Spotlight ───────────────────────────────────────
     if spotlight_items:
         spot_cards = ""
         for item in spotlight_items:
@@ -935,7 +894,6 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
     elif canadian_spot and len(canadian_spot) > 60:
-        # Plain text fallback
         article_parts.append(
             f'<div class="section canada-section">'
             f'<div class="canada-header"><span class="canada-label">Canadian Spotlight</span></div>'
@@ -944,7 +902,6 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    # ── Business Impact ──────────────────────────────────────────
     if business_impact:
         paras = [p.strip() for p in business_impact.split('\n\n') if len(p.strip()) > 40]
         if not paras:
@@ -959,7 +916,6 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    # ── Strategic Actions ────────────────────────────────────────
     if actions:
         action_cards = ""
         for i, a in enumerate(actions[:5]):
@@ -976,15 +932,10 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    # ── Adoption Snapshot ────────────────────────────────────────
     if adoption:
         stat_items_html = ""
         for item in adoption:
-            # If stat_number exists AND stat_text is the full sentence,
-            # highlight the number inline within the sentence.
-            # If stat_text is the remainder after stripping the number, prepend it.
             if item["stat_number"] and item["stat_text"] and item["stat_number"] in item["stat_text"]:
-                # Number appears inside the full sentence — highlight it inline
                 highlighted = item["stat_text"].replace(
                     item["stat_number"],
                     f'<span class="stat-highlight">{item["stat_number"]}</span>',
@@ -992,7 +943,6 @@ def create_html_blog_post(content, title, excerpt):
                 )
                 stat_content = f'<p class="stat-text">{highlighted}</p>'
             elif item["stat_number"]:
-                # Number was at the start, stat_text is the remainder
                 stat_content = f'<p class="stat-text"><span class="stat-highlight">{item["stat_number"]}</span> {item["stat_text"]}</p>'
             else:
                 stat_content = f'<p class="stat-text">{item["stat_text"]}</p>'
@@ -1024,12 +974,10 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    # ── Robert's Take ────────────────────────────────────────────
     article_parts.append(_build_roberts_take(roberts_raw, month_year))
 
     article_html = "\n".join(article_parts)
 
-    # ── FAQ schema ───────────────────────────────────────────────
     faq_qs = [
         f"What AI developments matter most for Canadian businesses in {month_year}?",
         "What should Canadian executives do about AI right now?",
@@ -1314,12 +1262,6 @@ def create_html_blog_post(content, title, excerpt):
 
 
 def _build_roberts_take(raw_text, month_year):
-    """
-    Renders Robert's Take section.
-    Gemini now generates real content here (not a placeholder).
-    We still show the editable placeholder UI if the content looks like
-    a placeholder or is too short, so Robert can override it before approving.
-    """
     is_placeholder = (
         not raw_text
         or 'PLACEHOLDER' in raw_text.upper()
@@ -1338,7 +1280,6 @@ def _build_roberts_take(raw_text, month_year):
     )
 
     if is_placeholder:
-        # Fallback: Gemini didn't produce content — show editable prompt
         body = (
             '<div class="roberts-placeholder">'
             '<strong>&#9998; Add your personal take before publishing.</strong><br><br>'
@@ -1348,16 +1289,11 @@ def _build_roberts_take(raw_text, month_year):
             '</div>'
         )
     else:
-        # Real content from Gemini — clean and render it
         cleaned = raw_text.strip()
-        # Strip any residual placeholder brackets if Gemini partially complied
         cleaned = re.sub(r'^\[.*?\]\s*', '', cleaned, flags=re.DOTALL).strip()
-        # Strip markdown artifacts
         cleaned = re.sub(r'\*\*(.*?)\*\*', r'\1', cleaned)
         cleaned = re.sub(r'\*(.*?)\*', r'\1', cleaned)
-        # Escape quotes for HTML safety
         cleaned = cleaned.replace('"', '&quot;').replace("'", '&#39;')
-        # Wrap in quotation marks
         body = (
             f'<p class="roberts-body">&#8220;{cleaned}&#8221;</p>'
             f'<p style="font-size:0.72rem;opacity:0.5;margin-top:0.75rem;color:rgba(255,255,255,0.6);">'
