@@ -238,7 +238,7 @@ Use only real, verifiable Canadian stats from: Statistics Canada, BDC, ISED, CIR
 ROBERTS TAKE:
 CRITICAL: This is NOT a summary of the newsletter. Robert speaks in first person with a direct, opinionated voice. He references 1-2 specific items from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT and offers a take that a reader would NOT get from reading those items alone.
 
-Write 2-3 sentences. Start with "The [thing] that surprised me most this month was..." or "What I keep telling clients right now is..." or similar first-person opener. Never start with "This month" or "The AI landscape".
+Write 2-3 sentences. Start with "The [thing] that surprised me most this month was..." or "What I keep hearing from Canadian leaders right now is..." or similar first-person opener. Never start with "This month" or "The AI landscape".
 
 Do NOT write the placeholder. Write actual content that Robert would say based on the specific news reported above.
 
@@ -1283,7 +1283,7 @@ def _build_roberts_take(raw_text, month_year):
         body = (
             '<div class="roberts-placeholder">'
             '<strong>&#9998; Add your personal take before publishing.</strong><br><br>'
-            'What surprised you most this month? What are you telling clients right now? '
+            'What surprised you most this month? What are you hearing from Canadian leaders right now? '
             'What is the pattern others are missing? 2-3 sentences in your own voice — '
             'this is the E-E-A-T signal that makes this newsletter yours.'
             '</div>'
@@ -1296,8 +1296,7 @@ def _build_roberts_take(raw_text, month_year):
         cleaned = cleaned.replace('"', '&quot;').replace("'", '&#39;')
         body = (
             f'<p class="roberts-body">&#8220;{cleaned}&#8221;</p>'
-            f'<p style="font-size:0.72rem;opacity:0.5;margin-top:0.75rem;color:rgba(255,255,255,0.6);">'
-            f'&#9998; You can refine this in the regenerate prompt before approving.</p>'
+            
         )
 
     return f'<div class="section"><div class="roberts-take">{header}{body}</div></div>'
