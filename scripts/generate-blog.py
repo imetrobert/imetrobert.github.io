@@ -102,6 +102,74 @@ def _is_episode_or_newsletter_item(body, company):
 # SHARED PROMPT RULES
 # ══════════════════════════════════════════════════════════════════
 
+
+def _deduplicate_spotlight_against_developments(spotlight_items, development_items):
+    """
+    Remove any spotlight item whose core topic already appears in developments.
+    Uses keyword overlap: if 3+ significant words from a spotlight org/body
+    appear in any development's company/body, it's a duplicate and gets dropped.
+    Also does direct org-name matching against development company names.
+    """
+    if not spotlight_items or not development_items:
+        return spotlight_items
+
+    def key_words(text):
+        # Strip common stop words, return meaningful tokens
+        stops = {
+            'the','a','an','of','in','to','for','and','or','is','are','was',
+            'were','this','that','these','those','it','its','with','by','at',
+            'on','as','from','be','been','has','have','had','not','but','we',
+            'our','your','their','will','also','can','more','new','all','may',
+            'into','than','through','about','up','out','after','over','under',
+            'such','both','each','how','which','who','what','when','where',
+            'fund','funding','initiative','program','project','projects',
+            'announced','announces','announcement','launch','launches','released',
+        }
+        words = re.findall(r'[a-z]{4,}', text.lower())
+        return {w for w in words if w not in stops}
+
+    # Build a set of all keywords from developments
+    dev_keywords = set()
+    dev_orgs = set()
+    for d in development_items:
+        dev_keywords |= key_words(d.get('body', '') + ' ' + d.get('company', ''))
+        org = d.get('company', '').strip().lower()
+        if org:
+            dev_orgs.add(org)
+
+    cleaned = []
+    for item in spotlight_items:
+        org = item.get('org', '').strip()
+        body = item.get('body', '').strip()
+        combined = org + ' ' + body
+
+        # Direct org match
+        if org.lower() in dev_orgs:
+            # Check if the body is substantially different
+            item_words = key_words(body)
+            overlap = item_words & dev_keywords
+            overlap_ratio = len(overlap) / max(len(item_words), 1)
+            if overlap_ratio > 0.55:
+                print(f"  dedup: removing spotlight '{org}' (org match + {overlap_ratio:.0%} keyword overlap)")
+                continue
+
+        # Keyword overlap check (even if org differs)
+        item_words = key_words(combined)
+        if len(item_words) >= 5:
+            overlap = item_words & dev_keywords
+            overlap_ratio = len(overlap) / max(len(item_words), 1)
+            if overlap_ratio > 0.65:
+                print(f"  dedup: removing spotlight '{org}' ({overlap_ratio:.0%} keyword overlap with developments)")
+                continue
+
+        cleaned.append(item)
+
+    removed = len(spotlight_items) - len(cleaned)
+    if removed:
+        print(f"  dedup: removed {removed} duplicate spotlight item(s)")
+    return cleaned
+
+
 def _shared_rules_block(month_year, prev_month):
     return f"""WRITING RULES — follow these exactly:
 1. Write like a trusted senior advisor talking to a peer. Confident. Direct. No hedging.
@@ -147,7 +215,7 @@ KEY AI DEVELOPMENTS (MINIMUM 8 items — this is a hard requirement):
 CRITICAL DATE RULE: Include ONLY events from {month_year}. Never fabricate. Never use events from prior months.
 CRITICAL SOURCE RULE: Every single item MUST end with a Source line. No exceptions.
 CRITICAL SOURCE QUALITY RULE: Every source MUST be a primary source — official company announcements, government press releases, or major news publications. Newsletters, podcast episodes, Substack posts, and aggregator blogs are NEVER acceptable sources. If your search returns a newsletter item (e.g. "26: GPT-5.5..." or "Episode 14:..."), discard it and find the original primary source announcement instead.
-CRITICAL DEDUPLICATION RULE: Treat KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT as one combined list. Every individual news event may appear ONCE across both sections combined — never twice.
+CRITICAL DEDUPLICATION RULE: Treat KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT as one combined list. Every individual news event, funding program, company announcement, or policy decision may appear ONCE across both sections combined — never twice. Same program = same event = one section only. If the AI Compute Access Fund, RAII, or any government initiative appears in KEY AI DEVELOPMENTS, it must NOT appear in CANADIAN SPOTLIGHT under any name, wording, or angle. No exceptions. If RAII appears in KEY AI DEVELOPMENTS, it must NOT appear in CANADIAN SPOTLIGHT. Same program = same event = one section only. No exceptions.
 
 Use this EXACT format for every item — copy it precisely:
 [Month Day]: [Company] — [One sentence: what they did]. [One sentence: why it matters for Canadian business]. Source: [Publication name] | [Exact article headline as published]
@@ -819,6 +887,7 @@ def create_html_blog_post(content, title, excerpt):
 
     developments    = parse_developments(sections.get("KEY AI DEVELOPMENTS", ""))
     spotlight_items = parse_spotlight_items(canadian_spot)
+    spotlight_items = _deduplicate_spotlight_against_developments(spotlight_items, developments)
     actions         = parse_list_items(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""), min_length=40)
     adoption        = parse_adoption_stats(adoption_raw)
 
