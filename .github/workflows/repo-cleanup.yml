@@ -34,6 +34,7 @@ jobs:
           # ── One-time-use GitHub Actions workflows ──
           rm -f .github/workflows/add-analytics.yml
           rm -f .github/workflows/main.yml
+          rm -f .github/workflows/ai-blog.yml
           rm -f .github/workflows/patch-existing-posts.yml
           rm -f .github/workflows/seo-cleanup.yml
           rm -f .github/workflows/seo-fixes-2.yml
@@ -80,6 +81,7 @@ jobs:
           echo "| blog/posts/{current_date}... | Template artifact, not a real post |" >> $GITHUB_STEP_SUMMARY
           echo "| add-analytics.yml | One-time workflow |" >> $GITHUB_STEP_SUMMARY
           echo "| main.yml | Test workflow |" >> $GITHUB_STEP_SUMMARY
+          echo "| ai-blog.yml | Superseded by monthly-blog.yml |" >> $GITHUB_STEP_SUMMARY
           echo "| patch-existing-posts.yml | One-time workflow |" >> $GITHUB_STEP_SUMMARY
           echo "| seo-cleanup.yml | One-time workflow |" >> $GITHUB_STEP_SUMMARY
           echo "| seo-fixes-2.yml | One-time workflow |" >> $GITHUB_STEP_SUMMARY
@@ -90,7 +92,11 @@ jobs:
           echo "| File | Purpose |" >> $GITHUB_STEP_SUMMARY
           echo "|------|---------|" >> $GITHUB_STEP_SUMMARY
           echo "| monthly-blog.yml | Runs last day of every month |" >> $GITHUB_STEP_SUMMARY
-          echo "| ai-blog.yml | Manual blog generation |" >> $GITHUB_STEP_SUMMARY
+          echo "| regenerate-blog.yml | Regenerate staging post with custom prompt |" >> $GITHUB_STEP_SUMMARY
+          echo "| approve-blog.yml | Promote staging post to production |" >> $GITHUB_STEP_SUMMARY
+          echo "| test-api-keys.yml | Verify all secrets are valid |" >> $GITHUB_STEP_SUMMARY
+          echo "| add-homepage-anchors.yml | One-time anchor injection (idempotent) |" >> $GITHUB_STEP_SUMMARY
+          echo "| repo-cleanup.yml | This workflow |" >> $GITHUB_STEP_SUMMARY
           echo "| scripts/generate-blog.py | Core blog generator |" >> $GITHUB_STEP_SUMMARY
           echo "| scripts/test_gemini.py | API key debugging |" >> $GITHUB_STEP_SUMMARY
           echo "| scripts/requirements.txt | Python dependencies |" >> $GITHUB_STEP_SUMMARY

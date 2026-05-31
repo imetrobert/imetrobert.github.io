@@ -34,9 +34,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r scripts/requirements.txt
-          pip install beautifulsoup4 lxml
+          python3 -m pip install --upgrade pip
+          pip3 install -r scripts/requirements.txt
+          pip3 install beautifulsoup4 lxml
 
       - name: Remove old staging file
         run: |
@@ -52,7 +52,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          python scripts/generate-blog.py \
+          python3 scripts/generate-blog.py \
             --topic "${{ github.event.inputs.prompt }}" \
             --output staging
 
