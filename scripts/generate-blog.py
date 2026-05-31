@@ -170,6 +170,47 @@ def _deduplicate_spotlight_against_developments(spotlight_items, development_ite
     return cleaned
 
 
+def _is_government_entity(company):
+    """
+    Returns True if a company/org name is a government entity — federal, provincial,
+    municipal, or intergovernmental. These items must go to CANADIAN SPOTLIGHT,
+    never KEY AI DEVELOPMENTS.
+    """
+    if not company:
+        return False
+    c = company.lower()
+    return any([
+        "government of" in c,
+        "prime minister" in c,
+        "minister of" in c,
+        "ministry of" in c,
+        "parliament" in c,
+        "senate of" in c,
+        "federal " in c,
+        "provincial " in c,
+        "municipal " in c,
+        "city of " in c,
+        "province of " in c,
+        "legislature" in c,
+        "treasury board" in c,
+        "privy council" in c,
+        "innovation, science" in c,
+        "prairies economic" in c,
+        "natural resources canada" in c,
+        "health canada" in c,
+        "transport canada" in c,
+        "public safety canada" in c,
+        "national research council" in c,
+        "social sciences and humanities" in c,
+        "nserc" in c,
+        "sshrc" in c,
+        "g7 " in c,
+        "g20 " in c,
+        "g8 " in c,
+        c in {"canada.ca", "gc.ca"},
+    ])
+
+
 def _shared_rules_block(month_year, prev_month):
     return f"""WRITING RULES — follow these exactly:
 1. Write like a trusted senior advisor talking to a peer. Confident. Direct. No hedging.
@@ -213,6 +254,7 @@ Open with one specific fact or event from {month_year}. Second sentence: what it
 
 KEY AI DEVELOPMENTS (MINIMUM 8 items — this is a hard requirement):
 CRITICAL DATE RULE: Include ONLY events from {month_year}. Never fabricate. Never use events from prior months.
+CRITICAL SECTION ROUTING RULE: KEY AI DEVELOPMENTS is strictly for AI company announcements — products, models, partnerships, research. It must NEVER contain items from any government entity. This includes: the Government of Canada, any provincial or municipal government, the Prime Minister, any federal minister, any G7/G20/OECD ministerial body, Statistics Canada, Bank of Canada policy announcements, or any Crown corporation acting in a regulatory/policy capacity. Any government funding, policy, regulation, or strategy announcement MUST go in CANADIAN SPOTLIGHT — never here.
 CRITICAL SOURCE RULE: Every single item MUST end with a Source line. No exceptions.
 CRITICAL SOURCE QUALITY RULE: Every source MUST be a primary source — official company announcements, government press releases, or major news publications. Newsletters, podcast episodes, Substack posts, and aggregator blogs are NEVER acceptable sources. If your search returns a newsletter item (e.g. "26: GPT-5.5..." or "Episode 14:..."), discard it and find the original primary source announcement instead.
 CRITICAL DEDUPLICATION RULE: Treat KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT as one combined list. Every individual news event, funding program, company announcement, or policy decision may appear ONCE across both sections combined — never twice. Same program = same event = one section only. If the AI Compute Access Fund, RAII, or any government initiative appears in KEY AI DEVELOPMENTS, it must NOT appear in CANADIAN SPOTLIGHT under any name, wording, or angle. No exceptions. If RAII appears in KEY AI DEVELOPMENTS, it must NOT appear in CANADIAN SPOTLIGHT. Same program = same event = one section only. No exceptions.
@@ -233,8 +275,9 @@ Rules:
 - UNIQUENESS RULE: Every item must cover a distinct news event or announcement.
 
 CANADIAN SPOTLIGHT (MINIMUM 3 items — hard requirement):
-Only genuinely Canadian content:
-- Canadian AI companies making news (Cohere, Ada, Coveo, D-Wave, Mila spinouts, etc.)
+SECTION ROUTING RULE FOR SPOTLIGHT: This section receives TWO types of content:
+1. GOVERNMENT items (MANDATORY here, never in Key Developments): Any announcement, funding, policy, regulation, or strategy from the Government of Canada, any provincial/territorial/municipal government, the Prime Minister or any minister, G7/G20/OECD ministerial bodies, Statistics Canada, or any Crown corporation acting in policy capacity.
+2. CANADIAN PRIVATE SECTOR items (optional, if not already in Key Developments): Canadian AI companies making news (Cohere, Ada, Coveo, D-Wave, Mila spinouts, etc.)
 - Federal or provincial government AI funding, policy, or regulation updates
 - Major foreign AI investment specifically into Canada
 - Canadian enterprise AI deployments (named company + what they did)
@@ -605,6 +648,7 @@ def parse_developments(text):
             # Filter meta commentary AND newsletter/podcast items
             items = [i for i in items if not _is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
             items = [i for i in items if not _is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
+            items = [i for i in items if not _is_government_entity(i.get('company', ''))]
             print(f"  parse_developments: strategy 1 found {len(items)} items")
             return items[:10]
 
@@ -652,6 +696,7 @@ def parse_developments(text):
         if len(items) >= 3:
             items = [i for i in items if not _is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
             items = [i for i in items if not _is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
+            items = [i for i in items if not _is_government_entity(i.get('company', ''))]
             print(f"  parse_developments: strategy 2 found {len(items)} items")
             return items[:10]
 
@@ -704,6 +749,7 @@ def parse_developments(text):
 
     items = [i for i in items if not _is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
     items = [i for i in items if not _is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
+    items = [i for i in items if not _is_government_entity(i.get('company', ''))]
     print(f"  parse_developments: strategy 3 found {len(items)} items")
     return items[:10]
 
