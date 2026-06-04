@@ -10,9 +10,16 @@ import sys
 import time
 from datetime import datetime
 
-# Ensure the scripts/ directory is on the path so sibling modules resolve
-# correctly whether this file is run directly or via GitHub Actions.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Resolve path and add scripts/ directory explicitly
+_here = os.path.dirname(os.path.abspath(__file__))
+_scripts = os.path.join(os.getcwd(), 'scripts')
+print(f"DEBUG __file__: {__file__}")
+print(f"DEBUG _here: {_here}")
+print(f"DEBUG _scripts: {_scripts}")
+print(f"DEBUG cwd: {os.getcwd()}")
+sys.path.insert(0, _here)
+sys.path.insert(0, _scripts)
+print(f"DEBUG sys.path: {sys.path[:4]}")
 
 from utils import clean_filename
 from gemini import generate_blog_with_gemini
