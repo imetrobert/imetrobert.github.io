@@ -4,7 +4,7 @@ import requests
 import json
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
 
@@ -41,7 +41,6 @@ def clean_ai_content(content):
         r'[^.\n]*\b(?:listed|appears?|appeared|duplicated?|repeated?)\s+in\s+both\s+sections[^.\n]*\.?',
         r'[^.\n]*and replace it with a (?:different|new|another)[^.\n]*\.?',
         r'(?:^|\n)\s*(?:MANDATORY )?SELF-CHECK[^\n]*(?:\n[^\n]{0,200}){0,10}',
-        # PATCH A: Strip residual SELF-CHECK / duplicate audit blocks Gemini occasionally outputs
         r'(?:^|\n)MANDATORY SELF-CHECK.*?(?=\n[A-Z]{4,}|\Z)',
         r'(?:^|\n)List every news event.*?(?=\n[A-Z]{4,}|\Z)',
         r'(?:^|\n)Then list every news event.*?(?=\n[A-Z]{4,}|\Z)',
@@ -79,26 +78,16 @@ def build_search_url(publication, headline):
 
 
 def _is_episode_or_newsletter_item(body, company):
-    """
-    Returns True if a parsed development item looks like a newsletter issue
-    or podcast episode that was scraped by Gemini's search grounding.
-    e.g. "26: GPT-5.5, Claude Mythos & What It Means"
-         "Episode 14: AI in Canada"
-         "#42 - The Weekly AI Briefing"
-    """
     if not body:
         return False
     stripped = body.strip()
-    # Matches: "26: ...", "Episode 14: ...", "#42 ...", "Issue 7: ..."
     if re.match(r'^\d+\s*[:\-–—]', stripped):
         return True
     if re.match(r'^(?:Episode|Ep\.?|Issue|Vol\.?|#)\s*\d+', stripped, re.IGNORECASE):
         return True
-    # No company AND body looks like a title (short, title-case, no sentence structure)
     if not company and len(stripped) < 80 and re.match(r'^[A-Z0-9#]', stripped):
         words = stripped.split()
         if len(words) <= 10 and not stripped.endswith('.'):
-            # Likely a scraped headline with no context
             return True
     return False
 
@@ -109,17 +98,10 @@ def _is_episode_or_newsletter_item(body, company):
 
 
 def _deduplicate_spotlight_against_developments(spotlight_items, development_items):
-    """
-    Remove any spotlight item whose core topic already appears in developments.
-    Uses keyword overlap: if 3+ significant words from a spotlight org/body
-    appear in any development's company/body, it's a duplicate and gets dropped.
-    Also does direct org-name matching against development company names.
-    """
     if not spotlight_items or not development_items:
         return spotlight_items
 
     def key_words(text):
-        # Strip common stop words, return meaningful tokens
         stops = {
             'the','a','an','of','in','to','for','and','or','is','are','was',
             'were','this','that','these','those','it','its','with','by','at',
@@ -133,7 +115,6 @@ def _deduplicate_spotlight_against_developments(spotlight_items, development_ite
         words = re.findall(r'[a-z]{4,}', text.lower())
         return {w for w in words if w not in stops}
 
-    # Build a set of all keywords from developments
     dev_keywords = set()
     dev_orgs = set()
     for d in development_items:
@@ -148,9 +129,7 @@ def _deduplicate_spotlight_against_developments(spotlight_items, development_ite
         body = item.get('body', '').strip()
         combined = org + ' ' + body
 
-        # Direct org match
         if org.lower() in dev_orgs:
-            # Check if the body is substantially different
             item_words = key_words(body)
             overlap = item_words & dev_keywords
             overlap_ratio = len(overlap) / max(len(item_words), 1)
@@ -158,7 +137,6 @@ def _deduplicate_spotlight_against_developments(spotlight_items, development_ite
                 print(f"  dedup: removing spotlight '{org}' (org match + {overlap_ratio:.0%} keyword overlap)")
                 continue
 
-        # Keyword overlap check (even if org differs)
         item_words = key_words(combined)
         if len(item_words) >= 5:
             overlap = item_words & dev_keywords
@@ -176,11 +154,6 @@ def _deduplicate_spotlight_against_developments(spotlight_items, development_ite
 
 
 def _is_government_entity(company):
-    """
-    Returns True if a company/org name is a government entity — federal, provincial,
-    municipal, or intergovernmental. These items must go to CANADIAN SPOTLIGHT,
-    never KEY AI DEVELOPMENTS.
-    """
     if not company:
         return False
     c = company.lower()
@@ -371,7 +344,7 @@ def generate_blog_with_gemini(api_key, topic=None):
 
     current_date = datetime.now()
     month_year   = current_date.strftime("%B %Y")
-    prev_month   = (current_date.replace(day=1) - __import__('datetime').timedelta(days=1)).strftime("%B %Y")
+    prev_month   = (current_date.replace(day=1) - timedelta(days=1)).strftime("%B %Y")
 
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
     models_to_try = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"]
@@ -650,14 +623,12 @@ def parse_developments(text):
             i += 2
 
         if len(items) >= 3:
-            # Filter meta commentary AND newsletter/podcast items
             items = [i for i in items if not _is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
             items = [i for i in items if not _is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
             items = [i for i in items if not _is_government_entity(i.get('company', ''))]
             print(f"  parse_developments: strategy 1 found {len(items)} items")
             return items[:10]
 
-    # Strategy 2: Numbered list items
     items = []
     numbered_blocks = re.findall(
         r'^\d+[\.)]\s+(.+?)(?=^\d+[\.)]\s|\Z)',
@@ -705,7 +676,6 @@ def parse_developments(text):
             print(f"  parse_developments: strategy 2 found {len(items)} items")
             return items[:10]
 
-    # Strategy 3: Line-by-line fallback
     items = []
     lines = [l.strip() for l in text.split('\n') if len(l.strip()) > 40]
     current_block = []
@@ -791,7 +761,6 @@ def parse_spotlight_items(text):
     if len(items) >= 2:
         return items[:6]
 
-    # Strategy 2: Numbered list fallback
     items = []
     numbered = re.findall(r'^\d+[\.)]\s+(.+?)(?=^\d+[\.)]\s|\Z)', text, re.MULTILINE | re.DOTALL)
     for block in numbered:
@@ -811,7 +780,6 @@ def parse_spotlight_items(text):
         items = [i for i in items if not _is_episode_or_newsletter_item(i.get('body', ''), i.get('org', ''))]
         return items[:6]
 
-    # Strategy 3: Line fallback
     items = []
     for line in text.split('\n'):
         line = re.sub(r'^[-•*\d.)\s]+', '', line).strip()
@@ -1516,8 +1484,6 @@ def create_blog_index_html(posts):
     else:
         older_html = '<div class="no-posts-message"><p>Previous issues will appear here.</p></div>'
 
-    # PATCH C: use canonical_filename for ItemList schema URLs so position 1
-    # is never /blog/posts/latest.html but the real dated canonical URL.
     itemlist_elements = []
     for i, post in enumerate(validated[:12], 1):
         schema_filename = post.get('canonical_filename', post['filename'])
@@ -1659,8 +1625,6 @@ def update_blog_index():
         try:
             info = extract_post_info(latest_path)
             if info:
-                # PATCH B: find the most recent dated canonical filename so the
-                # ItemList schema never uses /blog/posts/latest.html as the URL.
                 canonical_filename = None
                 html_files_check = sorted(
                     [f for f in os.listdir(posts_dir)
