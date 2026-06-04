@@ -10,6 +10,10 @@ import sys
 import time
 from datetime import datetime
 
+# Ensure the scripts/ directory is on the path so sibling modules resolve
+# correctly whether this file is run directly or via GitHub Actions.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from utils import clean_filename
 from gemini import generate_blog_with_gemini
 from parser import extract_title_and_excerpt
