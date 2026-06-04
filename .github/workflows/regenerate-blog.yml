@@ -55,6 +55,7 @@ jobs:
         id: generate
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}/scripts
         run: |
           python3 scripts/generate-blog.py \
             --topic "${{ github.event.inputs.prompt }}" \
@@ -97,6 +98,8 @@ jobs:
           fi
 
       - name: Regenerate preview page
+        env:
+          PYTHONPATH: ${{ github.workspace }}/scripts
         run: |
           MONTH="${{ github.event.inputs.month_year }}"
           if [ -z "$MONTH" ]; then

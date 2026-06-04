@@ -93,6 +93,7 @@ jobs:
         id: generate
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}/scripts
         run: |
           OUTPUT_DIR="${{ github.event.inputs.output || 'staging' }}"
           TOPIC="${{ github.event.inputs.topic }}"
@@ -124,6 +125,8 @@ jobs:
 
       - name: Generate preview approval page
         if: ${{ github.event.inputs.output != 'posts' }}
+        env:
+          PYTHONPATH: ${{ github.workspace }}/scripts
         run: |
           python3 scripts/generate-preview-page.py \
             --filename "${{ steps.generate.outputs.staging_filename }}" \
