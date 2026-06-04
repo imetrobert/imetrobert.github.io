@@ -66,11 +66,10 @@ jobs:
       - name: Update blog index
         run: |
           python3 -c "
-          import importlib.util
-          spec = importlib.util.spec_from_file_location('generate_blog', 'scripts/generate-blog.py')
-          m = importlib.util.module_from_spec(spec)
-          spec.loader.exec_module(m)
-          posts = m.update_blog_index()
+          import sys
+          sys.path.insert(0, 'scripts')
+          from blog_index import update_blog_index
+          posts = update_blog_index()
           print(f'Blog index updated with {len(posts)} posts')
           "
 
