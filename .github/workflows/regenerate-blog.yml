@@ -55,11 +55,12 @@ jobs:
         id: generate
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          PYTHONPATH: ${{ github.workspace }}/scripts
         run: |
-          python3 scripts/generate-blog.py \
+          cd scripts
+          python3 generate-blog.py \
             --topic "${{ github.event.inputs.prompt }}" \
             --output staging
+          cd ..
 
       - name: Verify new staging file was created
         id: verify
@@ -67,7 +68,6 @@ jobs:
           NEW_FILE=$(ls -t blog/staging/*.html 2>/dev/null | grep -v preview | grep -v '\.bak' | head -1)
           if [ -z "$NEW_FILE" ]; then
             echo "ERROR: No new staging file was generated."
-            # Restore backup if it exists
             if [ -n "${{ github.event.inputs.staging_filename }}" ]; then
               BACKUP="blog/staging/${{ github.event.inputs.staging_filename }}.bak"
               ORIGINAL="blog/staging/${{ github.event.inputs.staging_filename }}"
@@ -88,7 +88,6 @@ jobs:
             OLD_FILE="blog/staging/${{ github.event.inputs.staging_filename }}"
             BACKUP_FILE="${OLD_FILE}.bak"
             NEW_FILENAME="${{ steps.verify.outputs.staging_filename }}"
-            # Only remove old file if it's different from the new one
             if [ "${{ github.event.inputs.staging_filename }}" != "$NEW_FILENAME" ]; then
               rm -f "$OLD_FILE"
               echo "Removed old staging file: $OLD_FILE"
@@ -98,18 +97,18 @@ jobs:
           fi
 
       - name: Regenerate preview page
-        env:
-          PYTHONPATH: ${{ github.workspace }}/scripts
         run: |
           MONTH="${{ github.event.inputs.month_year }}"
           if [ -z "$MONTH" ]; then
             MONTH=$(date +"%B %Y")
           fi
-          python3 scripts/generate-preview-page.py \
+          cd scripts
+          python3 generate-preview-page.py \
             --filename "${{ steps.verify.outputs.staging_filename }}" \
             --month "$MONTH" \
             --run-id "${{ github.run_id }}" \
             --regenerated
+          cd ..
 
       - name: Configure Git
         run: |
@@ -119,7 +118,6 @@ jobs:
       - name: Commit regenerated staging files
         run: |
           git add blog/staging/
-          # Also clean up any leftover .bak files from git tracking
           git rm --cached blog/staging/*.bak 2>/dev/null || true
           if git diff --staged --quiet; then
             echo "No changes"
