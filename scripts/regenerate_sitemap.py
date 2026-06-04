@@ -6,11 +6,16 @@ from datetime import datetime
 POSTS_DIR = "blog/posts"
 BASE_URL  = "https://www.imetrobert.com"
 
+# Exclude noindex redirect stubs and superseded drafts from the sitemap.
+# These are files that have a <meta name="robots" content="noindex"> tag
+# or were replaced by a later canonical version.
 EXCLUDE = {
-    "latest.html", "index.html",
+    "latest.html",
+    "index.html",
+    # Noindex redirect stubs — canonical redirects to the dated version
+    "2025-10-01-key-ai-developments-this-month.html",
     "2026-03-26-march-1-2026-openai-announces-gpt5-boasting-enhanced-reasoning-and-multimodal-capabilities.html",
     "2026-03-27-ai-insights-for-march-2026.html",
-    "2025-10-01-key-ai-developments-this-month.html",
 }
 
 def iso_date(filename):
@@ -51,4 +56,5 @@ lines.append("</urlset>")
 with open("sitemap.xml", "w", encoding="utf-8") as f:
     f.write("\n".join(lines))
 
-print(f"sitemap.xml regenerated with {len(entries)} URLs")
+print(f"sitemap.xml regenerated with {len(entries)} URLs ({len(posts)} blog posts)")
+print(f"Excluded noindex/redirect stubs: {sorted(EXCLUDE - {'latest.html', 'index.html'})}")
