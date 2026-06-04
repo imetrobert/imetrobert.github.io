@@ -38,17 +38,21 @@ jobs:
           pip3 install -r scripts/requirements.txt
           pip3 install beautifulsoup4 lxml
 
-      - name: Remove old staging file
+      - name: Back up old staging file (safe swap — no data loss on failure)
         run: |
           if [ -n "${{ github.event.inputs.staging_filename }}" ]; then
             OLD_FILE="blog/staging/${{ github.event.inputs.staging_filename }}"
+            BACKUP_FILE="${OLD_FILE}.bak"
             if [ -f "$OLD_FILE" ]; then
-              rm -f "$OLD_FILE"
-              echo "Removed old staging file: $OLD_FILE"
+              cp "$OLD_FILE" "$BACKUP_FILE"
+              echo "Backed up: $OLD_FILE → $BACKUP_FILE"
+            else
+              echo "No existing staging file to back up."
             fi
           fi
 
       - name: Regenerate blog post with custom prompt
+        id: generate
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
@@ -56,17 +60,41 @@ jobs:
             --topic "${{ github.event.inputs.prompt }}" \
             --output staging
 
-      - name: Find new staging file
-        id: find-file
+      - name: Verify new staging file was created
+        id: verify
         run: |
-          NEW_FILE=$(ls -t blog/staging/*.html 2>/dev/null | grep -v preview | head -1)
+          NEW_FILE=$(ls -t blog/staging/*.html 2>/dev/null | grep -v preview | grep -v '\.bak' | head -1)
           if [ -z "$NEW_FILE" ]; then
-            echo "ERROR: No staging file generated"
+            echo "ERROR: No new staging file was generated."
+            # Restore backup if it exists
+            if [ -n "${{ github.event.inputs.staging_filename }}" ]; then
+              BACKUP="blog/staging/${{ github.event.inputs.staging_filename }}.bak"
+              ORIGINAL="blog/staging/${{ github.event.inputs.staging_filename }}"
+              if [ -f "$BACKUP" ]; then
+                mv "$BACKUP" "$ORIGINAL"
+                echo "Rolled back to backup: $ORIGINAL"
+              fi
+            fi
             exit 1
           fi
           FILENAME=$(basename "$NEW_FILE")
           echo "staging_filename=$FILENAME" >> $GITHUB_OUTPUT
-          echo "New staging file: $FILENAME"
+          echo "New staging file verified: $FILENAME"
+
+      - name: Remove old staging file and backup now that generation succeeded
+        run: |
+          if [ -n "${{ github.event.inputs.staging_filename }}" ]; then
+            OLD_FILE="blog/staging/${{ github.event.inputs.staging_filename }}"
+            BACKUP_FILE="${OLD_FILE}.bak"
+            NEW_FILENAME="${{ steps.verify.outputs.staging_filename }}"
+            # Only remove old file if it's different from the new one
+            if [ "${{ github.event.inputs.staging_filename }}" != "$NEW_FILENAME" ]; then
+              rm -f "$OLD_FILE"
+              echo "Removed old staging file: $OLD_FILE"
+            fi
+            rm -f "$BACKUP_FILE"
+            echo "Removed backup: $BACKUP_FILE"
+          fi
 
       - name: Regenerate preview page
         run: |
@@ -75,7 +103,7 @@ jobs:
             MONTH=$(date +"%B %Y")
           fi
           python3 scripts/generate-preview-page.py \
-            --filename "${{ steps.find-file.outputs.staging_filename }}" \
+            --filename "${{ steps.verify.outputs.staging_filename }}" \
             --month "$MONTH" \
             --run-id "${{ github.run_id }}" \
             --regenerated
@@ -88,6 +116,8 @@ jobs:
       - name: Commit regenerated staging files
         run: |
           git add blog/staging/
+          # Also clean up any leftover .bak files from git tracking
+          git rm --cached blog/staging/*.bak 2>/dev/null || true
           if git diff --staged --quiet; then
             echo "No changes"
           else
@@ -101,6 +131,8 @@ jobs:
           echo "## 🔄 Blog Post Regenerated!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Prompt used:** ${{ github.event.inputs.prompt }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**New file:** ${{ steps.verify.outputs.staging_filename }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Preview:** https://www.imetrobert.com/blog/staging/preview.html" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
