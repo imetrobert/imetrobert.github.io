@@ -264,7 +264,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       border: none;
       display: block;
     }}
-    /* Loading overlay on the iframe */
     .iframe-loading {{
       display: none;
       position: absolute;
@@ -492,11 +491,11 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </div>
     </div>
     <div class="preview-frame" id="preview-frame-wrapper">
-      <div class="iframe-loading" id="iframe-loading">
+      <div class="iframe-loading show" id="iframe-loading">
         <div class="iframe-loading-spinner"></div>
         <div class="iframe-loading-text">Loading latest version…</div>
       </div>
-      <iframe id="preview-iframe" src="/blog/staging/{staging_filename}?v={{}}" title="Blog post preview" onload="onIframeLoad()"></iframe>
+      <iframe id="preview-iframe" src="" title="Blog post preview" onload="onIframeLoad()"></iframe>
     </div>
   </div>
 
@@ -515,7 +514,13 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   const REGENERATE_WF = "regenerate-blog.yml";
   const GITHUB_API    = "https://api.github.com";
 
-  // ── Init iframe with cache-busting timestamp ───────────────────
+  // ── Set iframe src with cache-busting timestamp on load ────────
+  function setIframeSrc(extraBust) {{
+    const iframe = document.getElementById("preview-iframe");
+    const ts = extraBust || Date.now();
+    iframe.src = `/blog/staging/${{STAGING_FILE}}?v=${{ts}}`;
+  }}
+
   document.addEventListener("DOMContentLoaded", () => {{
     loadPAT();
     loadLastPrompt();
@@ -528,19 +533,13 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         val.innerHTML = `<a href="https://github.com/${{REPO}}/actions/runs/${{runId}}" target="_blank" style="color:var(--blue);">Run #${{runId}}</a>`;
       }}
     }}
-    // Set initial src with current timestamp to bust cache on first load
+    // Set iframe src with cache-busting timestamp — fixes blank iframe on slow JS
     setIframeSrc();
     // Show cache hint after 3 seconds in case content looks stale
     setTimeout(() => {{
       document.getElementById("cache-hint").style.display = "inline";
     }}, 3000);
   }});
-
-  function setIframeSrc(extraBust) {{
-    const iframe = document.getElementById("preview-iframe");
-    const ts = extraBust || Date.now();
-    iframe.src = `/blog/staging/${{STAGING_FILE}}?v=${{ts}}`;
-  }}
 
   function onIframeLoad() {{
     document.getElementById("iframe-loading").classList.remove("show");
@@ -557,7 +556,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     document.getElementById("iframe-loading").classList.add("show");
     showToast("Fetching latest version, bypassing cache…", "purple");
 
-    // Use a unique timestamp + random to guarantee bypass
     const bust = Date.now() + "_" + Math.random().toString(36).slice(2);
     setIframeSrc(bust);
 
@@ -569,7 +567,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }}, 10000);
   }}
 
-  // ── Soft reload (existing behaviour) ───────────────────────────
+  // ── Soft reload ─────────────────────────────────────────────────
   function softReload() {{
     const iframe = document.getElementById("preview-iframe");
     iframe.src = iframe.src;
@@ -585,7 +583,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     return saved || "";
   }}
 
-  // ── Last prompt persistence ──────────────────────────────────────
+  // ── Last prompt persistence ─────────────────────────────────────
   const LAST_PROMPT_KEY = "blog_preview_last_prompt";
 
   function saveLastPrompt(prompt) {{
@@ -681,7 +679,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       document.getElementById("prompt-input").focus();
       return;
     }}
-    // Save prompt to localStorage before firing so it survives the refresh
     saveLastPrompt(prompt);
     showOverlay("loading", "🔄 Triggering regeneration...",
       "GitHub Actions will regenerate the post with your prompt. This takes ~5 minutes. The preview will update automatically."
@@ -711,8 +708,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   }}
 
   function openStagingPost() {{
-    // Always open with a fresh cache-busting timestamp so the full-post
-    // tab shows the same version as the force-refreshed iframe.
     const bust = Date.now() + "_" + Math.random().toString(36).slice(2);
     window.open(`/blog/staging/${{STAGING_FILE}}?v=${{bust}}`, "_blank");
   }}
