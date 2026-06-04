@@ -1,0 +1,62 @@
+name: Fix Old Blog Posts (Run Once)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix-posts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run post fixer
+        id: fix
+        run: |
+          python3 scripts/fix_old_posts.py 2>&1 | tee /tmp/fix_output.txt
+          echo "fix_output<<EOF" >> $GITHUB_OUTPUT
+          cat /tmp/fix_output.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Post Fixer Bot"
+
+      - name: Commit and push
+        run: |
+          git add blog/posts/
+          if git diff --staged --quiet; then
+            echo "No changes — posts were already clean."
+          else
+            CHANGED=$(git diff --staged --name-only | wc -l)
+            git commit -m "Fix old posts: remove itemprop dupes + upgrade section-title divs to h2 ($CHANGED files)"
+            git push
+            echo "Pushed fixes for $CHANGED posts."
+          fi
+
+      - name: Summary
+        run: |
+          echo "## 🔧 Old Post Fixes Applied" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### What was fixed" >> $GITHUB_STEP_SUMMARY
+          echo "| Issue | Fix Applied |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Triple-duplicated \`itemprop\` meta tags in article body | Removed duplicate sets, kept first |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`<div class=\"section-title\">\` instead of \`<h2>\` in old posts | Upgraded to semantic H2 headings |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Script output" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/fix_output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> This workflow is idempotent — safe to run again; it will report all posts as clean." >> $GITHUB_STEP_SUMMARY
