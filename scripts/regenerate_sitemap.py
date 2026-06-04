@@ -7,8 +7,6 @@ POSTS_DIR = "blog/posts"
 BASE_URL  = "https://www.imetrobert.com"
 
 # Exclude noindex redirect stubs and superseded drafts from the sitemap.
-# These are files that have a <meta name="robots" content="noindex"> tag
-# or were replaced by a later canonical version.
 EXCLUDE = {
     "latest.html",
     "index.html",
@@ -16,6 +14,8 @@ EXCLUDE = {
     "2025-10-01-key-ai-developments-this-month.html",
     "2026-03-26-march-1-2026-openai-announces-gpt5-boasting-enhanced-reasoning-and-multimodal-capabilities.html",
     "2026-03-27-ai-insights-for-march-2026.html",
+    # Superseded draft — May 31 is the canonical May 2026 post
+    "2026-05-30-ai-insights-for-may-2026.html",
 }
 
 def iso_date(filename):
