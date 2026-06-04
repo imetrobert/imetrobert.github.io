@@ -41,6 +41,11 @@ def clean_ai_content(content):
         r'[^.\n]*\b(?:listed|appears?|appeared|duplicated?|repeated?)\s+in\s+both\s+sections[^.\n]*\.?',
         r'[^.\n]*and replace it with a (?:different|new|another)[^.\n]*\.?',
         r'(?:^|\n)\s*(?:MANDATORY )?SELF-CHECK[^\n]*(?:\n[^\n]{0,200}){0,10}',
+        # PATCH A: Strip residual SELF-CHECK / duplicate audit blocks Gemini occasionally outputs
+        r'(?:^|\n)MANDATORY SELF-CHECK.*?(?=\n[A-Z]{4,}|\Z)',
+        r'(?:^|\n)List every news event.*?(?=\n[A-Z]{4,}|\Z)',
+        r'(?:^|\n)Then list every news event.*?(?=\n[A-Z]{4,}|\Z)',
+        r'(?:^|\n)Compare the two lists.*?(?=\n[A-Z]{4,}|\Z)',
     ]
     for pattern in meta_patterns:
         content = re.sub(pattern, '', content, flags=re.IGNORECASE | re.MULTILINE)
@@ -1411,7 +1416,6 @@ def _build_roberts_take(raw_text, month_year):
         cleaned = cleaned.replace('"', '&quot;').replace("'", '&#39;')
         body = (
             f'<p class="roberts-body">&#8220;{cleaned}&#8221;</p>'
-            
         )
 
     return f'<div class="section"><div class="roberts-take">{header}{body}</div></div>'
@@ -1512,9 +1516,12 @@ def create_blog_index_html(posts):
     else:
         older_html = '<div class="no-posts-message"><p>Previous issues will appear here.</p></div>'
 
+    # PATCH C: use canonical_filename for ItemList schema URLs so position 1
+    # is never /blog/posts/latest.html but the real dated canonical URL.
     itemlist_elements = []
     for i, post in enumerate(validated[:12], 1):
-        url = f"https://www.imetrobert.com/blog/posts/{post['filename']}"
+        schema_filename = post.get('canonical_filename', post['filename'])
+        url = f"https://www.imetrobert.com/blog/posts/{schema_filename}"
         itemlist_elements.append(
             f'{{"@type":"ListItem","position":{i},"url":"{url}","name":{json.dumps(post["title"])}}}'
         )
@@ -1652,7 +1659,19 @@ def update_blog_index():
         try:
             info = extract_post_info(latest_path)
             if info:
+                # PATCH B: find the most recent dated canonical filename so the
+                # ItemList schema never uses /blog/posts/latest.html as the URL.
+                canonical_filename = None
+                html_files_check = sorted(
+                    [f for f in os.listdir(posts_dir)
+                     if f.endswith(".html") and f not in ("latest.html", "index.html")
+                     and not f.startswith("{") and "{" not in f],
+                    reverse=True
+                )
+                if html_files_check:
+                    canonical_filename = html_files_check[0]
                 info['filename'] = 'latest.html'
+                info['canonical_filename'] = canonical_filename or 'latest.html'
                 posts.append(info)
         except Exception as e:
             print(f"Warning: could not read latest.html: {e}")
