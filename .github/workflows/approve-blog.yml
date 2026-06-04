@@ -66,8 +66,8 @@ jobs:
       - name: Update blog index
         run: |
           python3 -c "
-          import sys
-          sys.path.insert(0, 'scripts')
+          import sys, os
+          sys.path.insert(0, os.path.join(os.getcwd(), 'scripts'))
           from blog_index import update_blog_index
           posts = update_blog_index()
           print(f'Blog index updated with {len(posts)} posts')
