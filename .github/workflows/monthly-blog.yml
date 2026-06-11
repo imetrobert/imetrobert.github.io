@@ -158,18 +158,6 @@ jobs:
         if: ${{ github.event.inputs.output == 'posts' }}
         run: python3 scripts/regenerate_sitemap.py
 
-      - name: Send email notification
-        if: ${{ github.event.inputs.output != 'posts' }}
-        env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
-          MONTH_YEAR: ${{ needs.check-last-day.outputs.month_year }}
-          PREVIEW_URL: ${{ steps.generate.outputs.preview_url }}
-          STAGING_FILENAME: ${{ steps.generate.outputs.staging_filename }}
-          GITHUB_REPO: ${{ github.repository }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-        run: python3 scripts/send-notification.py
-
       - name: Summary
         run: |
           OUTPUT_DIR="${{ github.event.inputs.output || 'staging' }}"
