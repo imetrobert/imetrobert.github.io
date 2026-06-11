@@ -22,8 +22,6 @@ jobs:
       - name: Test all API keys
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
           GITHUB_TOKEN_TEST: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         run: python3 scripts/test_all_keys.py
