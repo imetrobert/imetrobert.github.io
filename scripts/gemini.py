@@ -103,20 +103,20 @@ def generate_blog_with_gemini(api_key, topic=None):
 
 def _build_monthly_prompt(month_year, prev_month):
     rules = _shared_rules_block(month_year, prev_month)
-    return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert has 25+ years in digital transformation and is known for direct, opinionated takes on AI adoption.
+    return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
 
 AUDIENCE
-Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadian enterprises in financial services, retail, manufacturing, telecom, and healthcare. They are time-pressed and want signal, not noise.
+Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadian enterprises across financial services, retail, manufacturing, telecom, and healthcare. These are busy, experienced executives. They have seen every tech hype cycle. Give them signal, cut the noise, and respect their time.
 
 {rules}"""
 
 
 def _build_custom_prompt(topic, month_year, prev_month):
     rules = _shared_rules_block(month_year, prev_month)
-    return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert has 25+ years in digital transformation and is known for direct, opinionated takes on AI adoption.
+    return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
 
 AUDIENCE
-Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadian enterprises in financial services, retail, manufacturing, telecom, and healthcare. They are time-pressed and want signal, not noise.
+Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadian enterprises across financial services, retail, manufacturing, telecom, and healthcare. These are busy, experienced executives. They have seen every tech hype cycle. Give them signal, cut the noise, and respect their time.
 
 CONTENT FOCUS DIRECTIVE:
 {topic}
@@ -128,14 +128,15 @@ This directive changes WHAT events and examples you select and emphasise. It doe
 
 def _shared_rules_block(month_year, prev_month):
     return f"""WRITING RULES — follow these exactly:
-1. Write like a trusted senior advisor talking to a peer. Confident. Direct. No hedging.
-2. Maximum 22 words per sentence. Short sentences hit harder.
-3. Never use these phrases:
+1. Write as an active peer and practitioner — someone in the room, not observing from the outside. Use "What we're seeing on the ground" over "studies suggest." Be casually authoritative. Enthusiasm for technology is fine; uncritical hype is not.
+2. Maximum 22 words per sentence. Short sentences hit harder. Mix punchy 4-word sentences with longer conversational ones. Vary the rhythm deliberately.
+3. Start every section with a direct hook or a counter-intuitive observation. No warmup phrases, no formal introductions.
+4. Never use these words or phrases:
    - "dual-edged sword" → describe the tension directly
    - "unprecedented opportunities" → name the specific opportunity
    - "navigate" → deal with / address / respond to
-   - "leverage" → use
    - "harness" → use / deploy / apply
+   - "leverage" → use
    - "landscape" → market / industry / sector
    - "stakeholders" → customers / employees / investors / regulators
    - "game-changer" → describe why it changes things
@@ -144,8 +145,16 @@ def _shared_rules_block(month_year, prev_month):
    - "in today's fast-paced world" → delete entirely
    - "Welcome to the [month] edition" → do not use
    - "This month, the pace of AI innovation continues to accelerate" → do not use
-4. Ground everything in Canadian business reality: US-Canada trade tensions under the Carney government, Bill C-27 (AIDA) working through Parliament, Quebec Law 25 privacy requirements, PIPEDA, the Canadian dollar, AI talent competition between Toronto/Montreal/Vancouver.
-5. Name real Canadian companies and institutions where relevant: Shopify, Cohere, D-Wave, Ada, Coveo, RBC, TD, Scotiabank, CIBC, Manulife, Sun Life, Bell, Rogers, Telus, BCE, Loblaw, Couche-Tard, CAE, BRP, Bombardier, Mila, Vector Institute, Amii, Ivey Business School, Rotman School of Management.
+   - "delve" → cut entirely
+   - "testament" → cut entirely
+   - "synergy" → cut entirely
+   - "tapestry" → cut entirely
+   - "Furthermore" → cut entirely
+   - "Moreover" → cut entirely
+   - "It is important to remember" → cut entirely
+   - "In conclusion" → cut entirely
+5. Ground everything in Canadian business reality: US-Canada trade tensions under the Carney government, Bill C-27 (AIDA) working through Parliament, Quebec Law 25 privacy requirements, PIPEDA, the Canadian dollar, AI talent competition between Toronto/Montreal/Vancouver.
+6. Name real Canadian companies and institutions where relevant: Shopify, Cohere, D-Wave, Ada, Coveo, RBC, TD, Scotiabank, CIBC, Manulife, Sun Life, Bell, Rogers, Telus, BCE, Loblaw, Couche-Tard, CAE, BRP, Bombardier, Mila, Vector Institute, Amii, Ivey Business School, Rotman School of Management.
 
 Use Google Search grounding to find REAL AI news events from {month_year} ONLY. Do NOT use events from {prev_month} or any prior month. Do not invent events, dates, companies, or statistics.
 
@@ -165,7 +174,7 @@ ROBERTS TAKE
 ---
 
 INTRODUCTION (3 sentences maximum):
-Open with one specific fact or event from {month_year}. Second sentence: what it means for Canadian business. Third sentence: what this analysis helps the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase.
+Open with one specific fact or event from {month_year}. Second sentence: what it means for Canadian business. Third sentence: what this analysis helps the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase. Lead with the sharpest, most surprising detail you found. Make the reader want to keep going.
 
 KEY AI DEVELOPMENTS (MINIMUM 8 items — this is a hard requirement):
 CRITICAL DATE RULE: Include ONLY events from {month_year}. Never fabricate. Never use events from prior months.
@@ -214,6 +223,7 @@ Only continue to WHAT THIS MEANS once every item across both sections is a uniqu
 
 WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs):
 CRITICAL CROSS-REFERENCE RULE: Every paragraph MUST name at least one specific event, company, or statistic from KEY AI DEVELOPMENTS, CANADIAN SPOTLIGHT, or ADOPTION SNAPSHOT above.
+Write like a practitioner who has seen this play out. Skip the academic framing. Say what is actually happening and what Canadian leaders need to do about it.
 
 Paragraph 1 — Financial services / technology impact:
 - Open by naming a specific development from KEY AI DEVELOPMENTS.
@@ -232,6 +242,7 @@ Paragraph 3 — Regulatory and competitive pressure:
 
 STRATEGIC ACTIONS FOR THIS MONTH (exactly 5 items):
 CRITICAL TRACEABILITY RULE: Each of the 5 actions MUST trace directly to a named item from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT.
+These are not generic best practices. Each action responds to something specific that happened this month. Make that connection explicit.
 
 Each action must:
 - Start with a strong verb: Audit, Pilot, Negotiate, Commission, Assign, Test, Require, Demand, Sunset, Block time to
@@ -257,9 +268,9 @@ Format for each line:
 Use only real, verifiable Canadian stats from: Statistics Canada, BDC, ISED, CIRA, Conference Board of Canada, Deloitte Canada, KPMG Canada, PwC Canada, Mila Annual Report, Vector Institute Annual Report, McKinsey Canada.
 
 ROBERTS TAKE:
-CRITICAL: This is NOT a summary of the newsletter. Robert speaks in first person with a direct, opinionated voice. He references 1-2 specific items from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT and offers a take that a reader would NOT get from reading those items alone.
+CRITICAL: This is NOT a summary of the newsletter. Robert speaks in first person. He has a point of view the reader would not get from reading the news items alone. He is willing to say something slightly uncomfortable if that is what he actually thinks.
 
-Write 2-3 sentences. Start with "The [thing] that surprised me most this month was..." or "What I keep hearing from Canadian leaders right now is..." or similar first-person opener. Never start with "This month" or "The AI landscape".
+Write 2-3 sentences. Start with "The thing that surprised me most this month was..." or "What I keep hearing from Canadian leaders right now is..." or a similarly direct first-person opener. Never start with "This month" or "The AI landscape". Pick 1-2 specific items from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT and say something worth reading.
 
 Do NOT write the placeholder. Write actual content that Robert would say based on the specific news reported above.
 
