@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Review: July 2026 Blog Post — Robert Simon</title>
+  <title>Review: July 2026 Issue (covers June) — Robert Simon</title>
   <style>
     :root {
       --blue:    #2563eb;
@@ -345,7 +345,7 @@
 <div class="topbar">
   <div class="topbar-left">
     <span class="logo">imetrobert.com</span>
-    <span class="issue-label">📝 Review: July 2026</span>
+    <span class="issue-label">📝 Review: July 2026 &mdash; covers June</span>
   </div>
   <div class="topbar-right">
     <a href="https://www.imetrobert.com/blog/" class="btn btn-outline" target="_blank">
@@ -365,12 +365,16 @@
       <h3>Status</h3>
       <div class="status-card">
         <div class="status-row">
-          <span class="status-label">Month</span>
+          <span class="status-label">Issue</span>
           <span class="status-value">July 2026</span>
         </div>
         <div class="status-row">
+          <span class="status-label">Covers</span>
+          <span class="status-value">June</span>
+        </div>
+        <div class="status-row">
           <span class="status-label">File</span>
-          <span class="status-value" style="font-family:monospace;font-size:0.7rem;">2026-07-02-ai-insights-for-july-2026.html</span>
+          <span class="status-value" style="font-family:monospace;font-size:0.7rem;">2026-07-03-ai-insights-for-july-2026.html</span>
         </div>
         <div class="status-row">
           <span class="status-label">Status</span>
@@ -453,8 +457,8 @@
   <div class="preview-area">
     <div class="preview-toolbar">
       <div>
-        <h2>Post Preview — July 2026</h2>
-        <div class="preview-meta">Staging file: 2026-07-02-ai-insights-for-july-2026.html</div>
+        <h2>Post Preview — July 2026 <span style="font-weight:400;opacity:0.6;">(covers June)</span></h2>
+        <div class="preview-meta">Staging file: 2026-07-03-ai-insights-for-july-2026.html</div>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
         <span id="cache-hint" style="font-size:0.72rem;color:#94a3b8;display:none;">Seeing an old version?</span>
@@ -488,8 +492,9 @@
 
 <script>
   const REPO          = "imetrobert/imetrobert.github.io";
-  const STAGING_FILE  = "2026-07-02-ai-insights-for-july-2026.html";
-  const MONTH_YEAR    = "July 2026";
+  const STAGING_FILE  = "2026-07-03-ai-insights-for-july-2026.html";
+  const ISSUE_MONTH_YEAR    = "July 2026";
+  const COVERAGE_MONTH_YEAR = "June 2026";
   const APPROVE_WF    = "approve-blog.yml";
   const REGENERATE_WF = "regenerate-blog.yml";
   const GITHUB_API    = "https://api.github.com";
@@ -504,7 +509,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     loadPAT();
     loadLastPrompt();
-    const runId = "28585294122";
+    const runId = "28631134580";
     if (runId && runId !== "0") {
       const row = document.getElementById("gen-info");
       const val = document.getElementById("gen-run");
@@ -634,7 +639,7 @@
     showOverlay("loading", "Publishing...", "Triggering the publish workflow on GitHub Actions.");
     const res = await triggerWorkflow(APPROVE_WF, {
       staging_filename: STAGING_FILE,
-      month_year: MONTH_YEAR
+      month_year: ISSUE_MONTH_YEAR
     });
     if (!res) return;
     if (res.status === 204) {
@@ -666,7 +671,7 @@
     const res = await triggerWorkflow(REGENERATE_WF, {
       prompt: prompt,
       staging_filename: STAGING_FILE,
-      month_year: MONTH_YEAR
+      coverage_month: COVERAGE_MONTH_YEAR
     });
     if (!res) { hideOverlay(); return; }
     if (res.status === 204) {
