@@ -7,12 +7,40 @@ regenerate with a prompt, or approve and publish his monthly blog post.
 
 import argparse
 import os
+import sys
 import json
 from datetime import datetime
+
+# Ensure scripts/ is on the path so `from utils import ...` resolves whether
+# this runs via `python3 scripts/generate-preview-page.py` (repo root) or
+# `cd scripts && python3 generate-preview-page.py` (as regenerate-blog.yml does).
+_here = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _here)
+sys.path.insert(0, os.path.join(os.getcwd(), 'scripts'))
+
+from utils import get_issue_labels
 
 
 def build_preview_html(staging_filename: str, month_year: str, run_id: str, regenerated: bool = False) -> str:
     repo = os.environ.get("GITHUB_REPOSITORY", "imetrobert/imetrobert.github.io")
+
+    # `month_year` arrives from the workflow as the COVERAGE month (the real
+    # calendar month at generation time, e.g. "June 2026" for a post
+    # generated June 30 covering June's news). Derive the reader-facing
+    # ISSUE month from it here so this review screen always matches what
+    # will actually appear on the published post — see utils.get_issue_labels().
+    try:
+        coverage_date = datetime.strptime(month_year, "%B %Y")
+        issue_labels  = get_issue_labels(coverage_date)
+        issue_month_year     = issue_labels["issue_month_year"]
+        coverage_month_year  = issue_labels["coverage_month_year"]
+        coverage_month_name  = issue_labels["coverage_month_name"]
+    except (ValueError, TypeError):
+        # Unexpected format — fall back to showing the raw value as-is
+        # rather than failing the whole preview page generation.
+        issue_month_year    = month_year
+        coverage_month_year = month_year
+        coverage_month_name = month_year
 
     regen_badge = ""
     if regenerated:
@@ -23,7 +51,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Review: {month_year} Blog Post — Robert Simon</title>
+  <title>Review: {issue_month_year} Issue (covers {coverage_month_name}) — Robert Simon</title>
   <style>
     :root {{
       --blue:    #2563eb;
@@ -365,7 +393,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
 <div class="topbar">
   <div class="topbar-left">
     <span class="logo">imetrobert.com</span>
-    <span class="issue-label">📝 Review: {month_year}</span>
+    <span class="issue-label">📝 Review: {issue_month_year} &mdash; covers {coverage_month_name}</span>
   </div>
   <div class="topbar-right">
     <a href="https://www.imetrobert.com/blog/" class="btn btn-outline" target="_blank">
@@ -385,8 +413,12 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       <h3>Status</h3>
       <div class="status-card">
         <div class="status-row">
-          <span class="status-label">Month</span>
-          <span class="status-value">{month_year}</span>
+          <span class="status-label">Issue</span>
+          <span class="status-value">{issue_month_year}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">Covers</span>
+          <span class="status-value">{coverage_month_name}</span>
         </div>
         <div class="status-row">
           <span class="status-label">File</span>
@@ -473,7 +505,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   <div class="preview-area">
     <div class="preview-toolbar">
       <div>
-        <h2>Post Preview — {month_year}</h2>
+        <h2>Post Preview — {issue_month_year} <span style="font-weight:400;opacity:0.6;">(covers {coverage_month_name})</span></h2>
         <div class="preview-meta">Staging file: {staging_filename}</div>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
@@ -509,7 +541,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
 <script>
   const REPO          = "{repo}";
   const STAGING_FILE  = "{staging_filename}";
-  const MONTH_YEAR    = "{month_year}";
+  const ISSUE_MONTH_YEAR    = "{issue_month_year}";
+  const COVERAGE_MONTH_YEAR = "{coverage_month_year}";
   const APPROVE_WF    = "approve-blog.yml";
   const REGENERATE_WF = "regenerate-blog.yml";
   const GITHUB_API    = "https://api.github.com";
@@ -654,7 +687,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     showOverlay("loading", "Publishing...", "Triggering the publish workflow on GitHub Actions.");
     const res = await triggerWorkflow(APPROVE_WF, {{
       staging_filename: STAGING_FILE,
-      month_year: MONTH_YEAR
+      month_year: ISSUE_MONTH_YEAR
     }});
     if (!res) return;
     if (res.status === 204) {{
@@ -686,7 +719,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     const res = await triggerWorkflow(REGENERATE_WF, {{
       prompt: prompt,
       staging_filename: STAGING_FILE,
-      month_year: MONTH_YEAR
+      coverage_month: COVERAGE_MONTH_YEAR
     }});
     if (!res) {{ hideOverlay(); return; }}
     if (res.status === 204) {{

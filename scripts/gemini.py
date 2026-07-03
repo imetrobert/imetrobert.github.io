@@ -9,18 +9,25 @@ from datetime import datetime, timedelta
 from utils import clean_ai_content
 
 
-def generate_blog_with_gemini(api_key, topic=None):
-    current_date = datetime.now()
+def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
+    # coverage_date lets a regeneration stay locked to the ORIGINAL month
+    # being reported on (e.g. regenerating a June 30 post on July 2nd should
+    # still search for June news, not July's). Defaults to today for a
+    # brand-new monthly run. See utils.get_issue_labels() for the full story.
+    current_date = coverage_date or datetime.now()
     month_year   = current_date.strftime("%B %Y")
     prev_month   = (current_date.replace(day=1) - timedelta(days=1)).strftime("%B %Y")
+    is_backfill  = coverage_date is not None and (
+        coverage_date.year, coverage_date.month
+    ) != (datetime.now().year, datetime.now().month)
 
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
     models_to_try = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"]
 
     if topic:
-        prompt = _build_custom_prompt(topic, month_year, prev_month)
+        prompt = _build_custom_prompt(topic, month_year, prev_month, is_backfill)
     else:
-        prompt = _build_monthly_prompt(month_year, prev_month)
+        prompt = _build_monthly_prompt(month_year, prev_month, is_backfill)
 
     payload = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
@@ -101,8 +108,8 @@ def generate_blog_with_gemini(api_key, topic=None):
     raise Exception("All Gemini models failed.")
 
 
-def _build_monthly_prompt(month_year, prev_month):
-    rules = _shared_rules_block(month_year, prev_month)
+def _build_monthly_prompt(month_year, prev_month, is_backfill=False):
+    rules = _shared_rules_block(month_year, prev_month, is_backfill)
     return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
 
 AUDIENCE
@@ -111,8 +118,8 @@ Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadi
 {rules}"""
 
 
-def _build_custom_prompt(topic, month_year, prev_month):
-    rules = _shared_rules_block(month_year, prev_month)
+def _build_custom_prompt(topic, month_year, prev_month, is_backfill=False):
+    rules = _shared_rules_block(month_year, prev_month, is_backfill)
     return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
 
 AUDIENCE
@@ -126,7 +133,7 @@ This directive changes WHAT events and examples you select and emphasise. It doe
 {rules}"""
 
 
-def _shared_rules_block(month_year, prev_month):
+def _shared_rules_block(month_year, prev_month, is_backfill=False):
     return f"""WRITING RULES — follow these exactly:
 1. Write as an active peer and practitioner — someone in the room, not observing from the outside. Use "What we're seeing on the ground" over "studies suggest." Be casually authoritative. Enthusiasm for technology is fine; uncritical hype is not.
 2. Maximum 22 words per sentence. Short sentences hit harder. Mix punchy 4-word sentences with longer conversational ones. Vary the rhythm deliberately.
@@ -157,6 +164,9 @@ def _shared_rules_block(month_year, prev_month):
 6. Name real Canadian companies and institutions where relevant: Shopify, Cohere, D-Wave, Ada, Coveo, RBC, TD, Scotiabank, CIBC, Manulife, Sun Life, Bell, Rogers, Telus, BCE, Loblaw, Couche-Tard, CAE, BRP, Bombardier, Mila, Vector Institute, Amii, Ivey Business School, Rotman School of Management.
 
 Use Google Search grounding to find REAL AI news events from {month_year} ONLY. Do NOT use events from {prev_month} or any prior month. Do not invent events, dates, companies, or statistics.
+{"" if not is_backfill else f'''
+BACKFILL NOTICE: This is a re-run of the {month_year} report, being regenerated after {month_year} has already ended. Today's real date is later than {month_year} — ignore that. Your search results will surface newer news by default; you must actively filter it out. Every single item, statistic, and example must be dated within {month_year}. If you cannot find 8 qualifying developments strictly from {month_year}, use fewer rather than reaching into a later month.
+'''}
 
 SOURCE QUALITY RULE: Only cite primary sources — official company blogs, government press releases, major news outlets (Globe and Mail, Financial Post, CBC, Reuters, Bloomberg, TechCrunch, The Verge, Wired). Do NOT cite newsletters, podcast episodes, Substack posts, or aggregator summaries. If a result looks like "26: GPT-5.5, Claude Mythos & What It Means" or "Episode 14: ..." it is a newsletter/podcast — skip it and find the original primary source instead.
 

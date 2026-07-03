@@ -55,10 +55,68 @@ def estimate_reading_time(text):
     return max(3, round(words / 200))
 
 
-def get_issue_number():
+def get_issue_number(reference_date=None):
+    """
+    reference_date should be the ISSUE date (first of the issue month), not
+    raw wall-clock "now" — otherwise regenerating a post a few days after
+    the calendar rolls over would silently bump the issue number even
+    though it's still the same issue. Pass get_issue_labels()["issue_date"].
+    Defaults to now() only for standalone/back-compat use.
+    """
     start = datetime(2025, 9, 1)
-    now = datetime.now()
-    return max(1, (now.year - start.year) * 12 + now.month - start.month + 1)
+    ref = reference_date or datetime.now()
+    return max(1, (ref.year - start.year) * 12 + ref.month - start.month + 1)
+
+
+def get_issue_labels(reference_date=None):
+    """
+    Single source of truth for "which month" labeling across the blog.
+
+    THE PROBLEM THIS SOLVES:
+    The generator runs on the LAST DAY of a month and reports on news from
+    that same month (the "coverage" month). But almost every reader opens
+    the post after the calendar has already flipped to the next month —
+    so a page that prominently says "June" reads as stale the moment
+    someone opens it in July, even though it's the freshest issue there is.
+
+    THE RULE:
+    - Anything that identifies WHICH ISSUE this is (page title, issue badge,
+      SEO title/description, "latest issue" labels) uses the ISSUE month —
+      the month people are actually reading it in.
+    - Anything that narrates the ACTUAL NEWS (intro, Robert's Take, the
+      closing summary) uses the COVERAGE month, and says so explicitly
+      ("Covering June's developments") so nothing is misleading.
+
+    REGENERATION NOTE:
+    `reference_date` should be the COVERAGE date — the month the report is
+    actually ABOUT — not necessarily today. When a June 30 report gets
+    regenerated on July 2nd because the content was bad, pass June 30 (or
+    any date in June) back in here so the labels, issue number, and Gemini's
+    search grounding all stay locked to June instead of drifting to July.
+    Callers that don't pass anything get today's date, which is correct for
+    a brand-new monthly run.
+
+    To change how far ahead the issue label looks, or to revert to
+    coverage-month labeling everywhere, this is the only function that
+    needs to change — every caller reads from the dict it returns.
+    """
+    ref = reference_date or datetime.now()
+    coverage_month_year = ref.strftime("%B %Y")
+    coverage_month_name = ref.strftime("%B")
+
+    if ref.month == 12:
+        issue_ref = ref.replace(year=ref.year + 1, month=1, day=1)
+    else:
+        issue_ref = ref.replace(month=ref.month + 1, day=1)
+    issue_month_year = issue_ref.strftime("%B %Y")
+
+    return {
+        "coverage_month_year": coverage_month_year,   # e.g. "June 2026" — the news this issue covers
+        "coverage_month_name": coverage_month_name,   # e.g. "June"
+        "issue_month_year":    issue_month_year,       # e.g. "July 2026"  — the label readers see
+        "issue_date":          issue_ref,               # datetime for get_issue_number(), so regeneration doesn't bump it
+        "issue_badge_text":    f"{issue_month_year} \u2014 Covering {coverage_month_name}",
+    }
 
 
 def build_search_url(publication, headline):

@@ -438,8 +438,10 @@ def parse_adoption_stats(text):
     return items[:8]
 
 
-def extract_title_and_excerpt(content, month_year):
-    title   = f"AI Insights for {month_year}"
+def extract_title_and_excerpt(content, issue_month_year, coverage_month_name=None):
+    # Title uses the ISSUE month (the month readers actually open this in),
+    # so the headline never looks stale. See utils.get_issue_labels().
+    title   = f"AI Insights for {issue_month_year}"
     excerpt = ""
 
     sections = parse_sections(content)
@@ -449,7 +451,8 @@ def extract_title_and_excerpt(content, month_year):
         excerpt   = ' '.join(sentences[:2]).strip()
 
     if not excerpt or len(excerpt) < 50:
-        excerpt = f"Your monthly AI intelligence briefing for Canadian business leaders — {month_year}."
+        coverage_clause = f", covering {coverage_month_name}'s developments" if coverage_month_name else ""
+        excerpt = f"Your monthly AI intelligence briefing for Canadian business leaders — {issue_month_year} issue{coverage_clause}."
 
     if len(excerpt) > 220:
         excerpt = excerpt[:217].rstrip() + "..."

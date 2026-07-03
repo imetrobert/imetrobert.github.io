@@ -17,7 +17,7 @@ _scripts = os.path.join(os.getcwd(), 'scripts')
 sys.path.insert(0, _here)
 sys.path.insert(0, _scripts)
 
-from utils import clean_filename
+from utils import clean_filename, get_issue_labels
 from gemini import generate_blog_with_gemini
 from parser import extract_title_and_excerpt
 from renderer import create_html_blog_post
@@ -28,6 +28,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--topic",  help="Custom topic / focus directive (optional)")
     parser.add_argument("--output", default="posts", choices=["staging", "posts"])
+    parser.add_argument(
+        "--coverage-month",
+        help=(
+            "Override which month this report is ABOUT, format 'Month YYYY' "
+            "e.g. 'June 2026'. Use this when re-running a previous month's "
+            "report after the calendar has rolled over (e.g. regenerating a "
+            "June report on July 2nd) so it stays locked to June's news, "
+            "labels, and issue number instead of drifting to today's month. "
+            "Omit for a normal run — defaults to the current month."
+        ),
+    )
     args = parser.parse_args()
 
     print("=== Blog Generator ===")
@@ -37,15 +48,26 @@ def main():
         print("ERROR: GEMINI_API_KEY not set.")
         sys.exit(1)
 
+    coverage_date = None
+    if args.coverage_month:
+        try:
+            coverage_date = datetime.strptime(args.coverage_month, "%B %Y")
+            print(f"Coverage month override: {args.coverage_month} (regenerating a past report)")
+        except ValueError:
+            print(f"WARNING: Could not parse --coverage-month '{args.coverage_month}' "
+                  f"(expected format 'Month YYYY', e.g. 'June 2026'). Using current month instead.")
+
     try:
-        result     = generate_blog_with_gemini(api_key, args.topic)
-        month_year = datetime.now().strftime("%B %Y")
-        title, excerpt = extract_title_and_excerpt(result["content"], month_year)
+        result = generate_blog_with_gemini(api_key, args.topic, coverage_date=coverage_date)
+        labels = get_issue_labels(coverage_date)
+        title, excerpt = extract_title_and_excerpt(
+            result["content"], labels["issue_month_year"], labels["coverage_month_name"]
+        )
 
         print(f"Title:   {title}")
         print(f"Excerpt: {excerpt[:80]}...")
 
-        html_content = create_html_blog_post(result["content"], title, excerpt)
+        html_content = create_html_blog_post(result["content"], title, excerpt, coverage_date=coverage_date)
 
         iso_date   = datetime.now().strftime("%Y-%m-%d")
         filename   = f"{iso_date}-{clean_filename(title)}.html"

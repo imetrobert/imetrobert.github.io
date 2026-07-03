@@ -6,19 +6,32 @@ Builds the HTML blog post from parsed content sections.
 import re
 import json
 from datetime import datetime
-from utils import clean_filename, estimate_reading_time, get_issue_number
+from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
 from parser import parse_sections, parse_list_items, parse_developments, parse_spotlight_items, parse_adoption_stats, deduplicate_spotlight_against_developments
 
 
-def create_html_blog_post(content, title, excerpt):
+def create_html_blog_post(content, title, excerpt, coverage_date=None):
     current_date   = datetime.now()
     formatted_date = current_date.strftime("%B %d, %Y")
     iso_date       = current_date.strftime("%Y-%m-%d")
-    month_year     = current_date.strftime("%B %Y")
-    issue_num      = get_issue_number()
+
+    # issue_month_year = the label readers see (never looks stale).
+    # coverage_month_year/name = the month the actual news is from.
+    # coverage_date lets a regeneration stay locked to the ORIGINAL month
+    # being reported on, even if it's run days later — see
+    # utils.get_issue_labels() for the full story.
+    labels               = get_issue_labels(coverage_date or current_date)
+    issue_month_year     = labels["issue_month_year"]
+    coverage_month_year  = labels["coverage_month_year"]
+    coverage_month_name  = labels["coverage_month_name"]
+    issue_badge_text     = labels["issue_badge_text"]
+
+    # Pass the ISSUE date (not real "now") so regenerating a couple days
+    # after the calendar rolls over doesn't bump the issue number.
+    issue_num      = get_issue_number(labels["issue_date"])
     reading_time   = estimate_reading_time(content)
 
-    clean_title = re.sub(r'^[#\*\s]+', '', title).strip() or f"AI Insights for {month_year}"
+    clean_title = re.sub(r'^[#\*\s]+', '', title).strip() or f"AI Insights for {issue_month_year}"
     seo_title   = f"{clean_title} | AI News for Canadian Business | Robert Simon"
     slug        = clean_filename(clean_title)
     canonical   = f"https://www.imetrobert.com/blog/posts/{iso_date}-{slug}.html"
@@ -194,12 +207,12 @@ def create_html_blog_post(content, title, excerpt):
             f'</div>'
         )
 
-    article_parts.append(_build_roberts_take(roberts_raw, month_year))
+    article_parts.append(_build_roberts_take(roberts_raw, coverage_month_year))
 
     article_html = "\n".join(article_parts)
 
     faq_qs = [
-        f"What AI developments matter most for Canadian businesses in {month_year}?",
+        f"What AI developments matter most for Canadian businesses in {coverage_month_year}?",
         "What should Canadian executives do about AI right now?",
         "How is AI adoption tracking across Canada?",
         "What Canadian AI companies or initiatives should I know about?",
@@ -231,7 +244,7 @@ def create_html_blog_post(content, title, excerpt):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{seo_title}</title>
     <meta name="description" content="{meta_desc}">
-    <meta name="keywords" content="AI Canada {month_year}, Canadian AI news, artificial intelligence Canada, AI business strategy Canada, AI adoption Canada, Montreal AI, Canadian digital transformation, AI news for Canadians, AI insights {month_year}">
+    <meta name="keywords" content="AI Canada {issue_month_year}, Canadian AI news, artificial intelligence Canada, AI business strategy Canada, AI adoption Canada, Montreal AI, Canadian digital transformation, AI news for Canadians, AI insights {issue_month_year}, {coverage_month_year} AI recap">
     <meta name="author" content="Robert Simon">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
     <meta name="language" content="en-CA">
@@ -341,6 +354,7 @@ def create_html_blog_post(content, title, excerpt):
         .header::before {{ content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 15% 85%, rgba(255,255,255,0.07) 0%, transparent 45%), radial-gradient(circle at 85% 15%, rgba(255,255,255,0.05) 0%, transparent 45%); pointer-events: none; }}
         .header-content {{ max-width: 780px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }}
         .issue-badge {{ display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); padding: 0.3rem 0.9rem; border-radius: 20px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1.25rem; }}
+        .issue-badge-coverage {{ font-weight: 500; opacity: 0.75; letter-spacing: 0.04em; }}
         .header h1 {{ font-size: clamp(1.75rem, 4.5vw, 2.6rem); font-weight: 800; line-height: 1.15; margin-bottom: 0.6rem; letter-spacing: -0.02em; }}
         .header .subtitle {{ font-size: 0.95rem; font-weight: 500; opacity: 0.85; margin-bottom: 1rem; }}
         .header .intro-text {{ font-size: 0.925rem; opacity: 0.8; max-width: 640px; margin: 0 auto 1.25rem; line-height: 1.65; }}
@@ -440,7 +454,7 @@ def create_html_blog_post(content, title, excerpt):
     </nav>
     <header class="header">
         <div class="header-content">
-            <div class="issue-badge">Issue #{issue_num} &nbsp;&#8226;&nbsp; {month_year}</div>
+            <div class="issue-badge">Issue #{issue_num} &nbsp;&#8226;&nbsp; {issue_month_year} <span class="issue-badge-coverage">&mdash; Covering {coverage_month_name}</span></div>
             <h1>{clean_title}</h1>
             <div class="subtitle">The AI briefing built for Canadian business leaders</div>
             <div class="intro-text">{excerpt}</div>
@@ -470,7 +484,7 @@ def create_html_blog_post(content, title, excerpt):
                 {article_html}
                 <div class="conclusion">
                     <div class="conclusion-label">The Bottom Line</div>
-                    <p>{_build_conclusion(sections, month_year)}</p>
+                    <p>{_build_conclusion(sections, coverage_month_year)}</p>
                 </div>
             </div>
         </article>
@@ -481,7 +495,7 @@ def create_html_blog_post(content, title, excerpt):
     return html
 
 
-def _build_roberts_take(raw_text, month_year):
+def _build_roberts_take(raw_text, coverage_month_year):
     is_placeholder = (
         not raw_text
         or 'PLACEHOLDER' in raw_text.upper()
@@ -519,7 +533,7 @@ def _build_roberts_take(raw_text, month_year):
     return f'<div class="section"><div class="roberts-take">{header}{body}</div></div>'
 
 
-def _build_conclusion(sections, month_year):
+def _build_conclusion(sections, coverage_month_year):
     impact  = sections.get("WHAT THIS MEANS FOR CANADIAN BUSINESS", "")
     actions = parse_list_items(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""), min_length=40)
 
@@ -540,6 +554,6 @@ def _build_conclusion(sections, month_year):
         )
 
     return (
-        f"The {month_year} AI landscape demands decisive action from Canadian business leaders. "
+        f"The {coverage_month_year} AI landscape demands decisive action from Canadian business leaders. "
         f"Strategy documents are not enough — execution is the only differentiator now."
     )
