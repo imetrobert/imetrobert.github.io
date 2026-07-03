@@ -128,7 +128,7 @@ jobs:
           FILENAME=$(basename "$GENERATED_FILE")
           echo "staging_filename=$FILENAME" >> $GITHUB_OUTPUT
           echo "output_dir=$OUTPUT_DIR" >> $GITHUB_OUTPUT
-          echo "preview_url=https://www.imetrobert.com/blog/staging/preview.html" >> $GITHUB_OUTPUT
+          echo "preview_url=https://www.imetrobert.com/blog/staging/preview.html?v=${{ github.run_id }}" >> $GITHUB_OUTPUT
           echo "Generated: $FILENAME in $OUTPUT_DIR"
 
       - name: Generate preview approval page
@@ -177,7 +177,9 @@ jobs:
           echo "| File | ${{ steps.generate.outputs.staging_filename }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Output | $OUTPUT_DIR |" >> $GITHUB_STEP_SUMMARY
           if [ "$OUTPUT_DIR" = "staging" ]; then
-            echo "| Preview | https://www.imetrobert.com/blog/staging/preview.html |" >> $GITHUB_STEP_SUMMARY
+            echo "| Preview | https://www.imetrobert.com/blog/staging/preview.html?v=${{ github.run_id }} |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "> ⏱ Allow 30-60s for GitHub Pages to finish deploying before opening the link above — check the separate 'pages build and deployment' run in the Actions tab if it looks stale." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "> Visit the preview URL above to review, regenerate, or approve the post." >> $GITHUB_STEP_SUMMARY
           else

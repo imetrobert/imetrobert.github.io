@@ -152,6 +152,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**New file:** ${{ steps.verify.outputs.staging_filename }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Preview:** https://www.imetrobert.com/blog/staging/preview.html" >> $GITHUB_STEP_SUMMARY
+          echo "**Preview:** https://www.imetrobert.com/blog/staging/preview.html?v=${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "> ⏱ Allow 2-3 minutes for GitHub Pages to rebuild before refreshing preview." >> $GITHUB_STEP_SUMMARY
