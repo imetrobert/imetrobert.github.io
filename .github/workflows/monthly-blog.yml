@@ -22,6 +22,10 @@ on:
         required: false
         default: false
         type: boolean
+      coverage_month:
+        description: 'Override which month this run is ABOUT, e.g. "June 2026". Use this to fully re-run a past month''s report (not just tweak an existing staging draft — for that, use the Regenerate button on the preview page instead). Leave blank for a normal run.'
+        required: false
+        type: string
 
 jobs:
   check-last-day:
@@ -39,6 +43,10 @@ jobs:
           CURRENT_MONTH=$(date +%-m)
           CURRENT_YEAR=$(date +%Y)
           MONTH_YEAR=$(date +"%B %Y")
+          if [ -n "${{ github.event.inputs.coverage_month }}" ]; then
+            MONTH_YEAR="${{ github.event.inputs.coverage_month }}"
+            echo "coverage_month override provided — using: $MONTH_YEAR"
+          fi
           CURRENT_DATE=$(date +"%Y-%m-%d")
           NEXT_MONTH=$((CURRENT_MONTH + 1))
           NEXT_YEAR=$CURRENT_YEAR
@@ -101,9 +109,9 @@ jobs:
           echo "Output directory: $OUTPUT_DIR"
 
           if [ -n "$TOPIC" ]; then
-            python3 scripts/generate-blog.py --topic "$TOPIC" --output "$OUTPUT_DIR"
+            python3 scripts/generate-blog.py --topic "$TOPIC" --output "$OUTPUT_DIR" --coverage-month "${{ needs.check-last-day.outputs.month_year }}"
           else
-            python3 scripts/generate-blog.py --output "$OUTPUT_DIR"
+            python3 scripts/generate-blog.py --output "$OUTPUT_DIR" --coverage-month "${{ needs.check-last-day.outputs.month_year }}"
           fi
 
           # Find the generated file in the correct output directory

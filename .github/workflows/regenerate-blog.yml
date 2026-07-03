@@ -12,7 +12,11 @@ on:
         required: false
         type: string
       month_year:
-        description: 'Month/year label'
+        description: 'DEPRECATED — use coverage_month instead. Kept only so older triggers do not error.'
+        required: false
+        type: string
+      coverage_month:
+        description: 'Month this regeneration is ABOUT, e.g. "June 2026". Keep this the SAME across every regenerate click for a given issue, even if you click it days later — otherwise Gemini will drift to searching a newer month. Defaults to the current month if omitted (only correct for a brand-new post).'
         required: false
         type: string
 
@@ -51,6 +55,20 @@ jobs:
             fi
           fi
 
+      - name: Resolve coverage month
+        id: coverage
+        run: |
+          COVERAGE_MONTH="${{ github.event.inputs.coverage_month }}"
+          if [ -z "$COVERAGE_MONTH" ]; then
+            COVERAGE_MONTH="${{ github.event.inputs.month_year }}"
+          fi
+          if [ -z "$COVERAGE_MONTH" ]; then
+            COVERAGE_MONTH=$(date +"%B %Y")
+            echo "No coverage_month provided — defaulting to current month: $COVERAGE_MONTH"
+          fi
+          echo "coverage_month=$COVERAGE_MONTH" >> $GITHUB_OUTPUT
+          echo "Regenerating for coverage month: $COVERAGE_MONTH"
+
       - name: Regenerate blog post with custom prompt
         id: generate
         env:
@@ -59,7 +77,8 @@ jobs:
           cd scripts
           python3 generate-blog.py \
             --topic "${{ github.event.inputs.prompt }}" \
-            --output staging
+            --output staging \
+            --coverage-month "${{ steps.coverage.outputs.coverage_month }}"
           cd ..
 
       - name: Verify new staging file was created
@@ -98,14 +117,10 @@ jobs:
 
       - name: Regenerate preview page
         run: |
-          MONTH="${{ github.event.inputs.month_year }}"
-          if [ -z "$MONTH" ]; then
-            MONTH=$(date +"%B %Y")
-          fi
           cd scripts
           python3 generate-preview-page.py \
             --filename "${{ steps.verify.outputs.staging_filename }}" \
-            --month "$MONTH" \
+            --month "${{ steps.coverage.outputs.coverage_month }}" \
             --run-id "${{ github.run_id }}" \
             --regenerated
           cd ..
@@ -130,6 +145,8 @@ jobs:
       - name: Summary
         run: |
           echo "## 🔄 Blog Post Regenerated!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Coverage month:** ${{ steps.coverage.outputs.coverage_month }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Prompt used:** ${{ github.event.inputs.prompt }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
