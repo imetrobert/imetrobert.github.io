@@ -9,6 +9,17 @@ import json
 from datetime import datetime
 from bs4 import BeautifulSoup
 
+# Noindex redirect stubs / superseded drafts — must stay excluded from the
+# index the same way regenerate_sitemap.py excludes them from the sitemap.
+# Kept as a separate literal list (not shared code) because these two
+# scripts run independently in different workflow steps.
+EXCLUDE_STUBS = {
+    "2025-10-01-key-ai-developments-this-month.html",
+    "2026-03-26-march-1-2026-openai-announces-gpt5-boasting-enhanced-reasoning-and-multimodal-capabilities.html",
+    "2026-03-27-ai-insights-for-march-2026.html",
+    "2026-05-30-ai-insights-for-may-2026.html",
+}
+
 
 def extract_post_info(html_file):
     if not os.path.exists(html_file) or os.path.getsize(html_file) == 0:
@@ -221,7 +232,8 @@ def update_blog_index():
                 html_files_check = sorted(
                     [f for f in os.listdir(posts_dir)
                      if f.endswith(".html") and f not in ("latest.html", "index.html")
-                     and not f.startswith("{") and "{" not in f],
+                     and not f.startswith("{") and "{" not in f
+                     and f not in EXCLUDE_STUBS],
                     reverse=True
                 )
                 if html_files_check:
@@ -236,6 +248,7 @@ def update_blog_index():
         f for f in os.listdir(posts_dir)
         if f.endswith(".html") and f not in ("latest.html", "index.html")
         and not f.startswith("{") and '{' not in f
+        and f not in EXCLUDE_STUBS
     ]
     for fname in sorted(html_files, reverse=True):
         try:
