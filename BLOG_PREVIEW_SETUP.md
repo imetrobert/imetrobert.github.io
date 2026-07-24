@@ -19,13 +19,17 @@ https://www.imetrobert.com/blog/staging/preview.html
     ├── [Optional] Enter a prompt → "Regenerate Post"
     │       └── Triggers regenerate-blog.yml
     │           └── New post in staging + preview.html updates
-    └── Click "Approve & Publish"
-            └── Triggers approve-blog.yml
-                ├── Moves file → blog/posts/
-                ├── Updates latest.html
-                ├── Regenerates sitemap.xml
-                ├── Updates blog/index.html
-                └── Pings Google
+    ├── Click "Approve & Publish"
+    │       └── Triggers approve-blog.yml
+    │           ├── Moves file → blog/posts/
+    │           ├── Updates latest.html
+    │           ├── Regenerates sitemap.xml
+    │           ├── Updates blog/index.html
+    │           └── Pings Google
+    └── Click "Discard"
+            └── Triggers discard-blog.yml
+                └── Deletes the staging draft — nothing published,
+                    preview.html shows "nothing pending" until next run
 ```
 
 ---
@@ -111,10 +115,12 @@ The preview page needs a token to trigger workflows on your behalf from your bro
 .github/workflows/
 ├── monthly-blog.yml          ← replace your existing one
 ├── approve-blog.yml          ← new
-└── regenerate-blog.yml       ← new
+├── regenerate-blog.yml       ← new
+└── discard-blog.yml          ← new
 
 scripts/
-└── generate-preview-page.py  ← new
+├── generate-preview-page.py                ← new
+└── write_nothing_pending_placeholder.py    ← new
 ```
 
 Everything else in your repo stays the same.
@@ -135,13 +141,16 @@ Go to **Actions → Generate Monthly AI Blog Post → Run workflow**
 1. Visit `https://www.imetrobert.com/blog/staging/preview.html`
 2. Read the post in the iframe on the right
 3. If you want changes, type a prompt in the sidebar and click **Regenerate Post**
-   - Regenerating almost always creates a new staging filename (it's date-stamped), so **Approve & Publish** and **Regenerate Post** lock automatically the moment you trigger a regeneration — the sidebar shows an amber banner explaining why
+   - Regenerating almost always creates a new staging filename (it's date-stamped), so **Approve & Publish**, **Regenerate Post**, and **Discard** all lock automatically the moment you trigger a regeneration — the sidebar shows an amber banner explaining why
    - The page polls every 15s for up to 10 minutes and **reloads itself automatically** once the new version is live, which re-establishes the correct filename and unlocks the buttons
    - You can dismiss the "queued" dialog — it keeps watching and reloading in the background regardless
    - If it times out (10+ min), the banner tells you to check the Actions tab, then reload manually — it stays locked until you do, on purpose, so you can't approve a filename that no longer exists
 4. When satisfied, click **Approve & Publish**
    - A confirmation dialog appears showing the exact filename about to be published — check it matches what you were just reviewing
    - Confirm → workflow triggers → post is live in ~1 minute
+5. If the draft isn't worth fixing with a prompt, click **Discard** instead
+   - A confirmation dialog names the exact file being deleted — nothing is published, this only removes the staging draft
+   - Can't be undone. Next visit to the preview URL shows "nothing pending" until the next automatic (or manually Force-run) generation
 
 ### Adding your "Robert's Take"
 Include it in the regenerate prompt. For example:

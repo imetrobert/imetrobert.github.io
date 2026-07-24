@@ -1,0 +1,78 @@
+name: Discard Staged Blog Post
+
+on:
+  workflow_dispatch:
+    inputs:
+      staging_filename:
+        description: 'Staging filename to discard (e.g. 2026-07-31-ai-insights-for-august-2026.html)'
+        required: true
+        type: string
+
+# Shared with monthly-blog.yml / regenerate-blog.yml / approve-blog.yml — see comment there.
+permissions:
+  contents: write
+
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
+jobs:
+  discard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Validate staging file exists
+        run: |
+          STAGING_PATH="blog/staging/${{ github.event.inputs.staging_filename }}"
+          if [ ! -f "$STAGING_PATH" ]; then
+            echo "ERROR: Staging file not found: $STAGING_PATH"
+            echo "Available staging files:"
+            ls blog/staging/ 2>/dev/null || echo "  (staging directory empty)"
+            exit 1
+          fi
+          echo "Found staging file: $STAGING_PATH"
+
+      - name: Discard staged draft
+        run: |
+          rm -f "blog/staging/${{ github.event.inputs.staging_filename }}"
+          echo "Discarded: blog/staging/${{ github.event.inputs.staging_filename }}"
+
+      # Same placeholder used by approve-blog.yml — "nothing pending" is
+      # the correct state either way a draft leaves staging.
+      - name: Replace preview page with a "nothing pending" placeholder
+        run: python3 scripts/write_nothing_pending_placeholder.py
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Blog Discarder"
+
+      - name: Commit and push
+        run: |
+          git add blog/staging/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Discard staged draft: ${{ github.event.inputs.staging_filename }}"
+            git push
+            echo "Discarded and pushed"
+          fi
+
+      - name: Summary
+        run: |
+          echo "## 🗑️ Draft Discarded" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**File:** ${{ github.event.inputs.staging_filename }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Nothing was published — this only removed the staging draft. The preview page now shows the \"nothing pending\" placeholder until the next draft is generated." >> $GITHUB_STEP_SUMMARY
