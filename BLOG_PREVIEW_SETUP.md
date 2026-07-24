@@ -112,10 +112,12 @@ Go to **Actions → Generate Monthly AI Blog Post → Run workflow**
 1. Visit `https://www.imetrobert.com/blog/staging/preview.html`
 2. Read the post in the iframe on the right
 3. If you want changes, type a prompt in the sidebar and click **Regenerate Post**
-   - Click **Auto-refresh when ready** — the page polls every 15s and reloads automatically when the new version is live
-   - Or wait ~5 minutes and refresh manually
+   - Regenerating almost always creates a new staging filename (it's date-stamped), so **Approve & Publish** and **Regenerate Post** lock automatically the moment you trigger a regeneration — the sidebar shows an amber banner explaining why
+   - The page polls every 15s for up to 10 minutes and **reloads itself automatically** once the new version is live, which re-establishes the correct filename and unlocks the buttons
+   - You can dismiss the "queued" dialog — it keeps watching and reloading in the background regardless
+   - If it times out (10+ min), the banner tells you to check the Actions tab, then reload manually — it stays locked until you do, on purpose, so you can't approve a filename that no longer exists
 4. When satisfied, click **Approve & Publish**
-   - A confirmation dialog appears
+   - A confirmation dialog appears showing the exact filename about to be published — check it matches what you were just reviewing
    - Confirm → workflow triggers → post is live in ~1 minute
 
 ### Adding your "Robert's Take"
@@ -141,11 +143,16 @@ Include it in the regenerate prompt. For example:
 - Check the Actions tab to confirm the generation workflow completed successfully
 
 **Regeneration auto-refresh not triggering**
-- It polls every 15 seconds for up to 10 minutes
-- It detects the "🔄 Regenerated with custom prompt" badge in the updated preview page
-- If it times out, manually refresh `preview.html`
+- It polls every 15 seconds for up to 10 minutes, checking for the "🔄 Regenerated with custom prompt" badge on the freshly-pushed `preview.html`
+- On success it reloads the whole page automatically (not just the preview frame) — this is deliberate, since regenerating renames the staging file and only a full reload picks up the new name
+- If it times out, the sidebar banner stays up with a link to the Actions tab — check there first (it may have actually failed), then use the banner's "Reload page now" button once you've confirmed a new version exists
+
+**Approve & Regenerate buttons are greyed out**
+- This is the lock banner, not a bug — it means a regeneration is in flight (or timed out) and this page's known filename may be stale
+- Wait for the automatic reload, or check the Actions tab and use "Reload page now" in the banner once you've confirmed the run finished
 
 **Approve button does nothing**
 - Check your PAT is saved (the "Token saved" message should appear in the sidebar)
 - Make sure the PAT hasn't expired
-- Check browser console for any CORS or 401 errors
+- A toast now reports network errors and specific GitHub API error codes (401/403/404) instead of failing silently — read it for the actual cause
+- Check browser console for any CORS errors as a last resort

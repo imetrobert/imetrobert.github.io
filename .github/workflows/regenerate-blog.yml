@@ -20,6 +20,11 @@ on:
         required: false
         type: string
 
+# Shared with monthly-blog.yml / approve-blog.yml — see comment there.
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
 jobs:
   regenerate:
     runs-on: ubuntu-latest

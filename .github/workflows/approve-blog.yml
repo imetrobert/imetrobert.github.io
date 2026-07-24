@@ -12,6 +12,11 @@ on:
         required: true
         type: string
 
+# Shared with monthly-blog.yml / regenerate-blog.yml — see comment there.
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest

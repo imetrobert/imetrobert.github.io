@@ -27,6 +27,15 @@ on:
         required: false
         type: string
 
+# Shared across monthly-blog / regenerate-blog / approve-blog: all three read
+# and rewrite files under blog/ and push to main. Without a shared group,
+# two runs firing close together (e.g. a manual trigger overlapping the daily
+# cron check, or an impatient double-click in the preview UI) can race on the
+# same git push and corrupt staging state. Queue instead of racing.
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
 jobs:
   check-last-day:
     runs-on: ubuntu-latest
