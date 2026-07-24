@@ -131,6 +131,12 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       border: 1px solid var(--border);
     }}
     .btn-outline:hover {{ border-color: var(--blue); color: var(--blue); }}
+    .btn-discard-outline {{
+      background: white;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }}
+    .btn-discard-outline:hover:not(:disabled) {{ border-color: var(--red); background: #fef2f2; }}
     .btn-force-refresh {{
       background: linear-gradient(135deg, #7c3aed, #6d28d9);
       color: white;
@@ -568,6 +574,18 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </button>
     </div>
 
+    <div class="sidebar-section">
+      <h3>Discard</h3>
+      <p class="approve-confirm">
+        Deletes this draft from staging. Nothing is published or affected —
+        only undoes the generation. Use this if the draft isn't worth
+        fixing with a prompt; you can't recover it after.
+      </p>
+      <button class="btn btn-discard-outline" id="discard-btn" style="width:100%;" onclick="triggerDiscard()">
+        🗑️ Discard Draft
+      </button>
+    </div>
+
   </div>
 
   <div class="preview-area">
@@ -612,6 +630,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   const COVERAGE_MONTH_YEAR = "{coverage_month_year}";
   const APPROVE_WF    = "approve-blog.yml";
   const REGENERATE_WF = "regenerate-blog.yml";
+  const DISCARD_WF    = "discard-blog.yml";
   const GITHUB_API    = "https://api.github.com";
 
   // ── Set iframe src with cache-busting timestamp on load ────────
@@ -778,27 +797,30 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   function apiErrorMessage(res, body) {{
     if (res.status === 401) return "GitHub rejected the token (401) — it's invalid or expired, so it's been cleared from this browser. See the banner in the sidebar to get a new one.";
     if (res.status === 403) return `GitHub returned 403 — the token likely lacks 'workflow' scope. ${{body.message || ""}}`;
-    if (res.status === 404) return "GitHub returned 404 — check the token has 'workflow' scope and that all three workflow files are committed to the main branch.";
+    if (res.status === 404) return "GitHub returned 404 — check the token has 'workflow' scope and that all four workflow files are committed to the main branch.";
     return `GitHub API returned ${{res.status}}: ${{body.message || "Unknown error"}}.`;
   }}
 
-  // ── Lock/unlock Approve + Regenerate while a workflow run is in
-  // flight, or while this page's known staging_filename may be stale
-  // (a regenerate can rename the file — see startPolling). Only a full
-  // page reload can safely re-establish which filename is current, so
-  // unlocking happens via reload, not a timer.
-  let published = false;
+  // ── Lock/unlock Approve + Regenerate + Discard while a workflow run is
+  // in flight, or while this page's known staging_filename may be stale
+  // (a regenerate can rename the file — see startPolling; approve/discard
+  // both remove it entirely). Only a full page reload can safely
+  // re-establish current state, so unlocking happens via reload, not a
+  // timer.
+  let draftGone = false; // true once Approve or Discard actually succeeds — this page is done either way
   function lockButtons(message) {{
     document.getElementById("regenerate-btn").disabled = true;
     document.getElementById("approve-btn").disabled = true;
+    document.getElementById("discard-btn").disabled = true;
     const banner = document.getElementById("lock-banner");
     if (message) document.getElementById("lock-banner-text").innerHTML = message;
     banner.style.display = "block";
   }}
   function unlockButtons() {{
-    if (published) return;
+    if (draftGone) return;
     document.getElementById("regenerate-btn").disabled = false;
     document.getElementById("approve-btn").disabled = false;
+    document.getElementById("discard-btn").disabled = false;
     document.getElementById("lock-banner").style.display = "none";
   }}
 
@@ -809,7 +831,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
 
   async function confirmApprove() {{
     hideOverlay();
-    lockButtons("Publishing… Approve and Regenerate are locked while this runs.");
+    lockButtons("Publishing… Approve, Regenerate, and Discard are locked while this runs.");
     showOverlay("loading", "Publishing...", "Triggering the publish workflow on GitHub Actions.");
     const res = await triggerWorkflow(APPROVE_WF, {{
       staging_filename: STAGING_FILE,
@@ -817,8 +839,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }});
     if (!res) {{ unlockButtons(); return; }}
     if (res.status === 204) {{
-      published = true;
-      document.getElementById("lock-banner-text").innerHTML = "✅ Published. This staging file no longer exists, so Approve and Regenerate stay locked on this page — visit the live blog to see the post, or generate a new draft next month.";
+      draftGone = true;
+      document.getElementById("lock-banner-text").innerHTML = "✅ Published. This staging file no longer exists, so this page stays locked — visit the live blog to see the post, or generate a new draft next month.";
       showOverlay("success",
         "🎉 Post queued for publishing!",
         "The approve-blog workflow is now running. Your post will be live in ~2 minutes.",
@@ -828,6 +850,34 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       const body = await res.json().catch(() => ({{}}));
       unlockButtons();
       showOverlay("error", "Publish failed", apiErrorMessage(res, body));
+    }}
+  }}
+
+  // ── Discard ─────────────────────────────────────────────────────
+  async function triggerDiscard() {{
+    showOverlay("confirming-discard");
+  }}
+
+  async function confirmDiscard() {{
+    hideOverlay();
+    lockButtons("Discarding… Approve, Regenerate, and Discard are locked while this runs.");
+    showOverlay("loading", "Discarding draft...", "Triggering the discard workflow on GitHub Actions.");
+    const res = await triggerWorkflow(DISCARD_WF, {{
+      staging_filename: STAGING_FILE
+    }});
+    if (!res) {{ unlockButtons(); return; }}
+    if (res.status === 204) {{
+      draftGone = true;
+      document.getElementById("lock-banner-text").innerHTML = "🗑️ Discarded. This staging file no longer exists, so this page stays locked — nothing was published. Wait for next month's draft, or trigger monthly-blog.yml manually with Force run.";
+      showOverlay("success",
+        "🗑️ Draft discarded",
+        "The discard-blog workflow is now running. Nothing was published — this only removed the staging draft.",
+        `https://github.com/${{REPO}}/actions/workflows/${{DISCARD_WF}}`
+      );
+    }} else {{
+      const body = await res.json().catch(() => ({{}}));
+      unlockButtons();
+      showOverlay("error", "Discard failed", apiErrorMessage(res, body));
     }}
   }}
 
@@ -904,6 +954,15 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         <div style="display:flex;gap:0.75rem;justify-content:center;">
           <button class="btn btn-outline" onclick="hideOverlay()">Cancel</button>
           <button class="btn btn-primary" onclick="confirmApprove()">Yes, Publish Now</button>
+        </div>`;
+    }} else if (type === "confirming-discard") {{
+      html = `
+        <div class="overlay-icon">🗑️</div>
+        <div class="overlay-title">Discard this draft?</div>
+        <div class="overlay-body">This permanently deletes <code>${{STAGING_FILE}}</code> from staging. Nothing is published or affected — it only undoes the generation. This can't be undone; you'd need to regenerate or wait for the next automatic run.</div>
+        <div style="display:flex;gap:0.75rem;justify-content:center;">
+          <button class="btn btn-outline" onclick="hideOverlay()">Cancel</button>
+          <button class="btn btn-discard-outline" style="border-color:var(--red);" onclick="confirmDiscard()">Yes, Discard It</button>
         </div>`;
     }} else if (type === "loading") {{
       html = `<div class="spinner"></div><div class="overlay-title">${{title}}</div><div class="overlay-body">${{body}}</div>`;

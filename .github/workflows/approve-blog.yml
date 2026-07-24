@@ -84,40 +84,10 @@ jobs:
       # Previously just deleted preview.html here, so revisiting that URL
       # between this approval and next month's generation showed a bare
       # 404. generate-preview-page.py unconditionally overwrites this file
-      # the next time a draft is generated, so it's self-clearing.
+      # the next time a draft is generated, so it's self-clearing. Shared
+      # with discard-blog.yml — same "nothing pending" state either way.
       - name: Replace preview page with a "nothing pending" placeholder
-        run: |
-          CURRENT_MONTH=$(date +%-m)
-          CURRENT_YEAR=$(date +%Y)
-          NEXT_MONTH=$((CURRENT_MONTH + 1))
-          NEXT_YEAR=$CURRENT_YEAR
-          if [ $NEXT_MONTH -gt 12 ]; then
-            NEXT_MONTH=1
-            NEXT_YEAR=$((CURRENT_YEAR + 1))
-          fi
-          # Last day of the CURRENT month = the day before the 1st of next
-          # month — the same date monthly-blog.yml's own schedule fires on.
-          NEXT_DATE=$(date -d "${NEXT_YEAR}-$(printf "%02d" $NEXT_MONTH)-01 -1 day" +"%B %-d, %Y")
-
-          cat > blog/staging/preview.html <<HTML
-          <!DOCTYPE html>
-          <html lang="en"><head><meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>No post pending — Robert Simon</title>
-          <meta name="robots" content="noindex, nofollow">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 560px; margin: 5rem auto; padding: 0 1.5rem; line-height: 1.7; color: #1e293b; text-align: center; }
-            h1 { color: #2563eb; font-size: 1.4rem; }
-            a.btn { display: inline-block; margin-top: 1.5rem; background: linear-gradient(135deg, #2563eb, #06b6d4); color: white; text-decoration: none; padding: 0.7rem 1.5rem; border-radius: 25px; font-weight: 600; font-size: 0.9rem; }
-          </style></head>
-          <body>
-          <h1>✅ This month's issue is published</h1>
-          <p>Nothing is pending review right now — you already approved it.</p>
-          <p>The next draft generates automatically on <strong>$NEXT_DATE</strong> and will appear here for review.</p>
-          <a href="https://www.imetrobert.com/blog/" class="btn">View the live blog →</a>
-          </body></html>
-          HTML
-          echo "Wrote placeholder preview page — next generation: $NEXT_DATE"
+        run: python3 scripts/write_nothing_pending_placeholder.py
 
       - name: Regenerate sitemap.xml
         run: python3 scripts/regenerate_sitemap.py
