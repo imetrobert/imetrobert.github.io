@@ -10,10 +10,10 @@ monthly-blog.yml runs
     │
     ├── Generates post → blog/staging/{date}-{slug}.html
     ├── Generates preview UI → blog/staging/preview.html
-    ├── Sends you an email with a link (via Resend)
     └── Pushes to GitHub → GitHub Pages serves staging/
 
-You visit https://www.imetrobert.com/blog/staging/preview.html
+You check in (no notification — see below) at
+https://www.imetrobert.com/blog/staging/preview.html
     │
     ├── Read the post in the iframe
     ├── [Optional] Enter a prompt → "Regenerate Post"
@@ -30,6 +30,55 @@ You visit https://www.imetrobert.com/blog/staging/preview.html
 
 ---
 
+## Reliability — what keeps this running unattended
+
+Two failure modes are quiet by nature, so they're specifically guarded against:
+
+**GitHub auto-disables scheduled workflows after 60 days of no repository
+activity.** This repo's real activity is monthly at best (one approval), so
+a skipped month or two could silently kill `monthly-blog.yml`'s cron
+trigger forever — it wouldn't error, it would just stop firing.
+`.github/workflows/keepalive.yml` makes a trivial commit on the 1st and
+15th of every month purely to keep the repo "active," independent of
+whether a post was actually approved that month.
+
+**If generation itself fails** (Gemini quota exhausted, an invalid or
+rotated `GEMINI_API_KEY`, a transient network error), nothing would
+normally get committed — `blog/staging/preview.html` would just stay
+whatever it was after last month's approval, usually deleted. A monthly
+check-in would find a blank 404 with no explanation. `monthly-blog.yml` now
+has a dedicated `if: failure()` step that pushes a clear failure page to
+that same URL instead, explaining the likely cause and how to retry (Force
+run from the Actions tab). It's automatically replaced the next time
+generation succeeds.
+
+All four workflows (`monthly-blog`, `regenerate-blog`, `approve-blog`,
+`keepalive`) share one `concurrency` group so overlapping runs queue
+instead of racing on the same `git push`.
+
+---
+
+## No email notifications
+
+Earlier versions of this doc described an email-notification path via Resend
+(`RESEND_API_KEY` / `NOTIFICATION_EMAIL` secrets). It was never actually
+wired up — `monthly-blog.yml` and `regenerate-blog.yml` never called a
+sender, so no email was ever going to arrive regardless of secrets or email
+provider. That path has been removed rather than fixed: the workflow runs
+in the first few days of the month (last day of the prior month, per the
+cron schedule), and you check `blog/staging/preview.html` yourself when
+convenient — no notification needed.
+
+If you ever want a fallback pointer without visiting the preview page
+directly: the GitHub Actions **Step Summary** for the `monthly-blog.yml` run
+always includes the preview URL (Actions → the run → Summary).
+
+If `RESEND_API_KEY` / `NOTIFICATION_EMAIL` secrets still exist in your repo
+settings, they're unused now — safe to delete from **Settings → Secrets and
+variables → Actions**.
+
+---
+
 ## One-time setup
 
 ### 1. GitHub Secrets to add
@@ -39,35 +88,10 @@ Go to your repo → **Settings → Secrets and variables → Actions → New rep
 | Secret name | Value | Required? |
 |---|---|---|
 | `GEMINI_API_KEY` | Your Gemini API key | ✅ Already set |
-| `RESEND_API_KEY` | Your Resend API key (starts with `re_`) | Optional but recommended |
-| `NOTIFICATION_EMAIL` | Your email address for notifications | Optional but recommended |
-
-**If you skip Resend:** You'll still get a notification link in the GitHub Actions Step Summary when the workflow runs. Go to Actions → the workflow run → Summary to find the preview URL.
 
 ---
 
-### 2. Set up Resend (free, permanent — takes 5 minutes)
-
-Resend has a permanent free tier (100 emails/day, no expiry, no credit card).
-
-1. Go to **resend.com** and sign up (use GitHub login for speed)
-2. In the dashboard, go to **API Keys → Create API Key**
-   - Name: `Blog Notifications`
-   - Permission: **Sending access** only
-   - Click **Add** — copy the key (starts with `re_`)
-3. Go to **Domains → Add Domain**
-   - Enter `imetrobert.com`
-   - Add the DNS records it shows you to your domain registrar
-   - Click **Verify** (takes a few minutes to propagate)
-4. Add two secrets to your GitHub repo:
-   - `RESEND_API_KEY` → your `re_` key
-   - `NOTIFICATION_EMAIL` → your email address
-
-> **Tip:** While waiting for domain verification, you can use Resend's sandbox by sending to your own Resend-verified email. Just update `NOTIFICATION_EMAIL` to the email you signed up with.
-
----
-
-### 3. Create a GitHub PAT for the preview UI
+### 2. Create a GitHub PAT for the preview UI
 
 The preview page needs a token to trigger workflows on your behalf from your browser.
 
@@ -90,8 +114,7 @@ The preview page needs a token to trigger workflows on your behalf from your bro
 └── regenerate-blog.yml       ← new
 
 scripts/
-├── generate-preview-page.py  ← new
-└── send-notification.py      ← new
+└── generate-preview-page.py  ← new
 ```
 
 Everything else in your repo stays the same.
@@ -101,7 +124,7 @@ Everything else in your repo stays the same.
 ## Usage
 
 ### Automatic (monthly)
-`monthly-blog.yml` runs daily at 9am UTC and only generates on the last day of the month. You'll get an email with a direct link to the preview page.
+`monthly-blog.yml` runs daily at 9am UTC and only generates on the last day of the month. No notification is sent — check `blog/staging/preview.html` yourself in the first few days of the following month.
 
 ### Manual trigger
 Go to **Actions → Generate Monthly AI Blog Post → Run workflow**
@@ -112,10 +135,12 @@ Go to **Actions → Generate Monthly AI Blog Post → Run workflow**
 1. Visit `https://www.imetrobert.com/blog/staging/preview.html`
 2. Read the post in the iframe on the right
 3. If you want changes, type a prompt in the sidebar and click **Regenerate Post**
-   - Click **Auto-refresh when ready** — the page polls every 15s and reloads automatically when the new version is live
-   - Or wait ~5 minutes and refresh manually
+   - Regenerating almost always creates a new staging filename (it's date-stamped), so **Approve & Publish** and **Regenerate Post** lock automatically the moment you trigger a regeneration — the sidebar shows an amber banner explaining why
+   - The page polls every 15s for up to 10 minutes and **reloads itself automatically** once the new version is live, which re-establishes the correct filename and unlocks the buttons
+   - You can dismiss the "queued" dialog — it keeps watching and reloading in the background regardless
+   - If it times out (10+ min), the banner tells you to check the Actions tab, then reload manually — it stays locked until you do, on purpose, so you can't approve a filename that no longer exists
 4. When satisfied, click **Approve & Publish**
-   - A confirmation dialog appears
+   - A confirmation dialog appears showing the exact filename about to be published — check it matches what you were just reviewing
    - Confirm → workflow triggers → post is live in ~1 minute
 
 ### Adding your "Robert's Take"
@@ -127,11 +152,6 @@ Include it in the regenerate prompt. For example:
 
 ## Troubleshooting
 
-**Email not arriving**
-- Check the GitHub Actions run summary for the preview URL as a fallback
-- In Resend dashboard → Logs, you can see if the send attempt was made and why it may have failed
-- Make sure your domain is verified in Resend (Settings → Domains)
-
 **"Workflow not found" error in preview UI**
 - Make sure your PAT has `workflow` scope
 - Confirm all three workflow `.yml` files are committed to the `main` branch
@@ -141,11 +161,16 @@ Include it in the regenerate prompt. For example:
 - Check the Actions tab to confirm the generation workflow completed successfully
 
 **Regeneration auto-refresh not triggering**
-- It polls every 15 seconds for up to 10 minutes
-- It detects the "🔄 Regenerated with custom prompt" badge in the updated preview page
-- If it times out, manually refresh `preview.html`
+- It polls every 15 seconds for up to 10 minutes, checking for the "🔄 Regenerated with custom prompt" badge on the freshly-pushed `preview.html`
+- On success it reloads the whole page automatically (not just the preview frame) — this is deliberate, since regenerating renames the staging file and only a full reload picks up the new name
+- If it times out, the sidebar banner stays up with a link to the Actions tab — check there first (it may have actually failed), then use the banner's "Reload page now" button once you've confirmed a new version exists
+
+**Approve & Regenerate buttons are greyed out**
+- This is the lock banner, not a bug — it means a regeneration is in flight (or timed out) and this page's known filename may be stale
+- Wait for the automatic reload, or check the Actions tab and use "Reload page now" in the banner once you've confirmed the run finished
 
 **Approve button does nothing**
 - Check your PAT is saved (the "Token saved" message should appear in the sidebar)
 - Make sure the PAT hasn't expired
-- Check browser console for any CORS or 401 errors
+- A toast now reports network errors and specific GitHub API error codes (401/403/404) instead of failing silently — read it for the actual cause
+- Check browser console for any CORS errors as a last resort

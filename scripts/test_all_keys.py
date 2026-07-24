@@ -2,11 +2,10 @@
 """
 test_all_keys.py
 Run via: python3 scripts/test_all_keys.py
-Tests GEMINI_API_KEY, RESEND_API_KEY, NOTIFICATION_EMAIL, and GITHUB_TOKEN.
+Tests GEMINI_API_KEY and GITHUB_TOKEN.
 """
 
 import os
-import re
 import sys
 import requests
 
@@ -29,7 +28,7 @@ results = {}
 # ══════════════════════════════════════════════════════════════════
 # 1. GEMINI API KEY
 # ══════════════════════════════════════════════════════════════════
-header("1 / 4  —  Gemini API Key  (GEMINI_API_KEY)")
+header("1 / 2  —  Gemini API Key  (GEMINI_API_KEY)")
 
 gemini_key = os.environ.get("GEMINI_API_KEY", "")
 
@@ -106,92 +105,9 @@ else:
 
 
 # ══════════════════════════════════════════════════════════════════
-# 2. RESEND API KEY
+# 2. GITHUB TOKEN + file checks
 # ══════════════════════════════════════════════════════════════════
-header("2 / 4  —  Resend Email Key  (RESEND_API_KEY)")
-
-resend_key = os.environ.get("RESEND_API_KEY", "")
-
-if not resend_key:
-    warn("RESEND_API_KEY is not set — email notifications will be skipped")
-    info("Set this secret to receive monthly email reminders to review your blog post")
-    info("Sign up free at: https://resend.com")
-    results["resend"] = None
-else:
-    info(f"Key present  (prefix: {resend_key[:6]}...  length: {len(resend_key)})")
-
-    if not resend_key.startswith("re_"):
-        warn("Key doesn't start with 're_' — Resend keys should. Double-check.")
-
-    try:
-        r = requests.get(
-            "https://api.resend.com/domains",
-            headers={"Authorization": f"Bearer {resend_key}"},
-            timeout=15
-        )
-        if r.status_code == 200:
-            domains = r.json().get("data", [])
-            ok(f"Key is valid — account has {len(domains)} domain(s) configured")
-            if domains:
-                for d in domains:
-                    status = d.get("status", "unknown")
-                    name   = d.get("name", "?")
-                    if status == "verified":
-                        ok(f"Domain '{name}' is verified")
-                    else:
-                        warn(f"Domain '{name}' status: {status} — emails may not send until verified")
-                        info("Go to resend.com → Domains to complete verification")
-            else:
-                warn("No domains configured — you must verify a sending domain")
-                info("Go to resend.com → Domains → Add Domain → add imetrobert.com")
-            results["resend"] = True
-        elif r.status_code == 401:
-            fail("Unauthorized (401) — key is invalid or has been revoked")
-            info("Create a new key at: https://resend.com/api-keys")
-            results["resend"] = False
-        elif r.status_code == 403:
-            fail("Forbidden (403) — key may lack required permissions")
-            info("Re-create the key with 'Full access' or 'Sending access'")
-            results["resend"] = False
-        else:
-            fail(f"Unexpected status {r.status_code}: {r.text[:200]}")
-            results["resend"] = False
-    except Exception as e:
-        fail(f"Exception: {e}")
-        results["resend"] = False
-
-
-# ══════════════════════════════════════════════════════════════════
-# 3. NOTIFICATION EMAIL
-# ══════════════════════════════════════════════════════════════════
-header("3 / 4  —  Notification Email  (NOTIFICATION_EMAIL)")
-
-notif_email = os.environ.get("NOTIFICATION_EMAIL", "")
-
-if not notif_email:
-    warn("NOTIFICATION_EMAIL is not set — required alongside RESEND_API_KEY")
-    info("Add your email address as a GitHub secret named NOTIFICATION_EMAIL")
-    results["email"] = None
-else:
-    pattern = r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$'
-    if re.match(pattern, notif_email):
-        ok(f"Email address looks valid: {notif_email}")
-        results["email"] = True
-    else:
-        fail(f"Email address looks malformed: '{notif_email}'")
-        info("Expected format: you@example.com")
-        results["email"] = False
-
-    if results.get("resend") and not notif_email:
-        warn("RESEND_API_KEY is set but NOTIFICATION_EMAIL is missing — no emails will send")
-    if notif_email and not resend_key:
-        warn("NOTIFICATION_EMAIL is set but RESEND_API_KEY is missing — no emails will send")
-
-
-# ══════════════════════════════════════════════════════════════════
-# 4. GITHUB TOKEN + file checks
-# ══════════════════════════════════════════════════════════════════
-header("4 / 4  —  GitHub Token & Workflow Permissions  (GITHUB_TOKEN)")
+header("2 / 2  —  GitHub Token & Workflow Permissions  (GITHUB_TOKEN)")
 
 repo     = os.environ.get("REPO", "")
 gh_token = os.environ.get("GITHUB_TOKEN_TEST", "")
@@ -244,7 +160,6 @@ else:
     for sc in [
         "scripts/generate-blog.py",
         "scripts/generate-preview-page.py",
-        "scripts/send-notification.py",
         "scripts/test_all_keys.py",
         "scripts/requirements.txt"
     ]:
@@ -277,10 +192,8 @@ print("  SUMMARY")
 print(f"{'='*55}{RESET}\n")
 
 checks = [
-    ("GEMINI_API_KEY",     results.get("gemini"), "required", "Blog generation will fail without this"),
-    ("RESEND_API_KEY",     results.get("resend"), "optional", "Email notifications won't work"),
-    ("NOTIFICATION_EMAIL", results.get("email"),  "optional", "Email notifications won't work"),
-    ("GITHUB_TOKEN",       results.get("github"), "required", "Workflow triggering won't work"),
+    ("GEMINI_API_KEY", results.get("gemini"), "required", "Blog generation will fail without this"),
+    ("GITHUB_TOKEN",   results.get("github"), "required", "Workflow triggering won't work"),
 ]
 
 all_required_pass = True
@@ -300,11 +213,7 @@ print()
 
 if all_required_pass:
     print(f"{GREEN}{BOLD}All required keys are working. Your blog system is ready to go.{RESET}")
-    if results.get("resend") and results.get("email"):
-        print(f"{GREEN}Email notifications are configured and will fire at end of month.{RESET}")
-    else:
-        print(f"{YELLOW}Email notifications are not fully configured (optional).{RESET}")
-        print(f"{YELLOW}You'll still see the preview URL in the Actions run summary.{RESET}")
+    print(f"{YELLOW}No email notifications — check the preview URL in the Actions run summary each month.{RESET}")
 else:
     print(f"{RED}{BOLD}One or more required keys failed. Fix the issues above.{RESET}")
     sys.exit(1)

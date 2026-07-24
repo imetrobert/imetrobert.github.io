@@ -6,6 +6,7 @@ Builds the HTML blog post from parsed content sections.
 import re
 import json
 from datetime import datetime
+from html import escape as escape_html
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
 from parser import parse_sections, parse_list_items, parse_developments, parse_spotlight_items, parse_adoption_stats, deduplicate_spotlight_against_developments
 
@@ -32,14 +33,26 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None):
     reading_time   = estimate_reading_time(content)
 
     clean_title = re.sub(r'^[#\*\s]+', '', title).strip() or f"AI Insights for {issue_month_year}"
-    seo_title   = f"{clean_title} | AI News for Canadian Business | Robert Simon"
     slug        = clean_filename(clean_title)
     canonical   = f"https://www.imetrobert.com/blog/posts/{iso_date}-{slug}.html"
     og_image    = "https://www.imetrobert.com/blog/og-blog.jpg"
 
     meta_desc = re.sub(r'\s+', ' ', excerpt).strip()
     if len(meta_desc) > 155:
-        meta_desc = meta_desc[:152].rstrip() + "..."
+        truncated = meta_desc[:152]
+        if ' ' in truncated:
+            truncated = truncated[:truncated.rfind(' ')]
+        meta_desc = truncated.rstrip('.,;:- ') + '...'
+
+    # Raw (unescaped) versions go into JSON-LD via json.dumps, which does its
+    # own string escaping. HTML-escaped versions go everywhere else — meta
+    # tag attributes and text nodes — so a quote or ampersand in the
+    # AI-generated excerpt/title (e.g. a quoted strategy name) can't truncate
+    # or corrupt the surrounding markup.
+    meta_desc_html    = escape_html(meta_desc, quote=True)
+    clean_title_html  = escape_html(clean_title, quote=True)
+    excerpt_html      = escape_html(re.sub(r'\s+', ' ', excerpt).strip(), quote=True)
+    seo_title         = f"{clean_title_html} | AI News for Canadian Business | Robert Simon"
 
     sections = parse_sections(content)
 
@@ -243,7 +256,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{seo_title}</title>
-    <meta name="description" content="{meta_desc}">
+    <meta name="description" content="{meta_desc_html}">
     <meta name="keywords" content="AI Canada {issue_month_year}, Canadian AI news, artificial intelligence Canada, AI business strategy Canada, AI adoption Canada, Montreal AI, Canadian digital transformation, AI news for Canadians, AI insights {issue_month_year}, {coverage_month_year} AI recap">
     <meta name="author" content="Robert Simon">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
@@ -256,8 +269,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None):
     <link rel="canonical" href="{canonical}">
     <meta property="og:type" content="article">
     <meta property="og:url" content="{canonical}">
-    <meta property="og:title" content="{clean_title} | AI Insights for Canadian Business">
-    <meta property="og:description" content="{meta_desc}">
+    <meta property="og:title" content="{clean_title_html} | AI Insights for Canadian Business">
+    <meta property="og:description" content="{meta_desc_html}">
     <meta property="og:image" content="{og_image}">
     <meta property="og:site_name" content="Robert Simon - AI Innovation">
     <meta property="og:locale" content="en_CA">
@@ -271,8 +284,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None):
     <meta property="article:tag" content="Digital Transformation">
     <meta property="article:tag" content="Montreal">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{clean_title} | AI News for Canadian Business">
-    <meta name="twitter:description" content="{meta_desc}">
+    <meta name="twitter:title" content="{clean_title_html} | AI News for Canadian Business">
+    <meta name="twitter:description" content="{meta_desc_html}">
     <meta name="twitter:image" content="{og_image}">
     <meta name="twitter:creator" content="@thedigitalrobert">
     <meta name="twitter:site" content="@thedigitalrobert">
@@ -455,23 +468,23 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None):
     <header class="header">
         <div class="header-content">
             <div class="issue-badge">Issue #{issue_num} &nbsp;&#8226;&nbsp; {issue_month_year} <span class="issue-badge-coverage">&mdash; Covering {coverage_month_name}</span></div>
-            <h1>{clean_title}</h1>
+            <h1>{clean_title_html}</h1>
             <div class="subtitle">The AI briefing built for Canadian business leaders</div>
-            <div class="intro-text">{excerpt}</div>
+            <div class="intro-text">{excerpt_html}</div>
             <div class="reading-badge">&#9201; {reading_time} min read</div>
         </div>
     </header>
     <div class="container">
         <article class="article-card" itemscope itemtype="https://schema.org/BlogPosting">
-            <meta itemprop="headline"      content="{clean_title}">
+            <meta itemprop="headline"      content="{clean_title_html}">
             <meta itemprop="datePublished" content="{iso_date}">
             <meta itemprop="dateModified"  content="{iso_date}">
             <meta itemprop="author"        content="Robert Simon">
-            <meta itemprop="description"   content="{meta_desc}">
+            <meta itemprop="description"   content="{meta_desc_html}">
             <nav class="breadcrumb" aria-label="Breadcrumb">
                 <a href="https://www.imetrobert.com">Home</a> &#8250;
                 <a href="https://www.imetrobert.com/blog/">AI Insights Blog</a> &#8250;
-                <span>{clean_title}</span>
+                <span>{clean_title_html}</span>
             </nav>
             <div class="author-byline">
                 <img src="https://imetrobert.github.io/profile.jpg" alt="Robert Simon" loading="lazy">

@@ -7,6 +7,7 @@ import os
 import re
 import json
 from datetime import datetime
+from xml.sax.saxutils import escape as escape_xml
 from bs4 import BeautifulSoup
 
 # Noindex redirect stubs / superseded drafts — must stay excluded from the
@@ -112,6 +113,7 @@ def create_blog_index_html(posts):
     <meta name="ICBM" content="45.5017, -73.5673">
     <meta name="DC.coverage" content="Canada">
     <link rel="canonical" href="https://www.imetrobert.com/blog/">
+    <link rel="alternate" type="application/rss+xml" title="AI Insights for Canadian Business — RSS Feed" href="https://www.imetrobert.com/blog/feed.xml">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.imetrobert.com/blog/">
     <meta property="og:title" content="AI News for Canadians | Monthly AI Insights Blog | Robert Simon">
@@ -164,7 +166,7 @@ def create_blog_index_html(posts):
         header {{ background: linear-gradient(135deg, #2563eb 0%, #1a7fb5 50%, #06b6d4 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 2.5rem; border-radius: 20px; }}
         h1 {{ font-size: 2.8rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.02em; }}
         .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 3px rgb(0 0 0 / 0.08); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e2e8f0; }}
-        .nav-content {{ max-width: 900px; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: flex-start; }}
+        .nav-content {{ max-width: 900px; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: flex-start; gap: 0.6rem; }}
         .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.4rem 1rem; font-size: 0.8rem; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
         .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #1a7fb5 50%, #06b6d4 100%); color: white; padding: 2.5rem; border-radius: 20px; margin-bottom: 2rem; box-shadow: 0 8px 32px rgb(37 99 235 / 0.2); }}
         .latest-badge {{ background: rgba(255,255,255,0.2); color: white; padding: 0.3rem 0.9rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }}
@@ -192,6 +194,7 @@ def create_blog_index_html(posts):
     <nav class="nav-bar">
         <div class="nav-content">
             <a href="https://www.imetrobert.com" class="nav-link">&#8592; Back to Homepage</a>
+            <a href="/blog/feed.xml" class="nav-link">RSS Feed</a>
         </div>
     </nav>
     <div class="container">
@@ -216,9 +219,54 @@ def create_blog_index_html(posts):
 </html>'''
 
 
+def create_feed_xml(posts):
+    """RSS 2.0 feed — the explicit, machine-readable proof of the monthly
+    cadence: each item carries its own pubDate, unlike sitemap.xml which
+    only exposes lastmod."""
+    if not posts:
+        return None
+
+    build_date = datetime.now().strftime("%a, %d %b %Y 00:00:00 GMT")
+
+    items = []
+    for post in posts:
+        filename = post.get('canonical_filename', post['filename'])
+        url = f"https://www.imetrobert.com/blog/posts/{filename}"
+        try:
+            pub_date = datetime.strptime(post['date'], "%B %d, %Y").strftime("%a, %d %b %Y 00:00:00 GMT")
+        except Exception:
+            pub_date = build_date
+        items.append(f'''    <item>
+      <title>{escape_xml(post['title'])}</title>
+      <link>{url}</link>
+      <guid isPermaLink="true">{url}</guid>
+      <pubDate>{pub_date}</pubDate>
+      <description>{escape_xml(post['excerpt'])}</description>
+    </item>''')
+
+    return f'''<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>AI Insights for Canadian Business &#8212; Robert Simon</title>
+  <link>https://www.imetrobert.com/blog/</link>
+  <atom:link href="https://www.imetrobert.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
+  <description>Monthly AI insights for Canadian business leaders. Expert analysis of AI breakthroughs, Canadian AI adoption data, and practical implementation strategies from Montreal-based AI Thought Leader Robert Simon.</description>
+  <language>en-ca</language>
+  <lastBuildDate>{build_date}</lastBuildDate>
+  <image>
+    <url>https://www.imetrobert.com/blog/og-blog.jpg</url>
+    <title>AI Insights for Canadian Business &#8212; Robert Simon</title>
+    <link>https://www.imetrobert.com/blog/</link>
+  </image>
+{chr(10).join(items)}
+</channel>
+</rss>'''
+
+
 def update_blog_index():
     posts_dir  = "blog/posts"
     index_file = "blog/index.html"
+    feed_file  = "blog/feed.xml"
     if not os.path.exists(posts_dir):
         return []
 
@@ -277,4 +325,11 @@ def update_blog_index():
         with open(index_file, "w", encoding="utf-8") as f:
             f.write(idx_html)
         print(f"Blog index updated ({len(deduped)} issues).")
+
+    feed_xml = create_feed_xml(deduped)
+    if feed_xml:
+        with open(feed_file, "w", encoding="utf-8") as f:
+            f.write(feed_xml)
+        print(f"RSS feed updated ({len(deduped)} items).")
+
     return deduped

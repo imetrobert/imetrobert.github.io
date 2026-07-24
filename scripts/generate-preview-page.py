@@ -211,6 +211,30 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }}
     .pat-hint a {{ color: var(--blue); }}
     .pat-saved {{ display: none; font-size: 0.75rem; color: var(--green); margin-top: 0.25rem; font-weight: 600; }}
+    .pat-missing-banner {{
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 0.875rem 1rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.78rem;
+      color: #991b1b;
+      line-height: 1.55;
+    }}
+    .pat-missing-banner strong {{ display: block; margin-bottom: 0.3rem; color: #7f1d1d; }}
+    .pat-missing-banner a.btn {{
+      margin-top: 0.6rem;
+      width: 100%;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--red), #b91c1c);
+      color: white;
+      box-shadow: 0 2px 8px rgb(220 38 38 / 0.25);
+    }}
+    .pat-missing-banner.attention {{ animation: patPulse 0.9s ease-in-out 2; }}
+    @keyframes patPulse {{
+      0%, 100% {{ box-shadow: none; }}
+      50% {{ box-shadow: 0 0 0 4px rgb(220 38 38 / 0.25); }}
+    }}
     .prompt-area {{
       width: 100%;
       min-height: 120px;
@@ -381,6 +405,29 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       display: inline-block;
       margin-bottom: 0.75rem;
     }}
+    .lock-banner {{
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 0.875rem 1rem;
+      margin-top: 0.75rem;
+      font-size: 0.78rem;
+      color: #92400e;
+      line-height: 1.55;
+    }}
+    .lock-banner strong {{ display: block; margin-bottom: 0.2rem; color: #78350f; }}
+    .lock-banner button {{
+      display: block;
+      margin-top: 0.6rem;
+      background: none;
+      border: none;
+      color: #92400e;
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 0;
+    }}
     @media (max-width: 900px) {{
       .layout {{ grid-template-columns: 1fr; }}
       .sidebar {{ position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }}
@@ -432,12 +479,32 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
           <span class="status-label">Generated</span>
           <span class="status-value" id="gen-run">—</span>
         </div>
+        <div class="status-row">
+          <span class="status-label">Page loaded</span>
+          <span class="status-value" id="page-loaded-time">—</span>
+        </div>
       </div>
       {regen_badge}
+      <div id="lock-banner" style="display:none;">
+        <div class="lock-banner">
+          <strong>⏳ Regenerating…</strong>
+          <span id="lock-banner-text">This page will reload automatically when the new version is ready. Approve and Regenerate are locked until then — the file this page knows about will be replaced.</span>
+          <button onclick="location.reload()">🔄 Reload page now</button>
+        </div>
+      </div>
     </div>
 
     <div class="sidebar-section pat-section" id="pat-section">
       <h3>GitHub Access Token</h3>
+      <div id="pat-missing-banner" style="display:none;">
+        <div class="pat-missing-banner">
+          <strong>🔑 No token found on this browser</strong>
+          <span>Needed to trigger GitHub Actions from this page. This happens after clearing your cache, or on a new browser or device — nothing's wrong, you just need to add one again.</span>
+          <a href="https://github.com/settings/tokens/new?scopes=workflow&description=Blog+Preview+Approval" target="_blank" class="btn">
+            🔗 Create a token on GitHub
+          </a>
+        </div>
+      </div>
       <input
         type="password"
         id="pat-input"
@@ -446,9 +513,9 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       >
       <div id="pat-saved" class="pat-saved">✓ Token saved in this browser</div>
       <p class="pat-hint">
-        Needed once to trigger GitHub Actions.
+        Needs <strong>workflow</strong> scope. Saved only in this browser's localStorage — you'll need to re-add it after clearing your cache or on a new browser/device.
         <a href="https://github.com/settings/tokens/new?scopes=workflow&description=Blog+Preview+Approval" target="_blank">Create a token</a>
-        with <strong>workflow</strong> scope. Saved only in your browser's localStorage.
+        if you don't have one handy.
       </p>
       <button class="btn btn-outline" style="width:100%;margin-top:0.5rem;" onclick="savePAT()">
         Save Token
@@ -478,7 +545,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       <p class="prompt-hint">
         Your prompt is passed to Gemini as a refinement topic. The full monthly newsletter format is preserved. Allow ~5 min for generation + GitHub Pages rebuild.
       </p>
-      <button class="btn btn-secondary" style="width:100%;" onclick="triggerRegenerate()">
+      <button class="btn btn-secondary" id="regenerate-btn" style="width:100%;" onclick="triggerRegenerate()">
         🔄 Regenerate Post
       </button>
     </div>
@@ -495,7 +562,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
           <li>Ping Google to recrawl</li>
         </ul>
       </p>
-      <button class="btn btn-primary" style="width:100%;padding:0.875rem;" onclick="triggerApprove()">
+      <button class="btn btn-primary" id="approve-btn" style="width:100%;padding:0.875rem;" onclick="triggerApprove()">
         ✅ Approve &amp; Publish
       </button>
     </div>
@@ -519,7 +586,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
           </svg>
           Force Refresh
         </button>
-        <button class="btn btn-outline" onclick="softReload()" title="Reload the iframe">↻ Reload</button>
       </div>
     </div>
     <div class="preview-frame" id="preview-frame-wrapper">
@@ -572,6 +638,10 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     setTimeout(() => {{
       document.getElementById("cache-hint").style.display = "inline";
     }}, 3000);
+    // Every full page load reflects the true current staging_filename (baked
+    // in server-side at generation time) — this timestamp is how you can
+    // tell whether THIS page still matches what's actually on GitHub.
+    document.getElementById("page-loaded-time").textContent = new Date().toLocaleTimeString();
   }});
 
   function onIframeLoad() {{
@@ -600,19 +670,29 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }}, 10000);
   }}
 
-  // ── Soft reload ─────────────────────────────────────────────────
-  function softReload() {{
-    const iframe = document.getElementById("preview-iframe");
-    iframe.src = iframe.src;
+  // ── PAT management ─────────────────────────────────────────────
+  // Shows the loud "no token" banner (with a direct link to GitHub's token
+  // creation page) whenever there's nothing saved, and the quiet green
+  // checkmark otherwise. Called on load and every time the saved value
+  // changes, so clearing your cache / a new browser / a rejected token all
+  // land you back at the same clear "here's what to do" state.
+  function updatePatUI(saved) {{
+    document.getElementById("pat-saved").style.display = saved ? "block" : "none";
+    document.getElementById("pat-missing-banner").style.display = saved ? "none" : "block";
+    if (saved) document.getElementById("pat-input").value = saved;
   }}
 
-  // ── PAT management ─────────────────────────────────────────────
+  function flashPatAttention() {{
+    document.getElementById("pat-section").scrollIntoView({{ behavior: "smooth", block: "start" }});
+    const banner = document.getElementById("pat-missing-banner");
+    banner.classList.remove("attention");
+    void banner.offsetWidth; // restart the animation if it's already mid-flash
+    banner.classList.add("attention");
+  }}
+
   function loadPAT() {{
     const saved = localStorage.getItem("blog_preview_pat");
-    if (saved) {{
-      document.getElementById("pat-input").value = saved;
-      document.getElementById("pat-saved").style.display = "block";
-    }}
+    updatePatUI(saved);
     return saved || "";
   }}
 
@@ -651,7 +731,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       return;
     }}
     localStorage.setItem("blog_preview_pat", val);
-    document.getElementById("pat-saved").style.display = "block";
+    updatePatUI(val);
     showToast("Token saved in this browser ✓", "success");
   }}
 
@@ -659,22 +739,66 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   async function triggerWorkflow(workflow, inputs) {{
     const pat = loadPAT();
     if (!pat) {{
-      showToast("Please enter and save your GitHub token first.", "error");
+      showToast("Please add your GitHub token below first.", "error");
       document.getElementById("pat-input").focus();
+      flashPatAttention();
       return null;
     }}
     const url = `${{GITHUB_API}}/repos/${{REPO}}/actions/workflows/${{workflow}}/dispatches`;
-    const res = await fetch(url, {{
-      method: "POST",
-      headers: {{
-        "Authorization": `Bearer ${{pat}}`,
-        "Accept": "application/vnd.github+json",
-        "Content-Type": "application/json",
-        "X-GitHub-Api-Version": "2022-11-28"
-      }},
-      body: JSON.stringify({{ ref: "main", inputs }})
-    }});
-    return res;
+    try {{
+      const res = await fetch(url, {{
+        method: "POST",
+        headers: {{
+          "Authorization": `Bearer ${{pat}}`,
+          "Accept": "application/vnd.github+json",
+          "Content-Type": "application/json",
+          "X-GitHub-Api-Version": "2022-11-28"
+        }},
+        body: JSON.stringify({{ ref: "main", inputs }})
+      }});
+      if (res.status === 401) {{
+        // Confirmed dead — don't leave the misleading green "✓ Token saved"
+        // checkmark up for a token GitHub just rejected.
+        localStorage.removeItem("blog_preview_pat");
+        updatePatUI(null);
+        flashPatAttention();
+      }}
+      return res;
+    }} catch (err) {{
+      // Network drop, DNS failure, offline, blocked request — fetch throws
+      // rather than resolving, so without this the loading overlay would
+      // spin forever with no explanation.
+      hideOverlay();
+      showToast("Network error contacting GitHub — check your connection and try again.", "error");
+      return null;
+    }}
+  }}
+
+  function apiErrorMessage(res, body) {{
+    if (res.status === 401) return "GitHub rejected the token (401) — it's invalid or expired, so it's been cleared from this browser. See the banner in the sidebar to get a new one.";
+    if (res.status === 403) return `GitHub returned 403 — the token likely lacks 'workflow' scope. ${{body.message || ""}}`;
+    if (res.status === 404) return "GitHub returned 404 — check the token has 'workflow' scope and that all three workflow files are committed to the main branch.";
+    return `GitHub API returned ${{res.status}}: ${{body.message || "Unknown error"}}.`;
+  }}
+
+  // ── Lock/unlock Approve + Regenerate while a workflow run is in
+  // flight, or while this page's known staging_filename may be stale
+  // (a regenerate can rename the file — see startPolling). Only a full
+  // page reload can safely re-establish which filename is current, so
+  // unlocking happens via reload, not a timer.
+  let published = false;
+  function lockButtons(message) {{
+    document.getElementById("regenerate-btn").disabled = true;
+    document.getElementById("approve-btn").disabled = true;
+    const banner = document.getElementById("lock-banner");
+    if (message) document.getElementById("lock-banner-text").innerHTML = message;
+    banner.style.display = "block";
+  }}
+  function unlockButtons() {{
+    if (published) return;
+    document.getElementById("regenerate-btn").disabled = false;
+    document.getElementById("approve-btn").disabled = false;
+    document.getElementById("lock-banner").style.display = "none";
   }}
 
   // ── Approve ─────────────────────────────────────────────────────
@@ -684,13 +808,16 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
 
   async function confirmApprove() {{
     hideOverlay();
+    lockButtons("Publishing… Approve and Regenerate are locked while this runs.");
     showOverlay("loading", "Publishing...", "Triggering the publish workflow on GitHub Actions.");
     const res = await triggerWorkflow(APPROVE_WF, {{
       staging_filename: STAGING_FILE,
       month_year: ISSUE_MONTH_YEAR
     }});
-    if (!res) return;
+    if (!res) {{ unlockButtons(); return; }}
     if (res.status === 204) {{
+      published = true;
+      document.getElementById("lock-banner-text").innerHTML = "✅ Published. This staging file no longer exists, so Approve and Regenerate stay locked on this page — visit the live blog to see the post, or generate a new draft next month.";
       showOverlay("success",
         "🎉 Post queued for publishing!",
         "The approve-blog workflow is now running. Your post will be live in ~2 minutes.",
@@ -698,9 +825,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       );
     }} else {{
       const body = await res.json().catch(() => ({{}}));
-      showOverlay("error", "Publish failed",
-        `GitHub API returned ${{res.status}}: ${{body.message || "Unknown error"}}. Check your token has the 'workflow' scope.`
-      );
+      unlockButtons();
+      showOverlay("error", "Publish failed", apiErrorMessage(res, body));
     }}
   }}
 
@@ -713,24 +839,33 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       return;
     }}
     saveLastPrompt(prompt);
+    // Locked immediately, before the network round-trip: regeneration almost
+    // always produces a NEW staging filename (it's stamped with today's
+    // date), which orphans the filename this page currently knows about.
+    // Approving or re-triggering against that stale value fails or, worse,
+    // targets the wrong file — so both actions stay locked until a full
+    // page reload picks up the real current state.
+    lockButtons();
     showOverlay("loading", "🔄 Triggering regeneration...",
-      "GitHub Actions will regenerate the post with your prompt. This takes ~5 minutes. The preview will update automatically."
+      "GitHub Actions will regenerate the post with your prompt. This takes ~5 minutes. This page will reload itself automatically once the new version is live."
     );
     const res = await triggerWorkflow(REGENERATE_WF, {{
       prompt: prompt,
       staging_filename: STAGING_FILE,
       coverage_month: COVERAGE_MONTH_YEAR
     }});
-    if (!res) {{ hideOverlay(); return; }}
+    if (!res) {{ hideOverlay(); unlockButtons(); return; }}
     if (res.status === 204) {{
+      startPolling();
       showOverlay("regen-queued", "⏳ Regeneration queued!",
-        "Once the workflow completes and GitHub Pages rebuilds (~5 min), use Force Refresh to see the new version.",
+        "This page checks every 15s for up to 10 min and reloads itself the moment the new version is live — you can close this dialog and it'll keep watching.",
         `https://github.com/${{REPO}}/actions/workflows/${{REGENERATE_WF}}`
       );
     }} else {{
       const body = await res.json().catch(() => ({{}}));
       hideOverlay();
-      showToast(`Error ${{res.status}}: ${{body.message || "Unknown"}}`, "error");
+      unlockButtons();
+      showToast(apiErrorMessage(res, body), "error");
     }}
   }}
 
@@ -764,7 +899,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       html = `
         <div class="overlay-icon">📤</div>
         <div class="overlay-title">Ready to publish?</div>
-        <div class="overlay-body">This will promote the staging post to production, update <code>latest.html</code>, regenerate the sitemap, and ping Google.</div>
+        <div class="overlay-body">This will publish <code>${{STAGING_FILE}}</code> — promote it to production, update <code>latest.html</code>, regenerate the sitemap, and ping Google. Double-check that filename matches what you've been reviewing in the frame on the right — if you regenerated recently and haven't reloaded this page, it may not.</div>
         <div style="display:flex;gap:0.75rem;justify-content:center;">
           <button class="btn btn-outline" onclick="hideOverlay()">Cancel</button>
           <button class="btn btn-primary" onclick="confirmApprove()">Yes, Publish Now</button>
@@ -788,8 +923,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         <div class="overlay-body">${{body}}</div>
         <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
           ${{actionUrl ? `<a href="${{actionUrl}}" target="_blank" class="btn btn-secondary">Watch Workflow</a>` : ""}}
-          <button class="btn btn-force-refresh" onclick="hideOverlay(); startPolling();">Auto-refresh when ready</button>
-          <button class="btn btn-outline" onclick="hideOverlay()">Dismiss</button>
+          <button class="btn btn-outline" onclick="hideOverlay()">Dismiss (still watching)</button>
         </div>`;
     }} else if (type === "error") {{
       html = `
@@ -807,15 +941,28 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   }}
 
   // ── Auto-refresh polling after regeneration ─────────────────────
+  // Polls the freshly-pushed preview.html itself (not the iframe) and, once
+  // it sees the regen badge, does a FULL page reload — not just an iframe
+  // refresh. Regeneration renames the staging file (new date-stamped
+  // filename) essentially every time, so only a real reload of this parent
+  // page picks up the new STAGING_FILE constant baked in server-side.
+  // Refreshing just the iframe would leave Approve pointed at a filename
+  // that's already been deleted.
   let pollInterval;
   function startPolling() {{
-    showToast("Will auto-refresh preview when the new version is live…", "info");
+    if (pollInterval) return; // already watching — don't stack intervals
     let checks = 0;
     pollInterval = setInterval(async () => {{
       checks++;
       if (checks > 40) {{
         clearInterval(pollInterval);
-        showToast("Timed out. Use Force Refresh to check manually.", "error");
+        pollInterval = null;
+        lockButtons(
+          `Regeneration is taking longer than 10 minutes or may have failed. ` +
+          `<a href="https://github.com/${{REPO}}/actions/workflows/${{REGENERATE_WF}}" target="_blank">Check the Actions tab</a>, ` +
+          `then reload once you've confirmed it finished.`
+        );
+        showToast("Stopped auto-checking — see the sidebar for what to do next.", "error");
         return;
       }}
       try {{
@@ -823,8 +970,9 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         const text = await r.text();
         if (text.includes("🔄 Regenerated with custom prompt")) {{
           clearInterval(pollInterval);
-          showToast("✅ New version ready! Force refreshing…", "success");
-          setTimeout(() => forceRefresh(), 1500);
+          pollInterval = null;
+          showToast("✅ New version ready! Reloading page…", "success");
+          setTimeout(() => location.reload(), 1200);
         }}
       }} catch (e) {{}}
     }}, 15000);
