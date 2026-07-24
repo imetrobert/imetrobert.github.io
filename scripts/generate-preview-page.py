@@ -211,6 +211,30 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }}
     .pat-hint a {{ color: var(--blue); }}
     .pat-saved {{ display: none; font-size: 0.75rem; color: var(--green); margin-top: 0.25rem; font-weight: 600; }}
+    .pat-missing-banner {{
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 0.875rem 1rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.78rem;
+      color: #991b1b;
+      line-height: 1.55;
+    }}
+    .pat-missing-banner strong {{ display: block; margin-bottom: 0.3rem; color: #7f1d1d; }}
+    .pat-missing-banner a.btn {{
+      margin-top: 0.6rem;
+      width: 100%;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--red), #b91c1c);
+      color: white;
+      box-shadow: 0 2px 8px rgb(220 38 38 / 0.25);
+    }}
+    .pat-missing-banner.attention {{ animation: patPulse 0.9s ease-in-out 2; }}
+    @keyframes patPulse {{
+      0%, 100% {{ box-shadow: none; }}
+      50% {{ box-shadow: 0 0 0 4px rgb(220 38 38 / 0.25); }}
+    }}
     .prompt-area {{
       width: 100%;
       min-height: 120px;
@@ -472,6 +496,15 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
 
     <div class="sidebar-section pat-section" id="pat-section">
       <h3>GitHub Access Token</h3>
+      <div id="pat-missing-banner" style="display:none;">
+        <div class="pat-missing-banner">
+          <strong>🔑 No token found on this browser</strong>
+          <span>Needed to trigger GitHub Actions from this page. This happens after clearing your cache, or on a new browser or device — nothing's wrong, you just need to add one again.</span>
+          <a href="https://github.com/settings/tokens/new?scopes=workflow&description=Blog+Preview+Approval" target="_blank" class="btn">
+            🔗 Create a token on GitHub
+          </a>
+        </div>
+      </div>
       <input
         type="password"
         id="pat-input"
@@ -480,9 +513,9 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       >
       <div id="pat-saved" class="pat-saved">✓ Token saved in this browser</div>
       <p class="pat-hint">
-        Needed once to trigger GitHub Actions.
+        Needs <strong>workflow</strong> scope. Saved only in this browser's localStorage — you'll need to re-add it after clearing your cache or on a new browser/device.
         <a href="https://github.com/settings/tokens/new?scopes=workflow&description=Blog+Preview+Approval" target="_blank">Create a token</a>
-        with <strong>workflow</strong> scope. Saved only in your browser's localStorage.
+        if you don't have one handy.
       </p>
       <button class="btn btn-outline" style="width:100%;margin-top:0.5rem;" onclick="savePAT()">
         Save Token
@@ -638,12 +671,28 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   }}
 
   // ── PAT management ─────────────────────────────────────────────
+  // Shows the loud "no token" banner (with a direct link to GitHub's token
+  // creation page) whenever there's nothing saved, and the quiet green
+  // checkmark otherwise. Called on load and every time the saved value
+  // changes, so clearing your cache / a new browser / a rejected token all
+  // land you back at the same clear "here's what to do" state.
+  function updatePatUI(saved) {{
+    document.getElementById("pat-saved").style.display = saved ? "block" : "none";
+    document.getElementById("pat-missing-banner").style.display = saved ? "none" : "block";
+    if (saved) document.getElementById("pat-input").value = saved;
+  }}
+
+  function flashPatAttention() {{
+    document.getElementById("pat-section").scrollIntoView({{ behavior: "smooth", block: "start" }});
+    const banner = document.getElementById("pat-missing-banner");
+    banner.classList.remove("attention");
+    void banner.offsetWidth; // restart the animation if it's already mid-flash
+    banner.classList.add("attention");
+  }}
+
   function loadPAT() {{
     const saved = localStorage.getItem("blog_preview_pat");
-    if (saved) {{
-      document.getElementById("pat-input").value = saved;
-      document.getElementById("pat-saved").style.display = "block";
-    }}
+    updatePatUI(saved);
     return saved || "";
   }}
 
@@ -682,7 +731,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       return;
     }}
     localStorage.setItem("blog_preview_pat", val);
-    document.getElementById("pat-saved").style.display = "block";
+    updatePatUI(val);
     showToast("Token saved in this browser ✓", "success");
   }}
 
@@ -690,8 +739,9 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   async function triggerWorkflow(workflow, inputs) {{
     const pat = loadPAT();
     if (!pat) {{
-      showToast("Please enter and save your GitHub token first.", "error");
+      showToast("Please add your GitHub token below first.", "error");
       document.getElementById("pat-input").focus();
+      flashPatAttention();
       return null;
     }}
     const url = `${{GITHUB_API}}/repos/${{REPO}}/actions/workflows/${{workflow}}/dispatches`;
@@ -706,6 +756,13 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         }},
         body: JSON.stringify({{ ref: "main", inputs }})
       }});
+      if (res.status === 401) {{
+        // Confirmed dead — don't leave the misleading green "✓ Token saved"
+        // checkmark up for a token GitHub just rejected.
+        localStorage.removeItem("blog_preview_pat");
+        updatePatUI(null);
+        flashPatAttention();
+      }}
       return res;
     }} catch (err) {{
       // Network drop, DNS failure, offline, blocked request — fetch throws
@@ -718,7 +775,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   }}
 
   function apiErrorMessage(res, body) {{
-    if (res.status === 401) return "GitHub rejected the token (401) — it may be invalid or expired. Generate a new one.";
+    if (res.status === 401) return "GitHub rejected the token (401) — it's invalid or expired, so it's been cleared from this browser. See the banner in the sidebar to get a new one.";
     if (res.status === 403) return `GitHub returned 403 — the token likely lacks 'workflow' scope. ${{body.message || ""}}`;
     if (res.status === 404) return "GitHub returned 404 — check the token has 'workflow' scope and that all three workflow files are committed to the main branch.";
     return `GitHub API returned ${{res.status}}: ${{body.message || "Unknown error"}}.`;
