@@ -1,0 +1,47 @@
+name: Keepalive (prevent scheduled workflows from being auto-disabled)
+
+# GitHub disables scheduled workflows automatically after 60 days with no
+# repository activity (a push). This repo's real activity is monthly at
+# best — one approval — so a couple of skipped or delayed months could
+# silently kill monthly-blog.yml's cron trigger forever, with no error and
+# no indication anything is wrong. It would just stop firing.
+#
+# This workflow makes a trivial commit twice a month purely to keep the
+# repository "active" for GitHub's scheduling purposes, decoupled from
+# whether a blog post was actually approved that month.
+
+on:
+  schedule:
+    - cron: '0 8 1,15 * *'
+  workflow_dispatch:
+
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Touch keepalive marker
+        run: |
+          mkdir -p .github
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .github/.keepalive
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Keepalive Bot"
+
+      - name: Commit and push
+        run: |
+          git add .github/.keepalive
+          if git diff --staged --quiet; then
+            echo "No change — skipping commit."
+          else
+            git commit -m "chore: keepalive ping (prevents GitHub from auto-disabling scheduled workflows)"
+            git push
+          fi

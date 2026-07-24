@@ -175,6 +175,68 @@ jobs:
         if: ${{ github.event.inputs.output == 'posts' }}
         run: python3 scripts/regenerate_sitemap.py
 
+      # Runs only if an earlier step in this job failed (Gemini quota, a bad
+      # or rotated GEMINI_API_KEY, a transient network error, etc). Without
+      # this, a failed generation leaves blog/staging/preview.html exactly
+      # as it was after last month's approval — usually deleted — so the
+      # monthly manual check-in would just find a blank 404 with no
+      # indication anything is wrong. Every earlier step that touches git
+      # is skipped on failure (no if: always()), so this one configures git
+      # itself rather than relying on the already-skipped "Configure Git"
+      # step above.
+      - name: Note generation failure in the preview page
+        if: ${{ failure() && github.event.inputs.output != 'posts' }}
+        run: |
+          mkdir -p blog/staging
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          FAIL_DATE="$(date -u +%Y-%m-%d)"
+          cat > blog/staging/preview.html <<HTML
+          <!DOCTYPE html>
+          <html lang="en"><head><meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Blog generation failed — Robert Simon</title>
+          <meta name="robots" content="noindex, nofollow">
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 640px; margin: 4rem auto; padding: 0 1.5rem; line-height: 1.7; color: #1e293b; }
+            h1 { color: #dc2626; font-size: 1.5rem; }
+            code { background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
+            a { color: #2563eb; }
+            .steps { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem 1.5rem; }
+          </style></head>
+          <body>
+          <h1>⚠️ This month's blog generation failed</h1>
+          <p>The scheduled <code>monthly-blog.yml</code> run on <strong>$FAIL_DATE</strong> did not complete — no draft was generated this time.</p>
+          <p><a href="$RUN_URL" target="_blank">View the failed run and logs on GitHub →</a></p>
+          <div class="steps">
+            <p><strong>Likely causes:</strong> Gemini API daily quota exhausted, an invalid or rotated <code>GEMINI_API_KEY</code> secret, or a transient network error.</p>
+            <p><strong>To retry:</strong> go to <strong>Actions → Generate Monthly AI Blog Post → Run workflow</strong>, check <strong>Force run</strong>, and run it again. This page will be replaced automatically once generation succeeds.</p>
+          </div>
+          </body></html>
+          HTML
+          git config --local user.email "action@github.com"
+          git config --local user.name "Blog Generator"
+          git add blog/staging/preview.html
+          if git diff --staged --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "Note: monthly generation failed on $FAIL_DATE — see run ${{ github.run_id }}"
+            git push
+            echo "Committed failure notice"
+          fi
+
+      - name: Failure summary
+        if: ${{ failure() }}
+        run: |
+          echo "## ❌ Blog Generation Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the failed step above for the actual error." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To retry: **Actions → Generate Monthly AI Blog Post → Run workflow**, check **Force run**." >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.output }}" != "posts" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "A failure notice has been pushed to \`blog/staging/preview.html\` so the monthly check-in shows something meaningful instead of a blank page." >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Summary
         run: |
           OUTPUT_DIR="${{ github.event.inputs.output || 'staging' }}"

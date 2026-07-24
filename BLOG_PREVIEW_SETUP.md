@@ -30,6 +30,34 @@ https://www.imetrobert.com/blog/staging/preview.html
 
 ---
 
+## Reliability — what keeps this running unattended
+
+Two failure modes are quiet by nature, so they're specifically guarded against:
+
+**GitHub auto-disables scheduled workflows after 60 days of no repository
+activity.** This repo's real activity is monthly at best (one approval), so
+a skipped month or two could silently kill `monthly-blog.yml`'s cron
+trigger forever — it wouldn't error, it would just stop firing.
+`.github/workflows/keepalive.yml` makes a trivial commit on the 1st and
+15th of every month purely to keep the repo "active," independent of
+whether a post was actually approved that month.
+
+**If generation itself fails** (Gemini quota exhausted, an invalid or
+rotated `GEMINI_API_KEY`, a transient network error), nothing would
+normally get committed — `blog/staging/preview.html` would just stay
+whatever it was after last month's approval, usually deleted. A monthly
+check-in would find a blank 404 with no explanation. `monthly-blog.yml` now
+has a dedicated `if: failure()` step that pushes a clear failure page to
+that same URL instead, explaining the likely cause and how to retry (Force
+run from the Actions tab). It's automatically replaced the next time
+generation succeeds.
+
+All four workflows (`monthly-blog`, `regenerate-blog`, `approve-blog`,
+`keepalive`) share one `concurrency` group so overlapping runs queue
+instead of racing on the same `git push`.
+
+---
+
 ## No email notifications
 
 Earlier versions of this doc described an email-notification path via Resend
