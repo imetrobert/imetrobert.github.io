@@ -67,7 +67,10 @@ def main():
         print(f"Title:   {title}")
         print(f"Excerpt: {excerpt[:80]}...")
 
-        html_content = create_html_blog_post(result["content"], title, excerpt, coverage_date=coverage_date)
+        html_content = create_html_blog_post(
+            result["content"], title, excerpt,
+            coverage_date=coverage_date, is_draft=(args.output != "posts")
+        )
 
         iso_date   = datetime.now().strftime("%Y-%m-%d")
         filename   = f"{iso_date}-{clean_filename(title)}.html"

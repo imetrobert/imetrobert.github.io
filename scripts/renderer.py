@@ -11,7 +11,7 @@ from utils import clean_filename, estimate_reading_time, get_issue_number, get_i
 from parser import parse_sections, parse_list_items, parse_developments, parse_spotlight_items, parse_adoption_stats, deduplicate_spotlight_against_developments
 
 
-def create_html_blog_post(content, title, excerpt, coverage_date=None):
+def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=False):
     current_date   = datetime.now()
     formatted_date = current_date.strftime("%B %d, %Y")
     iso_date       = current_date.strftime("%Y-%m-%d")
@@ -36,6 +36,16 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None):
     slug        = clean_filename(clean_title)
     canonical   = f"https://www.imetrobert.com/blog/posts/{iso_date}-{slug}.html"
     og_image    = "https://www.imetrobert.com/blog/og-blog.jpg"
+    # Drafts sitting in blog/staging/ must never be indexable — the URL
+    # differs from the eventual blog/posts/ URL, so a crawler that found a
+    # draft before approval would leave a stale, permanent entry in search
+    # results with no path to ever clean it up. Canonical still points to
+    # the eventual published URL either way (see `canonical` above).
+    robots_meta = (
+        "noindex, nofollow"
+        if is_draft else
+        "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+    )
 
     meta_desc = re.sub(r'\s+', ' ', excerpt).strip()
     if len(meta_desc) > 155:
@@ -259,7 +269,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None):
     <meta name="description" content="{meta_desc_html}">
     <meta name="keywords" content="AI Canada {issue_month_year}, Canadian AI news, artificial intelligence Canada, AI business strategy Canada, AI adoption Canada, Montreal AI, Canadian digital transformation, AI news for Canadians, AI insights {issue_month_year}, {coverage_month_year} AI recap">
     <meta name="author" content="Robert Simon">
-    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <meta name="robots" content="{robots_meta}">
     <meta name="language" content="en-CA">
     <meta name="geo.region" content="CA-QC">
     <meta name="geo.placename" content="Montreal, Quebec, Canada">

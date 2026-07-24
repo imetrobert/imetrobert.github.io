@@ -13,6 +13,9 @@ on:
         type: string
 
 # Shared with monthly-blog.yml / regenerate-blog.yml — see comment there.
+permissions:
+  contents: write
+
 concurrency:
   group: blog-pipeline
   cancel-in-progress: false
@@ -60,6 +63,20 @@ jobs:
 
           cp "$STAGING_PATH" "blog/posts/latest.html"
           echo "Updated latest.html"
+
+          # Staging drafts are generated with noindex,nofollow so an
+          # unapproved draft can never get crawled and indexed at its
+          # staging URL (see scripts/renderer.py is_draft). This is a
+          # verbatim byte copy though, so without this swap that noindex
+          # tag would silently ship on the LIVE, published post too.
+          for f in "$PROD_PATH" "blog/posts/latest.html"; do
+            sed -i 's|<meta name="robots" content="noindex, nofollow">|<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">|' "$f"
+          done
+          if grep -q 'name="robots" content="noindex' "$PROD_PATH"; then
+            echo "ERROR: published post still contains noindex after promotion — aborting before commit."
+            exit 1
+          fi
+          echo "Confirmed published post is indexable (robots tag flipped from staging default)"
 
           rm -f "$STAGING_PATH"
           echo "Cleaned staging folder"
