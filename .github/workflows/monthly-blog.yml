@@ -32,6 +32,9 @@ on:
 # two runs firing close together (e.g. a manual trigger overlapping the daily
 # cron check, or an impatient double-click in the preview UI) can race on the
 # same git push and corrupt staging state. Queue instead of racing.
+permissions:
+  contents: write
+
 concurrency:
   group: blog-pipeline
   cancel-in-progress: false

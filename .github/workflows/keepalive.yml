@@ -15,6 +15,9 @@ on:
     - cron: '0 8 1,15 * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: blog-pipeline
   cancel-in-progress: false

@@ -3,6 +3,9 @@ name: Test All API Keys & Secrets
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test-all-keys:
     runs-on: ubuntu-latest

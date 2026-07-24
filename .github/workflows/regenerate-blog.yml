@@ -21,6 +21,9 @@ on:
         type: string
 
 # Shared with monthly-blog.yml / approve-blog.yml — see comment there.
+permissions:
+  contents: write
+
 concurrency:
   group: blog-pipeline
   cancel-in-progress: false

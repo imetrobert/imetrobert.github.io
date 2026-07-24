@@ -51,6 +51,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
   <title>Review: {issue_month_year} Issue (covers {coverage_month_name}) — Robert Simon</title>
   <style>
     :root {{
