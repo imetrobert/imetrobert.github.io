@@ -8,8 +8,6 @@ Run via: python3 scripts/test_keys_summary.py
 import os
 
 gemini = "✅ Set" if os.environ.get("GEMINI_API_KEY") else "❌ Missing"
-resend = "✅ Set" if os.environ.get("RESEND_API_KEY") else "⚠️ Not set (optional)"
-email  = "✅ Set" if os.environ.get("NOTIFICATION_EMAIL") else "⚠️ Not set (optional)"
 repo   = os.environ.get("GITHUB_REPOSITORY", "")
 
 summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "")
@@ -20,16 +18,13 @@ if summary_path:
 | Secret | Status | Notes |
 |--------|--------|-------|
 | `GEMINI_API_KEY` | {gemini} | Required — blog generation |
-| `RESEND_API_KEY` | {resend} | Optional — email notifications |
-| `NOTIFICATION_EMAIL` | {email} | Optional — email notifications |
 | `GITHUB_TOKEN` | ✅ Always present | Built-in Actions token |
 
 > See the job log above for detailed test output and any specific error messages.
+> No email notifications — check the preview URL in the monthly-blog.yml run summary instead.
 
 ### Fix links
 - **Gemini key:** https://aistudio.google.com/app/apikey
-- **Resend key:** https://resend.com/api-keys
-- **Resend domain verification:** https://resend.com/domains
 - **Add GitHub secrets:** https://github.com/{repo}/settings/secrets/actions
 """)
     print("Step summary written.")

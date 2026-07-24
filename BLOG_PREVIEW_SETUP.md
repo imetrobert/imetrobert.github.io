@@ -10,10 +10,10 @@ monthly-blog.yml runs
     │
     ├── Generates post → blog/staging/{date}-{slug}.html
     ├── Generates preview UI → blog/staging/preview.html
-    ├── Sends you an email with a link (via Resend)
     └── Pushes to GitHub → GitHub Pages serves staging/
 
-You visit https://www.imetrobert.com/blog/staging/preview.html
+You check in (no notification — see below) at
+https://www.imetrobert.com/blog/staging/preview.html
     │
     ├── Read the post in the iframe
     ├── [Optional] Enter a prompt → "Regenerate Post"
@@ -30,6 +30,27 @@ You visit https://www.imetrobert.com/blog/staging/preview.html
 
 ---
 
+## No email notifications
+
+Earlier versions of this doc described an email-notification path via Resend
+(`RESEND_API_KEY` / `NOTIFICATION_EMAIL` secrets). It was never actually
+wired up — `monthly-blog.yml` and `regenerate-blog.yml` never called a
+sender, so no email was ever going to arrive regardless of secrets or email
+provider. That path has been removed rather than fixed: the workflow runs
+in the first few days of the month (last day of the prior month, per the
+cron schedule), and you check `blog/staging/preview.html` yourself when
+convenient — no notification needed.
+
+If you ever want a fallback pointer without visiting the preview page
+directly: the GitHub Actions **Step Summary** for the `monthly-blog.yml` run
+always includes the preview URL (Actions → the run → Summary).
+
+If `RESEND_API_KEY` / `NOTIFICATION_EMAIL` secrets still exist in your repo
+settings, they're unused now — safe to delete from **Settings → Secrets and
+variables → Actions**.
+
+---
+
 ## One-time setup
 
 ### 1. GitHub Secrets to add
@@ -39,35 +60,10 @@ Go to your repo → **Settings → Secrets and variables → Actions → New rep
 | Secret name | Value | Required? |
 |---|---|---|
 | `GEMINI_API_KEY` | Your Gemini API key | ✅ Already set |
-| `RESEND_API_KEY` | Your Resend API key (starts with `re_`) | Optional but recommended |
-| `NOTIFICATION_EMAIL` | Your email address for notifications | Optional but recommended |
-
-**If you skip Resend:** You'll still get a notification link in the GitHub Actions Step Summary when the workflow runs. Go to Actions → the workflow run → Summary to find the preview URL.
 
 ---
 
-### 2. Set up Resend (free, permanent — takes 5 minutes)
-
-Resend has a permanent free tier (100 emails/day, no expiry, no credit card).
-
-1. Go to **resend.com** and sign up (use GitHub login for speed)
-2. In the dashboard, go to **API Keys → Create API Key**
-   - Name: `Blog Notifications`
-   - Permission: **Sending access** only
-   - Click **Add** — copy the key (starts with `re_`)
-3. Go to **Domains → Add Domain**
-   - Enter `imetrobert.com`
-   - Add the DNS records it shows you to your domain registrar
-   - Click **Verify** (takes a few minutes to propagate)
-4. Add two secrets to your GitHub repo:
-   - `RESEND_API_KEY` → your `re_` key
-   - `NOTIFICATION_EMAIL` → your email address
-
-> **Tip:** While waiting for domain verification, you can use Resend's sandbox by sending to your own Resend-verified email. Just update `NOTIFICATION_EMAIL` to the email you signed up with.
-
----
-
-### 3. Create a GitHub PAT for the preview UI
+### 2. Create a GitHub PAT for the preview UI
 
 The preview page needs a token to trigger workflows on your behalf from your browser.
 
@@ -90,8 +86,7 @@ The preview page needs a token to trigger workflows on your behalf from your bro
 └── regenerate-blog.yml       ← new
 
 scripts/
-├── generate-preview-page.py  ← new
-└── send-notification.py      ← new
+└── generate-preview-page.py  ← new
 ```
 
 Everything else in your repo stays the same.
@@ -101,7 +96,7 @@ Everything else in your repo stays the same.
 ## Usage
 
 ### Automatic (monthly)
-`monthly-blog.yml` runs daily at 9am UTC and only generates on the last day of the month. You'll get an email with a direct link to the preview page.
+`monthly-blog.yml` runs daily at 9am UTC and only generates on the last day of the month. No notification is sent — check `blog/staging/preview.html` yourself in the first few days of the following month.
 
 ### Manual trigger
 Go to **Actions → Generate Monthly AI Blog Post → Run workflow**
@@ -128,11 +123,6 @@ Include it in the regenerate prompt. For example:
 ---
 
 ## Troubleshooting
-
-**Email not arriving**
-- Check the GitHub Actions run summary for the preview URL as a fallback
-- In Resend dashboard → Logs, you can see if the send attempt was made and why it may have failed
-- Make sure your domain is verified in Resend (Settings → Domains)
 
 **"Workflow not found" error in preview UI**
 - Make sure your PAT has `workflow` scope

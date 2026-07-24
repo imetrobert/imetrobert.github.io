@@ -30,7 +30,5 @@ jobs:
         if: always()
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: python3 scripts/test_keys_summary.py
