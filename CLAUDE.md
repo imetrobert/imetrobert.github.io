@@ -78,6 +78,22 @@ Same approach as other repos in this account:
 5. Never paste all of `css/style.css` for a content question — styling and
    content are separate files precisely so you don't have to.
 
+## `jobs-app/` — the private job matcher (a repo in waiting)
+
+Self-contained React + Vite + Supabase app that ranks job postings against a
+profile and drafts cover letters. **It is not part of this site** and nothing
+in it is served from `www.imetrobert.com` — it lives here only until it's
+pushed to its own repo, where it becomes `jobs.imetrobert.com` (GitHub Pages
+allows one custom domain per repo, and this repo's is already `www`).
+
+- Read `jobs-app/SETUP.md` before touching anything under `jobs-app/`.
+- Its `.github/workflows/` are deliberately inert here — workflows only run
+  from a repo root, so they activate on the move. Do not "fix" this by
+  hoisting them into this repo's `.github/workflows/`.
+- It has its own `package.json` and `node_modules`; the rest of this repo is
+  static HTML with no build step. Run `npm` commands from inside `jobs-app/`.
+- Nothing in it reads or writes the blog pipeline, `index.html`, or `css/`.
+
 ## Everything else
 
 - `favicon.svg`, `cover-2027.png`, `profile.jpg`, `blog/og-blog.jpg` — static
