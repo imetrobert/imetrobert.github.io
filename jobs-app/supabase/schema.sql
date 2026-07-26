@@ -132,12 +132,22 @@ create table if not exists job_matches (
   -- from `score` for the same reason as overqualification_risk: most postings
   -- disclose nothing, and guessing must never quietly depress a good match.
   comp_assessment text,
+  -- Applicant-tracking keywords. Semicolon-separated terms the posting appears
+  -- to screen on, split by whether the profile already evidences them.
+  -- `covered` feeds the document writer the employer's own vocabulary for
+  -- things you have actually done. `missing` is NEVER inserted into a document
+  -- — it exists so you can see, across many postings, which real experience you
+  -- are describing in the wrong words.
+  ats_keywords_covered text,
+  ats_keywords_missing text,
   pitch_angle text,
   model text,
   scored_at timestamptz not null default now()
 );
 alter table job_matches add column if not exists overqualification_risk text;
 alter table job_matches add column if not exists comp_assessment text;
+alter table job_matches add column if not exists ats_keywords_covered text;
+alter table job_matches add column if not exists ats_keywords_missing text;
 create index if not exists job_matches_score_idx on job_matches (score desc);
 
 -- ---------------------------------------------------------------------
@@ -235,6 +245,8 @@ select
   m.gaps,
   m.overqualification_risk,
   m.comp_assessment,
+  m.ats_keywords_covered,
+  m.ats_keywords_missing,
   m.pitch_angle,
   m.scored_at,
   a.status as app_status,

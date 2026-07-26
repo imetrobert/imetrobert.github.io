@@ -22,6 +22,14 @@ subscription, Claude Code seat, or Anthropic account is needed to install, run o
 maintain it — there is no Anthropic package in the dependency tree. Setting
 `ANTHROPIC_API_KEY` is an optional upgrade, nothing more.
 
+**Built to survive automated screening.** Generated CVs use parser-safe structure
+(no tables, columns, graphics or pipe separators; standard headings; `.txt`
+export for portals) and mirror each posting's own vocabulary — but only for work
+the profile genuinely evidences. Terms you can't back are surfaced to you and
+never inserted into a document, and no hidden-text or keyword-stuffing tricks are
+generated. A recurring-gaps panel aggregates the misses across every scored role,
+which is the useful input for rewriting a LinkedIn profile.
+
 **Scores fit and screening risk separately.** A long, senior career helps the fit
 score and never counts against it — but it's a real filter risk with hiring teams,
 so that's reported as its own rated field rather than hidden inside the number.

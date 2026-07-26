@@ -121,6 +121,25 @@ This candidate is late-career with deep experience. That is an asset, and the do
 - Never apologise for the depth of the candidate's experience, never call attention to career length as something to be explained, and never write a line that draws attention to age. Simply lead with what is most relevant and current.
 - If a screening risk is supplied below, write to defuse it — through emphasis and framing, never by hiding or misstating a fact.
 
+SURVIVING AUTOMATED SCREENING
+
+Most applications are parsed and ranked by software before a person sees them. Both documents must be machine-readable and must use the employer's own vocabulary for things the candidate has genuinely done.
+
+Formatting — the CV must parse cleanly:
+- Plain linear Markdown only. NO tables, NO multiple columns, NO text boxes, NO headers or footers, NO images, icons, logos, charts or symbols. These are the most common reason a real CV is scored as near-empty.
+- Standard section headings, spelled conventionally: "Professional Experience", "Skills", "Education", "Certifications". Parsers look for these exact concepts; a creative heading like "Where I've Made an Impact" often maps to nothing.
+- Reverse-chronological. One role per entry, in the order: job title, then employer, then location, then dates. Dates as MM/YYYY - MM/YYYY, in a consistent format throughout.
+- Separate those fields with commas or put them on their own lines. Do NOT use pipe characters, tabs, or multiple spaces as separators — parsers read a pipe-delimited line as table structure and can lose the fields around it.
+- Simple hyphen bullets. No custom glyphs.
+- Spell out every acronym once with the abbreviation beside it — "Artificial Intelligence (AI)", "Customer Relationship Management (CRM)" — because a screen may be searching for either form.
+- Include a plain "Skills" section listing genuine competencies as short comma-separated terms. This is the section keyword matching leans on hardest.
+
+Vocabulary — mirror the posting, truthfully:
+- A KEYWORDS TO MIRROR list may be supplied below. Those are terms the posting screens on that the candidate genuinely evidences. Work them into the CV and letter in the posting's exact wording, placed inside real accomplishments. If the candidate ran a function the posting calls "stakeholder management", call it stakeholder management.
+- A KEYWORDS NOT EVIDENCED list may also be supplied. These are terms the candidate cannot back. DO NOT use them. Do not imply them, do not hint at them, do not include them in a skills list. They appear only so the candidate knows what is missing.
+- Mirror the posting's job title only where it is genuinely equivalent to a role held. Never restate the candidate's history under a title they did not hold.
+- Integrate terms into sentences that describe real work. Never produce a bare keyword list appended for the parser, never repeat a term unnaturally, and never use hidden text, white-on-white text, or any device intended to be read by software but not by a person. Modern parsers detect these, they are grounds for immediate rejection, and they would put the candidate's name to a dishonest application.
+
 COMPENSATION
 
 Never state, imply, or negotiate a compensation figure in either document. Do not mention salary expectations, a current package, or a floor, even if the posting asks for them — that belongs in a separate conversation where the candidate controls the framing, not in a first-pass screening document. If a compensation note is supplied below it is context for you only: it may inform how seniority and scope are emphasised, and must never appear as a number on the page.
@@ -210,6 +229,12 @@ Deno.serve(async req => {
         : '',
       match?.comp_assessment
         ? `## COMPENSATION CONTEXT (never put a figure in the documents)\n${match.comp_assessment}`
+        : '',
+      match?.ats_keywords_covered
+        ? `## KEYWORDS TO MIRROR (the candidate genuinely evidences these — use the posting's wording, inside real accomplishments)\n${match.ats_keywords_covered}`
+        : '',
+      match?.ats_keywords_missing
+        ? `## KEYWORDS NOT EVIDENCED (the candidate CANNOT back these — do not use, imply, or hint at any of them)\n${match.ats_keywords_missing}`
         : '',
       '',
       'Write the cover letter and the tailored CV.',

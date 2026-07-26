@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import Layout from './Layout'
 import JobCard from './JobCard'
+import KeywordGaps from './KeywordGaps'
 import { triggerScan, getToken, setToken } from '../lib/refresh'
 
 const TIERS = [
@@ -129,6 +130,8 @@ export default function Jobs({ session }) {
           </div>
         </div>
       )}
+
+      {!loading && <KeywordGaps jobs={jobs} />}
 
       <div className="tabs">
         {TIERS.map(t => (

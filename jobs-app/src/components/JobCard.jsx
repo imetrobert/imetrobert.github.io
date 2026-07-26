@@ -18,6 +18,22 @@ function compLevel(text) {
   return m ? m[1].toLowerCase() : 'unclear'
 }
 
+// Strips Markdown to plain text for pasting into an application portal's
+// textarea or saving as .txt. Portals frequently render raw Markdown literally,
+// so "**Director**" reaches the reviewer with the asterisks intact.
+function toPlainText(md) {
+  return String(md || '')
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/`(.+?)`/g, '$1')
+    .replace(/^\s*[-*+]\s+/gm, '- ')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '$1 ($2)')
+    .replace(/^\s*\|.*\|\s*$/gm, '') // drop any table rows outright
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 function download(filename, text) {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -138,6 +154,36 @@ export default function JobCard({ job, onChanged }) {
               </p>
             </section>
           )}
+          {(job.ats_keywords_covered || job.ats_keywords_missing) && (
+            <section>
+              <h4>Screening keywords</h4>
+              {job.ats_keywords_covered && (
+                <div className="kw-row">
+                  <span className="kw-label">You can back</span>
+                  <span className="kw-terms">
+                    {job.ats_keywords_covered.split(';').map(t => (
+                      <span className="kw kw-have" key={t}>{t.trim()}</span>
+                    ))}
+                  </span>
+                </div>
+              )}
+              {job.ats_keywords_missing && (
+                <div className="kw-row">
+                  <span className="kw-label">Not evidenced</span>
+                  <span className="kw-terms">
+                    {job.ats_keywords_missing.split(';').map(t => (
+                      <span className="kw kw-miss" key={t}>{t.trim()}</span>
+                    ))}
+                  </span>
+                </div>
+              )}
+              <p className="muted sm">
+                Terms you can back are woven into the generated documents in this
+                posting&apos;s own wording. Terms you can&apos;t are never inserted — they
+                show you where real experience may be described in the wrong words.
+              </p>
+            </section>
+          )}
           {job.pitch_angle && (
             <section>
               <h4>Lead with</h4>
@@ -186,21 +232,38 @@ export default function JobCard({ job, onChanged }) {
                 <section>
                   <div className="doc-head">
                     <h4>Tailored CV</h4>
-                    <button
-                      className="btn ghost sm"
-                      onClick={() =>
-                        download(`cv-${slug(job.company)}-${slug(job.title)}.md`, docs.tailored_cv)
-                      }
-                    >
-                      Download
-                    </button>
+                    <span className="row">
+                      <button
+                        className="btn ghost sm"
+                        onClick={() =>
+                          download(
+                            `cv-${slug(job.company)}-${slug(job.title)}.txt`,
+                            toPlainText(docs.tailored_cv)
+                          )
+                        }
+                        title="Plain text, no formatting — safest for application portals and resume parsers"
+                      >
+                        Download .txt (ATS-safe)
+                      </button>
+                      <button
+                        className="btn ghost sm"
+                        onClick={() =>
+                          download(`cv-${slug(job.company)}-${slug(job.title)}.md`, docs.tailored_cv)
+                        }
+                        title="Markdown source, for reformatting into a designed version"
+                      >
+                        .md
+                      </button>
+                    </span>
                   </div>
                   <pre className="doc">{docs.tailored_cv}</pre>
                 </section>
               )}
               <p className="muted sm">
                 Drafts, not final copy — read them before sending. Every factual claim should be
-                one you can stand behind in an interview.
+                one you can stand behind in an interview. The <code>.txt</code> version is the
+                one to upload to a portal: no tables, columns or graphics, which are the usual
+                reason a real CV parses as near-empty.
               </p>
             </div>
           )}

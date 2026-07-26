@@ -44,6 +44,16 @@ const ASSESSMENT = {
       description:
         'One of above/at/below/unclear, then a colon and one sentence. Estimated TOTAL compensation (base + bonus + equity + benefits) against the candidate stated floor. Use "unclear" whenever pay is not disclosed — do not guess from the job title alone.',
     },
+    ats_keywords_covered: {
+      type: 'string',
+      description:
+        'Semicolon-separated. Terms this posting screens on that the candidate ALREADY evidences, written in the posting\'s exact wording. Max 12.',
+    },
+    ats_keywords_missing: {
+      type: 'string',
+      description:
+        'Semicolon-separated. Terms this posting screens on that the candidate does NOT evidence, or evidences only in different words. Max 8. Empty string if none.',
+    },
     pitch_angle: {
       type: 'string',
       description:
@@ -58,6 +68,8 @@ const ASSESSMENT = {
     'gaps',
     'overqualification_risk',
     'comp_assessment',
+    'ats_keywords_covered',
+    'ats_keywords_missing',
     'pitch_angle',
   ],
   additionalProperties: false,
@@ -237,7 +249,39 @@ The candidate's floor is on TOTAL compensation, not base salary. Judge the whole
 - Currency matters. Compare like with like and say so if a US-dollar figure is what makes a role clear a Canadian-dollar floor.
 - NEVER let compensation change the "score". Score is about fit. If a role fits superbly but pays below the floor, that is a high score with a "below" comp_assessment — not a depressed score. The candidate decides what to do with that.
 
-Format "comp_assessment" as one of above/at/below/unclear, then a colon, then one sentence. Examples: "above: the published 140-165k base plus a stated 20% target bonus and pension puts total well past your floor." / "unclear: no pay disclosed, and nothing in the posting indicates the band."`
+Format "comp_assessment" as one of above/at/below/unclear, then a colon, then one sentence. Examples: "above: the published 140-165k base plus a stated 20% target bonus and pension puts total well past your floor." / "unclear: no pay disclosed, and nothing in the posting indicates the band."
+
+APPLICANT-TRACKING KEYWORDS
+
+Most applications are parsed by software that ranks on term overlap with the posting before any person reads them. Extract the terms this posting would screen on and sort them by whether the candidate can actually back them.
+
+- Pull the terms from the posting's own wording: named skills, methodologies, platforms, certifications, domain nouns, and scope phrases ("P&L ownership", "stakeholder management", "go-to-market"). Prefer multi-word phrases as they appear; skip generic filler like "team player" or "fast-paced".
+- Put a term in "ats_keywords_covered" only when the candidate's resume genuinely evidences it — including when they clearly did the thing but described it in different words. Write it in the POSTING's wording, since that is what gets matched.
+- Put a term in "ats_keywords_missing" when the candidate does not evidence it at all, or where the evidence is too thin to claim honestly. Being in this list is information for the candidate, not something to be papered over.
+- Judge substance, not vocabulary. If they ran the function under a different label, that is covered. If they have never done it, it is missing no matter how adjacent it looks.
+- Never pad either list to reach the maximum. Fewer, accurate terms are far more useful than a long list.`
+
+// Keyword lists arrive as free text and vary in shape between models: sometimes
+// semicolon-separated, sometimes an array, sometimes comma-separated. Normalize
+// to a single semicolon-delimited string so the UI can aggregate across matches
+// without re-parsing per model.
+function cleanTerms(value) {
+  const raw = Array.isArray(value) ? value.join(';') : String(value || '')
+  const seen = new Set()
+  const terms = []
+  for (const part of raw.split(/[;\n]+/)) {
+    const term = part.replace(/^[\s\-*•]+/, '').replace(/\s+/g, ' ').trim()
+    // Guard against a model returning a sentence instead of a term list.
+    if (!term || term.length > 60) continue
+    // Dedupe case-insensitively but keep the original casing — these are
+    // rendered to the user and fed back as the employer's own wording.
+    const key = term.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    terms.push(term)
+  }
+  return terms.length ? terms.join('; ') : null
+}
 
 function parseAssessment(raw, job) {
   const score = clampScore(raw?.score)
@@ -261,6 +305,8 @@ function parseAssessment(raw, job) {
     gaps: String(raw?.gaps || '').trim(),
     overqualification_risk: String(raw?.overqualification_risk || '').trim() || null,
     comp_assessment: String(raw?.comp_assessment || '').trim() || null,
+    ats_keywords_covered: cleanTerms(raw?.ats_keywords_covered),
+    ats_keywords_missing: cleanTerms(raw?.ats_keywords_missing),
     pitch_angle: String(raw?.pitch_angle || '').trim(),
   }
 }

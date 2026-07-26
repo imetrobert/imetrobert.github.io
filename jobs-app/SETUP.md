@@ -204,6 +204,75 @@ Generated cover letters and CVs never mention a figure, ask for one, or state
 expectations, even if the posting asks. That conversation belongs somewhere you
 control the framing, not in a first-pass screening document.
 
+---
+
+## Getting past automated screening
+
+Most applications are parsed and ranked by software before a human sees them.
+Two things get a real candidate rejected there: **formatting the parser can't
+read**, and **not using the employer's words for work you actually did**. Both
+are handled.
+
+### Formatting
+
+Generated CVs are built to parse: linear layout, standard section headings
+(`Professional Experience`, `Skills`, `Education`), reverse-chronological entries
+as *title → employer → location → dates* in consistent `MM/YYYY`, plain hyphen
+bullets, acronyms spelled out once with the short form beside them, and a plain
+`Skills` section — the part keyword matching leans on hardest.
+
+Explicitly excluded: tables, columns, text boxes, headers/footers, images, icons,
+logos, custom glyphs, and pipe-delimited lines. These are the single most common
+reason a strong CV scores as near-empty.
+
+Each generated CV offers **`.txt` (ATS-safe)** and `.md`. **Upload the `.txt`
+to portals** — many render raw Markdown literally, so `**Director**` reaches the
+reviewer with the asterisks showing.
+
+### Keywords
+
+Every match lists the terms that posting screens on, split two ways:
+
+- **You can back** — terms you genuinely evidence, in the posting's exact wording.
+  These are woven into the generated documents inside real accomplishments.
+- **Not evidenced** — terms you can't support. These are **never** inserted into
+  a document. They're shown so *you* can see them.
+
+The **Recurring screening gaps** panel on the Matches page aggregates the second
+list across every scored role. That's the one to act on: a term missing once is
+noise, but a term missing from nine postings usually means you've done the work
+and call it something else. Adding the market's wording to your LinkedIn and CV
+is then free — real experience, better described. Where you genuinely haven't
+done it, that's your actual gap list; leave it out rather than claiming it.
+
+### What this deliberately does not do
+
+No white text, no hidden keywords, no invisible blocks, no keyword lists stuffed
+in for the parser, and no claiming a skill you can't evidence. Beyond being
+dishonest, modern parsers detect all of it, it's grounds for immediate rejection,
+and it attaches your name to a faked application in an industry where people
+talk. The system will not generate any of it.
+
+The honest version also works better. Term overlap is only part of the ranking,
+and a recruiter reading a stuffed CV bins it instantly.
+
+### ⚠️ Your "better visuals" CV plan conflicts with this
+
+A designed CV — two columns, a sidebar, icons, a skills bar chart, a header
+block — is close to the worst case for a parser. Columns interleave into
+nonsense, sidebars are dropped, and text inside graphics is invisible. A CV that
+looks excellent to a person can score near-zero.
+
+**Keep two versions of the same content:**
+
+| Version | Use for |
+|---|---|
+| **Plain** (the `.txt` here) | Portal uploads, any application form, recruiter databases |
+| **Designed** | Emailing a human, networking, interviews, your own site |
+
+Same facts, same wording, different packaging. Never send the designed one
+through a portal, and never assume the plain one is what a person will read.
+
 ### 7. Add company boards (the sharp edge)
 
 **Sources** tab. Aggregators cover the market broadly; company boards get you the
@@ -251,6 +320,8 @@ Each card gives you five things:
 - **The honest gaps** — read this one; it's what an interviewer will probe.
 - **Screening risk** — see below. Colour-coded green/amber/red.
 - **Total compensation** — the whole package against your floor, not base.
+- **Screening keywords** — what the posting's parser looks for, split into what
+  you can back and what you can't.
 - **Lead with** — the angle for the cover letter.
 
 Three of those are deliberately *separate from the score*, because they answer
@@ -323,6 +394,11 @@ hunting, the ordering changes:
   moderate or high, that's a signal to adjust positioning — usually by sharpening
   the recent, current work at the top of your resume — well before it costs you
   anything real.
+- **Let the recurring-gaps panel drive the LinkedIn rewrite.** After three or four
+  scans it's reading dozens of real postings in your target market and telling
+  you which words that market uses. That's a far better basis for rewriting a
+  profile than guessing at what sounds senior — and it costs nothing to collect
+  while you wait.
 - **Re-run the scan the day anything changes.** One click, results in minutes.
 
 The site is `noindex`, robots-disallowed and behind your Supabase login, so
