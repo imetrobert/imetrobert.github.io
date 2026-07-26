@@ -86,14 +86,40 @@ The design is sized to stay inside Gemini's free tier rather than merely tolerat
 |---|---|
 | **Prefilter before scoring** | Wrong seniority, deal-breakers and wrong geography are rejected by plain code. Those postings never cost a request. |
 | **Batched scoring** (`SCORE_BATCH_SIZE`, default 5) | 120 postings become **~24 requests**, not 120. It also sends your resume once per batch instead of once per job, cutting token use several-fold. |
-| **Paced queue** (`GEMINI_RPM`, default 12/min) | Every call is serialized through one queue with a minimum gap, so a scan can't trip the per-minute limit. |
+| **Paced queue** (`GEMINI_RPM`, default 8/min) | Every call is serialized through one queue with a minimum gap. Deliberately under the free tier's ~10/min ceiling — running at the limit turns most requests into a retry and makes the scan slower, not faster. |
 | **Retry with backoff** | Per-minute 429s back off (4s → 32s) and retry, then fall through the model chain: `gemini-2.5-flash` → `flash-lite` → `2.0-flash`. |
 | **Graceful daily-quota stop** | If the daily quota does run out, the scan saves everything scored so far, logs why, and finishes the rest on the next run. It does not fail. |
 | **`MAX_SCORES_PER_RUN`** (default 120) | Hard ceiling per run. |
 
-A typical monthly scan is **around 24 Gemini requests over roughly two minutes**,
-plus one request each time you draft a cover letter. That leaves ample headroom
-even with several on-demand refreshes in the same day.
+A typical monthly scan is **around 24 Gemini requests over roughly three
+minutes**, plus one request each time you draft a cover letter. Against a
+free-tier daily allowance measured in hundreds of requests, that leaves ample
+headroom even with several on-demand refreshes in the same day.
+
+Two things worth knowing about Google's free tier:
+
+- **Quotas are per project, not per key.** A new key inside the same Google
+  project shares its allowance with anything else there — including your blog.
+  The blog uses a handful of requests a month, so this doesn't matter in
+  practice, but it's why a second key isn't a second allowance.
+- **Google no longer publishes one universal limits table** — quotas are set per
+  project and shown in the AI Studio console. If a scan reports quota errors
+  unexpectedly, check there before assuming something is broken.
+
+### Free tier and your data
+
+On the **free** tier, Google may use prompts and responses to improve its
+products, and reviewers may see them. That means your résumé text and the
+postings you're being matched against. Google's paid-tier commitment not to
+train on submitted content does **not** apply to free usage outside the EEA,
+Switzerland and the UK — so it applies to Canada.
+
+There's no route by which this reaches an employer, and for most people it's an
+acceptable trade for a free service. But it's your career history, so it should
+be a decision rather than a surprise. If you'd rather it weren't used that way,
+enabling billing on the Gemini project moves you to the paid tier and its
+no-training commitment — at this volume the bill would be a few cents a month,
+not zero, but close to it.
 
 If you ever want sharper reasoning, adding `ANTHROPIC_API_KEY` switches the scorer
 to Claude with no other change. Purely optional — leave it unset and nothing

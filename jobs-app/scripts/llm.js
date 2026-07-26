@@ -22,9 +22,14 @@ const GEMINI_MODELS = process.env.GEMINI_MODEL
 // Free-tier pacing. Gemini's free tier is limited per minute AND per day, and
 // the per-minute limit is the one that bites during a scan. Requests are
 // serialized through a single queue with a minimum gap between them.
-// 12 requests/minute is comfortably under the free-tier ceiling on every model
-// in the chain above. Raise GEMINI_RPM if you move to a paid tier.
-const GEMINI_RPM = Number(process.env.GEMINI_RPM || 12)
+//
+// Default 8/min sits deliberately under gemini-2.5-flash's free-tier ceiling of
+// ~10 requests/minute. Running at or above the ceiling still "works" — the
+// backoff below absorbs the 429s — but it turns most requests into a retry and
+// makes a two-minute scan take ten. Slower pacing is faster overall here.
+// Google sets these per project and no longer publishes one universal table;
+// check AI Studio for yours, and raise this only on a paid tier.
+const GEMINI_RPM = Number(process.env.GEMINI_RPM || 8)
 const MIN_GAP_MS = Math.ceil(60_000 / Math.max(1, GEMINI_RPM))
 const MAX_RETRIES = 4
 
