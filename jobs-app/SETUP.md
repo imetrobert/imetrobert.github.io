@@ -152,17 +152,57 @@ that's what restricts it to your logged-in session. Then add the same
 
 ### 6. Fill in your profile — this is the part that matters
 
-Sign in at `jobs.imetrobert.com` with your existing Supabase credentials, go to
-**Profile**, and paste your full CV as plain text.
+Sign in at `jobs.imetrobert.com` with your existing Supabase credentials and go to
+**Profile**.
 
-Match quality is almost entirely downstream of this. Scores are only as honest as
-the evidence you give the scorer: roles, dates, scope, team sizes, budgets, and
-outcomes with real numbers. A three-line summary produces three-line judgments.
+**Use whichever source is most current for the Experience box — LinkedIn is fine,
+and beats a stale CV.** The scorer reads plain text and doesn't care about
+formatting; it cares about evidence. Fastest route: LinkedIn → your profile →
+*More* → *Save to PDF*, then paste the text in. Then add what LinkedIn omits —
+team sizes, budgets, P&L scope, and outcomes with real numbers.
+
+Match quality is almost entirely downstream of this. Both the scorer and the
+letter writer are forbidden from inventing experience, so thin input doesn't
+produce wrong claims — it produces vague, hedged ones. Anything you leave out
+simply isn't considered.
 
 Then set:
 - **Target titles** — these literally become the search queries sent to the feeds.
-- **Locations**, **minimum seniority**, **compensation floor**.
+- **Locations** and **minimum seniority**.
+- **Compensation** — see below.
 - **Deal breakers** — anything matching is filtered out before it costs an LLM call.
+
+#### Compensation is judged on the total package
+
+The floor is on **total compensation, not base salary**. A role advertising 110k
+base can clear a 128k floor once bonus, employer pension contributions, benefits
+and equity are counted — so base is never used to reject a posting anywhere in
+the system, and compensation never moves the fit score.
+
+Fill in three fields:
+
+| Field | What it does |
+|---|---|
+| **Total compensation floor** | The actual bar, e.g. `128000`. |
+| **What counts toward that total** | Free text — bonus target %, pension match, benefits, equity. The more specific, the better the estimate on roles that publish only a base range. |
+| **Hard floor on base alone** | Usually blank. Only fill it if a low base is a non-starter regardless of package. |
+
+Each match then reports a **Total compensation** verdict, separate from the score:
+
+- **above / at / below** — an estimate of the whole package against your floor,
+  with reasoning.
+- **unclear** — pay wasn't disclosed. This is the *most common* answer and is
+  neutral, not a warning. The scorer is explicitly told that guessing from a job
+  title is the error, not diligence.
+
+One subtlety worth knowing: Adzuna *estimates* a salary when the employer
+publishes none. Those are captured as estimates and shown as `~120,000 (est.)`,
+and the scorer is told plainly that they're a guess — so an inferred number never
+gets treated as a disclosed band.
+
+Generated cover letters and CVs never mention a figure, ask for one, or state
+expectations, even if the posting asks. That conversation belongs somewhere you
+control the framing, not in a first-pass screening document.
 
 ### 7. Add company boards (the sharp edge)
 
@@ -205,12 +245,19 @@ is 85 is useless, so the scorer is told most postings are mediocre fits.
 | Stretch | 35–54 | Missing something material |
 | Poor | 0–34 | Hidden from the list entirely |
 
-Each card gives you four things:
+Each card gives you five things:
 
 - **Why this fits you** — the specific experience that maps to the role.
 - **The honest gaps** — read this one; it's what an interviewer will probe.
 - **Screening risk** — see below. Colour-coded green/amber/red.
+- **Total compensation** — the whole package against your floor, not base.
 - **Lead with** — the angle for the cover letter.
+
+Three of those are deliberately *separate from the score*, because they answer
+different questions. Fit asks "could you do this and would you lead the field?"
+Screening risk asks "will you get the call?" Compensation asks "is it worth
+taking?" Collapsing them into one number would hide whichever one you most need
+to see.
 
 ### Screening risk is not the same as fit
 
@@ -257,7 +304,14 @@ hunting, the ordering changes:
 - **Fill in the profile now, while you have time.** Reconstructing scope, budgets,
   team sizes and outcomes under pressure is slow and produces worse material than
   doing it unhurried. This is the single highest-value thing to do early, and it
-  only has to be done once.
+  only has to be done once. Start from LinkedIn if that's what's current — a
+  good-enough profile today beats a perfect one you never get to.
+- **Treat the profile as the draft of your future CV.** Everything the scorer
+  wants — scope, numbers, outcomes — is exactly what a strong CV needs. Filling
+  this box carefully is the first pass at rewriting LinkedIn and the CV, not a
+  detour from it. The tailored CVs the app generates are also useful raw
+  material: they show which parts of your history land hardest against real
+  postings.
 - **Let the monthly scan run in the background.** The value isn't any single
   month's list — it's that the market picture and your document drafts are already
   warm on the day you need them, instead of starting cold.

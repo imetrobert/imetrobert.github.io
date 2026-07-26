@@ -161,8 +161,17 @@ async function main() {
         existing.description = job.description
       }
       existing.url = existing.url || job.url
-      existing.salary_min = existing.salary_min ?? job.salary_min
-      existing.salary_max = existing.salary_max ?? job.salary_max
+      // Prefer a genuinely published figure over an aggregator's estimate,
+      // even when the estimate arrived first.
+      if (
+        (existing.salary_min == null && job.salary_min != null) ||
+        (existing.salary_predicted && !job.salary_predicted && job.salary_min != null)
+      ) {
+        existing.salary_min = job.salary_min
+        existing.salary_max = job.salary_max
+        existing.salary_currency = job.salary_currency || existing.salary_currency
+        existing.salary_predicted = Boolean(job.salary_predicted)
+      }
       existing.remote = existing.remote || job.remote
     }
     const unique = [...byPrint.values()]
@@ -183,6 +192,7 @@ async function main() {
       salary_min: j.salary_min ?? null,
       salary_max: j.salary_max ?? null,
       salary_currency: j.salary_currency || null,
+      salary_predicted: Boolean(j.salary_predicted),
       posted_at: toISO(j.posted_at),
       last_seen_at: now,
       stale: false,

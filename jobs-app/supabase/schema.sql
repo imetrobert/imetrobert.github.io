@@ -25,6 +25,19 @@ create table if not exists job_profile (
   -- Geography the scan searches and the scorer accepts.
   locations text[] not null default '{}',
   remote_ok boolean not null default true,
+  -- The real bar is TOTAL compensation, not base. A posting listing 110k base
+  -- can clear a 128k total-comp floor once bonus, pension, benefits and equity
+  -- are counted, so base is never used as a rejection threshold anywhere.
+  min_total_comp numeric,
+  -- Free text: which components count toward that total, and at what value
+  -- (bonus target %, pension match, equity, benefits). Fed to the scorer so it
+  -- can estimate a posting's total package the way you actually would.
+  comp_components text,
+  -- Optional hard floor on base alone, for roles where a low base is a
+  -- non-starter regardless of the package. Usually left blank.
+  min_base_salary numeric,
+  -- Legacy: superseded by min_total_comp. Kept so re-running this file on an
+  -- existing install doesn't drop data; migrated across just below.
   min_salary numeric,
   salary_currency text not null default 'CAD',
   -- Seniority floor — postings below this are filtered out before scoring
@@ -34,6 +47,16 @@ create table if not exists job_profile (
     check (min_seniority in ('any','senior','manager','director','vp','c_level')),
   updated_at timestamptz not null default now()
 );
+
+-- Migrations for installs created before total-comp handling existed.
+alter table job_profile add column if not exists min_total_comp numeric;
+alter table job_profile add column if not exists comp_components text;
+alter table job_profile add column if not exists min_base_salary numeric;
+-- Carry any old base-salary floor over to the new total-comp field once, so an
+-- existing profile keeps a sensible bar instead of silently losing it.
+update job_profile
+  set min_total_comp = min_salary
+  where min_total_comp is null and min_salary is not null;
 
 -- ---------------------------------------------------------------------
 -- Sources: which feeds the scan job pulls from.
@@ -76,6 +99,10 @@ create table if not exists job_postings (
   salary_min numeric,
   salary_max numeric,
   salary_currency text,
+  -- True when the aggregator ESTIMATED the salary rather than reading it off
+  -- the posting (Adzuna does this). Estimates must not be presented as
+  -- disclosed pay.
+  salary_predicted boolean not null default false,
   posted_at timestamptz,
   first_seen_at timestamptz not null default now(),
   last_seen_at timestamptz not null default now(),
@@ -101,11 +128,16 @@ create table if not exists job_matches (
   -- call, not a reason you couldn't do the job. Conflating the two either
   -- hides real risk or unfairly depresses good matches.
   overqualification_risk text,
+  -- Estimated TOTAL compensation against the profile's floor, kept separate
+  -- from `score` for the same reason as overqualification_risk: most postings
+  -- disclose nothing, and guessing must never quietly depress a good match.
+  comp_assessment text,
   pitch_angle text,
   model text,
   scored_at timestamptz not null default now()
 );
 alter table job_matches add column if not exists overqualification_risk text;
+alter table job_matches add column if not exists comp_assessment text;
 create index if not exists job_matches_score_idx on job_matches (score desc);
 
 -- ---------------------------------------------------------------------
@@ -192,6 +224,7 @@ select
   p.salary_min,
   p.salary_max,
   p.salary_currency,
+  p.salary_predicted,
   p.source,
   p.posted_at,
   p.first_seen_at,
@@ -201,6 +234,7 @@ select
   m.why_fit,
   m.gaps,
   m.overqualification_risk,
+  m.comp_assessment,
   m.pitch_angle,
   m.scored_at,
   a.status as app_status,

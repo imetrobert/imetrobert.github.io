@@ -274,6 +274,13 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; fon
 .risk-none, .risk-low { border-left-color: var(--good); color: var(--muted); }
 .risk-moderate { border-left-color: var(--warn); }
 .risk-high { border-left-color: var(--bad); }
+
+/* Total compensation against your floor. "unclear" is the common, neutral
+   case — most postings disclose nothing — so it must not read as a warning. */
+.comp-above { border-left-color: var(--good); }
+.comp-at { border-left-color: var(--accent); }
+.comp-below { border-left-color: var(--bad); }
+.comp-unclear { border-left-color: var(--line); color: var(--muted); }
 .job-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
 .job-actions select { width: auto; }
 

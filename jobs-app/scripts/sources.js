@@ -1,8 +1,13 @@
 // Job feed adapters.
 //
 // Every adapter returns a flat array of postings in one shape:
-//   { source, source_id, title, company, location, remote, url,
-//     description, salary_min, salary_max, salary_currency, posted_at }
+//   { source, source_id, title, company, location, remote, url, description,
+//     salary_min, salary_max, salary_currency, salary_predicted, posted_at }
+//
+// `salary_predicted` matters: Adzuna fills in an ESTIMATED salary when the
+// employer didn't publish one. Treating that as a disclosed figure would give
+// false confidence to the total-compensation assessment downstream, so it is
+// carried through and reported as "not disclosed" rather than as a real number.
 //
 // Deliberately NOT here: LinkedIn and Indeed scraping. Both block automated
 // access (LinkedIn answers 403 to anything without a session) and forbid it
@@ -92,6 +97,9 @@ export async function fetchAdzuna({ token = 'ca', queries, maxPages = 1, env }) 
           salary_min: r.salary_min ?? null,
           salary_max: r.salary_max ?? null,
           salary_currency: token === 'us' ? 'USD' : 'CAD',
+          // Adzuna sets this to "1" when it inferred the figure rather than
+          // reading it off the posting.
+          salary_predicted: String(r.salary_is_predicted ?? '0') === '1',
           posted_at: r.created || null,
         })
       }

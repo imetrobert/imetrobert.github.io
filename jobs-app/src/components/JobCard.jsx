@@ -6,7 +6,16 @@ const STATUSES = ['interested', 'applied', 'interviewing', 'offer', 'rejected', 
 function money(job) {
   if (!job.salary_min && !job.salary_max) return null
   const fmt = n => (n ? Math.round(n).toLocaleString() : '?')
-  return `${fmt(job.salary_min)}–${fmt(job.salary_max)} ${job.salary_currency || ''}`.trim()
+  const range = `${fmt(job.salary_min)}–${fmt(job.salary_max)} ${job.salary_currency || ''}`.trim()
+  // Never show an aggregator's guess as if the employer published it.
+  return job.salary_predicted ? `~${range} (est.)` : range
+}
+
+// The scorer writes "above: <reasoning>" — pull the verdict off the front for
+// colour-coding, tolerating a shape change.
+function compLevel(text) {
+  const m = String(text || '').match(/^\s*(above|at|below|unclear)\b/i)
+  return m ? m[1].toLowerCase() : 'unclear'
 }
 
 function download(filename, text) {
@@ -118,6 +127,14 @@ export default function JobCard({ job, onChanged }) {
               <h4>Screening risk</h4>
               <p className={`risk risk-${riskLevel(job.overqualification_risk)}`}>
                 {job.overqualification_risk}
+              </p>
+            </section>
+          )}
+          {job.comp_assessment && (
+            <section>
+              <h4>Total compensation</h4>
+              <p className={`risk comp-${compLevel(job.comp_assessment)}`}>
+                {job.comp_assessment}
               </p>
             </section>
           )}

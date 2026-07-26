@@ -143,28 +143,82 @@ export default function Profile() {
           />
         </label>
 
+        <label>
+          Minimum seniority
+          <select
+            value={p.min_seniority || 'director'}
+            onChange={e => set('min_seniority', e.target.value)}
+          >
+            {SENIORITY.map(s => (
+              <option key={s.v} value={s.v}>{s.l}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="card">
+        <h3>Compensation</h3>
+        <p className="muted">
+          The bar is <strong>total</strong> compensation, not base. A role advertising a
+          lower base still clears the floor once bonus, pension, benefits and equity are
+          counted — so base is never used to reject a posting. Most postings disclose no
+          pay at all; those come back as “unclear”, which is normal and doesn’t count
+          against the match.
+        </p>
+
         <div className="grid-2">
           <label>
-            Minimum seniority
-            <select
-              value={p.min_seniority || 'director'}
-              onChange={e => set('min_seniority', e.target.value)}
-            >
-              {SENIORITY.map(s => (
-                <option key={s.v} value={s.v}>{s.l}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Compensation floor
+            Total compensation floor
             <input
               type="number"
-              value={p.min_salary || ''}
-              onChange={e => set('min_salary', e.target.value ? Number(e.target.value) : null)}
-              placeholder="180000"
+              value={p.min_total_comp ?? ''}
+              onChange={e =>
+                set('min_total_comp', e.target.value ? Number(e.target.value) : null)
+              }
+              placeholder="128000"
             />
           </label>
+          <label>
+            Currency
+            <select
+              value={p.salary_currency || 'CAD'}
+              onChange={e => set('salary_currency', e.target.value)}
+            >
+              <option value="CAD">CAD</option>
+              <option value="USD">USD</option>
+            </select>
+          </label>
         </div>
+
+        <label>
+          What counts toward that total
+          <textarea
+            rows={3}
+            value={p.comp_components || ''}
+            onChange={e => set('comp_components', e.target.value)}
+            placeholder="Base + annual bonus (target ~15%) + employer pension match + health/dental benefits + any equity or options. Bell pension counts at roughly X/yr."
+          />
+          <span className="muted sm">
+            The more specific this is, the better the estimate on roles that publish only
+            a base range.
+          </span>
+        </label>
+
+        <label>
+          Hard floor on base alone <span className="muted">— optional, usually blank</span>
+          <input
+            type="number"
+            value={p.min_base_salary ?? ''}
+            onChange={e =>
+              set('min_base_salary', e.target.value ? Number(e.target.value) : null)
+            }
+            placeholder="leave empty unless a low base is a non-starter regardless of package"
+          />
+        </label>
+      </div>
+
+      <div className="card">
+        <h3>Requirements</h3>
 
         <label className="check">
           <input
@@ -195,18 +249,32 @@ export default function Profile() {
       </div>
 
       <div className="card">
-        <h3>Resume</h3>
+        <h3>Experience</h3>
         <p className="muted">
-          Paste your full CV as plain text. This is the single biggest driver of match quality —
-          roles, dates, scope, team sizes, and outcomes with numbers all help.
+          The single biggest driver of match quality. <strong>Use whichever source is
+          most current — LinkedIn is fine, and is better than a stale CV.</strong> The
+          scorer reads plain text and doesn&apos;t care about formatting; it cares about
+          evidence.
+        </p>
+        <p className="muted sm">
+          Fastest way to get a good version in: on LinkedIn, open your profile →
+          <em> More</em> → <em>Save to PDF</em>, then paste the text here. Or copy your
+          About section and each role&apos;s description. Then add whatever LinkedIn
+          leaves out — team sizes, budgets, P&amp;L scope, and outcomes with real
+          numbers. Those are what separate a confident match from a vague one.
         </p>
         <textarea
           rows={18}
           className="mono"
           value={p.resume_text || ''}
           onChange={e => set('resume_text', e.target.value)}
-          placeholder="ROBERT SIMON&#10;Montreal, QC · robert@imetrobert.com · 514-250-8491&#10;&#10;EXPERIENCE&#10;Bell — AI Evangelist & Digital Sales Leader (2024–present)&#10;  · …"
+          placeholder="Paste your LinkedIn About + Experience sections, or your CV — whichever is more current.&#10;&#10;Bell — AI Evangelist & Digital Sales Leader (2024–present)&#10;  · Scope: …&#10;  · Team size / budget: …&#10;  · Outcome: … (with numbers)&#10;&#10;Bell — Digital Adoption Catalyst (2020–2024)&#10;  · …"
         />
+        <p className="muted sm">
+          Anything you leave out simply isn&apos;t considered — the scorer and the letter
+          writer are both forbidden from inventing experience, so thin input produces
+          thin, hedged output rather than confident claims.
+        </p>
       </div>
 
       <div className="save-bar">

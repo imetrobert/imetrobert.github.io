@@ -121,6 +121,10 @@ This candidate is late-career with deep experience. That is an asset, and the do
 - Never apologise for the depth of the candidate's experience, never call attention to career length as something to be explained, and never write a line that draws attention to age. Simply lead with what is most relevant and current.
 - If a screening risk is supplied below, write to defuse it — through emphasis and framing, never by hiding or misstating a fact.
 
+COMPENSATION
+
+Never state, imply, or negotiate a compensation figure in either document. Do not mention salary expectations, a current package, or a floor, even if the posting asks for them — that belongs in a separate conversation where the candidate controls the framing, not in a first-pass screening document. If a compensation note is supplied below it is context for you only: it may inform how seniority and scope are emphasised, and must never appear as a number on the page.
+
 Output format — return exactly these two sections and nothing else:
 
 ===COVER_LETTER===
@@ -203,6 +207,9 @@ Deno.serve(async req => {
       match?.gaps ? `## KNOWN GAPS TO HANDLE HONESTLY\n${match.gaps}` : '',
       match?.overqualification_risk
         ? `## SCREENING RISK TO WRITE AGAINST\n${match.overqualification_risk}`
+        : '',
+      match?.comp_assessment
+        ? `## COMPENSATION CONTEXT (never put a figure in the documents)\n${match.comp_assessment}`
         : '',
       '',
       'Write the cover letter and the tailored CV.',

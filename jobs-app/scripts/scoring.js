@@ -39,13 +39,27 @@ const ASSESSMENT = {
       description:
         'One of none/low/moderate/high, then a colon and one sentence. The risk of being screened out for being too senior, too expensive, or too experienced for this posting — separate from whether they could do the job.',
     },
+    comp_assessment: {
+      type: 'string',
+      description:
+        'One of above/at/below/unclear, then a colon and one sentence. Estimated TOTAL compensation (base + bonus + equity + benefits) against the candidate stated floor. Use "unclear" whenever pay is not disclosed — do not guess from the job title alone.',
+    },
     pitch_angle: {
       type: 'string',
       description:
         'One sentence: the single strongest angle to lead with in a cover letter for this role.',
     },
   },
-  required: ['ref', 'score', 'tier', 'why_fit', 'gaps', 'overqualification_risk', 'pitch_angle'],
+  required: [
+    'ref',
+    'score',
+    'tier',
+    'why_fit',
+    'gaps',
+    'overqualification_risk',
+    'comp_assessment',
+    'pitch_angle',
+  ],
   additionalProperties: false,
 }
 
@@ -138,7 +152,15 @@ function profileBlock(p) {
     p.target_industries?.length && `Preferred industries: ${p.target_industries.join('; ')}`,
     p.locations?.length && `Acceptable locations: ${p.locations.join('; ')}`,
     p.remote_ok ? 'Open to fully remote work.' : 'Prefers on-site or hybrid.',
-    p.min_salary && `Compensation floor: ${p.min_salary} ${p.salary_currency || 'CAD'}`,
+    // Total comp is the bar, not base. Stated explicitly so the scorer doesn't
+    // read the number as a base-salary requirement and reject a role whose
+    // package clears the floor on a lower base.
+    (p.min_total_comp || p.min_salary) &&
+      `TOTAL COMPENSATION FLOOR: ${p.min_total_comp || p.min_salary} ${p.salary_currency || 'CAD'} per year, counting base plus bonus, employer pension/retirement contributions, benefits and any equity. Base salary alone does NOT need to reach this figure.`,
+    p.comp_components &&
+      `What counts toward that total, per the candidate: ${p.comp_components}`,
+    p.min_base_salary &&
+      `Hard floor on base salary alone: ${p.min_base_salary} ${p.salary_currency || 'CAD'}.`,
     p.must_haves?.length && `Must have: ${p.must_haves.join('; ')}`,
     p.deal_breakers?.length && `Deal breakers: ${p.deal_breakers.join('; ')}`,
   ].filter(Boolean)
@@ -149,10 +171,14 @@ function profileBlock(p) {
 }
 
 function postingBlock(job, maxDesc) {
-  const salary =
-    job.salary_min || job.salary_max
-      ? `Salary: ${job.salary_min ?? '?'}–${job.salary_max ?? '?'} ${job.salary_currency || ''}`
-      : null
+  const hasFigure = job.salary_min || job.salary_max
+  const salary = !hasFigure
+    ? 'Salary: not disclosed in the posting.'
+    : job.salary_predicted
+      // Adzuna infers a figure when the employer published none. Labelling it
+      // plainly stops the scorer from reporting a guess as a disclosed range.
+      ? `Salary: NOT disclosed by the employer. The aggregator's statistical estimate is ${job.salary_min ?? '?'}–${job.salary_max ?? '?'} ${job.salary_currency || ''}, which is a guess, not a published figure.`
+      : `Salary (base, as published): ${job.salary_min ?? '?'}–${job.salary_max ?? '?'} ${job.salary_currency || ''}`
   return [
     `Title: ${job.title}`,
     job.company && `Company: ${job.company}`,
@@ -198,7 +224,20 @@ This candidate is late-career with deep tenure. Handle that precisely, because i
 - Currency beats chronology. If the candidate's recent work is in a current, in-demand area, weigh that heavily: it is the strongest available counter to any assumption that a long career means dated skills. Say so explicitly in pitch_angle when it applies.
 - In "gaps", stick to genuine capability or domain gaps. Do not list "may be seen as overqualified" there — that is what overqualification_risk is for.
 
-Format "overqualification_risk" as one of none/low/moderate/high, then a colon, then one sentence of reasoning. Example: "moderate: the posting caps at 10 years of experience and the band is likely below your floor, so expect resume screening to filter you before a human reads it."`
+Format "overqualification_risk" as one of none/low/moderate/high, then a colon, then one sentence of reasoning. Example: "moderate: the posting caps at 10 years of experience and the band is likely below your floor, so expect resume screening to filter you before a human reads it."
+
+COMPENSATION
+
+The candidate's floor is on TOTAL compensation, not base salary. Judge the whole package:
+
+- Base salary alone does NOT need to reach the floor. A posting advertising a base below it can still clear the floor once target bonus, employer pension or retirement contributions, benefits and any equity are counted. Never call a role "below" purely because its base is under the number.
+- Where a base range is published, reason explicitly about what the total package plausibly reaches at that level, in that industry, in that country. State the rough total you arrived at.
+- Where pay is NOT disclosed — which is most postings, and always the case when the figure is flagged as an aggregator estimate rather than a published one — answer "unclear". Do not infer a number from the job title. "unclear" is a perfectly good answer and by far the most common one; treat guessing as the error, not as diligence.
+- Watch for signals that change the total: an explicit bonus target percentage, equity or RSUs, a pension or matching scheme, a company stage where equity carries real or negligible value, and public-sector or non-profit employers where the band is usually fixed and disclosed.
+- Currency matters. Compare like with like and say so if a US-dollar figure is what makes a role clear a Canadian-dollar floor.
+- NEVER let compensation change the "score". Score is about fit. If a role fits superbly but pays below the floor, that is a high score with a "below" comp_assessment — not a depressed score. The candidate decides what to do with that.
+
+Format "comp_assessment" as one of above/at/below/unclear, then a colon, then one sentence. Examples: "above: the published 140-165k base plus a stated 20% target bonus and pension puts total well past your floor." / "unclear: no pay disclosed, and nothing in the posting indicates the band."`
 
 function parseAssessment(raw, job) {
   const score = clampScore(raw?.score)
@@ -221,6 +260,7 @@ function parseAssessment(raw, job) {
     why_fit: String(raw?.why_fit || '').trim(),
     gaps: String(raw?.gaps || '').trim(),
     overqualification_risk: String(raw?.overqualification_risk || '').trim() || null,
+    comp_assessment: String(raw?.comp_assessment || '').trim() || null,
     pitch_angle: String(raw?.pitch_angle || '').trim(),
   }
 }
