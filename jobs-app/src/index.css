@@ -267,6 +267,13 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; fon
 }
 .job-body p { margin: 0; }
 .pitch { font-style: italic; }
+
+/* Screening risk — how likely you are to be filtered out before a human
+   reads the application, independent of whether you could do the job. */
+.risk { margin: 0; padding-left: 10px; border-left: 3px solid var(--line); }
+.risk-none, .risk-low { border-left-color: var(--good); color: var(--muted); }
+.risk-moderate { border-left-color: var(--warn); }
+.risk-high { border-left-color: var(--bad); }
 .job-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
 .job-actions select { width: auto; }
 

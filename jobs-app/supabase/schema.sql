@@ -96,10 +96,16 @@ create table if not exists job_matches (
   tier text not null check (tier in ('exceptional','strong','possible','stretch','poor')),
   why_fit text,
   gaps text,
+  -- Screening risk, kept deliberately separate from `gaps` and from `score`:
+  -- being read as too senior or too expensive is a reason you never get the
+  -- call, not a reason you couldn't do the job. Conflating the two either
+  -- hides real risk or unfairly depresses good matches.
+  overqualification_risk text,
   pitch_angle text,
   model text,
   scored_at timestamptz not null default now()
 );
+alter table job_matches add column if not exists overqualification_risk text;
 create index if not exists job_matches_score_idx on job_matches (score desc);
 
 -- ---------------------------------------------------------------------
@@ -194,6 +200,7 @@ select
   m.tier,
   m.why_fit,
   m.gaps,
+  m.overqualification_risk,
   m.pitch_angle,
   m.scored_at,
   a.status as app_status,

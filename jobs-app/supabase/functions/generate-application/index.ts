@@ -14,7 +14,9 @@
 // Or via CLI: supabase functions deploy generate-application
 //
 // Secrets (Dashboard → Edge Functions → Secrets):
-//   ANTHROPIC_API_KEY  or  GEMINI_API_KEY
+//   GEMINI_API_KEY  (required)
+//   ANTHROPIC_API_KEY (optional upgrade — Claude is used only if this is set;
+//   nothing here needs a paid Claude account)
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
@@ -31,7 +33,7 @@ function json(body: unknown, status = 200): Response {
 }
 
 const CLAUDE_MODEL = Deno.env.get('CLAUDE_MODEL') || 'claude-opus-5'
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
 
 async function callClaude(system: string, prompt: string): Promise<string> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -95,7 +97,7 @@ async function callGemini(system: string, prompt: string): Promise<string> {
 async function generate(system: string, prompt: string): Promise<string> {
   if (Deno.env.get('ANTHROPIC_API_KEY')) return callClaude(system, prompt)
   if (Deno.env.get('GEMINI_API_KEY')) return callGemini(system, prompt)
-  throw new Error('No LLM key configured on this function (ANTHROPIC_API_KEY or GEMINI_API_KEY)')
+  throw new Error('No LLM key configured — set GEMINI_API_KEY in Edge Functions → Secrets')
 }
 
 const SYSTEM = `You write job application documents for one specific candidate applying to one specific role.
@@ -107,13 +109,25 @@ Hard rules:
 - Reference the actual company and role. If the posting names a specific problem, challenge, or product, speak to it directly.
 - Cover letter: under 300 words, four short paragraphs at most, no bullet lists.
 
+POSITIONING A LONG CAREER
+
+This candidate is late-career with deep experience. That is an asset, and the documents must read that way — but resume screening frequently filters experienced candidates before a human ever reads the application. Write to survive that screen without ever misrepresenting anything:
+
+- Lead with current, in-demand capability, not with longevity. Never open with "25+ years of experience" or similar — it invites a filter before it demonstrates anything. Open with recent, specific, quantified impact.
+- Foreground the most recent and most current work, especially anything in a presently in-demand area. The strongest available counter to any assumption that a long career means dated skills is concrete evidence of current work. Put it first and be specific about it.
+- On the CV, give full detail to roughly the last 12–15 years. Compress everything earlier into a single short "Earlier career" line naming the employers and the nature of the work, without a year-by-year breakdown. This is standard executive-CV practice and loses nothing that matters to a hiring manager.
+- Never include education graduation years, or any date that exists only to establish chronology rather than to demonstrate achievement.
+- Emphasise appetite for the actual work of the role, not just oversight of it. The most common reason an experienced candidate is passed over is a fear that they want a title rather than the job.
+- Never apologise for the depth of the candidate's experience, never call attention to career length as something to be explained, and never write a line that draws attention to age. Simply lead with what is most relevant and current.
+- If a screening risk is supplied below, write to defuse it — through emphasis and framing, never by hiding or misstating a fact.
+
 Output format — return exactly these two sections and nothing else:
 
 ===COVER_LETTER===
 <the letter, ready to send, no placeholders>
 
 ===CV===
-<the full CV in Markdown, reordered and reworded to foreground what this role wants. Same facts as the source resume — same employers, titles and dates — but with emphasis, phrasing and ordering tuned to the posting.>`
+<the full CV in Markdown, reordered and reworded to foreground what this role wants. Same facts as the source resume — same employers and titles — but with emphasis, phrasing and ordering tuned to the posting, and recent work given the most space.>`
 
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
@@ -187,6 +201,9 @@ Deno.serve(async req => {
       '',
       match?.pitch_angle ? `## SUGGESTED ANGLE\n${match.pitch_angle}` : '',
       match?.gaps ? `## KNOWN GAPS TO HANDLE HONESTLY\n${match.gaps}` : '',
+      match?.overqualification_risk
+        ? `## SCREENING RISK TO WRITE AGAINST\n${match.overqualification_risk}`
+        : '',
       '',
       'Write the cover letter and the tailored CV.',
     ]

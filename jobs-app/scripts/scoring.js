@@ -1,13 +1,21 @@
 // Match scoring: how well does one posting fit the profile, and why.
+//
+// Scoring is BATCHED — several postings per LLM call. That is what keeps a
+// full scan inside Gemini's free tier: 120 postings is ~24 requests at the
+// default batch size, not 120. It also amortizes the profile (the largest part
+// of the prompt) across every job in the batch instead of resending it each time.
 
 import { generateJSON } from './llm.js'
+
+export const BATCH_SIZE = Number(process.env.SCORE_BATCH_SIZE || 5)
 
 // Structured-output schema. Note the deliberate absence of numeric
 // minimum/maximum — the Claude structured-outputs validator rejects those —
 // so the 0..100 bound is enforced in clampScore() below instead.
-const SCORE_SCHEMA = {
+const ASSESSMENT = {
   type: 'object',
   properties: {
+    ref: { type: 'integer', description: 'The JOB number this assessment is for.' },
     score: {
       type: 'integer',
       description: '0-100. How strong a candidate is this person for this specific role?',
@@ -26,13 +34,27 @@ const SCORE_SCHEMA = {
       description:
         'The honest case against — what the role wants that the candidate lacks, or where they would be stretched. Empty string only if genuinely none.',
     },
+    overqualification_risk: {
+      type: 'string',
+      description:
+        'One of none/low/moderate/high, then a colon and one sentence. The risk of being screened out for being too senior, too expensive, or too experienced for this posting — separate from whether they could do the job.',
+    },
     pitch_angle: {
       type: 'string',
       description:
         'One sentence: the single strongest angle to lead with in a cover letter for this role.',
     },
   },
-  required: ['score', 'tier', 'why_fit', 'gaps', 'pitch_angle'],
+  required: ['ref', 'score', 'tier', 'why_fit', 'gaps', 'overqualification_risk', 'pitch_angle'],
+  additionalProperties: false,
+}
+
+const BATCH_SCHEMA = {
+  type: 'object',
+  properties: {
+    assessments: { type: 'array', items: ASSESSMENT },
+  },
+  required: ['assessments'],
   additionalProperties: false,
 }
 
@@ -65,7 +87,8 @@ export function titleSeniority(title = '') {
 }
 
 // Cheap gate ahead of the LLM. Returns a reason string when the posting
-// should be skipped, or null to score it.
+// should be skipped, or null to score it. Every posting caught here is an LLM
+// call not spent, which directly protects the free-tier quota.
 export function prefilterReason(profile, posting) {
   const min = SENIORITY_RANK[profile.min_seniority ?? 'director'] ?? 3
   const seen = titleSeniority(posting.title)
@@ -125,7 +148,7 @@ function profileBlock(p) {
   return out
 }
 
-function postingBlock(job) {
+function postingBlock(job, maxDesc) {
   const salary =
     job.salary_min || job.salary_max
       ? `Salary: ${job.salary_min ?? '?'}–${job.salary_max ?? '?'} ${job.salary_currency || ''}`
@@ -137,15 +160,21 @@ function postingBlock(job) {
     job.remote ? 'Remote: yes' : null,
     salary,
     '',
-    // Descriptions from aggregators can be long; the tail is usually boilerplate
-    // (EEO statements, benefits) that adds tokens without adding signal.
-    (job.description || '').slice(0, 6000),
+    // Descriptions from aggregators run long; the tail is usually boilerplate
+    // (EEO statements, benefits) that costs tokens without adding signal.
+    (job.description || '').slice(0, maxDesc),
   ]
     .filter(Boolean)
     .join('\n')
 }
 
-const SYSTEM = `You are an experienced executive recruiter assessing whether one specific candidate should apply to one specific job.
+// The seniority guidance below is the substantive part of this prompt. A
+// deeply experienced candidate faces a failure mode that has nothing to do
+// with capability: being screened out as too senior, too expensive, or assumed
+// out of date. Scoring that ignores this produces a list of roles he is
+// perfectly able to do and would never be called for — which is worse than
+// useless when the goal is knowing where to spend limited application effort.
+const SYSTEM = `You are an experienced executive recruiter assessing whether one specific candidate should apply to specific jobs.
 
 Be calibrated and honest. This assessment is read only by the candidate, and its usefulness depends entirely on it being trustworthy — a list where everything scores 85 is worthless. Most postings are a mediocre fit; say so. Reserve high scores for roles where this candidate would genuinely be a leading applicant.
 
@@ -156,25 +185,25 @@ Scoring guide:
   35-54  stretch     - missing something material; a long shot
   0-34   poor        - wrong level, wrong field, or wrong location
 
-Judge against the candidate's actual evidenced experience, not job-title
-keyword overlap. A posting that merely repeats their buzzwords but sits at the
-wrong seniority is a poor fit, not a strong one. Weigh seniority, domain,
-scope of ownership, and location fit. Never invent experience the candidate
-has not described.`
+Judge against the candidate's actual evidenced experience, not job-title keyword overlap. A posting that merely repeats their buzzwords but sits at the wrong seniority is a poor fit, not a strong one. Weigh seniority, domain, scope of ownership, and location fit. Never invent experience the candidate has not described.
 
-export async function scoreJob(profile, job) {
-  const prompt = `## CANDIDATE\n${profileBlock(profile)}\n\n## JOB POSTING\n${postingBlock(job)}\n\nAssess this candidate against this posting.`
+SENIORITY AND DEPTH OF EXPERIENCE
 
-  const { data, model } = await generateJSON({
-    system: SYSTEM,
-    prompt,
-    schema: SCORE_SCHEMA,
-    effort: 'low',
-  })
+This candidate is late-career with deep tenure. Handle that precisely, because it cuts both ways and the distinction is the most useful thing you can tell them:
 
-  const score = clampScore(data.score)
+- Never treat long tenure or a long career as a defect in the "score". Depth of experience is an asset for roles with real scope: P&L, org building, transformation mandates, board-facing work, and anything where having actually done it before is the point.
+- Do treat it as a real SCREENING risk, and report that separately in "overqualification_risk". A candidate can be entirely able to do a job and still never get called because the hiring team reads them as too senior, too expensive, or a flight risk. That is a distinct question from fit, and it belongs in its own field — never buried in the score.
+- Score the role's actual scope, not its title inflation. A "Director" role owning a large org may be a better fit than a "VP" title at a small company.
+- Watch for postings that signal a preference for early-career candidates — heavy emphasis on "fast-paced/high-energy", a narrow years-of-experience ceiling, "digital native", or compensation well below the candidate's floor. Note these in overqualification_risk, not in gaps.
+- Currency beats chronology. If the candidate's recent work is in a current, in-demand area, weigh that heavily: it is the strongest available counter to any assumption that a long career means dated skills. Say so explicitly in pitch_angle when it applies.
+- In "gaps", stick to genuine capability or domain gaps. Do not list "may be seen as overqualified" there — that is what overqualification_risk is for.
+
+Format "overqualification_risk" as one of none/low/moderate/high, then a colon, then one sentence of reasoning. Example: "moderate: the posting caps at 10 years of experience and the band is likely below your floor, so expect resume screening to filter you before a human reads it."`
+
+function parseAssessment(raw, job) {
+  const score = clampScore(raw?.score)
   const validTiers = ['exceptional', 'strong', 'possible', 'stretch', 'poor']
-  let tier = String(data.tier || '').toLowerCase()
+  let tier = String(raw?.tier || '').toLowerCase()
   if (!validTiers.includes(tier)) {
     // Gemini has no schema enforcement, so derive the tier from the score
     // rather than failing the row on a malformed label.
@@ -185,15 +214,69 @@ export async function scoreJob(profile, job) {
       : score >= 35 ? 'stretch'
       : 'poor'
   }
-
   return {
+    posting_id: job.id,
     score,
     tier,
-    why_fit: String(data.why_fit || '').trim(),
-    gaps: String(data.gaps || '').trim(),
-    pitch_angle: String(data.pitch_angle || '').trim(),
-    model,
+    why_fit: String(raw?.why_fit || '').trim(),
+    gaps: String(raw?.gaps || '').trim(),
+    overqualification_risk: String(raw?.overqualification_risk || '').trim() || null,
+    pitch_angle: String(raw?.pitch_angle || '').trim(),
   }
+}
+
+/**
+ * Score a batch of postings in one LLM call.
+ * Returns an array of verdicts; postings the model failed to return an
+ * assessment for are simply absent, so they stay unscored and get retried
+ * on the next run rather than being written with a bogus score.
+ */
+export async function scoreJobBatch(profile, jobs) {
+  if (!jobs.length) return []
+
+  const maxDesc = jobs.length > 1 ? 2500 : 6000
+  const jobsText = jobs
+    .map((j, i) => `### JOB ${i + 1}\n${postingBlock(j, maxDesc)}`)
+    .join('\n\n')
+
+  const prompt = `## CANDIDATE\n${profileBlock(profile)}\n\n## POSTINGS TO ASSESS\n${jobsText}\n\nAssess this candidate against ${
+    jobs.length === 1 ? 'this posting' : `each of these ${jobs.length} postings independently`
+  }. Return one assessment object per posting, each with "ref" set to its JOB number. Assess every posting; do not skip any.`
+
+  const { data, model } = await generateJSON({
+    system: SYSTEM,
+    prompt,
+    schema: BATCH_SCHEMA,
+    effort: 'low',
+  })
+
+  // Accept either the wrapped object or a bare array — Gemini sometimes
+  // returns the array directly despite the schema in the prompt.
+  const list = Array.isArray(data) ? data : data?.assessments
+  if (!Array.isArray(list)) throw new Error('Scorer did not return an assessments array')
+
+  const out = []
+  for (const raw of list) {
+    const idx = Number(raw?.ref) - 1
+    // Fall back to positional matching if `ref` is missing or nonsense, but
+    // only when the counts line up — otherwise verdicts land on wrong jobs.
+    const job =
+      Number.isInteger(idx) && idx >= 0 && idx < jobs.length
+        ? jobs[idx]
+        : list.length === jobs.length
+          ? jobs[out.length]
+          : null
+    if (!job) continue
+    out.push({ ...parseAssessment(raw, job), model })
+  }
+  return out
+}
+
+/** Single-posting convenience wrapper, used for re-scoring one job. */
+export async function scoreJob(profile, job) {
+  const [verdict] = await scoreJobBatch(profile, [job])
+  if (!verdict) throw new Error('Scorer returned no assessment')
+  return verdict
 }
 
 export { profileBlock, postingBlock }

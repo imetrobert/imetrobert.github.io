@@ -1,16 +1,42 @@
 // LLM layer for match scoring and application drafting.
 //
-// Two providers, picked by which key is present:
-//   ANTHROPIC_API_KEY → Claude (better nuanced fit reasoning)
-//   GEMINI_API_KEY    → Gemini (zero new setup — same key the blog uses)
-// Claude wins if both are set. Override with LLM_PROVIDER=gemini|claude.
-
-import Anthropic from '@anthropic-ai/sdk'
+// GEMINI IS THE PRIMARY AND ONLY REQUIRED PROVIDER. It uses the same
+// GEMINI_API_KEY the blog pipeline already has, and the whole system is sized
+// to run inside Gemini's free tier — see the pacing and batching below.
+//
+// Claude is an optional upgrade, off unless ANTHROPIC_API_KEY is set. It is
+// called over plain fetch so there is no Anthropic package in the dependency
+// tree: nothing here requires a Claude subscription, a Claude Code seat, or
+// any paid Anthropic account to install, run, or maintain.
+//
+// Override the choice with LLM_PROVIDER=gemini|claude.
 
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-opus-5'
+
 // Same fallback chain as the blog pipeline (scripts/gemini.py), so a quota
 // wall on one model doesn't fail the whole scan.
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
+const GEMINI_MODELS = process.env.GEMINI_MODEL
+  ? [process.env.GEMINI_MODEL]
+  : ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
+
+// Free-tier pacing. Gemini's free tier is limited per minute AND per day, and
+// the per-minute limit is the one that bites during a scan. Requests are
+// serialized through a single queue with a minimum gap between them.
+// 12 requests/minute is comfortably under the free-tier ceiling on every model
+// in the chain above. Raise GEMINI_RPM if you move to a paid tier.
+const GEMINI_RPM = Number(process.env.GEMINI_RPM || 12)
+const MIN_GAP_MS = Math.ceil(60_000 / Math.max(1, GEMINI_RPM))
+const MAX_RETRIES = 4
+
+// Thrown when the daily quota is gone. The scan catches this and stops
+// cleanly with partial results saved, rather than burning the remaining
+// postings against a wall.
+export class QuotaExhaustedError extends Error {
+  constructor(message) {
+    super(message)
+    this.name = 'QuotaExhaustedError'
+  }
+}
 
 export function activeProvider(env = process.env) {
   const forced = (env.LLM_PROVIDER || '').toLowerCase()
@@ -21,98 +47,120 @@ export function activeProvider(env = process.env) {
   return null
 }
 
-// ---------------------------------------------------------------------
-// Claude
-// ---------------------------------------------------------------------
-let _anthropic = null
-function anthropic() {
-  if (!_anthropic) _anthropic = new Anthropic()
-  return _anthropic
-}
+const sleep = ms => new Promise(r => setTimeout(r, ms))
 
-async function claudeJSON({ system, prompt, schema, effort = 'low' }) {
-  const res = await anthropic().messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 16000,
-    system,
-    output_config: {
-      effort,
-      format: { type: 'json_schema', schema },
-    },
-    messages: [{ role: 'user', content: prompt }],
-  })
-  if (res.stop_reason === 'refusal') throw new Error('Claude declined the request')
-  const text = res.content.find(b => b.type === 'text')?.text
-  if (!text) throw new Error('Claude returned no text block')
-  return { data: JSON.parse(text), model: CLAUDE_MODEL }
-}
-
-async function claudeText({ system, prompt, effort = 'medium' }) {
-  const res = await anthropic().messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 16000,
-    system,
-    output_config: { effort },
-    messages: [{ role: 'user', content: prompt }],
-  })
-  if (res.stop_reason === 'refusal') throw new Error('Claude declined the request')
-  const text = res.content.filter(b => b.type === 'text').map(b => b.text).join('\n')
-  return { text, model: CLAUDE_MODEL }
+// Serial queue: every provider call goes through here, so concurrency
+// upstream can never outrun the rate limit.
+let _chain = Promise.resolve()
+let _lastCallAt = 0
+function paced(fn) {
+  const run = async () => {
+    const wait = _lastCallAt + MIN_GAP_MS - Date.now()
+    if (wait > 0) await sleep(wait)
+    _lastCallAt = Date.now()
+    return fn()
+  }
+  _chain = _chain.then(run, run)
+  return _chain
 }
 
 // ---------------------------------------------------------------------
 // Gemini
 // ---------------------------------------------------------------------
 function stripFence(s) {
-  return String(s).replace(/^\s*```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()
+  return String(s)
+    .replace(/^\s*```(?:json)?\s*/i, '')
+    .replace(/```\s*$/, '')
+    .trim()
+}
+
+async function geminiOnce(model, body) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (res.status === 429) {
+    const detail = await res.text()
+    const err = new Error(`rate limited on ${model}`)
+    // Google reports both per-minute and per-day exhaustion as 429. Only the
+    // daily one is worth giving up on.
+    err.daily = /per\s*day|PerDay|daily/i.test(detail)
+    err.retryable = true
+    throw err
+  }
+  if (res.status >= 500) {
+    const err = new Error(`${model} returned ${res.status}`)
+    err.retryable = true
+    throw err
+  }
+  if (!res.ok) {
+    throw new Error(`Gemini ${res.status} on ${model}: ${(await res.text()).slice(0, 200)}`)
+  }
+
+  const json = await res.json()
+  const text = (json?.candidates?.[0]?.content?.parts || []).map(p => p.text).join('')
+  if (!text.trim()) throw new Error(`Gemini returned empty text on ${model}`)
+  return { text, model }
 }
 
 async function geminiCall(body) {
-  const key = process.env.GEMINI_API_KEY
   let lastErr
   for (const model of GEMINI_MODELS) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        lastErr = new Error(`Gemini ${res.status} on ${model}`)
-        // 429/5xx → try the next model in the chain.
-        continue
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        return await paced(() => geminiOnce(model, body))
+      } catch (err) {
+        lastErr = err
+        if (err.daily) break // this model's day is done — try the next model
+        if (!err.retryable) break // real error, not worth retrying
+        // Exponential backoff: 4s, 8s, 16s, 32s.
+        const backoff = 4000 * 2 ** attempt
+        console.warn(`    ${err.message} — retrying in ${backoff / 1000}s`)
+        await sleep(backoff)
       }
-      const json = await res.json()
-      const text = json?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || ''
-      if (!text.trim()) {
-        lastErr = new Error(`Gemini returned empty text on ${model}`)
-        continue
-      }
-      return { text, model }
-    } catch (err) {
-      lastErr = err
     }
+  }
+  if (lastErr?.daily) {
+    throw new QuotaExhaustedError(
+      'Gemini daily quota exhausted on every model in the chain. Partial results were saved; the rest will be scored on the next run.'
+    )
   }
   throw lastErr || new Error('All Gemini models failed')
 }
 
-async function geminiJSON({ system, prompt }) {
-  const { text, model } = await geminiCall({
-    systemInstruction: { parts: [{ text: system }] },
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
+// ---------------------------------------------------------------------
+// Claude (optional — only if ANTHROPIC_API_KEY is set)
+// ---------------------------------------------------------------------
+async function claudeCall({ system, prompt, schema, effort }) {
+  const body = {
+    model: CLAUDE_MODEL,
+    max_tokens: 16000,
+    system,
+    output_config: schema
+      ? { effort: effort || 'low', format: { type: 'json_schema', schema } }
+      : { effort: effort || 'medium' },
+    messages: [{ role: 'user', content: prompt }],
+  }
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(body),
   })
-  return { data: JSON.parse(stripFence(text)), model }
-}
-
-async function geminiText({ system, prompt }) {
-  const { text, model } = await geminiCall({
-    systemInstruction: { parts: [{ text: system }] },
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.6 },
-  })
-  return { text, model }
+  if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`)
+  const data = await res.json()
+  if (data.stop_reason === 'refusal') throw new Error('Claude declined the request')
+  const text = (data.content || [])
+    .filter(b => b.type === 'text')
+    .map(b => b.text)
+    .join('\n')
+  return { text, model: CLAUDE_MODEL }
 }
 
 // ---------------------------------------------------------------------
@@ -120,14 +168,32 @@ async function geminiText({ system, prompt }) {
 // ---------------------------------------------------------------------
 export async function generateJSON({ system, prompt, schema, effort }) {
   const provider = activeProvider()
-  if (provider === 'claude') return claudeJSON({ system, prompt, schema, effort })
-  if (provider === 'gemini') return geminiJSON({ system, prompt })
-  throw new Error('No LLM key set (ANTHROPIC_API_KEY or GEMINI_API_KEY)')
+  if (provider === 'claude') {
+    const { text, model } = await claudeCall({ system, prompt, schema, effort })
+    return { data: JSON.parse(stripFence(text)), model }
+  }
+  if (provider === 'gemini') {
+    const { text, model } = await geminiCall({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
+    })
+    return { data: JSON.parse(stripFence(text)), model }
+  }
+  throw new Error('No LLM key set (GEMINI_API_KEY, or optionally ANTHROPIC_API_KEY)')
 }
 
 export async function generateText({ system, prompt, effort }) {
   const provider = activeProvider()
-  if (provider === 'claude') return claudeText({ system, prompt, effort })
-  if (provider === 'gemini') return geminiText({ system, prompt })
-  throw new Error('No LLM key set (ANTHROPIC_API_KEY or GEMINI_API_KEY)')
+  if (provider === 'claude') return claudeCall({ system, prompt, effort })
+  if (provider === 'gemini') {
+    return geminiCall({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.6 },
+    })
+  }
+  throw new Error('No LLM key set (GEMINI_API_KEY, or optionally ANTHROPIC_API_KEY)')
 }
+
+export { GEMINI_RPM, MIN_GAP_MS }

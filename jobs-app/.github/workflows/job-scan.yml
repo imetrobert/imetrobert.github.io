@@ -17,6 +17,11 @@ on:
         required: false
         default: '120'
         type: string
+      batch_size:
+        description: 'Postings assessed per LLM call (higher = fewer requests)'
+        required: false
+        default: '5'
+        type: string
 
 permissions:
   contents: read
@@ -46,14 +51,18 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Gemini is the required scorer. ANTHROPIC_API_KEY is an optional
+          # upgrade — leave the secret unset and the scan runs entirely on the
+          # Gemini free tier, with no paid Anthropic account involved.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
           ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
           JOOBLE_API_KEY: ${{ secrets.JOOBLE_API_KEY }}
           JSEARCH_RAPIDAPI_KEY: ${{ secrets.JSEARCH_RAPIDAPI_KEY }}
           SCAN_TRIGGER: ${{ inputs.trigger || 'schedule' }}
           MAX_SCORES_PER_RUN: ${{ inputs.max_scores || '120' }}
+          SCORE_BATCH_SIZE: ${{ inputs.batch_size || '5' }}
         run: node scripts/run-job-scan.js
 
       - name: Summary

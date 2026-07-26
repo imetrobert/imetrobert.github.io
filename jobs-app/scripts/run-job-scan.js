@@ -2,17 +2,22 @@
 //
 // Fetch → normalize → dedupe → prefilter → score → persist.
 //
+// Sized to run inside Gemini's free tier: postings are prefiltered before any
+// LLM call, then scored in batches through a rate-limited queue.
+//
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (required)
-//      ANTHROPIC_API_KEY or GEMINI_API_KEY     (required — the scorer)
+//      GEMINI_API_KEY                          (required — the scorer)
+//      ANTHROPIC_API_KEY                       (optional upgrade; not needed)
 //      ADZUNA_APP_ID, ADZUNA_APP_KEY           (optional, per source)
 //      JOOBLE_API_KEY, JSEARCH_RAPIDAPI_KEY    (optional, per source)
 //      SCAN_TRIGGER                            (optional: 'schedule' | 'manual')
+//      MAX_SCORES_PER_RUN, SCORE_BATCH_SIZE, GEMINI_RPM (optional tuning)
 
 import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { ADAPTERS } from './sources.js'
-import { prefilterReason, scoreJob } from './scoring.js'
-import { activeProvider } from './llm.js'
+import { prefilterReason, scoreJobBatch, BATCH_SIZE } from './scoring.js'
+import { activeProvider, QuotaExhaustedError, GEMINI_RPM } from './llm.js'
 
 const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -20,7 +25,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   process.exit(1)
 }
 if (!activeProvider()) {
-  console.error('Missing ANTHROPIC_API_KEY or GEMINI_API_KEY — nothing could be scored')
+  console.error('Missing GEMINI_API_KEY (or the optional ANTHROPIC_API_KEY) — nothing could be scored')
   process.exit(1)
 }
 
@@ -28,7 +33,6 @@ const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 // Cap per run so a bad month can't drain the LLM budget or the Adzuna quota.
 const MAX_SCORES_PER_RUN = Number(process.env.MAX_SCORES_PER_RUN || 120)
-const SCORE_CONCURRENCY = 3
 // Postings not seen in any feed for this long are marked stale (greyed out in
 // the UI) rather than deleted — you may have already applied against them.
 const STALE_AFTER_DAYS = 45
@@ -63,19 +67,6 @@ function toISO(value) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
 
-async function mapLimit(items, limit, fn) {
-  const out = []
-  let i = 0
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (i < items.length) {
-      const idx = i++
-      out[idx] = await fn(items[idx], idx)
-    }
-  })
-  await Promise.all(workers)
-  return out
-}
-
 // Search queries are derived from the profile's target titles so the feeds
 // return what you actually want, rather than a hardcoded list going stale.
 function buildQueries(profile) {
@@ -100,6 +91,7 @@ async function main() {
   if (runErr) throw new Error(`Could not open run log: ${runErr.message}`)
 
   const stats = { fetched: 0, new_postings: 0, scored: 0 }
+  let quotaStopped = false
 
   try {
     const { data: profile, error: profErr } = await db
@@ -256,25 +248,53 @@ async function main() {
     }
 
     const toScore = queue.filter(q => !q.skip).map(q => q.job).slice(0, MAX_SCORES_PER_RUN)
-    console.log(`Scoring ${toScore.length} (provider: ${activeProvider()})`)
+    const batches = []
+    for (let i = 0; i < toScore.length; i += BATCH_SIZE) {
+      batches.push(toScore.slice(i, i + BATCH_SIZE))
+    }
+    const provider = activeProvider()
+    console.log(
+      `Scoring ${toScore.length} postings in ${batches.length} batches of ${BATCH_SIZE} ` +
+        `(provider: ${provider}${provider === 'gemini' ? `, paced at ${GEMINI_RPM} req/min` : ''})`
+    )
 
-    await mapLimit(toScore, SCORE_CONCURRENCY, async job => {
+    const titleOf = j => `${j.title} @ ${j.company || '?'}`
+
+    for (const [n, batch] of batches.entries()) {
       try {
-        const verdict = await scoreJob(profile, job)
-        const { error } = await db
-          .from('job_matches')
-          .upsert({ posting_id: job.id, ...verdict, scored_at: new Date().toISOString() }, {
-            onConflict: 'posting_id',
-          })
-        if (error) throw new Error(error.message)
-        stats.scored++
-        console.log(`  ${String(verdict.score).padStart(3)} ${verdict.tier.padEnd(11)} ${job.title} @ ${job.company || '?'}`)
+        const verdicts = await scoreJobBatch(profile, batch)
+        if (verdicts.length) {
+          // Persist per batch, not at the end: if the daily quota runs out
+          // mid-scan, everything scored so far is already saved.
+          const { error } = await db.from('job_matches').upsert(
+            verdicts.map(v => ({ ...v, scored_at: new Date().toISOString() })),
+            { onConflict: 'posting_id' }
+          )
+          if (error) throw new Error(error.message)
+          stats.scored += verdicts.length
+        }
+        const byId = new Map(verdicts.map(v => [v.posting_id, v]))
+        for (const job of batch) {
+          const v = byId.get(job.id)
+          console.log(
+            v
+              ? `  ${String(v.score).padStart(3)} ${v.tier.padEnd(11)} ${titleOf(job)}`
+              : `  ??? (no assessment returned) ${titleOf(job)}`
+          )
+        }
+        console.log(`  — batch ${n + 1}/${batches.length} done (${stats.scored} scored so far)`)
       } catch (err) {
-        // One bad posting shouldn't abort the run; it stays unscored and is
-        // retried next time.
-        console.warn(`  scoring failed for "${job.title}": ${err.message}`)
+        if (err instanceof QuotaExhaustedError) {
+          // Not a failure: stop cleanly, keep what we have, resume next run.
+          console.warn(`\n${err.message}`)
+          quotaStopped = true
+          break
+        }
+        // One bad batch shouldn't abort the run; those postings stay unscored
+        // and are retried next time.
+        console.warn(`  batch ${n + 1} failed: ${err.message}`)
       }
-    })
+    }
 
     // ---- age out postings that stopped appearing ----
     const cutoff = new Date(Date.now() - STALE_AFTER_DAYS * 86400_000).toISOString()
@@ -291,6 +311,9 @@ async function main() {
       .eq('id', run.id)
 
     console.log(`\nDone. fetched=${stats.fetched} new=${stats.new_postings} scored=${stats.scored}`)
+    if (quotaStopped) {
+      console.log('Stopped early on the daily LLM quota — the remainder is scored on the next run.')
+    }
   } catch (err) {
     console.error(`Scan failed: ${err.message}`)
     await db

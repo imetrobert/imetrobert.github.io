@@ -19,6 +19,13 @@ function download(filename, text) {
   URL.revokeObjectURL(url)
 }
 
+// The scorer writes "moderate: <reasoning>" — pull the level off the front so
+// it can be colour-coded, and fall back to neutral if the shape varies.
+function riskLevel(text) {
+  const m = String(text || '').match(/^\s*(none|low|moderate|high)\b/i)
+  return m ? m[1].toLowerCase() : 'unknown'
+}
+
 function slug(s) {
   return String(s || 'role').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50)
 }
@@ -104,6 +111,14 @@ export default function JobCard({ job, onChanged }) {
             <section>
               <h4>The honest gaps</h4>
               <p className="muted">{job.gaps}</p>
+            </section>
+          )}
+          {job.overqualification_risk && (
+            <section>
+              <h4>Screening risk</h4>
+              <p className={`risk risk-${riskLevel(job.overqualification_risk)}`}>
+                {job.overqualification_risk}
+              </p>
             </section>
           )}
           {job.pitch_angle && (

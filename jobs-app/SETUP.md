@@ -70,15 +70,34 @@ LinkedIn/Indeed rows.
 A monthly scan uses roughly 20–40 Adzuna calls, so the free tier has ample room
 even with on-demand refreshes.
 
-### 3. Pick the scorer
+### 3. The scorer — Gemini, free tier
 
-Set **one** of these. Claude wins if both are present.
+Set **`GEMINI_API_KEY`** — the same key your blog pipeline already uses. That's it.
 
-- `ANTHROPIC_API_KEY` — better nuanced fit reasoning. Costs a few cents per scan.
-- `GEMINI_API_KEY` — the key your blog already uses. Zero new setup, free tier.
+**Nothing in this system requires a paid Claude subscription, a Claude Code seat,
+or any paid Anthropic account** — not to install it, run it, or maintain it. There
+is no Anthropic package in `package.json`. Once deployed, it runs unattended on
+GitHub Actions, Supabase and Gemini; you never need an AI coding assistant to keep
+it working.
 
-Start with Gemini since you already have it; switch by adding the Anthropic key
-later if the reasoning feels shallow. Nothing else changes.
+The design is sized to stay inside Gemini's free tier rather than merely tolerate it:
+
+| Lever | Effect |
+|---|---|
+| **Prefilter before scoring** | Wrong seniority, deal-breakers and wrong geography are rejected by plain code. Those postings never cost a request. |
+| **Batched scoring** (`SCORE_BATCH_SIZE`, default 5) | 120 postings become **~24 requests**, not 120. It also sends your resume once per batch instead of once per job, cutting token use several-fold. |
+| **Paced queue** (`GEMINI_RPM`, default 12/min) | Every call is serialized through one queue with a minimum gap, so a scan can't trip the per-minute limit. |
+| **Retry with backoff** | Per-minute 429s back off (4s → 32s) and retry, then fall through the model chain: `gemini-2.5-flash` → `flash-lite` → `2.0-flash`. |
+| **Graceful daily-quota stop** | If the daily quota does run out, the scan saves everything scored so far, logs why, and finishes the rest on the next run. It does not fail. |
+| **`MAX_SCORES_PER_RUN`** (default 120) | Hard ceiling per run. |
+
+A typical monthly scan is **around 24 Gemini requests over roughly two minutes**,
+plus one request each time you draft a cover letter. That leaves ample headroom
+even with several on-demand refreshes in the same day.
+
+If you ever want sharper reasoning, adding `ANTHROPIC_API_KEY` switches the scorer
+to Claude with no other change. Purely optional — leave it unset and nothing
+degrades.
 
 ### 4. Move this into its own repo
 
@@ -107,16 +126,17 @@ only run from a repo's root.
 
 **Settings → Secrets and variables → Actions:**
 
-| Secret | Used by |
-|---|---|
-| `VITE_SUPABASE_URL` | site build |
-| `VITE_SUPABASE_ANON_KEY` | site build |
-| `SUPABASE_URL` | scan job |
-| `SUPABASE_SERVICE_ROLE_KEY` | scan job |
-| `GEMINI_API_KEY` *or* `ANTHROPIC_API_KEY` | scoring |
-| `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | Adzuna feed |
-| `JOOBLE_API_KEY` | Jooble feed (optional) |
-| `JSEARCH_RAPIDAPI_KEY` | JSearch feed (optional) |
+| Secret | Used by | Required |
+|---|---|---|
+| `VITE_SUPABASE_URL` | site build | yes |
+| `VITE_SUPABASE_ANON_KEY` | site build | yes |
+| `SUPABASE_URL` | scan job | yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | scan job | yes |
+| `GEMINI_API_KEY` | scoring | yes |
+| `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | Adzuna feed | recommended |
+| `JOOBLE_API_KEY` | Jooble feed | optional |
+| `JSEARCH_RAPIDAPI_KEY` | JSearch feed | optional |
+| `ANTHROPIC_API_KEY` | scoring upgrade | **no — leave unset** |
 
 **Settings → Pages:** Source = **GitHub Actions**, Custom domain = `jobs.imetrobert.com`.
 
@@ -185,14 +205,74 @@ is 85 is useless, so the scorer is told most postings are mediocre fits.
 | Stretch | 35–54 | Missing something material |
 | Poor | 0–34 | Hidden from the list entirely |
 
-Each card gives you **why it fits**, **the honest gaps** (read this one — it's
-what an interviewer will probe), and **what to lead with**.
+Each card gives you four things:
 
-Generated cover letters and CVs are drafts. The prompt forbids inventing
-employers, titles, dates, or metrics, but read them before sending: every claim
-should be one you can defend in an interview.
+- **Why this fits you** — the specific experience that maps to the role.
+- **The honest gaps** — read this one; it's what an interviewer will probe.
+- **Screening risk** — see below. Colour-coded green/amber/red.
+- **Lead with** — the angle for the cover letter.
+
+### Screening risk is not the same as fit
+
+This is a deliberately separate field, and it's the one most worth paying
+attention to.
+
+A deep, senior career is an asset for roles with real scope — and simultaneously
+a filter risk, because hiring teams screen out candidates they read as too
+senior, too expensive, or likely to leave for something bigger. Those are two
+different questions, and blending them into one number would either hide the
+risk or unfairly penalise good matches. So:
+
+- **`score`** answers *could you do this job and would you be a leading
+  candidate?* Depth of experience only ever helps it. Long tenure is never
+  treated as a defect.
+- **`overqualification_risk`** answers *will you actually get the call?* Rated
+  none / low / moderate / high, with a reason. This is where a years-of-experience
+  ceiling, a band below your floor, or "high-energy / digital native" language in
+  the posting gets flagged.
+
+A role scoring 88 with **high** screening risk is worth applying to *differently* —
+through a referral rather than the portal, with a letter that leads hard on
+current, in-demand work. That's a different action from a role scoring 88 with
+low risk, and the split is what lets you tell them apart.
+
+The generated documents are written to survive that screen without ever
+misstating anything: they lead with recent and current impact rather than career
+length, give full detail to roughly the last 12–15 years and compress earlier
+roles into a single line, and omit graduation years. Standard executive-CV
+practice — it hides nothing a hiring manager needs and removes the hooks that
+trigger a reflexive filter.
+
+They are still drafts. The prompt forbids inventing employers, titles, dates or
+metrics, but read them before sending: every claim should be one you can defend
+in an interview.
 
 ---
+
+## Using this as standby readiness
+
+If the point is to be ready to move quickly rather than to be actively job
+hunting, the ordering changes:
+
+- **Fill in the profile now, while you have time.** Reconstructing scope, budgets,
+  team sizes and outcomes under pressure is slow and produces worse material than
+  doing it unhurried. This is the single highest-value thing to do early, and it
+  only has to be done once.
+- **Let the monthly scan run in the background.** The value isn't any single
+  month's list — it's that the market picture and your document drafts are already
+  warm on the day you need them, instead of starting cold.
+- **Pre-draft documents for anything scoring "exceptional" or "strong".** They're
+  saved against the posting and stay there. Even where the specific role is gone
+  by the time you need it, you'll have several strong letters to adapt rather than
+  a blank page.
+- **Watch the screening-risk field over time.** If most strong matches come back
+  moderate or high, that's a signal to adjust positioning — usually by sharpening
+  the recent, current work at the top of your resume — well before it costs you
+  anything real.
+- **Re-run the scan the day anything changes.** One click, results in minutes.
+
+The site is `noindex`, robots-disallowed and behind your Supabase login, so
+none of this is discoverable while you're still employed.
 
 ## Running costs
 
@@ -201,12 +281,16 @@ should be one you can defend in an interview.
 | GitHub Pages + Actions | Free |
 | Supabase | Free tier, shared with your other two apps |
 | Adzuna / Jooble / ATS boards | Free |
-| Gemini scoring | Free tier is generally sufficient |
-| Claude scoring (if enabled) | A few cents per scan |
+| Gemini scoring | Free tier — ~24 requests per scan |
+| **Total** | **$0/month** |
+| Claude scoring | Optional, off by default. A few cents per scan if you ever enable it. |
 
-`MAX_SCORES_PER_RUN` (default 120) caps how many postings get scored in one run,
-so a flood of new listings can't run up a bill. Anything not reached stays
-unscored and is picked up next run.
+**The steady state is free and requires no subscription of any kind.** If a scan
+ever does hit the daily Gemini quota it stops cleanly, keeps what it scored, and
+finishes on the next run — you lose time, never data.
+
+To reduce request volume further, raise `SCORE_BATCH_SIZE` (8–10 still works
+well; quality drifts if you push much past that) or lower `MAX_SCORES_PER_RUN`.
 
 ---
 
@@ -215,8 +299,19 @@ unscored and is picked up next run.
 **"No scan has run yet"** — Profile is empty. The scan refuses to run without a
 resume or summary, because scoring against nothing produces noise.
 
-**Scan failed, "Missing ANTHROPIC_API_KEY or GEMINI_API_KEY"** — neither secret is
-set on the *jobs* repo. Secrets don't carry over from `imetrobert.github.io`.
+**Scan failed, "Missing GEMINI_API_KEY"** — the secret isn't set on the *jobs*
+repo. Secrets don't carry over from `imetrobert.github.io`.
+
+**Log says "Gemini daily quota exhausted"** — not a failure. Everything scored
+before the wall is saved, and the rest is picked up on the next run. If it keeps
+happening, raise `SCORE_BATCH_SIZE` or lower `MAX_SCORES_PER_RUN`.
+
+**Log shows "rate limited … retrying in 4s"** — normal. That's the per-minute
+limiter working; it backs off and continues. Lower `GEMINI_RPM` if it's frequent.
+
+**A batch logs "??? (no assessment returned)"** — the model skipped some postings
+in that batch. They stay unscored and are retried next run. Persistent cases
+usually mean `SCORE_BATCH_SIZE` is too high; drop it back toward 5.
 
 **A source shows a red error in the Sources tab** — the message is stored per
 source. Usually a bad ATS slug (check the board URL loads in a browser) or an
