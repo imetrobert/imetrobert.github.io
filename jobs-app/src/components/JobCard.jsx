@@ -58,6 +58,7 @@ function locationLabel(fit) {
     case 'remote_montreal': return 'Remote · Montreal OK'
     case 'onsite_close': return 'Close to Côte St-Luc'
     case 'onsite_far': return 'Montreal · farther out'
+    case 'remote_unclear': return 'Remote · Canada unclear'
     default: return null
   }
 }
