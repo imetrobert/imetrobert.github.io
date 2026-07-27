@@ -53,8 +53,10 @@ export default function Jobs({ session }) {
     ])
     if (jobsErr) setError(jobsErr.message)
     else setJobs(rows || [])
-    setLastRun(runs?.[0] || null)
+    const run = runs?.[0] || null
+    setLastRun(run)
     setLoading(false)
+    return run
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -72,7 +74,17 @@ export default function Jobs({ session }) {
     try {
       await triggerScan()
       setNotice('Scan started. It usually takes a few minutes — this page will update itself.')
-      setTimeout(load, 8000)
+      // GitHub still has to check out the repo and install dependencies
+      // before the script writes its 'running' row to job_runs — a single
+      // reload a few seconds later can still see the PREVIOUS run and the
+      // button flips back to clickable in that gap. Keep polling (and the
+      // button disabled) until the new run actually shows up, then the 15s
+      // poller above takes over for the rest of the scan.
+      let run = null
+      for (let i = 0; i < 8 && run?.status !== 'running'; i++) {
+        await new Promise(r => setTimeout(r, 5000))
+        run = await load()
+      }
     } catch (err) {
       setNotice(err.message)
       if (/token/i.test(err.message)) setShowTokenBox(true)
