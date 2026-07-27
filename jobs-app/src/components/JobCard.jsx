@@ -219,10 +219,15 @@ export default function JobCard({ job, onChanged }) {
               job.source === 'adzuna:us' ? (
                 <a
                   className="btn ghost"
-                  href={`https://www.google.com/search?q=${encodeURIComponent(`${job.company || ''} ${job.title}`.trim())}`}
+                  href={`https://www.google.com/search?q=${encodeURIComponent(
+                    // Exclude adzuna.com itself — it's often the top result
+                    // for its own listing, which just bounces back into the
+                    // same regional block this link exists to route around.
+                    `${job.company || ''} ${job.title} -site:adzuna.com`.trim()
+                  )}`}
                   target="_blank"
                   rel="noreferrer"
-                  title="Adzuna's US listing pages often block visitors browsing from outside the US, regardless of the job itself — this searches for the posting instead"
+                  title="Adzuna's US listing pages often block visitors browsing from outside the US, regardless of the job itself — this searches for the posting elsewhere instead"
                 >
                   Find posting ↗
                 </a>
