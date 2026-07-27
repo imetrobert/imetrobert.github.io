@@ -61,9 +61,21 @@ const ASSESSMENT = {
     },
     location_fit: {
       type: 'string',
-      enum: ['remote_montreal', 'onsite_close', 'onsite_far', 'remote_unclear', 'not_montreal'],
+      enum: [
+        'remote_montreal',
+        'onsite_close',
+        'onsite_far',
+        'remote_unclear',
+        'not_montreal',
+        'not_montreal_negotiable',
+      ],
       description:
         'Whether and how this candidate could physically work this role from Montreal. See LOCATION FIT in the system prompt for the exact categories.',
+    },
+    negotiation_note: {
+      type: 'string',
+      description:
+        'ONLY when location_fit is "not_montreal_negotiable": one or two sentences on specifically why this candidate\'s strength justifies proactively raising a remote/hybrid ask despite the posting stating on-site with no remote option. Empty string in every other case.',
     },
   },
   required: [
@@ -78,6 +90,7 @@ const ASSESSMENT = {
     'ats_keywords_missing',
     'pitch_angle',
     'location_fit',
+    'negotiation_note',
   ],
   additionalProperties: false,
 }
@@ -267,10 +280,11 @@ The candidate lives in Côte Saint-Luc, on the west-central part of the Island o
 - "onsite_far" — requires physical presence somewhere in the greater Montreal area, but more than roughly 10km from Côte Saint-Luc: downtown Montreal, Old Montreal, the Plateau, Griffintown, Verdun, Rosemont, Hochelaga, and off-island suburbs (Laval, Longueuil, Brossard, Terrebonne, Vaudreuil-Dorion, Repentigny) all count as far, even though they are still commutable.
 - "remote_unclear" — genuinely remote, but you cannot confidently place it in either "remote_montreal" or "not_montreal". Use this for the middle ground: signals exist but don't add up to a clear yes or a clear no, or the posting is only ambiguously US-leaning (mentions one US city as "location" without saying whether that's a hard requirement or just where the team happens to sit, say). This tier exists so you never have to guess a binary answer you don't actually have evidence for.
 - "not_montreal" — no way to do this job from Montreal at all. This is the confident-no case: either the office is outside the greater Montreal area with no remote option, or the remote posting is confidently restricted elsewhere. For the latter, watch for tells even when the posting never says "US only" outright: "must be authorized to work in the United States without sponsorship", a requirement to reside in one or more named US states, pay stated only as a US salary band with US-specific benefits (401(k), US federal holidays), EEO/OFCCP/E-Verify boilerplate (US-specific legal language), or references to needing a US Social Security Number or I-9. Any one of those, unless the posting separately and explicitly welcomes Canadian/international candidates anyway, is a confident no — use "not_montreal", not "remote_unclear" (this posting does offer a clear answer, it's just "no"), and not the discipline of guessing "remote_montreal" out of charity.
+- "not_montreal_negotiable" — the same confident-no as "not_montreal" (on-site elsewhere, no remote option, no eligibility angle), but ONLY when the candidate is such an exceptional match that proactively asking about a remote or hybrid arrangement would be a reasonable move for someone at this level, not wishful thinking. Reserve this for genuinely exceptional or strong fits — an executive-scope role where seniority alone often opens a negotiating conversation a posting's stated policy wouldn't extend to a typical applicant. This is a high bar: most on-site-elsewhere postings are plain "not_montreal", full stop, including ones with a decent-but-unremarkable fit. When you do use it, fill in "negotiation_note" with the specific reason — not generic encouragement, but what about THIS candidate for THIS role makes a remote ask plausible.
 
-So for any remote posting, ask two questions in order: (1) is there a clear reason to say no (a real restriction, explicit or implied)? If yes → "not_montreal". (2) If not, is there enough — explicit welcome, or genuine silence with zero geography language — to say yes with real confidence? If yes → "remote_montreal". If neither question resolves cleanly, that is exactly what "remote_unclear" is for: don't force it into whichever of the other two feels safer.
+So for any remote posting, ask two questions in order: (1) is there a clear reason to say no (a real restriction, explicit or implied)? If yes → "not_montreal" (or "not_montreal_negotiable" if the fit is exceptional enough to justify it). (2) If not, is there enough — explicit welcome, or genuine silence with zero geography language — to say yes with real confidence? If yes → "remote_montreal". If neither question resolves cleanly, that is exactly what "remote_unclear" is for: don't force it into whichever of the other two feels safer.
 
-If a non-remote posting's location isn't stated clearly, judge from context (company HQ, named office city) and prefer "onsite_far" over guessing "close" if it's genuinely unresolvable — the cost of ranking a role slightly too low is much smaller than the cost of ranking an out-of-reach one too high. This field never affects "score" — a role can score 90 for fit and still be "not_montreal" or "remote_unclear"; these are independent judgments and all of them must be honest.
+If a non-remote posting's location isn't stated clearly, judge from context (company HQ, named office city) and prefer "onsite_far" over guessing "close" if it's genuinely unresolvable — the cost of ranking a role slightly too low is much smaller than the cost of ranking an out-of-reach one too high. This field never affects "score" — a role can score 90 for fit and still be "not_montreal", "not_montreal_negotiable", or "remote_unclear"; these are independent judgments and all of them must be honest.
 
 APPLICANT-TRACKING KEYWORDS
 
@@ -304,7 +318,14 @@ function cleanTerms(value) {
   return terms.length ? terms.join('; ') : null
 }
 
-const LOCATION_FITS = ['remote_montreal', 'onsite_close', 'onsite_far', 'remote_unclear', 'not_montreal']
+const LOCATION_FITS = [
+  'remote_montreal',
+  'onsite_close',
+  'onsite_far',
+  'remote_unclear',
+  'not_montreal',
+  'not_montreal_negotiable',
+]
 
 function parseAssessment(raw, job) {
   let score = clampScore(raw?.score)
@@ -327,13 +348,18 @@ function parseAssessment(raw, job) {
   // Not workable from Montreal is a hard exclusion, same treatment as a
   // deal-breaker caught in prefilterReason: force the row out of the
   // score >= 35 view instead of letting a strong fit score outrank it.
+  // "not_montreal_negotiable" is deliberately exempt — that tier exists
+  // specifically to preserve a genuinely strong score instead of zeroing
+  // it, and gets excluded from the default list a different way (a query
+  // filter in Jobs.jsx), not by nerfing the row itself.
   //
-  // A MISSING location_fit gets the same treatment, not a pass. Gemini's
-  // responseSchema now enforces the field at the API level, so this should
-  // be rare — but "we don't actually know if this is workable from Montreal"
-  // is not a reason to show a role at full score. Silently keeping the
-  // score here is exactly how Toronto-onsite, no-remote-mentioned postings
-  // were slipping through as "strong" matches before this field existed.
+  // A MISSING location_fit gets the same hard-exclusion treatment, not a
+  // pass. Gemini's responseSchema now enforces the field at the API level,
+  // so this should be rare — but "we don't actually know if this is
+  // workable from Montreal" is not a reason to show a role at full score.
+  // Silently keeping the score here is exactly how Toronto-onsite,
+  // no-remote-mentioned postings were slipping through as "strong" matches
+  // before this field existed.
   if (locationFit === 'not_montreal' || !locationFit) {
     score = 0
     tier = 'poor'
@@ -359,6 +385,8 @@ function parseAssessment(raw, job) {
     ats_keywords_missing: cleanTerms(raw?.ats_keywords_missing),
     pitch_angle: String(raw?.pitch_angle || '').trim(),
     location_fit: locationFit,
+    negotiation_note:
+      locationFit === 'not_montreal_negotiable' ? String(raw?.negotiation_note || '').trim() || null : null,
   }
 }
 

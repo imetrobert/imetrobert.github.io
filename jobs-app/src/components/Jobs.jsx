@@ -13,6 +13,8 @@ const TIERS = [
   { key: 'stretch', label: 'Stretch' },
 ]
 
+const NEGOTIABLE_KEY = 'jobs.showNegotiable'
+
 function relTime(iso) {
   if (!iso) return null
   const diff = Date.now() - new Date(iso).getTime()
@@ -33,22 +35,33 @@ export default function Jobs({ session }) {
   const [notice, setNotice] = useState('')
   const [tokenInput, setTokenInput] = useState(getToken())
   const [showTokenBox, setShowTokenBox] = useState(false)
+  // Roles that are on-site elsewhere with no remote option, but scored well
+  // enough that raising a remote/hybrid ask is worth trying, are excluded
+  // from the default list — this remembers the opt-in across visits, same
+  // pattern as the saved GitHub token.
+  const [showNegotiable, setShowNegotiable] = useState(() => localStorage.getItem(NEGOTIABLE_KEY) === '1')
 
   const load = useCallback(async () => {
     setLoading(true)
+    let jobsQuery = supabase
+      .from('job_ranked')
+      .select('*')
+      .eq('stale', false)
+      .not('score', 'is', null)
+      .gte('score', 35)
+      // Location first: remote-and-Montreal-eligible, then close to Côte
+      // Saint-Luc, then a real commute but still Montreal. Fit score only
+      // breaks ties within the same location tier.
+      .order('location_priority', { ascending: true })
+      .order('score', { ascending: false })
+      .limit(200)
+    // not_montreal_negotiable keeps its real (often high) score, so unlike
+    // a plain exclusion it would otherwise pass the filter above and show
+    // up mixed in by default — it's opt-in, so it's excluded explicitly
+    // here instead, only when the toggle is off.
+    if (!showNegotiable) jobsQuery = jobsQuery.neq('location_fit', 'not_montreal_negotiable')
     const [{ data: rows, error: jobsErr }, { data: runs }] = await Promise.all([
-      supabase
-        .from('job_ranked')
-        .select('*')
-        .eq('stale', false)
-        .not('score', 'is', null)
-        .gte('score', 35)
-        // Location first: remote-and-Montreal-eligible, then close to Côte
-        // Saint-Luc, then a real commute but still Montreal. Fit score only
-        // breaks ties within the same location tier.
-        .order('location_priority', { ascending: true })
-        .order('score', { ascending: false })
-        .limit(200),
+      jobsQuery,
       supabase.from('job_runs').select('*').order('started_at', { ascending: false }).limit(1),
     ])
     if (jobsErr) setError(jobsErr.message)
@@ -57,9 +70,17 @@ export default function Jobs({ session }) {
     setLastRun(run)
     setLoading(false)
     return run
-  }, [])
+  }, [showNegotiable])
 
   useEffect(() => { load() }, [load])
+
+  function toggleNegotiable() {
+    setShowNegotiable(v => {
+      const next = !v
+      localStorage.setItem(NEGOTIABLE_KEY, next ? '1' : '0')
+      return next
+    })
+  }
 
   // While a scan is running, poll so the page fills in without a manual reload.
   useEffect(() => {
@@ -169,6 +190,11 @@ export default function Jobs({ session }) {
           </button>
         )}
       </div>
+
+      <label className="check negotiable-toggle">
+        <input type="checkbox" checked={showNegotiable} onChange={toggleNegotiable} />
+        Show non-Montreal, non-remote roles worth negotiating remote
+      </label>
 
       {error && <div className="err">{error}</div>}
       {loading && <div className="muted">Loading…</div>}

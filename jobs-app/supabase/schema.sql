@@ -144,11 +144,17 @@ create table if not exists job_matches (
   -- Where this posting sits relative to Côte Saint-Luc: fully remote and
   -- confidently Montreal-eligible, on-site/hybrid close by, on-site/hybrid
   -- but a real commute, remote with genuinely unclear Canadian eligibility,
-  -- or no way to do it from Montreal at all. Null on rows scored before this
-  -- column existed — treated as the lowest included priority until they're
+  -- no way to do it from Montreal at all, or that same no-way-to-do-it
+  -- case but with a score good enough that raising a remote/hybrid ask
+  -- is worth trying anyway. Null on rows scored before this column
+  -- existed — treated as the lowest included priority until they're
   -- rescored, rather than assumed to be the best case.
   location_fit text
-    check (location_fit is null or location_fit in ('remote_montreal','onsite_close','onsite_far','remote_unclear','not_montreal')),
+    check (location_fit is null or location_fit in ('remote_montreal','onsite_close','onsite_far','remote_unclear','not_montreal','not_montreal_negotiable')),
+  -- Populated only when location_fit is 'not_montreal_negotiable': why THIS
+  -- candidate's strength specifically justifies proposing a remote/hybrid
+  -- arrangement the posting doesn't itself offer.
+  negotiation_note text,
   model text,
   scored_at timestamptz not null default now()
 );
@@ -157,6 +163,7 @@ alter table job_matches add column if not exists comp_assessment text;
 alter table job_matches add column if not exists ats_keywords_covered text;
 alter table job_matches add column if not exists ats_keywords_missing text;
 alter table job_matches add column if not exists location_fit text;
+alter table job_matches add column if not exists negotiation_note text;
 create index if not exists job_matches_score_idx on job_matches (score desc);
 
 -- ---------------------------------------------------------------------
@@ -270,16 +277,22 @@ select
   -- remote-and-Montreal-eligible leads, then close to Côte Saint-Luc, then a
   -- real commute but still Montreal, then remote-but-unclear-eligibility —
   -- worth seeing, just not ahead of anything Montreal-confirmed. Rows with
-  -- no location_fit at all (scored before this column existed) sort dead
-  -- last: unlike remote_unclear, they were never actually judged, so
-  -- nothing says they're even that good.
+  -- no location_fit at all (scored before this column existed) sort just
+  -- ahead of last: unlike remote_unclear, they were never actually judged,
+  -- so nothing says they're even that good. not_montreal_negotiable sorts
+  -- dead last — it's excluded from the default list entirely (Jobs.jsx
+  -- filters it out unless the "worth negotiating" toggle is on), and this
+  -- position only matters if that filtered set is ever merged into a
+  -- combined view.
   case m.location_fit
     when 'remote_montreal' then 1
     when 'onsite_close' then 2
     when 'onsite_far' then 3
     when 'remote_unclear' then 4
+    when 'not_montreal_negotiable' then 6
     else 5
-  end as location_priority
+  end as location_priority,
+  m.negotiation_note
 from job_postings p
 left join job_matches m on m.posting_id = p.id
 left join job_applications a on a.posting_id = p.id;
