@@ -71,6 +71,10 @@ export default function JobCard({ job, onChanged }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [docs, setDocs] = useState(null)
+  // Collapsed by default — the full letter + CV text is long enough that
+  // auto-expanding it (whether just generated or loaded from an earlier
+  // visit) pushes the rest of the page out of view.
+  const [docsOpen, setDocsOpen] = useState(false)
   const [err, setErr] = useState('')
 
   async function setStatus(status) {
@@ -254,57 +258,65 @@ export default function JobCard({ job, onChanged }) {
 
           {docs && (
             <div className="docs">
-              <section>
-                <div className="doc-head">
-                  <h4>Cover letter</h4>
-                  <button
-                    className="btn ghost sm"
-                    onClick={() =>
-                      download(`cover-letter-${slug(job.company)}-${slug(job.title)}.txt`, docs.cover_letter)
-                    }
-                  >
-                    Download
-                  </button>
-                </div>
-                <pre className="doc">{docs.cover_letter}</pre>
-              </section>
-              {docs.tailored_cv && (
-                <section>
-                  <div className="doc-head">
-                    <h4>Tailored CV</h4>
-                    <span className="row">
+              <button className="doc-head docs-toggle" onClick={() => setDocsOpen(v => !v)}>
+                <h4>Cover letter &amp; CV {docsOpen ? '▾' : '▸'}</h4>
+                <span className="muted sm">{docsOpen ? 'Hide' : 'Ready — tap to view'}</span>
+              </button>
+              {docsOpen && (
+                <>
+                  <section>
+                    <div className="doc-head">
+                      <h4>Cover letter</h4>
                       <button
                         className="btn ghost sm"
                         onClick={() =>
-                          download(
-                            `cv-${slug(job.company)}-${slug(job.title)}.txt`,
-                            toPlainText(docs.tailored_cv)
-                          )
+                          download(`cover-letter-${slug(job.company)}-${slug(job.title)}.txt`, docs.cover_letter)
                         }
-                        title="Plain text, no formatting — safest for application portals and resume parsers"
                       >
-                        Download .txt (ATS-safe)
+                        Download
                       </button>
-                      <button
-                        className="btn ghost sm"
-                        onClick={() =>
-                          download(`cv-${slug(job.company)}-${slug(job.title)}.md`, docs.tailored_cv)
-                        }
-                        title="Markdown source, for reformatting into a designed version"
-                      >
-                        .md
-                      </button>
-                    </span>
-                  </div>
-                  <pre className="doc">{docs.tailored_cv}</pre>
-                </section>
+                    </div>
+                    <pre className="doc">{docs.cover_letter}</pre>
+                  </section>
+                  {docs.tailored_cv && (
+                    <section>
+                      <div className="doc-head">
+                        <h4>Tailored CV</h4>
+                        <span className="row">
+                          <button
+                            className="btn ghost sm"
+                            onClick={() =>
+                              download(
+                                `cv-${slug(job.company)}-${slug(job.title)}.txt`,
+                                toPlainText(docs.tailored_cv)
+                              )
+                            }
+                            title="Plain text, no formatting — safest for application portals and resume parsers"
+                          >
+                            Download .txt (ATS-safe)
+                          </button>
+                          <button
+                            className="btn ghost sm"
+                            onClick={() =>
+                              download(`cv-${slug(job.company)}-${slug(job.title)}.md`, docs.tailored_cv)
+                            }
+                            title="Markdown source, for reformatting into a designed version"
+                          >
+                            .md
+                          </button>
+                        </span>
+                      </div>
+                      <pre className="doc">{docs.tailored_cv}</pre>
+                    </section>
+                  )}
+                  <p className="muted sm">
+                    Drafts, not final copy — read them before sending. Every factual claim should be
+                    one you can stand behind in an interview. The <code>.txt</code> version is the
+                    one to upload to a portal: no tables, columns or graphics, which are the usual
+                    reason a real CV parses as near-empty.
+                  </p>
+                </>
               )}
-              <p className="muted sm">
-                Drafts, not final copy — read them before sending. Every factual claim should be
-                one you can stand behind in an interview. The <code>.txt</code> version is the
-                one to upload to a portal: no tables, columns or graphics, which are the usual
-                reason a real CV parses as near-empty.
-              </p>
             </div>
           )}
         </div>

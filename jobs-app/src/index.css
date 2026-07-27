@@ -318,6 +318,17 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; fon
 
 .docs { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 6px; }
 .doc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.docs-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 6px 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+.docs-toggle h4 { margin: 0; }
 .doc {
   background: var(--bg);
   border: 1px solid var(--line);
