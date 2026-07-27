@@ -208,9 +208,29 @@ export default function JobCard({ job, onChanged }) {
 
           <div className="job-actions">
             {job.url && (
-              <a className="btn ghost" href={job.url} target="_blank" rel="noreferrer">
-                View posting ↗
-              </a>
+              // Adzuna's US-region listing pages wall themselves off from
+              // visitors they detect as browsing from outside the US
+              // ("Sorry, this job is not available in your region") — a
+              // restriction on Adzuna's own redirect page, unrelated to
+              // whether the employer would actually hire remotely from
+              // Canada. Every posting sourced this way is tagged
+              // adzuna:us, so it's known in advance rather than discovered
+              // by clicking through to a dead end.
+              job.source === 'adzuna:us' ? (
+                <a
+                  className="btn ghost"
+                  href={`https://www.google.com/search?q=${encodeURIComponent(`${job.company || ''} ${job.title}`.trim())}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Adzuna's US listing pages often block visitors browsing from outside the US, regardless of the job itself — this searches for the posting instead"
+                >
+                  Find posting ↗
+                </a>
+              ) : (
+                <a className="btn ghost" href={job.url} target="_blank" rel="noreferrer">
+                  View posting ↗
+                </a>
+              )
             )}
             <button className="btn" onClick={generate} disabled={busy}>
               {busy ? 'Drafting…' : docs ? 'Regenerate' : 'Draft cover letter + CV'}
