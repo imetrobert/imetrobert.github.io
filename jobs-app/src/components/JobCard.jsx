@@ -132,6 +132,7 @@ export default function JobCard({ job, onChanged }) {
               {job.location ? ` · ${job.location}` : ''}
               {job.remote ? ' · Remote' : ''}
               {pay ? ` · ${pay}` : ''}
+              {job.application_deadline ? ` · Apply by ${job.application_deadline}` : ''}
             </span>
           </span>
           <span className="job-tags">
