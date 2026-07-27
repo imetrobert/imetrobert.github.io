@@ -35,10 +35,11 @@ export default function Jobs({ session }) {
   const [notice, setNotice] = useState('')
   const [tokenInput, setTokenInput] = useState(getToken())
   const [showTokenBox, setShowTokenBox] = useState(false)
-  // Roles that are on-site elsewhere with no remote option, but scored well
-  // enough that raising a remote/hybrid ask is worth trying, are excluded
-  // from the default list — this remembers the opt-in across visits, same
-  // pattern as the saved GitHub token.
+  // Every role outside Montreal with no stated remote-from-Canada option
+  // is excluded from the default list, regardless of fit — this toggle
+  // opts back in (score is preserved, not zeroed, for exactly this reason)
+  // and remembers its state across visits, same pattern as the saved
+  // GitHub token.
   const [showNegotiable, setShowNegotiable] = useState(() => localStorage.getItem(NEGOTIABLE_KEY) === '1')
 
   const load = useCallback(async () => {
@@ -55,11 +56,11 @@ export default function Jobs({ session }) {
       .order('location_priority', { ascending: true })
       .order('score', { ascending: false })
       .limit(200)
-    // not_montreal_negotiable keeps its real (often high) score, so unlike
-    // a plain exclusion it would otherwise pass the filter above and show
-    // up mixed in by default — it's opt-in, so it's excluded explicitly
-    // here instead, only when the toggle is off.
-    if (!showNegotiable) jobsQuery = jobsQuery.neq('location_fit', 'not_montreal_negotiable')
+    // not_montreal keeps its real (sometimes high) score rather than being
+    // zeroed, so unlike a hard exclusion it would otherwise pass the filter
+    // above and show up mixed in by default — it's opt-in, so it's
+    // excluded explicitly here instead, only when the toggle is off.
+    if (!showNegotiable) jobsQuery = jobsQuery.neq('location_fit', 'not_montreal')
     const [{ data: rows, error: jobsErr }, { data: runs }] = await Promise.all([
       jobsQuery,
       supabase.from('job_runs').select('*').order('started_at', { ascending: false }).limit(1),

@@ -59,7 +59,7 @@ function locationLabel(fit) {
     case 'onsite_close': return 'Close to Côte St-Luc'
     case 'onsite_far': return 'Montreal · farther out'
     case 'remote_unclear': return 'Remote · Canada unclear'
-    case 'not_montreal_negotiable': return 'Not remote · worth asking'
+    case 'not_montreal': return 'Not Montreal · no remote'
     default: return null
   }
 }
