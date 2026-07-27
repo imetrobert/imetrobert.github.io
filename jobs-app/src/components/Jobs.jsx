@@ -61,6 +61,13 @@ export default function Jobs({ session }) {
       .eq('stale', false)
       .not('score', 'is', null)
       .gte('score', 35)
+      // Closed out: rejected or passed on, so it's done and shouldn't keep
+      // cluttering discovery — the Pipeline page is where it stays visible.
+      // Still-active statuses (applied/interviewing/offer) and untracked
+      // roles (app_status is null, the common case) both pass through — a
+      // plain .neq() would silently drop every untracked row too, since SQL
+      // treats "null <> value" as unknown rather than true.
+      .or('app_status.is.null,app_status.not.in.(rejected,passed)')
       // Location first: remote-and-Montreal-eligible, then close to Côte
       // Saint-Luc, then a real commute but still Montreal. Fit score only
       // breaks ties within the same location tier.
