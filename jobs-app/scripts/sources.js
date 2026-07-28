@@ -328,6 +328,58 @@ export async function fetchAshby({ token, label }) {
   }))
 }
 
+// SmartRecruiters — free, public, no key. Docs: developers.smartrecruiters.com.
+// Real customers include Visa, Bosch and Skechers. Unverified from this
+// sandbox (network policy + bot protection blocked every direct test); if
+// the list endpoint doesn't include full description text the way
+// Greenhouse's does, descriptions will just come through thin rather than
+// fail outright — jobAd falls back through a couple of shapes for that reason.
+export async function fetchSmartRecruiters({ token, label }) {
+  const data = await getJSON(
+    `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(token)}/postings?limit=100`
+  )
+  return (data?.content || []).map(j => ({
+    source: `smartrecruiters:${token}`,
+    source_id: String(j.id),
+    title: j.name || '',
+    company: label || j.company?.name || token,
+    location:
+      [j.location?.city, j.location?.region, j.location?.country].filter(Boolean).join(', ') ||
+      null,
+    remote: Boolean(j.location?.remote) || looksRemote(`${j.name} ${j.location?.city}`),
+    url: `https://jobs.smartrecruiters.com/${encodeURIComponent(token)}/${j.id}`,
+    description: stripHtml(
+      j.jobAd?.sections?.jobDescription?.text || j.jobAd?.sections?.qualifications?.text || ''
+    ),
+    salary_min: null,
+    salary_max: null,
+    salary_currency: null,
+    posted_at: j.releasedDate || null,
+  }))
+}
+
+// Workable — free, public widget API, no key. Same unverified-from-here
+// caveat as SmartRecruiters above.
+export async function fetchWorkable({ token, label }) {
+  const data = await getJSON(
+    `https://apply.workable.com/api/v1/widget/accounts/${encodeURIComponent(token)}?details=true`
+  )
+  return (data?.jobs || []).map(j => ({
+    source: `workable:${token}`,
+    source_id: String(j.shortcode || j.id || j.title),
+    title: j.title || '',
+    company: label || data?.name || token,
+    location: [j.city, j.region, j.country].filter(Boolean).join(', ') || null,
+    remote: Boolean(j.telecommuting) || looksRemote(`${j.title} ${j.city}`),
+    url: j.url || (j.shortcode ? `https://apply.workable.com/${token}/j/${j.shortcode}/` : null),
+    description: stripHtml(j.description),
+    salary_min: null,
+    salary_max: null,
+    salary_currency: null,
+    posted_at: j.published_on || null,
+  }))
+}
+
 export const ADAPTERS = {
   adzuna: fetchAdzuna,
   jooble: fetchJooble,
@@ -335,6 +387,8 @@ export const ADAPTERS = {
   jsearch: fetchJSearch,
   greenhouse: fetchGreenhouse,
   lever: fetchLever,
+  smartrecruiters: fetchSmartRecruiters,
+  workable: fetchWorkable,
   ashby: fetchAshby,
 }
 

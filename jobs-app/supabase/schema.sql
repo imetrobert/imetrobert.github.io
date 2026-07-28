@@ -70,7 +70,7 @@ update job_profile
 create table if not exists job_sources (
   id uuid primary key default gen_random_uuid(),
   kind text not null check (kind in
-    ('adzuna','jooble','remotive','jsearch','greenhouse','lever','ashby')),
+    ('adzuna','jooble','remotive','jsearch','greenhouse','lever','ashby','smartrecruiters','workable')),
   label text not null,
   token text,
   enabled boolean not null default true,
