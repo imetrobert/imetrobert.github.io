@@ -265,6 +265,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/blog/favicon.svg">
+    <link rel="apple-touch-icon" href="/blog/apple-touch-icon.png">
     <title>{seo_title}</title>
     <meta name="description" content="{meta_desc_html}">
     <meta name="keywords" content="AI Canada {issue_month_year}, Canadian AI news, artificial intelligence Canada, AI business strategy Canada, AI adoption Canada, Montreal AI, Canadian digital transformation, AI news for Canadians, AI insights {issue_month_year}, {coverage_month_year} AI recap">
@@ -373,6 +375,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .nav-link {{ color: var(--white); text-decoration: none; font-weight: 600; padding: 0.4rem 1rem; font-size: 0.8rem; border-radius: 20px; background: linear-gradient(135deg, var(--blue), var(--cyan)); transition: all 0.2s; letter-spacing: 0.01em; flex-shrink: 0; }}
         .nav-link:hover {{ transform: translateY(-1px); box-shadow: 0 4px 12px rgb(37 99 235 / 0.3); }}
         .nav-meta {{ font-size: 0.78rem; color: var(--gray-light); display: flex; align-items: center; gap: 0.5rem; }}
+        .nav-meta .brand-icon {{ width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0; }}
+        .brand-logo {{ width: 76px; height: 76px; display: block; margin: 0 auto 1.5rem; padding: 7px; box-sizing: content-box; background: rgba(255,255,255,0.96); border-radius: 23px; box-shadow: 0 10px 26px rgba(15,23,42,0.25); }}
         .header {{ background: linear-gradient(135deg, var(--blue) 0%, #1a7fb5 50%, var(--cyan) 100%); color: var(--white); padding: 4rem 0 3.5rem; text-align: center; position: relative; overflow: hidden; }}
         .header::before {{ content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 15% 85%, rgba(255,255,255,0.07) 0%, transparent 45%), radial-gradient(circle at 85% 15%, rgba(255,255,255,0.05) 0%, transparent 45%); pointer-events: none; }}
         .header-content {{ max-width: 780px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }}
@@ -453,6 +457,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         @media (max-width: 640px) {{
             .header {{ padding: 2.5rem 0 2.25rem; }}
             .header h1 {{ font-size: 1.6rem; }}
+            .brand-logo {{ width: 58px; height: 58px; padding: 6px; border-radius: 18px; margin-bottom: 1.1rem; }}
             .container {{ padding: 1.5rem 1rem 3rem; }}
             .article-content {{ padding: 1.5rem 1.25rem; }}
             .nav-content {{ flex-direction: column; align-items: flex-start; gap: 0.35rem; }}
@@ -469,6 +474,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         <div class="nav-content">
             <a href="https://www.imetrobert.com/blog/" class="nav-link">&#8592; Back to Blog</a>
             <div class="nav-meta">
+                <img src="/blog/logo.svg" class="brand-icon" alt="" width="22" height="22">
                 <span>AI Insights for Canadian Business</span>
                 <span>&#8226;</span>
                 <span>{formatted_date}</span>
@@ -477,6 +483,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     </nav>
     <header class="header">
         <div class="header-content">
+            <img src="/blog/logo.svg" class="brand-logo" alt="AI Insights" width="76" height="76">
             <div class="issue-badge">Issue #{issue_num} &nbsp;&#8226;&nbsp; {issue_month_year} <span class="issue-badge-coverage">&mdash; Covering {coverage_month_name}</span></div>
             <h1>{clean_title_html}</h1>
             <div class="subtitle">The AI briefing built for Canadian business leaders</div>

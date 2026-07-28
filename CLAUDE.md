@@ -78,6 +78,30 @@ Same approach as other repos in this account:
 5. Never paste all of `css/style.css` for a content question — styling and
    content are separate files precisely so you don't have to.
 
+## Blog brand mark
+
+The blog has its own identity, separate from the homepage's `RS` mark: an "AI"
+monogram whose spark — the dot over the "i" — is a maple leaf, in the site's
+blue → cyan palette.
+
+- `blog/logo.svg` — primary mark, used in the blog header and nav bar.
+- `blog/favicon.svg` — simplified cut for the browser tab (no texture, heavier
+  strokes, scaled up). **Deliberately a separate file** so the 16px version can
+  be tuned without compromising the large one — edit both if the shape changes.
+- `blog/apple-touch-icon.png` (180px), `blog/logo-512.png` — raster derivatives
+  for platforms that won't take SVG. Regenerate after any SVG edit:
+  `python3 -c "import cairosvg; cairosvg.svg2png(url='blog/favicon.svg',
+  write_to='blog/apple-touch-icon.png', output_width=180, output_height=180)"`
+- The leaf is drawn as a right half and mirrored with `<use transform="scale(-1,1)">`,
+  so it stays symmetric — edit the one path, not two.
+- Where it's wired in: `scripts/blog_index.py` (blog index) and
+  `scripts/renderer.py` (posts) carry the `<link rel="icon">` tags, the
+  `.brand-logo` / `.brand-icon` CSS, and the markup — so new posts inherit the
+  brand automatically. Already-published posts under `blog/posts/` were
+  backfilled by hand and keep their own copy of that CSS.
+- The homepage keeps its own `favicon.svg` (`RS` monogram) — the two marks are
+  siblings, not the same file.
+
 ## Everything else
 
 - `favicon.svg`, `cover-2027.png`, `profile.jpg`, `blog/og-blog.jpg` — static
