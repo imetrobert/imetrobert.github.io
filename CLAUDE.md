@@ -100,20 +100,23 @@ Emoji were replaced with an inline SVG icon set. **Don't reintroduce emoji into
   approval UI, where they act as status indicators) and the console output of
   `scripts/test_*.py`, `fix_old_posts.py`, `write_nothing_pending_placeholder.py`.
 
-## Blog brand mark
+## Brand mark
 
-The blog has its own identity, separate from the homepage's `RS` mark: an "AI"
-monogram whose spark — the dot over the "i" — is a maple leaf, in the site's
-blue → cyan palette.
+One mark for the whole site: an "AI" monogram whose spark — the dot over the
+"i" — is a maple leaf, in the site's blue → cyan palette. It replaced the older
+`RS` monogram favicon (still in git history if it's ever wanted back).
 
-- `blog/logo.svg` — primary mark, used in the blog header and nav bar.
-- `blog/favicon.svg` — simplified cut for the browser tab (no texture, heavier
-  strokes, scaled up). **Deliberately a separate file** so the 16px version can
-  be tuned without compromising the large one — edit both if the shape changes.
-- `blog/apple-touch-icon.png` (180px), `blog/logo-512.png` — raster derivatives
-  for platforms that won't take SVG. Regenerate after any SVG edit:
-  `python3 -c "import cairosvg; cairosvg.svg2png(url='blog/favicon.svg',
-  write_to='blog/apple-touch-icon.png', output_width=180, output_height=180)"`
+- `favicon.svg` (root) — **the site-wide favicon**, linked from the homepage,
+  the blog index and every post. Simplified cut of the logo: no texture, flat
+  white ink, heavier strokes, scaled up so it survives at 16px.
+- `apple-touch-icon.png` (root, 180px) — for platforms that won't take SVG.
+- `blog/logo.svg` — the detailed mark (with neural texture), used at 76px in
+  the blog header and 22-28px in the nav. **Deliberately a separate file** from
+  `favicon.svg` so the small size can be tuned without compromising the large
+  one — edit both if the shape changes. `blog/logo-512.png` is its raster copy.
+- Regenerate the rasters after any SVG edit:
+  `python3 -c "import cairosvg; cairosvg.svg2png(url='favicon.svg',
+  write_to='apple-touch-icon.png', output_width=180, output_height=180)"`
 - The leaf is drawn as a right half and mirrored with `<use transform="scale(-1,1)">`,
   so it stays symmetric — edit the one path, not two.
 - Where it's wired in: `scripts/blog_index.py` (blog index) and
@@ -121,13 +124,14 @@ blue → cyan palette.
   `.brand-logo` / `.brand-icon` CSS, and the markup — so new posts inherit the
   brand automatically. Already-published posts under `blog/posts/` were
   backfilled by hand and keep their own copy of that CSS.
-- The homepage keeps its own `favicon.svg` (`RS` monogram) — the two marks are
-  siblings, not the same file.
+- Icon paths are absolute (`/favicon.svg`), so they resolve the same from the
+  homepage and from `/blog/posts/`. Don't make them relative.
 
 ## Everything else
 
-- `favicon.svg`, `cover-2027.png`, `profile.jpg`, `blog/og-blog.jpg` — static
-  assets, replace in place, no code changes needed.
+- `cover-2027.png`, `profile.jpg`, `blog/og-blog.jpg` — static assets, replace
+  in place, no code changes needed. (`favicon.svg` is not one of these — see
+  the brand mark section above before touching it.)
 - `CNAME` — GitHub Pages custom domain config, essentially never changes.
 - `scripts/test_*.py`, `scripts/verify_gemini_key.py` — dev/ops tooling for
   the blog pipeline, unrelated to site content.
