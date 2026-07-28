@@ -101,7 +101,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                     f'<div class="dev-source">'
                     f'<a href="{d["source_url"]}" target="_blank" rel="noopener noreferrer" '
                     f'title="Search Google for this article">'
-                    f'🔍 {src_label}'
+                    f'<svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> {src_label}'
                     f'</a></div>'
                 )
             dev_cards += (
@@ -129,12 +129,12 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                     f'<div class="spot-source">'
                     f'<a href="{item["source_url"]}" target="_blank" rel="noopener noreferrer" '
                     f'title="Search Google for this article">'
-                    f'🔍 {src_label}'
+                    f'<svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> {src_label}'
                     f'</a></div>'
                 )
             spot_cards += (
                 f'<li>'
-                f'<span class="spot-bullet">🍁</span>'
+                f'<span class="spot-bullet"><svg class="icon icon-solid" aria-hidden="true"><use href="#i-diamond"/></svg></span>'
                 f'<div class="spot-content">'
                 f'{org_html}'
                 f'<div class="spot-body">{item["body"]}</div>'
@@ -209,7 +209,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                     f'<div class="stat-source">'
                     f'<a href="{item["source_url"]}" target="_blank" rel="noopener noreferrer" '
                     f'title="Search Google for this statistic">'
-                    f'🔍 {item["source_name"]}'
+                    f'<svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> {item["source_name"]}'
                     f'</a></div>'
                 )
             elif item.get("source_name"):
@@ -413,11 +413,14 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .canada-section {{ background: linear-gradient(135deg, #fff5f5 0%, #fffbfb 100%); border: 1px solid #fecaca; border-radius: 16px; padding: 1.75rem; }}
         .canada-header {{ margin-bottom: 0.75rem; }}
         .canada-label {{ display: inline-flex; align-items: center; gap: 0.35rem; background: var(--canada-red); color: var(--white); font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.7rem; border-radius: 12px; letter-spacing: 0.06em; text-transform: uppercase; }}
-        .canada-label::before {{ content: "🍁"; font-size: 0.75rem; }}
+        /* Inline SVG icons, sprite defined at the top of <body>. Stroked in
+           currentColor and sized in em so each icon matches its adjacent text. */
+        .icon {{ width: 1.05em; height: 1.05em; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.14em; }}
+        .icon-solid {{ fill: currentColor; stroke: none; }}
         .canada-title::before {{ background: var(--canada-red) !important; }}
         .spot-list {{ list-style: none; padding: 0; display: grid; gap: 0.875rem; }}
         .spot-list li {{ display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.875rem; color: var(--gray); line-height: 1.65; padding: 0.875rem 1rem; background: var(--white); border-radius: 10px; border: 1px solid #fde8e8; }}
-        .spot-bullet {{ flex-shrink: 0; margin-top: 0.1rem; font-size: 0.85rem; }}
+        .spot-bullet {{ flex-shrink: 0; margin-top: 0.35rem; font-size: 0.55rem; color: var(--canada-red); display: flex; }}
         .spot-content {{ flex: 1; }}
         .spot-org {{ font-weight: 700; color: var(--navy); font-size: 0.85rem; margin-bottom: 0.2rem; }}
         .spot-body {{ font-size: 0.875rem; color: var(--gray); line-height: 1.6; }}
@@ -470,6 +473,27 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     </style>
 </head>
 <body>
+    <!-- Icon sprite. Reference a symbol by id from an svg.icon element.
+         Markers here are geometric on purpose: the brand's maple leaf is
+         illegible below ~32px, so it stays in the logo and does not get
+         shrunk down into list bullets. -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+        <symbol id="i-search" viewBox="0 0 24 24">
+            <circle cx="10.5" cy="10.5" r="6.5"/>
+            <path d="m15.5 15.5 4.5 4.5"/>
+        </symbol>
+        <symbol id="i-clock" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="8.5"/>
+            <path d="M12 7v5.2l3.2 2"/>
+        </symbol>
+        <symbol id="i-pencil" viewBox="0 0 24 24">
+            <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z"/>
+            <path d="m14.5 6 3 3"/>
+        </symbol>
+        <symbol id="i-diamond" viewBox="0 0 24 24">
+            <path d="M12 4.5 19.5 12 12 19.5 4.5 12Z"/>
+        </symbol>
+    </svg>
     <nav class="nav-bar">
         <div class="nav-content">
             <a href="https://www.imetrobert.com/blog/" class="nav-link">&#8592; Back to Blog</a>
@@ -488,7 +512,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             <h1>{clean_title_html}</h1>
             <div class="subtitle">The AI briefing built for Canadian business leaders</div>
             <div class="intro-text">{excerpt_html}</div>
-            <div class="reading-badge">&#9201; {reading_time} min read</div>
+            <div class="reading-badge"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg> {reading_time} min read</div>
         </div>
     </header>
     <div class="container">
@@ -546,7 +570,7 @@ def _build_roberts_take(raw_text, coverage_month_year):
     if is_placeholder:
         body = (
             '<div class="roberts-placeholder">'
-            '<strong>&#9998; Add your personal take before publishing.</strong><br><br>'
+            '<strong><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg> Add your personal take before publishing.</strong><br><br>'
             'What surprised you most this month? What are you hearing from Canadian leaders right now? '
             'What is the pattern others are missing? 2-3 sentences in your own voice — '
             'this is the E-E-A-T signal that makes this newsletter yours.'

@@ -78,6 +78,28 @@ Same approach as other repos in this account:
 5. Never paste all of `css/style.css` for a content question — styling and
    content are separate files precisely so you don't have to.
 
+## Icons — no emoji on visitor-facing pages
+
+Emoji were replaced with an inline SVG icon set. **Don't reintroduce emoji into
+`index.html`, `css/style.css`, or anything under `blog/`** — use an icon instead.
+
+- Each page defines a sprite of `<symbol>`s just after `<body>`, referenced as
+  `<svg class="icon"><use href="#i-pin"/></svg>`.
+- Homepage sprite lives in `index.html`; the `.icon` rule is in `css/style.css`.
+  Post sprite + `.icon` rule are both in `scripts/renderer.py`'s template.
+- Icons stroke in `currentColor` and size in `em`, so they inherit the colour
+  and size of adjacent text — that is what makes them read as one set. Add
+  `.icon-solid` for a filled glyph (the list bullets).
+- Homepage ids: `i-pin`, `i-mail`, `i-phone`, `i-spark`, `i-linkedin`, `i-doc`,
+  `i-cart`, `i-book`. Post ids: `i-search`, `i-clock`, `i-pencil`, `i-diamond`.
+- The maple leaf is **not** an icon: it is illegible below ~32px and collapses
+  into a four-pointed star. It stays in the logo; small markers are geometric.
+- `content: "\2713"` in `.edition-features li::before` is a typographic check
+  mark, not an emoji — deliberately kept.
+- Still emoji, deliberately: `scripts/generate-preview-page.py` (your private
+  approval UI, where they act as status indicators) and the console output of
+  `scripts/test_*.py`, `fix_old_posts.py`, `write_nothing_pending_placeholder.py`.
+
 ## Blog brand mark
 
 The blog has its own identity, separate from the homepage's `RS` mark: an "AI"
