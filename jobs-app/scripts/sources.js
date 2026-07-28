@@ -171,6 +171,49 @@ export async function fetchJooble({ queries, locations, env }) {
 }
 
 // ---------------------------------------------------------------------
+// Remotive — free, public, no API key at all. 100% remote-jobs board, so
+// every posting is remote by definition; `candidate_required_location` is
+// often an explicit eligibility statement ("USA Only", "Canada", "Worldwide"),
+// which is exactly the kind of quotable evidence the Montreal-eligibility
+// scoring looks for. Docs: https://github.com/remotive-com/remote-jobs-api
+// ---------------------------------------------------------------------
+export async function fetchRemotive({ queries, env }) {
+  const out = []
+  const seen = new Set()
+  for (const q of queries) {
+    let data
+    try {
+      data = await getJSON(`https://remotive.com/api/remote-jobs?search=${encodeURIComponent(q)}`)
+    } catch (err) {
+      console.warn(`  remotive "${q}": ${err.message}`)
+      continue
+    }
+    for (const r of data?.jobs || []) {
+      const id = String(r.id)
+      if (seen.has(id)) continue
+      seen.add(id)
+      out.push({
+        source: 'remotive',
+        source_id: id,
+        title: r.title || '',
+        company: r.company_name || null,
+        // The board's own eligibility statement when it states one, not a
+        // physical office — this IS the "Location" field the scorer reads.
+        location: r.candidate_required_location || null,
+        remote: true,
+        url: r.url || null,
+        description: stripHtml(r.description),
+        salary_min: null,
+        salary_max: null,
+        salary_currency: null,
+        posted_at: r.publication_date || null,
+      })
+    }
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------
 // JSearch (OpenWeb Ninja, via RapidAPI) — OPTIONAL, paid beyond a small
 // free tier. This is the one adapter that surfaces LinkedIn/Indeed-sourced
 // rows, because JSearch resells Google-for-Jobs results. Enabled only if
@@ -288,6 +331,7 @@ export async function fetchAshby({ token, label }) {
 export const ADAPTERS = {
   adzuna: fetchAdzuna,
   jooble: fetchJooble,
+  remotive: fetchRemotive,
   jsearch: fetchJSearch,
   greenhouse: fetchGreenhouse,
   lever: fetchLever,
