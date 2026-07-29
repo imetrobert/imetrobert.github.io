@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="AI Insights">
+  <title>AI Insights &#8212; Robert Simon</title>
+  <!--
+    Brand mark for the AI Insights blog: an "AI" monogram whose spark - the dot
+    that would sit over an "i" - is a maple leaf. Site palette throughout
+    (#2563eb -> #06b6d4); the Canadian read comes from the shape, not from red.
+    The leaf is drawn as a right half and mirrored, so it is symmetric by
+    construction - edit LEAF once and both sides follow.
+  -->
+  <defs>
+    <linearGradient id="aiTile" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#2563eb"/>
+      <stop offset="55%"  stop-color="#1a7fb5"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <!-- userSpaceOnUse: the "I" and the crossbar have a zero-area bounding box,
+         and an objectBoundingBox gradient on those simply does not paint. -->
+    <linearGradient id="aiInk" gradientUnits="userSpaceOnUse" x1="118" y1="168" x2="330" y2="372">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e0f2fe"/>
+    </linearGradient>
+    <path id="leafHalf" d="M 0 -100 L 34 -28 L 52 -40 L 50 -20 L 92 0 L 50 22 L 52 42 L 26 34 L 11 58 L 0 58 Z"/>
+  </defs>
+
+  <!-- Tile: the white keyline keeps the mark readable on dark browser chrome -->
+  <rect width="512" height="512" rx="112" fill="#ffffff"/>
+  <rect x="10" y="10" width="492" height="492" rx="104" fill="url(#aiTile)"/>
+
+  <!-- Neural-network texture, barely there: AI flavour without the clutter -->
+  <g opacity="0.13" stroke="#ffffff" fill="#ffffff">
+    <line x1="86" y1="94" x2="136" y2="146" stroke-width="4"/>
+    <line x1="92" y1="410" x2="146" y2="358" stroke-width="4"/>
+    <line x1="426" y1="420" x2="374" y2="368" stroke-width="4"/>
+    <circle cx="86"  cy="94"  r="9"/>
+    <circle cx="92"  cy="410" r="7"/>
+    <circle cx="426" cy="420" r="9"/>
+    <circle cx="446" cy="248" r="5"/>
+  </g>
+
+  <g transform="translate(-32,39)">
+    <!-- "AI" as strokes, so the mark never depends on a webfont being loaded -->
+    <g transform="translate(256,278) scale(0.9) translate(-256,-278)">
+      <g transform="translate(32,16)" fill="none" stroke="url(#aiInk)"
+         stroke-linecap="round" stroke-linejoin="round">
+        <path d="M118 372 L186 168 L254 372" stroke-width="46"/>
+        <path d="M150 300 H222" stroke-width="38"/>
+        <path d="M330 168 V372" stroke-width="46"/>
+      </g>
+    </g>
+    <!-- The spark: a maple leaf where the dot of the "i" belongs -->
+    <g transform="translate(372,106) scale(0.7)" fill="#ffffff">
+      <use href="#leafHalf"/>
+      <use href="#leafHalf" transform="scale(-1,1)"/>
+    </g>
+  </g>
+</svg>

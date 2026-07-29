@@ -5,8 +5,9 @@
   <title>
    Robert Simon &ndash; Digital Innovator &amp; AI Pioneer
   </title>
-  <!-- Favicon - Complete Set -->
+  <!-- Favicon - the AI Insights mark, shared site-wide with the blog -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <!-- ============================================ -->
 <!-- SEO OPTIMIZATION FOR HOMEPAGE (index.html) -->
 <!-- ============================================ -->
@@ -135,6 +136,46 @@
 </script>
 </head>
  <body>
+  <!--
+    Icon sprite. One definition per icon, referenced by id from an svg.icon element.
+    All icons are stroked in currentColor, so they take the colour of the text
+    they sit in — that is what keeps them looking like one set rather than a
+    pile of clip art. Sizing/stroke live in .icon in css/style.css.
+  -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+   <symbol id="i-pin" viewBox="0 0 24 24">
+    <path d="M12 21.5s7-5.9 7-11.5a7 7 0 1 0-14 0c0 5.6 7 11.5 7 11.5z"/>
+    <circle cx="12" cy="10" r="2.6"/>
+   </symbol>
+   <symbol id="i-mail" viewBox="0 0 24 24">
+    <rect x="3" y="5" width="18" height="14" rx="2.5"/>
+    <path d="m3.8 6.8 8.2 6.1 8.2-6.1"/>
+   </symbol>
+   <symbol id="i-phone" viewBox="0 0 24 24">
+    <path d="M6.3 3.5h3.1l1.6 4-2.1 1.5a12.5 12.5 0 0 0 6.1 6.1l1.5-2.1 4 1.6v3.1a2 2 0 0 1-2.2 2A16.8 16.8 0 0 1 4.3 5.7a2 2 0 0 1 2-2.2z"/>
+   </symbol>
+   <symbol id="i-spark" viewBox="0 0 24 24">
+    <path d="m12 3 1.9 5.6L19.5 10.5l-5.6 1.9L12 18l-1.9-5.6L4.5 10.5l5.6-1.9z"/>
+    <path d="M18.5 15.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>
+   </symbol>
+   <symbol id="i-linkedin" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="none" d="M4.98 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM3 9.5h4v11H3zm7 0h3.8v1.5a4.2 4.2 0 0 1 3.7-1.9c3 0 4.5 1.9 4.5 5.3v6.1h-4v-5.4c0-1.6-.6-2.6-2-2.6s-2.2 1-2.2 2.6v5.4h-3.8z"/>
+   </symbol>
+   <symbol id="i-doc" viewBox="0 0 24 24">
+    <path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/>
+    <path d="M14 3v5h5"/>
+    <path d="M8.5 13h7M8.5 16.5h4.5"/>
+   </symbol>
+   <symbol id="i-cart" viewBox="0 0 24 24">
+    <path d="M3 4h2.2l2.3 10.5a2 2 0 0 0 2 1.6h7.1a2 2 0 0 0 2-1.5L20.5 8H6.2"/>
+    <circle cx="10" cy="19.5" r="1.4"/>
+    <circle cx="17" cy="19.5" r="1.4"/>
+   </symbol>
+   <symbol id="i-book" viewBox="0 0 24 24">
+    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v14.5H6.5A2.5 2.5 0 0 0 4 20z"/>
+    <path d="M4 20a2.5 2.5 0 0 1 2.5-2.5H19V21H6.5A2.5 2.5 0 0 1 4 18.5z"/>
+   </symbol>
+  </svg>
   <div class="parallax-bg">
   </div>
   <header class="header">
@@ -156,22 +197,22 @@
   <div class="contact-bar">
    <div class="contact-info">
     <div class="contact-item">
-     📍 Montreal, QC
+     <svg class="icon" aria-hidden="true"><use href="#i-pin"/></svg> Montreal, QC
     </div>
     <div class="contact-item">
-     📧
+     <svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg>
      <a href="mailto:robert@imetrobert.com">
       robert@imetrobert.com
      </a>
     </div>
     <div class="contact-item">
-     📞 514-250-8491
+     <svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg> 514-250-8491
     </div>
     <a href="https://www.imetrobert.com/blog/" target="_blank" class="blog-entry-cta">
-     🤖 AI Insights Blog
+     <svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg> AI Insights Blog
     </a>
     <div class="contact-item">
-     💼
+     <svg class="icon" aria-hidden="true"><use href="#i-linkedin"/></svg>
      <a href="https://linkedin.com/in/thedigitalrobert" target="_blank">
       LinkedIn
      </a>
@@ -225,7 +266,7 @@
 
  <section id="ebook" class="content-section ebook-section fade-in">
 
-   <div class="edition-new-badge">&#11088; New Release &nbsp;&middot;&nbsp; 2027 Edition</div>
+   <div class="edition-new-badge"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg> New Release &nbsp;&middot;&nbsp; 2027 Edition</div>
 
    <div class="edition-main">
      <div class="edition-cover-wrap">
@@ -253,11 +294,11 @@
          target="_blank"
          rel="noopener"
        >
-         &#x1F4B0; Get the 2027 Edition
+         <svg class="icon" aria-hidden="true"><use href="#i-cart"/></svg> Get the 2027 Edition
          <span class="edition-price">$24.97 CAD</span>
        </a>
        <p style="margin-top:0.6rem; font-size:0.68rem; opacity:0.65; line-height:1.4; color:white;">
-         &#128214; Available in English only &nbsp;&middot;&nbsp; Ce livre est disponible en anglais seulement
+         <svg class="icon" aria-hidden="true"><use href="#i-book"/></svg> Available in English only &nbsp;&middot;&nbsp; Ce livre est disponible en anglais seulement
        </p>
      </div>
    </div>
@@ -349,10 +390,10 @@
      <!-- UPDATED AI INSIGHTS BLOG SECTION -->
      <section id="blog" class="content-section" style="background: var(--gradient-ai); color: white; border: 2px solid #fbbf24; box-shadow: 0 0 0 4px rgba(251,191,36,0.18), var(--shadow-xl);">
       <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: #fbbf24; color: #1e293b; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.3rem 0.9rem; border-radius: 20px; margin-bottom: 1rem;">
-       &#11088; Featured
+       <svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg> Featured
       </div>
       <h2 class="section-title" style="color: white;">
-       📝 Latest AI Insights
+       <svg class="icon" aria-hidden="true"><use href="#i-doc"/></svg> Latest AI Insights
       </h2>
       <div style="background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 12px;">
        <h3 style="color: white; margin-bottom: 1rem; font-size: 1.3rem;">
@@ -363,7 +404,7 @@
        </p>
        <div class="view-all-link">
         <a class="view-all-btn" href="https://www.imetrobert.com/blog/" target="_blank">
-         🤖 Visit AI Insights Blog
+         <svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg> Visit AI Insights Blog
          <span>
           &rarr;
          </span>

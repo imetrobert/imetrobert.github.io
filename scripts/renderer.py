@@ -101,7 +101,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                     f'<div class="dev-source">'
                     f'<a href="{d["source_url"]}" target="_blank" rel="noopener noreferrer" '
                     f'title="Search Google for this article">'
-                    f'🔍 {src_label}'
+                    f'<svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> {src_label}'
                     f'</a></div>'
                 )
             dev_cards += (
@@ -129,12 +129,12 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                     f'<div class="spot-source">'
                     f'<a href="{item["source_url"]}" target="_blank" rel="noopener noreferrer" '
                     f'title="Search Google for this article">'
-                    f'🔍 {src_label}'
+                    f'<svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> {src_label}'
                     f'</a></div>'
                 )
             spot_cards += (
                 f'<li>'
-                f'<span class="spot-bullet">🍁</span>'
+                f'<span class="spot-bullet"><svg class="icon icon-solid" aria-hidden="true"><use href="#i-diamond"/></svg></span>'
                 f'<div class="spot-content">'
                 f'{org_html}'
                 f'<div class="spot-body">{item["body"]}</div>'
@@ -209,7 +209,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                     f'<div class="stat-source">'
                     f'<a href="{item["source_url"]}" target="_blank" rel="noopener noreferrer" '
                     f'title="Search Google for this statistic">'
-                    f'🔍 {item["source_name"]}'
+                    f'<svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> {item["source_name"]}'
                     f'</a></div>'
                 )
             elif item.get("source_name"):
@@ -265,6 +265,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <title>{seo_title}</title>
     <meta name="description" content="{meta_desc_html}">
     <meta name="keywords" content="AI Canada {issue_month_year}, Canadian AI news, artificial intelligence Canada, AI business strategy Canada, AI adoption Canada, Montreal AI, Canadian digital transformation, AI news for Canadians, AI insights {issue_month_year}, {coverage_month_year} AI recap">
@@ -373,6 +375,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .nav-link {{ color: var(--white); text-decoration: none; font-weight: 600; padding: 0.4rem 1rem; font-size: 0.8rem; border-radius: 20px; background: linear-gradient(135deg, var(--blue), var(--cyan)); transition: all 0.2s; letter-spacing: 0.01em; flex-shrink: 0; }}
         .nav-link:hover {{ transform: translateY(-1px); box-shadow: 0 4px 12px rgb(37 99 235 / 0.3); }}
         .nav-meta {{ font-size: 0.78rem; color: var(--gray-light); display: flex; align-items: center; gap: 0.5rem; }}
+        .nav-meta .brand-icon {{ width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0; }}
+        .brand-logo {{ width: 76px; height: 76px; display: block; margin: 0 auto 1.5rem; padding: 7px; box-sizing: content-box; background: rgba(255,255,255,0.96); border-radius: 23px; box-shadow: 0 10px 26px rgba(15,23,42,0.25); }}
         .header {{ background: linear-gradient(135deg, var(--blue) 0%, #1a7fb5 50%, var(--cyan) 100%); color: var(--white); padding: 4rem 0 3.5rem; text-align: center; position: relative; overflow: hidden; }}
         .header::before {{ content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 15% 85%, rgba(255,255,255,0.07) 0%, transparent 45%), radial-gradient(circle at 85% 15%, rgba(255,255,255,0.05) 0%, transparent 45%); pointer-events: none; }}
         .header-content {{ max-width: 780px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }}
@@ -409,11 +413,14 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .canada-section {{ background: linear-gradient(135deg, #fff5f5 0%, #fffbfb 100%); border: 1px solid #fecaca; border-radius: 16px; padding: 1.75rem; }}
         .canada-header {{ margin-bottom: 0.75rem; }}
         .canada-label {{ display: inline-flex; align-items: center; gap: 0.35rem; background: var(--canada-red); color: var(--white); font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.7rem; border-radius: 12px; letter-spacing: 0.06em; text-transform: uppercase; }}
-        .canada-label::before {{ content: "🍁"; font-size: 0.75rem; }}
+        /* Inline SVG icons, sprite defined at the top of <body>. Stroked in
+           currentColor and sized in em so each icon matches its adjacent text. */
+        .icon {{ width: 1.05em; height: 1.05em; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.14em; }}
+        .icon-solid {{ fill: currentColor; stroke: none; }}
         .canada-title::before {{ background: var(--canada-red) !important; }}
         .spot-list {{ list-style: none; padding: 0; display: grid; gap: 0.875rem; }}
         .spot-list li {{ display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.875rem; color: var(--gray); line-height: 1.65; padding: 0.875rem 1rem; background: var(--white); border-radius: 10px; border: 1px solid #fde8e8; }}
-        .spot-bullet {{ flex-shrink: 0; margin-top: 0.1rem; font-size: 0.85rem; }}
+        .spot-bullet {{ flex-shrink: 0; margin-top: 0.35rem; font-size: 0.55rem; color: var(--canada-red); display: flex; }}
         .spot-content {{ flex: 1; }}
         .spot-org {{ font-weight: 700; color: var(--navy); font-size: 0.85rem; margin-bottom: 0.2rem; }}
         .spot-body {{ font-size: 0.875rem; color: var(--gray); line-height: 1.6; }}
@@ -453,6 +460,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         @media (max-width: 640px) {{
             .header {{ padding: 2.5rem 0 2.25rem; }}
             .header h1 {{ font-size: 1.6rem; }}
+            .brand-logo {{ width: 58px; height: 58px; padding: 6px; border-radius: 18px; margin-bottom: 1.1rem; }}
             .container {{ padding: 1.5rem 1rem 3rem; }}
             .article-content {{ padding: 1.5rem 1.25rem; }}
             .nav-content {{ flex-direction: column; align-items: flex-start; gap: 0.35rem; }}
@@ -465,10 +473,32 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     </style>
 </head>
 <body>
+    <!-- Icon sprite. Reference a symbol by id from an svg.icon element.
+         Markers here are geometric on purpose: the brand's maple leaf is
+         illegible below ~32px, so it stays in the logo and does not get
+         shrunk down into list bullets. -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+        <symbol id="i-search" viewBox="0 0 24 24">
+            <circle cx="10.5" cy="10.5" r="6.5"/>
+            <path d="m15.5 15.5 4.5 4.5"/>
+        </symbol>
+        <symbol id="i-clock" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="8.5"/>
+            <path d="M12 7v5.2l3.2 2"/>
+        </symbol>
+        <symbol id="i-pencil" viewBox="0 0 24 24">
+            <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z"/>
+            <path d="m14.5 6 3 3"/>
+        </symbol>
+        <symbol id="i-diamond" viewBox="0 0 24 24">
+            <path d="M12 4.5 19.5 12 12 19.5 4.5 12Z"/>
+        </symbol>
+    </svg>
     <nav class="nav-bar">
         <div class="nav-content">
             <a href="https://www.imetrobert.com/blog/" class="nav-link">&#8592; Back to Blog</a>
             <div class="nav-meta">
+                <img src="/blog/logo.svg" class="brand-icon" alt="" width="22" height="22">
                 <span>AI Insights for Canadian Business</span>
                 <span>&#8226;</span>
                 <span>{formatted_date}</span>
@@ -477,11 +507,12 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     </nav>
     <header class="header">
         <div class="header-content">
+            <img src="/blog/logo.svg" class="brand-logo" alt="AI Insights" width="76" height="76">
             <div class="issue-badge">Issue #{issue_num} &nbsp;&#8226;&nbsp; {issue_month_year} <span class="issue-badge-coverage">&mdash; Covering {coverage_month_name}</span></div>
             <h1>{clean_title_html}</h1>
             <div class="subtitle">The AI briefing built for Canadian business leaders</div>
             <div class="intro-text">{excerpt_html}</div>
-            <div class="reading-badge">&#9201; {reading_time} min read</div>
+            <div class="reading-badge"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg> {reading_time} min read</div>
         </div>
     </header>
     <div class="container">
@@ -539,7 +570,7 @@ def _build_roberts_take(raw_text, coverage_month_year):
     if is_placeholder:
         body = (
             '<div class="roberts-placeholder">'
-            '<strong>&#9998; Add your personal take before publishing.</strong><br><br>'
+            '<strong><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg> Add your personal take before publishing.</strong><br><br>'
             'What surprised you most this month? What are you hearing from Canadian leaders right now? '
             'What is the pattern others are missing? 2-3 sentences in your own voice — '
             'this is the E-E-A-T signal that makes this newsletter yours.'

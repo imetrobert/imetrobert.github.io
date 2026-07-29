@@ -189,6 +189,21 @@
       gap: 1rem;
     }
 
+    /* Inline SVG icons (sprite defined at the top of index.html's body).
+       Stroked in currentColor and sized in em, so an icon always matches the
+       colour and size of the text beside it — no per-use styling needed. */
+    .icon {
+      width: 1.05em;
+      height: 1.05em;
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vertical-align: -0.14em;
+    }
+
     .contact-item {
       display: flex;
       align-items: center;
@@ -752,7 +767,7 @@
   
 
    .edition-new-badge {
-     display: inline-flex; align-items: center;
+     display: inline-flex; align-items: center; gap: 0.4rem;
      background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
      padding: 0.25rem 0.8rem; border-radius: 20px;
      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;

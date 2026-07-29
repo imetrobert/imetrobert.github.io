@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <title>AI News for Canadians | Monthly AI Insights Blog | Robert Simon</title>
     <meta name="description" content="Monthly AI insights for Canadian business leaders. Expert analysis of AI breakthroughs, Canadian AI adoption data, and practical implementation strategies from Montreal-based AI Thought Leader Robert Simon.">
     <meta name="keywords" content="AI blog Canada, Canadian AI insights, AI news for Canadians, artificial intelligence Canada, AI strategy Canada, Montreal AI expert, Canadian business AI, AI adoption Canada, digital transformation Canada">
@@ -68,7 +70,11 @@
         header { background: linear-gradient(135deg, #2563eb 0%, #1a7fb5 50%, #06b6d4 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 2.5rem; border-radius: 20px; }
         h1 { font-size: 2.8rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
         .nav-bar { background: white; padding: 1rem 0; box-shadow: 0 1px 3px rgb(0 0 0 / 0.08); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e2e8f0; }
-        .nav-content { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: flex-start; gap: 0.6rem; }
+        .nav-content { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: flex-start; gap: 0.6rem; }
+        .nav-brand { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; margin-right: auto; }
+        .nav-brand img { width: 28px; height: 28px; border-radius: 9px; }
+        .nav-brand span { font-weight: 800; font-size: 0.9rem; color: #0f172a; letter-spacing: -0.01em; }
+        .brand-logo { width: 76px; height: 76px; display: block; margin: 0 auto 1.25rem; padding: 7px; box-sizing: content-box; background: rgba(255,255,255,0.96); border-radius: 23px; box-shadow: 0 10px 26px rgba(15,23,42,0.25); }
         .nav-link { color: white; text-decoration: none; font-weight: 600; padding: 0.4rem 1rem; font-size: 0.8rem; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #06b6d4); }
         .latest-post-section { background: linear-gradient(135deg, #2563eb 0%, #1a7fb5 50%, #06b6d4 100%); color: white; padding: 2.5rem; border-radius: 20px; margin-bottom: 2rem; box-shadow: 0 8px 32px rgb(37 99 235 / 0.2); }
         .latest-badge { background: rgba(255,255,255,0.2); color: white; padding: 0.3rem 0.9rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
@@ -86,6 +92,7 @@
         .blog-tagline { font-size: 0.95rem; opacity: 0.85; margin-top: 0.5rem; }
         @media (max-width: 640px) {
             h1 { font-size: 2rem; }
+            .brand-logo { width: 58px; height: 58px; padding: 6px; border-radius: 18px; }
             .container { padding: 1rem; }
             .latest-post-section { padding: 1.5rem; }
             .latest-post-title { font-size: 1.35rem; }
@@ -95,12 +102,17 @@
 <body>
     <nav class="nav-bar">
         <div class="nav-content">
+            <a href="/blog/" class="nav-brand">
+                <img src="/blog/logo.svg" alt="" width="28" height="28">
+                <span>AI Insights</span>
+            </a>
             <a href="https://www.imetrobert.com" class="nav-link">&#8592; Back to Homepage</a>
             <a href="/blog/feed.xml" class="nav-link">RSS Feed</a>
         </div>
     </nav>
     <div class="container">
         <header>
+            <img src="/blog/logo.svg" class="brand-logo" alt="AI Insights" width="76" height="76">
             <h1>AI Insights Blog</h1>
             <p>Monthly intelligence for Canadian business leaders</p>
             <p class="blog-tagline">by Robert Simon &mdash; Montreal, QC</p>

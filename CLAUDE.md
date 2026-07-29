@@ -78,10 +78,60 @@ Same approach as other repos in this account:
 5. Never paste all of `css/style.css` for a content question — styling and
    content are separate files precisely so you don't have to.
 
+## Icons — no emoji on visitor-facing pages
+
+Emoji were replaced with an inline SVG icon set. **Don't reintroduce emoji into
+`index.html`, `css/style.css`, or anything under `blog/`** — use an icon instead.
+
+- Each page defines a sprite of `<symbol>`s just after `<body>`, referenced as
+  `<svg class="icon"><use href="#i-pin"/></svg>`.
+- Homepage sprite lives in `index.html`; the `.icon` rule is in `css/style.css`.
+  Post sprite + `.icon` rule are both in `scripts/renderer.py`'s template.
+- Icons stroke in `currentColor` and size in `em`, so they inherit the colour
+  and size of adjacent text — that is what makes them read as one set. Add
+  `.icon-solid` for a filled glyph (the list bullets).
+- Homepage ids: `i-pin`, `i-mail`, `i-phone`, `i-spark`, `i-linkedin`, `i-doc`,
+  `i-cart`, `i-book`. Post ids: `i-search`, `i-clock`, `i-pencil`, `i-diamond`.
+- The maple leaf is **not** an icon: it is illegible below ~32px and collapses
+  into a four-pointed star. It stays in the logo; small markers are geometric.
+- `content: "\2713"` in `.edition-features li::before` is a typographic check
+  mark, not an emoji — deliberately kept.
+- Still emoji, deliberately: `scripts/generate-preview-page.py` (your private
+  approval UI, where they act as status indicators) and the console output of
+  `scripts/test_*.py`, `fix_old_posts.py`, `write_nothing_pending_placeholder.py`.
+
+## Brand mark
+
+One mark for the whole site: an "AI" monogram whose spark — the dot over the
+"i" — is a maple leaf, in the site's blue → cyan palette. It replaced the older
+`RS` monogram favicon (still in git history if it's ever wanted back).
+
+- `favicon.svg` (root) — **the site-wide favicon**, linked from the homepage,
+  the blog index and every post. Simplified cut of the logo: no texture, flat
+  white ink, heavier strokes, scaled up so it survives at 16px.
+- `apple-touch-icon.png` (root, 180px) — for platforms that won't take SVG.
+- `blog/logo.svg` — the detailed mark (with neural texture), used at 76px in
+  the blog header and 22-28px in the nav. **Deliberately a separate file** from
+  `favicon.svg` so the small size can be tuned without compromising the large
+  one — edit both if the shape changes. `blog/logo-512.png` is its raster copy.
+- Regenerate the rasters after any SVG edit:
+  `python3 -c "import cairosvg; cairosvg.svg2png(url='favicon.svg',
+  write_to='apple-touch-icon.png', output_width=180, output_height=180)"`
+- The leaf is drawn as a right half and mirrored with `<use transform="scale(-1,1)">`,
+  so it stays symmetric — edit the one path, not two.
+- Where it's wired in: `scripts/blog_index.py` (blog index) and
+  `scripts/renderer.py` (posts) carry the `<link rel="icon">` tags, the
+  `.brand-logo` / `.brand-icon` CSS, and the markup — so new posts inherit the
+  brand automatically. Already-published posts under `blog/posts/` were
+  backfilled by hand and keep their own copy of that CSS.
+- Icon paths are absolute (`/favicon.svg`), so they resolve the same from the
+  homepage and from `/blog/posts/`. Don't make them relative.
+
 ## Everything else
 
-- `favicon.svg`, `cover-2027.png`, `profile.jpg`, `blog/og-blog.jpg` — static
-  assets, replace in place, no code changes needed.
+- `cover-2027.png`, `profile.jpg`, `blog/og-blog.jpg` — static assets, replace
+  in place, no code changes needed. (`favicon.svg` is not one of these — see
+  the brand mark section above before touching it.)
 - `CNAME` — GitHub Pages custom domain config, essentially never changes.
 - `scripts/test_*.py`, `scripts/verify_gemini_key.py` — dev/ops tooling for
   the blog pipeline, unrelated to site content.
