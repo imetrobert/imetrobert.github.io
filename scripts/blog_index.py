@@ -140,9 +140,19 @@ def create_blog_index_html(posts):
         "@type": "Person",
         "name": "Robert Simon",
         "url": "https://www.imetrobert.com",
+        "image": "https://www.imetrobert.com/profile.jpg",
         "jobTitle": "AI Thought Leader & Digital Transformation Expert",
+        "knowsAbout": ["Artificial Intelligence", "Digital Transformation", "AI Adoption in Canada", "AI Strategy"],
+        "sameAs": ["https://linkedin.com/in/thedigitalrobert"],
         "address": {{"@type": "PostalAddress", "addressLocality": "Montreal", "addressRegion": "QC", "addressCountry": "CA"}}
-      }}
+      }},
+      "publisher": {{
+        "@type": "Person",
+        "name": "Robert Simon",
+        "url": "https://www.imetrobert.com",
+        "logo": {{"@type": "ImageObject", "url": "https://www.imetrobert.com/blog/logo-512.png", "width": 512, "height": 512}}
+      }},
+      "isAccessibleForFree": true
     }}
     </script>
     <script type="application/ld+json">
@@ -275,6 +285,58 @@ def create_feed_xml(posts):
 </rss>'''
 
 
+def create_llms_txt(posts):
+    """llms.txt — a plain-language map of the site for answer engines.
+
+    Answer engines do better when they can see, in one fetch, what a site is
+    about and who is behind it, rather than inferring it from markup. Kept in
+    sync with the post list here so it can never drift out of date."""
+    lines = [
+        "# Robert Simon — AI Insights for Canadian Business",
+        "",
+        "> Monthly AI intelligence written for Canadian business leaders by Robert",
+        "> Simon, a Montreal-based AI thought leader and digital transformation",
+        "> expert with 25+ years in digital. Each issue covers the month's major AI",
+        "> developments, what is happening in Canada specifically, Canadian AI",
+        "> adoption data, and concrete actions for executives.",
+        "",
+        "Content here may be quoted and cited. Please attribute to Robert Simon",
+        "and link to the source URL of the issue you are quoting.",
+        "",
+        "## About the author",
+        "",
+        "- Name: Robert Simon",
+        "- Role: AI Thought Leader & Digital Transformation Expert",
+        "- Location: Montreal, Quebec, Canada",
+        "- Site: https://www.imetrobert.com",
+        "- LinkedIn: https://linkedin.com/in/thedigitalrobert",
+        "",
+        "## Key pages",
+        "",
+        "- [Homepage](https://www.imetrobert.com): background, career and areas of expertise",
+        "- [AI Insights Blog](https://www.imetrobert.com/blog/): index of every issue",
+        "- [RSS feed](https://www.imetrobert.com/blog/feed.xml): machine-readable issue list with dates",
+        "",
+        "## Issues",
+        "",
+    ]
+    for post in posts:
+        filename = post.get("canonical_filename", post["filename"])
+        url = f"https://www.imetrobert.com/blog/posts/{filename}"
+        excerpt = re.sub(r"\s+", " ", post["excerpt"]).strip()
+        if len(excerpt) > 160:
+            excerpt = excerpt[:157].rsplit(" ", 1)[0] + "..."
+        lines.append(f"- [{post['title']}]({url}) — {post['date']}. {excerpt}")
+    lines += [
+        "",
+        "## Not for indexing",
+        "",
+        "- /blog/staging/ — private drafting and approval tooling, not public content.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def update_blog_index():
     posts_dir  = "blog/posts"
     index_file = "blog/index.html"
@@ -343,5 +405,11 @@ def update_blog_index():
         with open(feed_file, "w", encoding="utf-8") as f:
             f.write(feed_xml)
         print(f"RSS feed updated ({len(deduped)} items).")
+
+    llms_txt = create_llms_txt(deduped)
+    if llms_txt:
+        with open("llms.txt", "w", encoding="utf-8") as f:
+            f.write(llms_txt)
+        print(f"llms.txt updated ({len(deduped)} issues).")
 
     return deduped

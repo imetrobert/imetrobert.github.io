@@ -1,4 +1,63 @@
+# www.imetrobert.com
+#
+# Public content (homepage + blog) is open to search crawlers AND to answer
+# engines — being quotable in AI answers is the point of the blog.
+# Everything under /blog/staging/ is private tooling and must never be indexed.
+#
+# NOTE: Disallow stops crawling, not indexing. A disallowed URL can still be
+# listed (URL only) if something links to it, and because the crawler never
+# fetches the page it never sees the noindex tag. So the private pages ALSO
+# carry <meta name="robots" content="noindex, nofollow"> — that tag is what
+# actually guarantees removal. Keep both.
+
 User-agent: *
+Allow: /
+Disallow: /blog/staging/
+
+# --- Answer engines / AI crawlers -------------------------------------------
+# Allowed on the public content so the blog can be cited, blocked on tooling.
+
+User-agent: GPTBot
+Allow: /
+Disallow: /blog/staging/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /blog/staging/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /blog/staging/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /blog/staging/
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /blog/staging/
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /blog/staging/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /blog/staging/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /blog/staging/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /blog/staging/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /blog/staging/
+
+User-agent: CCBot
 Allow: /
 Disallow: /blog/staging/
 

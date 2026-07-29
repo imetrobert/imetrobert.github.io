@@ -118,11 +118,13 @@ jobs:
             echo "Published successfully"
           fi
 
-      - name: Ping Google to recrawl sitemap
-        run: |
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://www.google.com/ping?sitemap=https://www.imetrobert.com/sitemap.xml")
-          echo "Google ping response: HTTP $RESPONSE"
+      # No sitemap ping step here on purpose. Google retired
+      # google.com/ping?sitemap= in 2023 and Bing dropped its equivalent, so
+      # the call was a no-op that still reported "HTTP 200" and read like
+      # working submission. Discovery now comes from sitemap.xml being linked
+      # in robots.txt, plus the RSS feed and llms.txt. If you ever want an
+      # explicit nudge, use Search Console, or IndexNow with a real API key —
+      # not an unauthenticated ping endpoint.
 
       - name: Summary
         run: |

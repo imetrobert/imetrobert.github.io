@@ -78,6 +78,43 @@ Same approach as other repos in this account:
 5. Never paste all of `css/style.css` for a content question — styling and
    content are separate files precisely so you don't have to.
 
+## SEO / AEO, and what must never be indexed
+
+Posts already carry canonical, OG/Twitter, BlogPosting + FAQPage +
+BreadcrumbList schema, and the sitemap/RSS are generated. Rules to keep it that
+way:
+
+- **FAQ answers must stay visible on the page.** `scripts/renderer.py` renders
+  the `.faq-section` from the *same* `faq_items` that feed the FAQPage schema.
+  Schema-only FAQ violates Google's structured-data policy and gives answer
+  engines nothing quotable. If you change one, change both.
+- **Each FAQ question is answered from the section that addresses it** —
+  developments → "what developments matter", actions → "what should executives
+  do", adoption stats → "how is adoption tracking", spotlight → "which Canadian
+  companies", business impact → "how do global trends affect competitiveness".
+  A Q&A is dropped when the post has no content for it (answers under 60 chars).
+  Don't go back to zipping questions against `actions` positionally.
+- Answer text is scrubbed of URLs, `|` field separators and markdown headings,
+  because answer engines quote it verbatim.
+- `llms.txt` (root) is **generated** by `scripts/blog_index.py` alongside
+  `blog/index.html` and `feed.xml`. Don't hand-edit it.
+- `robots.txt` allows AI crawlers (GPTBot, ClaudeBot, PerplexityBot,
+  Google-Extended…) on the public content — being citable is the point — and
+  disallows `/blog/staging/` for all of them.
+
+**Never indexed:** everything under `/blog/staging/` (the draft + approval
+tooling). It is protected two ways on purpose:
+
+1. `Disallow: /blog/staging/` in `robots.txt`, and
+2. `<meta name="robots" content="noindex, nofollow">` in every page that lands
+   there — `generate-preview-page.py`, `write_nothing_pending_placeholder.py`,
+   and drafts via `renderer.py`'s `is_draft` flag.
+
+Both are needed. **Disallow stops crawling, not indexing** — a disallowed URL
+can still be listed URL-only if anything links to it, and since the crawler
+never fetches the page it never sees the noindex. The meta tag is what
+actually guarantees removal. Any new admin/private page must carry it.
+
 ## Icons — no emoji on visitor-facing pages
 
 Emoji were replaced with an inline SVG icon set. **Don't reintroduce emoji into
