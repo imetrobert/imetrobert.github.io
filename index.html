@@ -125,7 +125,7 @@
 </script>
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=2">
  <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y0FZTVVLBS"></script>
 <script>
@@ -141,6 +141,13 @@
     All icons are stroked in currentColor, so they take the colour of the text
     they sit in — that is what keeps them looking like one set rather than a
     pile of clip art. Sizing/stroke live in .icon in css/style.css.
+
+    Each <use> also repeats size/fill/stroke as presentation attributes. That
+    is deliberate, not redundancy: an SVG with no CSS at all defaults to
+    300x150 and fill:black, so a browser holding a cached copy of style.css
+    from before .icon existed renders every icon as a giant black blob. The
+    attributes keep them sane on their own; the stylesheet still wins when it
+    loads, since CSS overrides presentation attributes.
   -->
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
    <symbol id="i-pin" viewBox="0 0 24 24">
@@ -197,22 +204,22 @@
   <div class="contact-bar">
    <div class="contact-info">
     <div class="contact-item">
-     <svg class="icon" aria-hidden="true"><use href="#i-pin"/></svg> Montreal, QC
+     <svg class="icon" aria-hidden="true" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="#i-pin"/></svg> Montreal, QC
     </div>
     <div class="contact-item">
-     <svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg>
+     <svg class="icon" aria-hidden="true" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="#i-mail"/></svg>
      <a href="mailto:robert@imetrobert.com">
       robert@imetrobert.com
      </a>
     </div>
     <div class="contact-item">
-     <svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg> 514-250-8491
+     <svg class="icon" aria-hidden="true" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="#i-phone"/></svg> 514-250-8491
     </div>
     <a href="https://www.imetrobert.com/blog/" target="_blank" class="blog-entry-cta">
-     <svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg> AI Insights Blog
+     <svg class="icon" aria-hidden="true" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="#i-spark"/></svg> AI Insights Blog
     </a>
     <div class="contact-item">
-     <svg class="icon" aria-hidden="true"><use href="#i-linkedin"/></svg>
+     <svg class="icon" aria-hidden="true" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="#i-linkedin"/></svg>
      <a href="https://linkedin.com/in/thedigitalrobert" target="_blank">
       LinkedIn
      </a>
@@ -266,7 +273,7 @@
 
  <section id="ebook" class="content-section ebook-section fade-in">
 
-   <div class="edition-new-badge"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg> New Release &nbsp;&middot;&nbsp; 2027 Edition</div>
+   <div class="edition-new-badge"><svg class="icon" aria-hidden="true" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="#i-spark"/></svg> New Release &nbsp;&middot;&nbsp; 2027 Edition</div>
 
    <div class="edition-main">
      <div class="edition-cover-wrap">
@@ -294,11 +301,11 @@
          target="_blank"
          rel="noopener"
        >
-         <svg class="icon" aria-hidden="true"><use href="#i-cart"/></svg> Get the 2027 Edition
+         <svg class="icon" aria-hidden="true" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="#i-cart"/></svg> Get the 2027 Edition
          <span class="edition-price">$24.97 CAD</span>
        </a>
        <p style="margin-top:0.6rem; font-size:0.68rem; opacity:0.65; line-height:1.4; color:white;">
-         <svg class="icon" aria-hidden="true"><use href="#i-book"/></svg> Available in English only &nbsp;&middot;&nbsp; Ce livre est disponible en anglais seulement
+         <svg class="icon" aria-hidden="true" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="#i-book"/></svg> Available in English only &nbsp;&middot;&nbsp; Ce livre est disponible en anglais seulement
        </p>
      </div>
    </div>
@@ -390,10 +397,10 @@
      <!-- UPDATED AI INSIGHTS BLOG SECTION -->
      <section id="blog" class="content-section" style="background: var(--gradient-ai); color: white; border: 2px solid #fbbf24; box-shadow: 0 0 0 4px rgba(251,191,36,0.18), var(--shadow-xl);">
       <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: #fbbf24; color: #1e293b; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.3rem 0.9rem; border-radius: 20px; margin-bottom: 1rem;">
-       <svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg> Featured
+       <svg class="icon" aria-hidden="true" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="#i-spark"/></svg> Featured
       </div>
       <h2 class="section-title" style="color: white;">
-       <svg class="icon" aria-hidden="true"><use href="#i-doc"/></svg> Latest AI Insights
+       <svg class="icon" aria-hidden="true" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="#i-doc"/></svg> Latest AI Insights
       </h2>
       <div style="background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 12px;">
        <h3 style="color: white; margin-bottom: 1rem; font-size: 1.3rem;">
@@ -404,7 +411,7 @@
        </p>
        <div class="view-all-link">
         <a class="view-all-btn" href="https://www.imetrobert.com/blog/" target="_blank">
-         <svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg> Visit AI Insights Blog
+         <svg class="icon" aria-hidden="true" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="#i-spark"/></svg> Visit AI Insights Blog
          <span>
           &rarr;
          </span>

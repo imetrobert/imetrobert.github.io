@@ -90,6 +90,15 @@ Emoji were replaced with an inline SVG icon set. **Don't reintroduce emoji into
 - Icons stroke in `currentColor` and size in `em`, so they inherit the colour
   and size of adjacent text — that is what makes them read as one set. Add
   `.icon-solid` for a filled glyph (the list bullets).
+- **On the homepage, every `<svg class="icon">` repeats size/fill/stroke as
+  presentation attributes. Don't strip them as duplication.** An SVG with no
+  CSS defaults to 300x150 and `fill: black`, so a visitor whose browser cached
+  `style.css` from before `.icon` existed gets giant black blobs down the whole
+  page. The attributes keep icons sane on their own; CSS still wins when it
+  loads. Posts don't need this — their CSS is inline, so it can never go stale.
+- `style.css` is linked with a `?v=` query. Bump it whenever a change to that
+  file is required for the HTML to render correctly, or returning visitors keep
+  the old copy.
 - Homepage ids: `i-pin`, `i-mail`, `i-phone`, `i-spark`, `i-linkedin`, `i-doc`,
   `i-cart`, `i-book`. Post ids: `i-search`, `i-clock`, `i-pencil`, `i-diamond`.
 - The maple leaf is **not** an icon: it is illegible below ~32px and collapses
