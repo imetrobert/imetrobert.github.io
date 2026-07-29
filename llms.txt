@@ -1,0 +1,41 @@
+# Robert Simon — AI Insights for Canadian Business
+
+> Monthly AI intelligence written for Canadian business leaders by Robert
+> Simon, a Montreal-based AI thought leader and digital transformation
+> expert with 25+ years in digital. Each issue covers the month's major AI
+> developments, what is happening in Canada specifically, Canadian AI
+> adoption data, and concrete actions for executives.
+
+Content here may be quoted and cited. Please attribute to Robert Simon
+and link to the source URL of the issue you are quoting.
+
+## About the author
+
+- Name: Robert Simon
+- Role: AI Thought Leader & Digital Transformation Expert
+- Location: Montreal, Quebec, Canada
+- Site: https://www.imetrobert.com
+- LinkedIn: https://linkedin.com/in/thedigitalrobert
+
+## Key pages
+
+- [Homepage](https://www.imetrobert.com): background, career and areas of expertise
+- [AI Insights Blog](https://www.imetrobert.com/blog/): index of every issue
+- [RSS feed](https://www.imetrobert.com/blog/feed.xml): machine-readable issue list with dates
+
+## Issues
+
+- [AI Insights for July 2026](https://www.imetrobert.com/blog/posts/2026-07-03-ai-insights-for-july-2026.html) — July 03, 2026. Canada launched its "AI for All" strategy on June 4, 2026, with a $2.3 billion investment. This ambitious plan aims to boost GDP by $200 billion and create...
+- [AI Insights for June 2026](https://www.imetrobert.com/blog/posts/2026-05-31-ai-insights-for-may-2026.html) — June 1, 2026. May 29, 2026, saw OpenText join the OECD's Hiroshima AI Process Reporting Framework, signaling a commitment to responsible AI development. This move...
+- [AI Insights for May 2026](https://www.imetrobert.com/blog/posts/2026-04-30-ai-insights-for-april-2026.html) — May 1, 2026. Welcome to my April 2026 AI insights blog. This month, the pace of AI innovation continues to accelerate, bringing both exciting opportunities and...
+- [AI Insights for April 2026](https://www.imetrobert.com/blog/posts/2026-03-31-ai-insights-for-march-2026.html) — April 1, 2026. March 2026 AI Insights for Canadian Businesses As we navigate the accelerating landscape of artificial intelligence, March 2026 has presented a series of...
+- [AI Insights for March 2026](https://www.imetrobert.com/blog/posts/2026-02-28-key-ai-developments-this-month.html) — March 1, 2026. February 2026 marks a decisive inflection point where AI has shifted from experimentation to execution. Flagship model releases from Anthropic, OpenAI, and...
+- [AI Insights for February 2026](https://www.imetrobert.com/blog/posts/2026-01-31-key-ai-developments-this-month.html) — February 1, 2026. As we kick off 2026, artificial intelligence continues its relentless march toward practical ubiquity, with breakthroughs in efficient architectures,...
+- [AI Insights for January 2026](https://www.imetrobert.com/blog/posts/2025-12-31-key-ai-developments-this-month.html) — January 1, 2026. As we close out 2025, Canada's AI landscape has accelerated dramatically, driven by unprecedented federal investments in sovereign compute infrastructure,...
+- [AI Insights for December 2025](https://www.imetrobert.com/blog/posts/2025-11-30-key-ai-developments-this-month.html) — December 1, 2025. November 2025 marks a watershed moment for enterprise artificial intelligence, where governance frameworks have shifted from optional to mandatory, frontier...
+- [AI Insights for November 2025](https://www.imetrobert.com/blog/posts/2025-10-31-key-ai-developments-this-month.html) — November 1, 2025. October 2025 has marked a pivotal moment in artificial intelligence, with breakthroughs in generative video, ethical music creation, browser technology, and...
+- [AI Insights for October 2025](https://www.imetrobert.com/blog/posts/2025-09-30-key-ai-developments-this-month.html) — October 1, 2025. September 2025 marks a pivotal moment in the evolution of artificial intelligence worldwide. From legal battles over AI intellectual property to...
+
+## Not for indexing
+
+- /blog/staging/ — private drafting and approval tooling, not public content.

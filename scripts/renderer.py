@@ -31,6 +31,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     # after the calendar rolls over doesn't bump the issue number.
     issue_num      = get_issue_number(labels["issue_date"])
     reading_time   = estimate_reading_time(content)
+    word_count     = len(re.sub(r'\s+', ' ', content).split())
 
     clean_title = re.sub(r'^[#\*\s]+', '', title).strip() or f"AI Insights for {issue_month_year}"
     slug        = clean_filename(clean_title)
@@ -232,18 +233,86 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
 
     article_parts.append(_build_roberts_take(roberts_raw, coverage_month_year))
 
-    article_html = "\n".join(article_parts)
+    # Each question is answered from the section that actually addresses it.
+    # Pairing questions against whatever happened to be in `actions` produced
+    # confident non-sequiturs — fine while the FAQ was schema-only, actively
+    # misleading now that it is on the page and quotable by answer engines.
+    def _plain(text, limit=480):
+        text = re.sub(r"<[^>]+>", " ", str(text))
+        # Answers get quoted verbatim by answer engines, so scrub anything that
+        # betrays the source format: bare URLs, the pipe-delimited field syntax
+        # the generator emits, markdown headings, and leading list bullets.
+        text = re.sub(r"https?://\S+", "", text)
+        text = re.sub(r"#{1,6}\s*[A-Z][A-Z '\u2019]*$", "", text)
+        text = re.sub(r"^[\s\-\*\u2022]+", "", text)
+        text = text.replace(" | ", " \u2014 ")
+        text = re.sub(r"\s+", " ", text)
+        text = re.sub(r"(?:\s*\u2014){2,}", " \u2014", text)          # URL removal can leave a dangling dash
+        text = re.sub(r"\s*\u2014\s*$", "", text)
+        text = text.strip(" \u2014-#*\u2022 ")
+        if len(text) > limit:
+            text = text[: limit - 3].rsplit(" ", 1)[0] + "..."
+        return text
 
-    faq_qs = [
-        f"What AI developments matter most for Canadian businesses in {coverage_month_year}?",
-        "What should Canadian executives do about AI right now?",
-        "How is AI adoption tracking across Canada?",
-        "What Canadian AI companies or initiatives should I know about?",
-        "How do global AI trends affect Canadian competitiveness?",
+    def _join(parts, limit=480):
+        out = ""
+        for part in parts:
+            part = _plain(part, limit)
+            if not part:
+                continue
+            candidate = f"{out} {part}".strip() if out else part
+            if len(candidate) > limit:
+                break
+            out = candidate
+        return out
+
+    faq_candidates = [
+        (
+            f"What AI developments matter most for Canadian businesses in {coverage_month_year}?",
+            _join([f'{d["company"]}: {d["body"]}' if d.get("company") else d["body"]
+                   for d in developments[:3]]),
+        ),
+        (
+            "What should Canadian executives do about AI right now?",
+            _join(actions[:3]),
+        ),
+        (
+            "How is AI adoption tracking across Canada?",
+            _join([f'{i.get("stat_number", "")} {i.get("stat_text", "")}'.strip()
+                   for i in adoption[:3]]),
+        ),
+        (
+            "What Canadian AI companies or initiatives should I know about?",
+            _join([f'{i["org"]}: {i["body"]}' if i.get("org") else i["body"]
+                   for i in spotlight_items[:3]]),
+        ),
+        (
+            "How do global AI trends affect Canadian competitiveness?",
+            _plain(business_impact),
+        ),
     ]
-    faq_items = []
-    for i, action in enumerate(actions[:5]):
-        faq_items.append({"question": faq_qs[i], "answer": action[:500]})
+    # Only publish a Q&A when the post genuinely contains the answer.
+    faq_items = [{"question": q, "answer": a} for q, a in faq_candidates if len(a) > 60]
+
+    # The FAQ must be VISIBLE, not schema-only. Google requires FAQPage content
+    # to appear on the page, and an answer engine can only quote what it can
+    # read — schema alone gets ignored and risks a structured-data penalty.
+    if faq_items:
+        faq_html = "".join(
+            f'<div class="faq-item">'
+            f'<h3 class="faq-q">{f["question"]}</h3>'
+            f'<p class="faq-a">{f["answer"]}</p>'
+            f'</div>'
+            for f in faq_items
+        )
+        article_parts.append(
+            f'<div class="section faq-section">'
+            f'<h2 class="section-title">Questions Canadian Leaders Are Asking</h2>'
+            f'<div class="faq-list">{faq_html}</div>'
+            f'</div>'
+        )
+
+    article_html = "\n".join(article_parts)
 
     faq_schema = ""
     if faq_items:
@@ -313,10 +382,18 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         "@type": "Person",
         "name": "Robert Simon",
         "url": "https://www.imetrobert.com",
+        "image": "https://www.imetrobert.com/profile.jpg",
         "jobTitle": "AI Thought Leader & Digital Transformation Expert",
+        "knowsAbout": ["Artificial Intelligence", "Digital Transformation", "AI Adoption in Canada", "AI Strategy"],
+        "sameAs": ["https://linkedin.com/in/thedigitalrobert"],
         "address": {{"@type": "PostalAddress", "addressLocality": "Montreal", "addressRegion": "QC", "addressCountry": "CA"}}
       }},
-      "publisher": {{"@type": "Person", "name": "Robert Simon", "url": "https://www.imetrobert.com"}},
+      "publisher": {{
+        "@type": "Person",
+        "name": "Robert Simon",
+        "url": "https://www.imetrobert.com",
+        "logo": {{"@type": "ImageObject", "url": "https://www.imetrobert.com/blog/logo-512.png", "width": 512, "height": 512}}
+      }},
       "mainEntityOfPage": {{"@type": "WebPage", "@id": {json.dumps(canonical)}}},
       "url": {json.dumps(canonical)},
       "image": {json.dumps(og_image)},
@@ -326,7 +403,15 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         {{"@type": "Thing", "name": "Canadian Business"}},
         {{"@type": "Place", "name": "Canada"}}
       ],
-      "keywords": "AI Canada, artificial intelligence Canada, Canadian business AI, AI news Montreal, AI strategy Canada, digital transformation Canada"
+      "keywords": "AI Canada, artificial intelligence Canada, Canadian business AI, AI news Montreal, AI strategy Canada, digital transformation Canada",
+      "articleSection": "AI Strategy",
+      "wordCount": {word_count},
+      "timeRequired": "PT{reading_time}M",
+      "isAccessibleForFree": true,
+      "speakable": {{
+        "@type": "SpeakableSpecification",
+        "cssSelector": [".intro-lead", ".faq-q", ".faq-a"]
+      }}
     }}
     </script>
 {faq_schema}
@@ -451,6 +536,11 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .roberts-body {{ font-size: 0.925rem; line-height: 1.85; color: #ffffff; font-style: normal; font-weight: 400; }}
         .roberts-placeholder {{ font-size: 0.825rem; line-height: 1.7; opacity: 0.65; border: 1px dashed rgba(255,255,255,0.25); padding: 1rem 1.25rem; border-radius: 10px; }}
         .roberts-placeholder strong {{ color: var(--white); opacity: 1; font-style: normal; }}
+        .faq-section {{ background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; }}
+        .faq-list {{ display: grid; gap: 1rem; }}
+        .faq-item {{ padding: 1rem 1.25rem; background: var(--white); border: 1px solid var(--border); border-radius: 12px; border-left: 3px solid var(--blue); }}
+        .faq-q {{ font-size: 0.925rem; font-weight: 700; color: var(--navy); margin-bottom: 0.4rem; line-height: 1.45; }}
+        .faq-a {{ font-size: 0.875rem; color: var(--gray); line-height: 1.7; margin: 0; }}
         .conclusion {{ background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%); color: var(--white); padding: 2rem; border-radius: 14px; margin-top: 2.5rem; }}
         .conclusion-label {{ font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.75; margin-bottom: 0.5rem; }}
         .conclusion p {{ color: rgba(255,255,255,0.95); font-size: 0.95rem; font-weight: 500; line-height: 1.75; }}
