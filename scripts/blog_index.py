@@ -140,9 +140,19 @@ def create_blog_index_html(posts):
         "@type": "Person",
         "name": "Robert Simon",
         "url": "https://www.imetrobert.com",
+        "image": "https://www.imetrobert.com/profile.jpg",
         "jobTitle": "AI Thought Leader & Digital Transformation Expert",
+        "knowsAbout": ["Artificial Intelligence", "Digital Transformation", "AI Adoption in Canada", "AI Strategy"],
+        "sameAs": ["https://linkedin.com/in/thedigitalrobert"],
         "address": {{"@type": "PostalAddress", "addressLocality": "Montreal", "addressRegion": "QC", "addressCountry": "CA"}}
-      }}
+      }},
+      "publisher": {{
+        "@type": "Person",
+        "name": "Robert Simon",
+        "url": "https://www.imetrobert.com",
+        "logo": {{"@type": "ImageObject", "url": "https://www.imetrobert.com/blog/logo-512.png", "width": 512, "height": 512}}
+      }},
+      "isAccessibleForFree": true
     }}
     </script>
     <script type="application/ld+json">
