@@ -42,6 +42,26 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         coverage_month_year = month_year
         coverage_month_name = month_year
 
+    # The URL this issue will live at once published. approve-blog.yml promotes
+    # the staging file to blog/posts/ under the same name, so it is knowable now
+    # — which is what lets the reviewer copy a share link without hunting for it
+    # after the fact, and without reaching for latest.html.
+    permalink = f"https://www.imetrobert.com/blog/posts/{staging_filename}"
+    permalink_json = json.dumps(permalink)
+
+    # Build the wave form from the live survey config, so adding or renaming a
+    # question in data/survey.json changes the form without touching this file.
+    try:
+        _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(_root, "data", "survey.json"), encoding="utf-8") as _f:
+            _cfg = json.load(_f)
+        survey_questions_json = json.dumps(
+            [{"id": q["id"], "text": q["text"], "options": q["options"]}
+             for q in _cfg.get("questions", [])]
+        )
+    except Exception:
+        survey_questions_json = "[]"
+
     regen_badge = ""
     if regenerated:
         regen_badge = '<div class="regen-badge">🔄 Regenerated with custom prompt</div>'
@@ -163,6 +183,22 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       height: calc(100vh - 65px);
     }}
     .sidebar-section {{ margin-bottom: 2rem; }}
+    .take-hint {{ font-size: 0.72rem; color: #64748b; line-height: 1.55; margin-bottom: 0.6rem; }}
+    .take-meta {{ display: flex; justify-content: space-between; font-size: 0.68rem; color: #94a3b8; margin-top: 0.35rem; }}
+    .take-saved {{ color: #16a34a; font-weight: 600; }}
+    .perma-row {{ display: flex; align-items: center; gap: 0.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.5rem 0.6rem; }}
+    .perma-row code {{ flex: 1; font-size: 0.66rem; word-break: break-all; color: #1e293b; }}
+    .survey-block summary {{ cursor: pointer; list-style: none; }}
+    .survey-block summary::-webkit-details-marker {{ display: none; }}
+    .survey-block summary::before {{ content: "\25B8 "; color: #94a3b8; }}
+    .survey-block[open] summary::before {{ content: "\25BE "; }}
+    .survey-label {{ display: block; font-size: 0.7rem; font-weight: 600; color: #475569; margin: 0.5rem 0 0.15rem; }}
+    .survey-input {{ width: 100%; padding: 0.4rem 0.55rem; border: 1px solid #e2e8f0; border-radius: 6px; font: inherit; font-size: 0.78rem; }}
+    .survey-q {{ margin-top: 0.9rem; padding-top: 0.6rem; border-top: 1px dashed #e2e8f0; }}
+    .survey-q-text {{ font-size: 0.72rem; font-weight: 700; color: #1e293b; margin-bottom: 0.3rem; }}
+    .survey-opt {{ display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; }}
+    .survey-opt span {{ flex: 1; font-size: 0.68rem; color: #475569; }}
+    .survey-opt input {{ width: 4.5rem; padding: 0.25rem 0.4rem; border: 1px solid #e2e8f0; border-radius: 5px; font: inherit; font-size: 0.72rem; }}
     .sidebar-section h3 {{
       font-size: 0.7rem;
       font-weight: 700;
@@ -530,6 +566,44 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     </div>
 
     <div class="sidebar-section">
+      <h3>Robert&#39;s Take &mdash; in your words</h3>
+      <p class="take-hint">This is the one section on the page that claims to be you.
+      Two or three sentences replace whatever the model wrote. Leave it blank to keep
+      the generated version.</p>
+      <textarea id="take-input" class="prompt-area" rows="7"
+        placeholder="What surprised you this month? What are you hearing from Canadian leaders? What pattern is everyone else missing?"></textarea>
+      <div class="take-meta">
+        <span id="take-count">0 words</span>
+        <span id="take-saved" class="take-saved"></span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Share link (after publishing)</h3>
+      <p class="take-hint">The permanent URL for this issue. Use this on LinkedIn &mdash;
+      never latest.html, which changes every month.</p>
+      <div class="perma-row">
+        <code id="perma-url">{permalink}</code>
+        <button class="btn btn-secondary" style="padding:0.4rem 0.8rem;font-size:0.72rem;"
+          onclick="copyPermalink()">Copy</button>
+      </div>
+    </div>
+
+    <details class="sidebar-section survey-block">
+      <summary><h3 style="display:inline;">Survey results (optional)</h3></summary>
+      <p class="take-hint">Type the counts from your form. Submitted with Approve, validated
+      before it is recorded, and left alone entirely if you skip it.</p>
+      <label class="survey-label">Wave label
+        <input type="text" id="wave-label" class="survey-input" placeholder="Wave 1 &mdash; {issue_month_year}">
+      </label>
+      <label class="survey-label">Total responses (n)
+        <input type="number" id="wave-n" class="survey-input" min="1" placeholder="e.g. 68">
+      </label>
+      <div id="survey-questions"></div>
+      <p class="take-hint" id="survey-status"></p>
+    </details>
+
+    <div class="sidebar-section">
       <h3>Regenerate with Prompt</h3>
       <div class="prompt-examples">
         <p>Quick prompts:</p>
@@ -628,6 +702,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   const STAGING_FILE  = "{staging_filename}";
   const ISSUE_MONTH_YEAR    = "{issue_month_year}";
   const COVERAGE_MONTH_YEAR = "{coverage_month_year}";
+  const SURVEY_QUESTIONS = {survey_questions_json};
+  const PERMALINK        = {permalink_json};
   const APPROVE_WF    = "approve-blog.yml";
   const REGENERATE_WF = "regenerate-blog.yml";
   const DISCARD_WF    = "discard-blog.yml";
@@ -824,6 +900,92 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     document.getElementById("lock-banner").style.display = "none";
   }}
 
+
+  // ── Robert's Take ───────────────────────────────────────────────
+  // Kept in localStorage: a half-written take should survive a reload or an
+  // accidental navigation, since it is the one thing here nobody else can
+  // reproduce for him.
+  const TAKE_KEY = "blog_preview_take_" + STAGING_FILE;
+
+  function takeText() {{
+    const el = document.getElementById("take-input");
+    return el ? el.value.trim() : "";
+  }}
+
+  function initTake() {{
+    const el = document.getElementById("take-input");
+    if (!el) return;
+    const saved = localStorage.getItem(TAKE_KEY);
+    if (saved) el.value = saved;
+    const count = document.getElementById("take-count");
+    const savedFlag = document.getElementById("take-saved");
+    let timer = null;
+    function update() {{
+      const words = takeText() ? takeText().split(/\s+/).length : 0;
+      if (count) count.textContent = words + (words === 1 ? " word" : " words");
+      clearTimeout(timer);
+      timer = setTimeout(function () {{
+        localStorage.setItem(TAKE_KEY, el.value);
+        if (savedFlag) {{
+          savedFlag.textContent = "saved";
+          setTimeout(function () {{ savedFlag.textContent = ""; }}, 1500);
+        }}
+      }}, 400);
+    }}
+    el.addEventListener("input", update);
+    update();
+  }}
+
+  // ── Permalink ───────────────────────────────────────────────────
+  function copyPermalink() {{
+    navigator.clipboard.writeText(PERMALINK).then(
+      function () {{ showToast("Share link copied.", "success"); }},
+      function () {{ showToast("Could not copy — select the text manually.", "error"); }}
+    );
+  }}
+
+  // ── Survey wave form ────────────────────────────────────────────
+  function initSurvey() {{
+    const host = document.getElementById("survey-questions");
+    if (!host || !SURVEY_QUESTIONS.length) return;
+    host.innerHTML = SURVEY_QUESTIONS.map(function (q) {{
+      const opts = q.options.map(function (o) {{
+        return '<label class="survey-opt"><span>' + o + '</span>' +
+               '<input type="number" min="0" data-q="' + q.id + '" data-opt="' +
+               o.replace(/"/g, "&quot;") + '"></label>';
+      }}).join("");
+      return '<div class="survey-q"><div class="survey-q-text">' + q.text + '</div>' + opts + '</div>';
+    }}).join("");
+  }}
+
+  function surveyPayload() {{
+    const label = (document.getElementById("wave-label") || {{}}).value;
+    const n = parseInt((document.getElementById("wave-n") || {{}}).value, 10);
+    if (!label || !label.trim() || !n) return "";      // nothing entered: skip silently
+
+    const results = {{}};
+    document.querySelectorAll('#survey-questions input[type="number"]').forEach(function (inp) {{
+      const v = parseInt(inp.value, 10);
+      if (!isNaN(v) && v >= 0) {{
+        const q = inp.dataset.q;
+        results[q] = results[q] || {{}};
+        results[q][inp.dataset.opt] = v;
+      }}
+    }});
+    if (!Object.keys(results).length) return "";
+
+    const today = new Date().toISOString().slice(0, 10);
+    return JSON.stringify({{
+      label: label.trim(), date: today, field_dates: ISSUE_MONTH_YEAR,
+      n: n, results: results
+    }});
+  }}
+
+  document.addEventListener("DOMContentLoaded", function () {{
+    initTake();
+    initSurvey();
+  }});
+
   // ── Approve ─────────────────────────────────────────────────────
   async function triggerApprove() {{
     showOverlay("confirming");
@@ -835,7 +997,9 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     showOverlay("loading", "Publishing...", "Triggering the publish workflow on GitHub Actions.");
     const res = await triggerWorkflow(APPROVE_WF, {{
       staging_filename: STAGING_FILE,
-      month_year: ISSUE_MONTH_YEAR
+      month_year: ISSUE_MONTH_YEAR,
+      roberts_take: takeText(),
+      survey_wave: surveyPayload()
     }});
     if (!res) {{ unlockButtons(); return; }}
     if (res.status === 204) {{

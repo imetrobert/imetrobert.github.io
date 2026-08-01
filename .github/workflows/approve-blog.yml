@@ -11,6 +11,16 @@ on:
         description: 'Month and year label (e.g. May 2026)'
         required: true
         type: string
+      roberts_take:
+        description: "Robert's Take, in his own words. Blank keeps whatever the model wrote."
+        required: false
+        default: ''
+        type: string
+      survey_wave:
+        description: 'Optional survey wave as JSON, assembled by the preview form. Blank records nothing.'
+        required: false
+        default: ''
+        type: string
 
 # Shared with monthly-blog.yml / regenerate-blog.yml — see comment there.
 permissions:
@@ -53,6 +63,14 @@ jobs:
           fi
           echo "Found staging file: $STAGING_PATH"
 
+      - name: Apply Robert's Take from the preview page
+        env:
+          ROBERTS_TAKE: ${{ github.event.inputs.roberts_take }}
+        run: |
+          python3 scripts/inject_take.py \
+            "blog/staging/${{ github.event.inputs.staging_filename }}" \
+            "$ROBERTS_TAKE"
+
       - name: Promote staging file to production
         run: |
           STAGING_PATH="blog/staging/${{ github.event.inputs.staging_filename }}"
@@ -88,6 +106,11 @@ jobs:
       # with discard-blog.yml — same "nothing pending" state either way.
       - name: Replace preview page with a "nothing pending" placeholder
         run: python3 scripts/write_nothing_pending_placeholder.py
+
+      - name: Record survey wave from the preview page
+        env:
+          SURVEY_WAVE: ${{ github.event.inputs.survey_wave }}
+        run: python3 scripts/add_survey_wave.py "$SURVEY_WAVE"
 
       - name: Regenerate sitemap.xml
         run: python3 scripts/regenerate_sitemap.py
@@ -137,4 +160,3 @@ jobs:
           echo "| Live URL | https://www.imetrobert.com/blog/posts/${{ github.event.inputs.staging_filename }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Latest | https://www.imetrobert.com/blog/posts/latest.html |" >> $GITHUB_STEP_SUMMARY
           echo "| Sitemap | Regenerated ✅ |" >> $GITHUB_STEP_SUMMARY
-          echo "| Google Pinged | ✅ |" >> $GITHUB_STEP_SUMMARY
