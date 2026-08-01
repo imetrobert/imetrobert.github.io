@@ -39,6 +39,10 @@ entries = [
 # decay, and it is the page most likely to answer a standing question.
 if os.path.exists("blog/canadian-ai-adoption.html"):
     entries.append((f"{BASE_URL}/blog/canadian-ai-adoption.html", today, "0.85"))
+# Original survey data: the only page here nobody else can publish, so it gets
+# the highest non-homepage priority — once a wave actually exists.
+if os.path.exists("blog/canadian-ai-pulse.html"):
+    entries.append((f"{BASE_URL}/blog/canadian-ai-pulse.html", today, "0.90"))
 for i, fname in enumerate(posts):
     priority = "0.90" if i == 0 else ("0.75" if i == 1 else "0.65")
     entries.append((f"{BASE_URL}/blog/posts/{fname}", iso_date(fname), priority))

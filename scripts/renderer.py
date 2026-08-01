@@ -327,6 +327,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             f'</div>'
         )
 
+    article_parts.append(_build_survey_cta())
     article_parts.append(_build_prompts_section(canonical, clean_title, issue_month_year))
 
     article_html = "\n".join(article_parts)
@@ -562,6 +563,15 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .faq-item {{ padding: 1rem 1.25rem; background: var(--white); border: 1px solid var(--border); border-radius: 12px; border-left: 3px solid var(--blue); }}
         .faq-q {{ font-size: 0.925rem; font-weight: 700; color: var(--navy); margin-bottom: 0.4rem; line-height: 1.45; }}
         .faq-a {{ font-size: 0.875rem; color: var(--gray); line-height: 1.7; margin: 0; }}
+        .survey-cta {{ background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%); color: var(--white); border-radius: 16px; padding: 1.75rem; }}
+        .survey-cta .section-title {{ color: var(--white); }}
+        .survey-cta .section-title::before {{ background: rgba(255,255,255,0.85); }}
+        .survey-body {{ font-size: 0.9rem; line-height: 1.75; color: rgba(255,255,255,0.94); margin-bottom: 1.25rem; }}
+        .survey-body strong {{ color: var(--white); }}
+        .survey-actions {{ display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }}
+        .survey-btn {{ display: inline-block; background: var(--white); color: var(--blue); font-weight: 700; font-size: 0.85rem; padding: 0.6rem 1.4rem; border-radius: 25px; text-decoration: none; transition: transform 0.15s; }}
+        .survey-btn:hover {{ transform: translateY(-1px); }}
+        .survey-results {{ color: rgba(255,255,255,0.92); font-size: 0.8rem; font-weight: 600; text-decoration: underline; }}
         .prompts-section {{ background: linear-gradient(135deg, #f8fafc 0%, #eef4ff 100%); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; }}
         .prompts-intro {{ font-size: 0.875rem; color: var(--gray); line-height: 1.7; margin-bottom: 1.25rem; }}
         .prompt-list {{ display: grid; gap: 0.875rem; }}
@@ -754,6 +764,46 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
 </html>'''
 
     return html
+
+
+def _build_survey_cta():
+    """Invitation to the reader survey, rendered only once a form URL is set.
+
+    This is the collection end of the one thing on the site that makes Robert a
+    primary source rather than a reporter of other people's numbers. It stays
+    invisible until data/survey.json has a form_url, so the section can be built
+    and reviewed without ever shipping a dead link.
+    """
+    import json as _json, os as _os
+    root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    try:
+        with open(_os.path.join(root, "data", "survey.json"), encoding="utf-8") as f:
+            cfg = _json.load(f)
+    except Exception:
+        return ""
+
+    form_url = (cfg.get("form_url") or "").strip()
+    if not form_url:
+        return ""
+
+    name = escape_html(cfg.get("survey_name", "reader survey"))
+    results_exists = _os.path.exists(_os.path.join(root, "blog", "canadian-ai-pulse.html"))
+    results_link = ('<a class="survey-results" href="/blog/canadian-ai-pulse.html">'
+                    'See the current results</a>') if results_exists else ""
+
+    return (
+        f'<div class="section survey-cta">'
+        f'<h2 class="section-title">Add your data point</h2>'
+        f'<p class="survey-body">Most of the adoption numbers in this issue come from '
+        f'somebody else\'s survey. <strong>{name}</strong> is ours: five questions, under a '
+        f'minute, no email required. Results are published openly with the sample size, so '
+        f'you get to compare your position against the rest of this readership rather than '
+        f'against a national average that may not look anything like you.</p>'
+        f'<div class="survey-actions">'
+        f'<a class="survey-btn" href="{form_url}" target="_blank" rel="noopener noreferrer">'
+        f'Take the {name} survey</a>{results_link}'
+        f'</div></div>'
+    )
 
 
 def _build_prompts_section(canonical, title_text, issue_month_year):
