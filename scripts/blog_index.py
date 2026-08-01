@@ -425,6 +425,14 @@ def update_blog_index():
     except Exception as e:
         print(f"Pillar page skipped ({e})")
 
+    # Survey results. Writes nothing until a wave exists in data/survey.json,
+    # so there is never a results page describing data not yet collected.
+    try:
+        from survey import write_survey_page
+        write_survey_page()
+    except Exception as e:
+        print(f"Survey page skipped ({e})")
+
     llms_txt = create_llms_txt(deduped)
     if llms_txt:
         with open("llms.txt", "w", encoding="utf-8") as f:

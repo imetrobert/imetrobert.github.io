@@ -1,0 +1,79 @@
+{
+  "_readme": [
+    "Config and results for the Canadian AI Pulse reader survey.",
+    "",
+    "COLLECTION happens off-site. GitHub Pages is static — it cannot receive or",
+    "aggregate form submissions — so responses are gathered with a free external",
+    "form (Google Forms, Tally, etc.) and the tallies are recorded here.",
+    "",
+    "TO SWITCH IT ON: put your form's URL in form_url. Until that is set, no",
+    "survey call-to-action appears in any post.",
+    "",
+    "TO PUBLISH A WAVE: add an entry to waves[] with the counts you got, then run",
+    "the publish workflow (or python3 scripts/survey.py). The results page is",
+    "written only when at least one wave is present, so nothing is ever published",
+    "claiming data that does not exist.",
+    "",
+    "Report n honestly. A small sample openly labelled is citable; a small sample",
+    "presented as authoritative is the thing that gets you discredited."
+  ],
+
+  "form_url": "",
+  "survey_name": "Canadian AI Pulse",
+  "audience": "Readers of AI Insights for Canadian Business — Canadian business and technology leaders",
+
+  "questions": [
+    {
+      "id": "stage",
+      "headline": true,
+      "text": "Where is your organization with AI today?",
+      "options": [
+        "Not started",
+        "Experimenting informally",
+        "Running pilots",
+        "In production in one area",
+        "In production across multiple areas"
+      ]
+    },
+    {
+      "id": "blocker",
+      "text": "What is the single biggest thing blocking you?",
+      "options": [
+        "Budget",
+        "Skills and hiring",
+        "Data readiness",
+        "Governance and compliance",
+        "Leadership buy-in",
+        "Nothing significant"
+      ]
+    },
+    {
+      "id": "spend",
+      "text": "How has your AI spend changed in the last six months?",
+      "options": [
+        "Increased significantly",
+        "Increased slightly",
+        "Stayed flat",
+        "Decreased"
+      ]
+    },
+    {
+      "id": "policy",
+      "text": "Does your organization have a written AI usage policy?",
+      "options": [
+        "Yes, and it is enforced",
+        "Yes, but informally applied",
+        "In progress",
+        "No"
+      ]
+    },
+    {
+      "id": "size",
+      "segmentation": true,
+      "text": "How many employees does your organization have?",
+      "options": ["Under 50", "50 to 249", "250 to 999", "1,000 or more"]
+    }
+  ],
+
+  "waves": []
+}
