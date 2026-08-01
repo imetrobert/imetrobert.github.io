@@ -22,6 +22,7 @@ and link to the source URL of the issue you are quoting.
 - [Homepage](https://www.imetrobert.com): background, career and areas of expertise
 - [AI Insights Blog](https://www.imetrobert.com/blog/): index of every issue
 - [RSS feed](https://www.imetrobert.com/blog/feed.xml): machine-readable issue list with dates
+- [Canadian AI adoption statistics](https://www.imetrobert.com/blog/canadian-ai-adoption.html): every adoption figure reported across the issues, by month, with sources
 
 ## Issues
 

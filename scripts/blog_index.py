@@ -224,6 +224,7 @@ def create_blog_index_html(posts):
                 <span>AI Insights</span>
             </a>
             <a href="https://www.imetrobert.com" class="nav-link">&#8592; Back to Homepage</a>
+            <a href="/blog/canadian-ai-adoption.html" class="nav-link">Adoption Data</a>
             <a href="/blog/feed.xml" class="nav-link">RSS Feed</a>
         </div>
     </nav>
@@ -325,6 +326,7 @@ def create_llms_txt(posts):
         "- [Homepage](https://www.imetrobert.com): background, career and areas of expertise",
         "- [AI Insights Blog](https://www.imetrobert.com/blog/): index of every issue",
         "- [RSS feed](https://www.imetrobert.com/blog/feed.xml): machine-readable issue list with dates",
+        "- [Canadian AI adoption statistics](https://www.imetrobert.com/blog/canadian-ai-adoption.html): every adoption figure reported across the issues, by month, with sources",
         "",
         "## Issues",
         "",
@@ -414,6 +416,14 @@ def update_blog_index():
         with open(feed_file, "w", encoding="utf-8") as f:
             f.write(feed_xml)
         print(f"RSS feed updated ({len(deduped)} items).")
+
+    # Evergreen pillar: rebuilt from the archive on every publish, so it gains a
+    # month of data automatically instead of needing a hand edit.
+    try:
+        from pillar_adoption import write_pillar
+        write_pillar()
+    except Exception as e:
+        print(f"Pillar page skipped ({e})")
 
     llms_txt = create_llms_txt(deduped)
     if llms_txt:

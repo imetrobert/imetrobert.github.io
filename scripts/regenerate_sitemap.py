@@ -35,6 +35,10 @@ entries = [
     (f"{BASE_URL}/",      today, "1.00"),
     (f"{BASE_URL}/blog/", today, "0.80"),
 ]
+# Evergreen pillar. High priority on purpose: unlike a dated issue it does not
+# decay, and it is the page most likely to answer a standing question.
+if os.path.exists("blog/canadian-ai-adoption.html"):
+    entries.append((f"{BASE_URL}/blog/canadian-ai-adoption.html", today, "0.85"))
 for i, fname in enumerate(posts):
     priority = "0.90" if i == 0 else ("0.75" if i == 1 else "0.65")
     entries.append((f"{BASE_URL}/blog/posts/{fname}", iso_date(fname), priority))
