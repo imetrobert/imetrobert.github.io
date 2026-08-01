@@ -173,6 +173,7 @@ SOURCE QUALITY RULE: Only cite primary sources — official company blogs, gover
 OUTPUT FORMAT
 Write plain text only. No markdown (no *, no **, no #). Use EXACTLY these section headers on their own lines:
 
+HEADLINE
 INTRODUCTION
 KEY AI DEVELOPMENTS
 CANADIAN SPOTLIGHT
@@ -182,6 +183,12 @@ ADOPTION SNAPSHOT
 ROBERTS TAKE
 
 ---
+
+HEADLINE (one line, 50-85 characters):
+Name the single biggest story of {month_year} for a Canadian business audience, as a specific claim. This becomes the page title, so it is what a search engine or an AI assistant matches a question against.
+State the actual entity and the actual number or policy. "Ottawa commits $2.3B to AI for All: what mid-market firms must do" works. "AI Insights for {month_year}", "Key AI developments", "The month in AI" and any other generic phrasing are useless here and must never be used — a title with no topic in it cannot be retrieved for a topic.
+No colon-free clickbait, no questions, no "you won't believe". Plain declarative. Do not include the month name — it is added automatically.
+Write the headline on ONE line directly under the HEADLINE header, with no quotes around it.
 
 INTRODUCTION (3 sentences maximum):
 Open with one specific fact or event from {month_year}. Second sentence: what it means for Canadian business. Third sentence: what this analysis helps the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase. Lead with the sharpest, most surprising detail you found. Make the reader want to keep going.

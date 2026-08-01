@@ -75,7 +75,10 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     meta_desc_html    = escape_html(meta_desc, quote=True)
     clean_title_html  = escape_html(clean_title, quote=True)
     excerpt_html      = escape_html(re.sub(r'\s+', ' ', excerpt).strip(), quote=True)
-    seo_title         = f"{clean_title_html} | AI News for Canadian Business | Robert Simon"
+    # Topic first: the front of the title carries the most retrieval weight, and
+    # it is what survives truncation in a SERP. Month second for freshness and
+    # issue identity, brand last.
+    seo_title         = f"{clean_title_html} | AI Insights {issue_month_year} | Robert Simon"
 
     sections = parse_sections(content)
 

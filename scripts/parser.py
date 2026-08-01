@@ -13,6 +13,7 @@ from utils import (
 
 
 SECTION_HEADERS = [
+    "HEADLINE",
     "INTRODUCTION",
     "KEY AI DEVELOPMENTS",
     "CANADIAN SPOTLIGHT",
@@ -438,13 +439,57 @@ def parse_adoption_stats(text):
     return items[:8]
 
 
+_GENERIC_HEADLINES = (
+    "ai insights", "key ai developments", "the month in ai", "monthly ai",
+    "ai news", "this month in ai", "ai roundup", "ai update", "headline",
+)
+
+
+def _clean_headline(raw):
+    """Accept a model-written headline only if it actually says something.
+
+    A generic headline is worse than the month fallback: it occupies the most
+    valuable retrieval real estate on the page while asserting no topic, and it
+    would silently look fine. So anything generic is rejected outright rather
+    than published."""
+    if not raw:
+        return None
+
+    line = raw.strip().split("\n")[0].strip()
+    line = re.sub(r'^(?:headline|title)\s*[:\-\u2014]\s*', '', line, flags=re.I)
+    line = line.strip().strip('"\u201c\u201d\'')
+    line = re.sub(r'^[#*\s]+', '', line)
+    line = re.sub(r'\s+', ' ', line).strip().rstrip('.')
+
+    if not (25 <= len(line) <= 110):
+        return None
+    low = line.lower()
+    if any(low.startswith(g) for g in _GENERIC_HEADLINES):
+        return None
+    # must contain a real word beyond the boilerplate, not just "AI" + a month
+    if len(re.findall(r'[A-Za-z]{4,}', line)) < 4:
+        return None
+    return line
+
 def extract_title_and_excerpt(content, issue_month_year, coverage_month_name=None):
-    # Title uses the ISSUE month (the month readers actually open this in),
-    # so the headline never looks stale. See utils.get_issue_labels().
-    title   = f"AI Insights for {issue_month_year}"
+    # The title is the single strongest retrieval signal on the page: it is what
+    # a search engine and an AI assistant match a question against. "AI Insights
+    # for August 2026" states no topic, so it can never match one — the model is
+    # asked for a specific claim instead, and that becomes the title.
+    #
+    # The month is NOT in the title. It is already carried by the issue badge,
+    # the dateline and the URL, and spending title characters on it costs topic.
+    fallback_title = f"AI Insights for {issue_month_year}"
+    title   = fallback_title
     excerpt = ""
 
     sections = parse_sections(content)
+
+    headline = _clean_headline(sections.get("HEADLINE", ""))
+    if headline:
+        title = headline
+    else:
+        print("  headline missing or generic; falling back to the month title")
     intro    = sections.get("INTRODUCTION", "")
     if intro:
         sentences = re.split(r'(?<=[.!?])\s+', intro)
