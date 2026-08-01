@@ -8,11 +8,16 @@ import requests
 from datetime import datetime
 
 
-def clean_filename(title):
+def clean_filename(title, max_len=70):
+    """Slug for the post URL. Capped at a word boundary: topical headlines are
+    longer than the old "AI Insights for August 2026" titles, and an uncapped
+    slug produces URLs like the 95-character GPT-5 post already in the archive."""
     clean = re.sub('<.*?>', '', title)
     clean = re.sub(r'[^a-zA-Z0-9\s]', '', clean)
-    clean = re.sub(r'\s+', '-', clean.strip())
-    return clean.lower()
+    clean = re.sub(r'\s+', '-', clean.strip()).lower()
+    if len(clean) > max_len:
+        clean = clean[:max_len].rsplit('-', 1)[0]
+    return clean.strip('-')
 
 
 def clean_ai_content(content):
