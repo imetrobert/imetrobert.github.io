@@ -75,6 +75,15 @@ def create_blog_index_html(posts):
     latest = validated[0]
     older  = validated[1:]
 
+    # Link the newest issue by its DATED permalink, not /blog/posts/latest.html.
+    # latest.html is a rotating alias: same URL, different article every month.
+    # Social platforms cache Open Graph data per URL essentially forever, so a
+    # share of latest.html keeps showing whichever month was scraped first —
+    # and worse, an old post silently starts pointing at a newer article.
+    # Every other issue in this list already uses its permalink; the newest one
+    # was the only exception, which is exactly the one people share.
+    latest_permalink = latest.get('canonical_filename') or latest['filename']
+
     older_html = ""
     if older:
         for post in older:
@@ -230,7 +239,7 @@ def create_blog_index_html(posts):
             <h2 class="latest-post-title">{latest['title']}</h2>
             <div style="margin-bottom: 0.875rem; opacity: 0.85; font-size: 0.85rem;">{latest['date']}</div>
             <p style="line-height: 1.65; margin-bottom: 1.5rem; opacity: 0.9; font-size: 0.9rem;">{latest['excerpt']}</p>
-            <a href="/blog/posts/latest.html" class="read-latest-btn">Read This Month\'s Issue &#8594;</a>
+            <a href="/blog/posts/{latest_permalink}" class="read-latest-btn">Read This Month\'s Issue &#8594;</a>
         </section>
         <section class="older-posts-section">
             <h3 class="older-posts-title">Previous Issues</h3>
