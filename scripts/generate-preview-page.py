@@ -471,10 +471,56 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       cursor: pointer;
       padding: 0;
     }}
+    /* ── Mobile ───────────────────────────────────────────────────────
+       This screen is reviewed on a phone, not a desktop, so the phone layout
+       is the real one. Two things drive it:
+
+       1. The post comes FIRST. On a stacked layout the sidebar used to push
+          the actual draft 2,300px down the page — you scrolled past every
+          control, including Approve, before reaching the thing you came to
+          read. The preview is now first and the controls follow in the order
+          you need them: write your take, publish, grab the share link.
+       2. Inputs are 16px. Below that, iOS Safari zooms the viewport on focus
+          and does not zoom back out, which leaves the page stranded
+          mid-review. This is the single most common way a form breaks on
+          iPhone and it is invisible on a desktop browser. */
     @media (max-width: 900px) {{
-      .layout {{ grid-template-columns: 1fr; }}
-      .sidebar {{ position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }}
-      .preview-frame iframe {{ height: 60vh; }}
+      .layout {{ display: flex; flex-direction: column; }}
+      .preview-frame {{ order: 1; }}
+      .sidebar {{
+        order: 2; position: static; height: auto;
+        border-right: none; border-top: 1px solid var(--border);
+        display: flex; flex-direction: column; padding: 1.25rem 1rem 3rem;
+      }}
+      .preview-frame iframe {{ height: 78vh; }}
+
+      /* Controls in the order the review actually happens */
+      .sidebar > * {{ order: 50; }}
+      .sec-take    {{ order: 10; }}
+      .sec-approve {{ order: 20; }}
+      .sec-share   {{ order: 30; }}
+      .sec-regen   {{ order: 40; }}
+      .sec-status  {{ order: 60; }}
+      .sec-survey  {{ order: 70; }}
+      .pat-section {{ order: 80; }}
+      .sec-discard {{ order: 90; }}
+
+      .topbar {{ flex-wrap: wrap; gap: 0.5rem; padding: 0.6rem 0.9rem; height: auto; }}
+      .topbar-left {{ flex-wrap: wrap; gap: 0.5rem; }}
+      .topbar-right {{ width: 100%; justify-content: stretch; }}
+      .topbar-right .btn {{ flex: 1; text-align: center; }}
+      .sidebar {{ top: auto; }}
+
+      /* 16px stops iOS zooming on focus; 44px is the minimum comfortable tap */
+      .prompt-area, .survey-input, .pat-input, input[type="text"],
+      input[type="number"], textarea {{ font-size: 16px; }}
+      .survey-opt input {{ width: 5.5rem; font-size: 16px; padding: 0.45rem; }}
+      .survey-opt span {{ font-size: 0.8rem; }}
+      .btn {{ min-height: 44px; }}
+      #take-input {{ min-height: 150px; }}
+      .perma-row {{ flex-wrap: wrap; }}
+      .perma-row code {{ flex-basis: 100%; font-size: 0.72rem; }}
+      .perma-row .btn {{ width: 100%; }}
     }}
   </style>
 </head>
@@ -499,7 +545,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
 
   <div class="sidebar">
 
-    <div class="sidebar-section">
+    <div class="sidebar-section sec-status">
       <h3>Status</h3>
       <div class="status-card">
         <div class="status-row">
@@ -565,7 +611,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </button>
     </div>
 
-    <div class="sidebar-section">
+    <div class="sidebar-section sec-take">
       <h3>Robert&#39;s Take &mdash; in your words</h3>
       <p class="take-hint">This is the one section on the page that claims to be you.
       Two or three sentences replace whatever the model wrote. Leave it blank to keep
@@ -578,7 +624,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </div>
     </div>
 
-    <div class="sidebar-section">
+    <div class="sidebar-section sec-share">
       <h3>Share link (after publishing)</h3>
       <p class="take-hint">The permanent URL for this issue. Use this on LinkedIn &mdash;
       never latest.html, which changes every month.</p>
@@ -589,7 +635,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </div>
     </div>
 
-    <details class="sidebar-section survey-block">
+    <details class="sidebar-section survey-block sec-survey">
       <summary><h3 style="display:inline;">Survey results (optional)</h3></summary>
       <p class="take-hint">Type the counts from your form. Submitted with Approve, validated
       before it is recorded, and left alone entirely if you skip it.</p>
@@ -603,7 +649,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       <p class="take-hint" id="survey-status"></p>
     </details>
 
-    <div class="sidebar-section">
+    <div class="sidebar-section sec-regen">
       <h3>Regenerate with Prompt</h3>
       <div class="prompt-examples">
         <p>Quick prompts:</p>
@@ -631,16 +677,17 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </button>
     </div>
 
-    <div class="sidebar-section">
+    <div class="sidebar-section sec-approve">
       <h3>Approve &amp; Publish</h3>
       <p class="approve-confirm">
         Publishing will:
         <ul>
-          <li>Move post to <code>blog/posts/</code></li>
-          <li>Update <code>latest.html</code></li>
-          <li>Regenerate <code>sitemap.xml</code></li>
-          <li>Update the blog index page</li>
-          <li>Ping Google to recrawl</li>
+          <li>Apply your Robert&#39;s Take, if you wrote one</li>
+          <li>Move post to <code>blog/posts/</code> and update <code>latest.html</code></li>
+          <li>Regenerate <code>sitemap.xml</code>, the blog index, RSS and <code>llms.txt</code></li>
+          <li>Rebuild the adoption pillar page with this month&#39;s figures</li>
+          <li>Mint this issue&#39;s social card</li>
+          <li>Record your survey wave, if you entered one</li>
         </ul>
       </p>
       <button class="btn btn-primary" id="approve-btn" style="width:100%;padding:0.875rem;" onclick="triggerApprove()">
@@ -648,7 +695,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </button>
     </div>
 
-    <div class="sidebar-section">
+    <div class="sidebar-section sec-discard">
       <h3>Discard</h3>
       <p class="approve-confirm">
         Deletes this draft from staging. Nothing is published or affected —
