@@ -36,7 +36,19 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     clean_title = re.sub(r'^[#\*\s]+', '', title).strip() or f"AI Insights for {issue_month_year}"
     slug        = clean_filename(clean_title)
     canonical   = f"https://www.imetrobert.com/blog/posts/{iso_date}-{slug}.html"
+    # Per-issue social card. Falls back to the static one rather than risking a
+    # 404 og:image if Pillow or the fonts are unavailable in the runner.
     og_image    = "https://www.imetrobert.com/blog/og-blog.jpg"
+    og_alt      = f"AI Insights for Canadian Business \u2014 {issue_month_year} issue by Robert Simon"
+    try:
+        import os as _os
+        from og_image import build_og_image
+        _root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+        _rel  = f"blog/og/{iso_date}-{slug}.jpg"
+        build_og_image(_os.path.join(_root, _rel), issue_month_year)
+        og_image = f"https://www.imetrobert.com/{_rel}"
+    except Exception as _e:
+        print(f"  OG image generation unavailable ({_e}); using the static card")
     # Drafts sitting in blog/staging/ must never be indexable — the URL
     # differs from the eventual blog/posts/ URL, so a crawler that found a
     # draft before approval would leave a stale, permanent entry in search
@@ -353,6 +365,9 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     <meta property="og:title" content="{clean_title_html} | AI Insights for Canadian Business">
     <meta property="og:description" content="{meta_desc_html}">
     <meta property="og:image" content="{og_image}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{og_alt}">
     <meta property="og:site_name" content="Robert Simon - AI Innovation">
     <meta property="og:locale" content="en_CA">
     <meta property="article:published_time" content="{iso_date}T00:00:00+00:00">
@@ -368,6 +383,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     <meta name="twitter:title" content="{clean_title_html} | AI News for Canadian Business">
     <meta name="twitter:description" content="{meta_desc_html}">
     <meta name="twitter:image" content="{og_image}">
+    <meta name="twitter:image:alt" content="{og_alt}">
     <meta name="twitter:creator" content="@thedigitalrobert">
     <meta name="twitter:site" content="@thedigitalrobert">
     <script type="application/ld+json">
