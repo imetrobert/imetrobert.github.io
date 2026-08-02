@@ -574,19 +574,7 @@
       </div>
     </div>
 
-    <details class="sidebar-section survey-block sec-survey">
-      <summary><h3 style="display:inline;">Survey results (optional)</h3></summary>
-      <p class="take-hint">Type the counts from your form. Submitted with Approve, validated
-      before it is recorded, and left alone entirely if you skip it.</p>
-      <label class="survey-label">Wave label
-        <input type="text" id="wave-label" class="survey-input" placeholder="Wave 1 &mdash; September 2026">
-      </label>
-      <label class="survey-label">Total responses (n)
-        <input type="number" id="wave-n" class="survey-input" min="1" placeholder="e.g. 68">
-      </label>
-      <div id="survey-questions"></div>
-      <p class="take-hint" id="survey-status"></p>
-    </details>
+    
 
     <div class="sidebar-section sec-regen">
       <h3>Regenerate with Prompt</h3>
@@ -626,7 +614,7 @@
           <li>Regenerate <code>sitemap.xml</code>, the blog index, RSS and <code>llms.txt</code></li>
           <li>Rebuild the adoption pillar page with this month&#39;s figures</li>
           <li>Mint this issue&#39;s social card</li>
-          <li>Record your survey wave, if you entered one</li>
+          
         </ul>
       </p>
       <button class="btn btn-primary" id="approve-btn" style="width:100%;padding:0.875rem;" onclick="triggerApprove()">
