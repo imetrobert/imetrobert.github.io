@@ -59,8 +59,37 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
             [{"id": q["id"], "text": q["text"], "options": q["options"]}
              for q in _cfg.get("questions", [])]
         )
+        _has_form = bool((_cfg.get("form_url") or "").strip())
     except Exception:
         survey_questions_json = "[]"
+        _has_form = False
+
+    # The wave form is hidden until a form_url exists. Until one does there are
+    # no responses to type in, so the section is a control that cannot be used —
+    # and this screen is reviewed on a phone, where an unusable control is not
+    # neutral, it is something to scroll past every month. It reappears by
+    # itself the moment data/survey.json points at a real form.
+    # Same reasoning as the section itself: do not advertise a step that cannot
+    # happen. With no form there is no wave to record.
+    survey_bullet = ("<li>Record your survey wave, if you entered one</li>"
+                     if _has_form else "")
+    survey_section = ""
+    if _has_form:
+        survey_section = (
+            '<details class="sidebar-section survey-block sec-survey">'
+            '<summary><h3 style="display:inline;">Survey results (optional)</h3></summary>'
+            '<p class="take-hint">Type the counts from your form. Submitted with Approve, '
+            'validated before it is recorded, and left alone entirely if you skip it.</p>'
+            '<label class="survey-label">Wave label'
+            f'<input type="text" id="wave-label" class="survey-input" placeholder="Wave 1 &mdash; {issue_month_year}">'
+            '</label>'
+            '<label class="survey-label">Total responses (n)'
+            '<input type="number" id="wave-n" class="survey-input" min="1" placeholder="e.g. 68">'
+            '</label>'
+            '<div id="survey-questions"></div>'
+            '<p class="take-hint" id="survey-status"></p>'
+            '</details>'
+        )
 
     regen_badge = ""
     if regenerated:
@@ -635,19 +664,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </div>
     </div>
 
-    <details class="sidebar-section survey-block sec-survey">
-      <summary><h3 style="display:inline;">Survey results (optional)</h3></summary>
-      <p class="take-hint">Type the counts from your form. Submitted with Approve, validated
-      before it is recorded, and left alone entirely if you skip it.</p>
-      <label class="survey-label">Wave label
-        <input type="text" id="wave-label" class="survey-input" placeholder="Wave 1 &mdash; {issue_month_year}">
-      </label>
-      <label class="survey-label">Total responses (n)
-        <input type="number" id="wave-n" class="survey-input" min="1" placeholder="e.g. 68">
-      </label>
-      <div id="survey-questions"></div>
-      <p class="take-hint" id="survey-status"></p>
-    </details>
+    {survey_section}
 
     <div class="sidebar-section sec-regen">
       <h3>Regenerate with Prompt</h3>
@@ -687,7 +704,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
           <li>Regenerate <code>sitemap.xml</code>, the blog index, RSS and <code>llms.txt</code></li>
           <li>Rebuild the adoption pillar page with this month&#39;s figures</li>
           <li>Mint this issue&#39;s social card</li>
-          <li>Record your survey wave, if you entered one</li>
+          {survey_bullet}
         </ul>
       </p>
       <button class="btn btn-primary" id="approve-btn" style="width:100%;padding:0.875rem;" onclick="triggerApprove()">
