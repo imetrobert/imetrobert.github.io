@@ -94,7 +94,11 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     roberts_raw     = sections.get("FROM ROBERTS DESK", "")
     adoption_raw    = sections.get("ADOPTION SNAPSHOT", "")
 
-    developments    = parse_developments(sections.get("KEY AI DEVELOPMENTS", ""))
+    # Coverage date resolves the year on a bare "August 12" so the parser can
+    # tell a past item from a forward-dated one. See _drop_future_dated.
+    developments    = parse_developments(
+        sections.get("KEY AI DEVELOPMENTS", ""), coverage_date or current_date
+    )
     spotlight_items = parse_spotlight_items(canadian_spot)
     spotlight_items = deduplicate_spotlight_against_developments(spotlight_items, developments)
     actions         = parse_actions(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""))
@@ -112,6 +116,10 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
           f"{len(actions)} actions, {len(adoption)} stats, {len(summary_points)} summary points, "
           f"{len(predictions)} predictions, myth={'yes' if myth else 'no'}, "
           f"question={'yes' if closing_question else 'no'}")
+    if len(developments) < 4:
+        print(f"  WARNING: only {len(developments)} developments survived parsing. "
+              f"The issue asks for 5-6, so this one will read thin. Check the log "
+              f"above for future-dated items removed on a mid-month run.")
     desk_words = len(roberts_raw.split())
     if desk_words < 200:
         print(f"  NOTE: From Robert's Desk is only {desk_words} words — the signature "

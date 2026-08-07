@@ -154,6 +154,41 @@ other section and the preview URL survive.
   `workflow_dispatch` choice list in `redraft-section.yml` is hand-maintained —
   Actions cannot generate it. Adding a section means editing both.
 
+### Dates — nothing may be reported before it happens
+
+The scheduled run fires on the **last day of the month** (`monthly-blog.yml`
+gates on `CURRENT_DAY = LAST_DAY`) and reports that month, so every event is
+already in the past. Two paths bypass that gate and ask for a month still in
+progress: `force_run: true`, and `regenerate-blog.yml`, which has no last-day
+check and defaults `coverage_month` to the current month. The prompt demands
+5-6 dated developments, so when the real ones run out a forward-dated item is
+the obvious gap-fill.
+
+Guarded in two places, deliberately:
+
+1. **Prompt** — a `CRITICAL FUTURE-DATE RULE` naming today's actual date, and a
+   reminder in the developments spec. It tells the model that forward-dating is
+   fabrication rather than forecasting, that predictions belong in Looking
+   Ahead, and that such items are discarded before publication.
+2. **Parser** — `_drop_future_dated()` removes any development dated after
+   today, because a prompt rule is not a guarantee.
+
+Details worth knowing before changing it:
+
+- Items carry no year. `_resolve_item_date()` resolves one from the coverage
+  date by trying the year either side and taking the closest, so a December
+  item in a January issue does not land eleven months out.
+- The filter is **skipped when `coverage_date` is None** — without a year there
+  is no way to resolve "August 12", and guessing is worse than not checking.
+  `renderer.py` passes `coverage_date or current_date`.
+- Comparison is strictly `>`, so a same-day item survives. Undated items and
+  unparseable dates survive too — an unreadable date is not evidence.
+- Only **developments** are filtered. Spotlight items carry no dates, and
+  adoption stats carry source years, not event dates.
+- Dropping is loud: the parser prints a summary explaining the mid-month cause,
+  and `renderer.py` warns when fewer than 4 developments survive. The visible
+  symptom is a thin issue, and without that the reviewer assumes a bug.
+
 ### Brand — one definition in `utils.py`
 
 `BRAND` ("Practical AI for Canadian Business"), `BRAND_SHORT`

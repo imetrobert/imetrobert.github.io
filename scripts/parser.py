@@ -4,6 +4,7 @@ Parses Gemini's plain-text output into structured data for HTML rendering.
 """
 
 import re
+from datetime import datetime
 from utils import (
     BRAND,
     build_search_url,
@@ -251,10 +252,87 @@ def _extract_dev_ratings(text):
     return body, ratings
 
 
-def _finalize_developments(items, strategy):
+_MONTH_NUMBERS = {
+    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+}
+
+
+def _resolve_item_date(date_str, coverage_date):
+    """Turn "August 12" into a real date, using the coverage month for the year.
+
+    Items carry no year — the generator is told to report one month, so the
+    year is implied. Candidate years are tried on both sides of the coverage
+    date and the closest one wins, which is what keeps a December item in a
+    January issue from landing eleven months out.
+
+    Returns None when the string is not a date or the date does not exist
+    (February 30), because an unparseable date is not evidence of anything.
+    """
+    if not date_str or not coverage_date:
+        return None
+    m = re.match(r'\s*([A-Za-z]{3,9})\.?\s+(\d{1,2})', date_str)
+    if not m:
+        return None
+    month = _MONTH_NUMBERS.get(m.group(1)[:3].lower())
+    if not month:
+        return None
+    day = int(m.group(2))
+
+    best = None
+    for year in (coverage_date.year - 1, coverage_date.year, coverage_date.year + 1):
+        try:
+            candidate = datetime(year, month, day)
+        except ValueError:
+            continue
+        if best is None or abs((candidate - coverage_date).days) < abs((best - coverage_date).days):
+            best = candidate
+    return best
+
+
+def _drop_future_dated(items, coverage_date, today=None):
+    """Remove developments dated after today.
+
+    The scheduled run fires on the last day of the month, so every item it asks
+    for has already happened. A manual force_run, or a regeneration with no
+    coverage_month, asks for the CURRENT month while it is still in progress —
+    and the prompt demands five or six dated items from it. When the real ones
+    run out, a plausible-looking forward-dated item is exactly the gap-filling
+    to expect, and nothing downstream would catch it.
+
+    Skipped entirely when coverage_date is unknown: without a year there is no
+    way to resolve "August 12", and guessing would be worse than not checking.
+    """
+    if not coverage_date:
+        return items
+    today = (today or datetime.now()).date()
+
+    kept = []
+    for item in items:
+        resolved = _resolve_item_date(item.get('date', ''), coverage_date)
+        if resolved and resolved.date() > today:
+            print(f"  future-date: dropping '{item.get('date')}' "
+                  f"({item.get('company') or item.get('body', '')[:40]}) — after {today}")
+            continue
+        kept.append(item)
+
+    dropped = len(items) - len(kept)
+    if dropped:
+        # Said plainly, because the visible symptom is a thin issue and the
+        # cause is three lines further up the log. A reviewer who does not
+        # connect the two will assume the generator broke.
+        print(f"  future-date: removed {dropped} of {len(items)} developments dated "
+              f"after {today}. Expected on a mid-month run — the month is not over, "
+              f"so those events have not happened yet. Re-run on the last day of the "
+              f"month for a full issue.")
+    return kept
+
+
+def _finalize_developments(items, strategy, coverage_date=None, today=None):
     items = [i for i in items if not is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
     items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
     items = [i for i in items if not is_government_entity(i.get('company', ''))]
+    items = _drop_future_dated(items, coverage_date, today)
     for item in items:
         body, ratings = _extract_dev_ratings(item.get('body', ''))
         item['body'] = body
@@ -438,7 +516,7 @@ def deduplicate_spotlight_against_developments(spotlight_items, development_item
     return cleaned
 
 
-def parse_developments(text):
+def parse_developments(text, coverage_date=None, today=None):
     items = []
 
     date_pattern = re.compile(
@@ -478,7 +556,7 @@ def parse_developments(text):
             i += 2
 
         if len(items) >= 3:
-            return _finalize_developments(items, 1)
+            return _finalize_developments(items, 1, coverage_date, today)
 
     # Strategy 2: numbered list
     items = []
@@ -522,7 +600,7 @@ def parse_developments(text):
             })
 
         if len(items) >= 3:
-            return _finalize_developments(items, 2)
+            return _finalize_developments(items, 2, coverage_date, today)
 
     # Strategy 3: line-by-line fallback
     items = []
@@ -571,7 +649,7 @@ def parse_developments(text):
             items.append({"date": "", "company": "", "body": block_clean,
                           "source_name": source_name, "source_url": source_url})
 
-    return _finalize_developments(items, 3)
+    return _finalize_developments(items, 3, coverage_date, today)
 
 
 def parse_spotlight_items(text):

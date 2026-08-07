@@ -22,9 +22,9 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
     ) != (datetime.now().year, datetime.now().month)
 
     if topic:
-        prompt = _build_custom_prompt(topic, month_year, prev_month, is_backfill)
+        prompt = _build_custom_prompt(topic, month_year, prev_month, is_backfill, datetime.now())
     else:
-        prompt = _build_monthly_prompt(month_year, prev_month, is_backfill)
+        prompt = _build_monthly_prompt(month_year, prev_month, is_backfill, datetime.now())
 
     # The issue carries four analysis sections the old 4000-token cap never had
     # to fit (the Desk essay alone is ~450 words). At 4000 the response
@@ -245,8 +245,8 @@ def _strip_section_header(text, section):
     return "\n".join(lines).strip()
 
 
-def _build_monthly_prompt(month_year, prev_month, is_backfill=False):
-    rules = _shared_rules_block(month_year, prev_month, is_backfill)
+def _build_monthly_prompt(month_year, prev_month, is_backfill=False, today=None):
+    rules = _shared_rules_block(month_year, prev_month, is_backfill, today)
     return f"""You are writing Practical AI for Canadian Business, the monthly executive AI briefing by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
 
 AUDIENCE
@@ -255,8 +255,8 @@ Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadi
 {rules}"""
 
 
-def _build_custom_prompt(topic, month_year, prev_month, is_backfill=False):
-    rules = _shared_rules_block(month_year, prev_month, is_backfill)
+def _build_custom_prompt(topic, month_year, prev_month, is_backfill=False, today=None):
+    rules = _shared_rules_block(month_year, prev_month, is_backfill, today)
     return f"""You are writing Practical AI for Canadian Business, the monthly executive AI briefing by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
 
 AUDIENCE
@@ -403,7 +403,8 @@ Weak: "How can we better take advantage of AI?"
 
 Write one or two sentences maximum, ending in a question mark."""
 
-def _shared_rules_block(month_year, prev_month, is_backfill=False):
+def _shared_rules_block(month_year, prev_month, is_backfill=False, today=None):
+    today_str = (today or datetime.now()).strftime('%B %d, %Y')
     return f"""{_EDITORIAL_PREAMBLE}
 
 WRITING RULES — follow these exactly:
@@ -439,6 +440,15 @@ WRITING RULES — follow these exactly:
 6. Name real Canadian companies and institutions where relevant: Shopify, Cohere, D-Wave, Ada, Coveo, RBC, TD, Scotiabank, CIBC, Manulife, Sun Life, Bell, Rogers, Telus, BCE, Loblaw, Couche-Tard, CAE, BRP, Bombardier, Mila, Vector Institute, Amii, Ivey Business School, Rotman School of Management.
 
 Use Google Search grounding to find REAL AI news events from {month_year} ONLY. Do NOT use events from {prev_month} or any prior month. Do not invent events, dates, companies, or statistics.
+
+CRITICAL FUTURE-DATE RULE: Today is {today_str}. Never report an event dated
+after today. If {month_year} is still in progress, cover ONLY what has already
+happened — report fewer developments rather than reaching forward to fill the
+count. A forward-dated item is not a forecast, it is a fabrication: it states as
+reported fact something that has not occurred, with a source line implying
+somebody published it. Predictions belong in LOOKING AHEAD, labelled as
+predictions, and nowhere else. Any item dated after today is discarded before
+publication, so writing one costs you the slot and gains nothing.
 {"" if not is_backfill else f'''
 BACKFILL NOTICE: This is a re-run of the {month_year} report, being regenerated after {month_year} has already ended. Today's real date is later than {month_year} — ignore that. Your search results will surface newer news by default; you must actively filter it out. Every single item, statistic, and example must be dated within {month_year}. If you cannot find 8 qualifying developments strictly from {month_year}, use fewer rather than reaching into a later month.
 '''}
@@ -501,7 +511,7 @@ KEY AI DEVELOPMENTS (exactly 5 or 6 items — not more, not fewer):
 This section used to run to ten items. It no longer does, because coverage volume
 is not the value of this publication. Select ruthlessly: an item earns its place
 only if a Canadian executive would make a different decision knowing it.
-CRITICAL DATE RULE: Include ONLY events from {month_year}. Never fabricate. Never use events from prior months.
+CRITICAL DATE RULE: Include ONLY events from {month_year}. Never fabricate. Never use events from prior months, and never use a date after {today_str} (see the future-date rule above).
 CRITICAL SECTION ROUTING RULE: KEY AI DEVELOPMENTS is strictly for AI company announcements — products, models, partnerships, research. It must NEVER contain items from any government entity. This includes: the Government of Canada, any provincial or municipal government, the Prime Minister, any federal minister, any G7/G20/OECD ministerial body, Statistics Canada, Bank of Canada policy announcements, or any Crown corporation acting in a regulatory/policy capacity. Any government funding, policy, regulation, or strategy announcement MUST go in CANADIAN SPOTLIGHT — never here.
 CRITICAL SOURCE RULE: Every single item MUST end with a Source line. No exceptions.
 CRITICAL SOURCE QUALITY RULE: Every source MUST be a primary source — official company announcements, government press releases, or major news publications. Newsletters, podcast episodes, Substack posts, and aggregator blogs are NEVER acceptable sources. If your search returns a newsletter item (e.g. "26: GPT-5.5..." or "Episode 14:..."), discard it and find the original primary source announcement instead.
