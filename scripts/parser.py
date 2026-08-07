@@ -9,6 +9,7 @@ from utils import (
     BRAND,
     build_search_url,
     is_episode_or_newsletter_item,
+    is_low_quality_source,
     is_government_entity,
     is_meta_commentary,
 )
@@ -245,7 +246,7 @@ def _extract_dev_ratings(text):
     )
     if read:
         body = ' '.join(read.group(1).split()).strip(' ;,')
-        if body and not body.endswith(('.', '!', '?')):
+        if body and not body.rstrip('"\'\u201d\u2019)]').endswith(('.', '!', '?')):
             body += '.'
         ratings["strategic_read"] = body
 
@@ -347,10 +348,45 @@ def _drop_future_dated(items, coverage_date, today=None):
     return kept
 
 
+def _close_sentence(item):
+    """Restore the full stop _extract_source_from_text strips off.
+
+    It ends the body with .rstrip('.') so "Source:" can be cut cleanly.
+    Developments get the stop back when their ratings are parsed; spotlight
+    items had nothing to put it back, so every one of them published ending
+    mid-air ("...and build trust").
+    """
+    body = (item.get('body') or '').strip()
+    if body and not body.rstrip('"\'\u201d\u2019)]').endswith(('.', '!', '?', ':')):
+        item['body'] = body + '.'
+    return item
+
+
+def _drop_low_quality_sourced(items, label_key):
+    """Remove items whose only citation is a self-publishing platform.
+
+    Dropping rather than warning matches what the prompt already says should
+    happen to them, and matches how episode/newsletter items are handled. An
+    item with no source at all is left alone — that is a different problem and
+    the reviewer can see it.
+    """
+    kept = []
+    for item in items:
+        source = item.get('source_name', '')
+        if is_low_quality_source(source):
+            who = item.get(label_key) or item.get('body', '')[:40]
+            print(f"  source-quality: dropping '{who}' — cited to '{source}', "
+                  f"which is a self-publishing platform, not a publication.")
+            continue
+        kept.append(item)
+    return kept
+
+
 def _finalize_developments(items, strategy, coverage_date=None, today=None):
     items = [i for i in items if not is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
     items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
     items = [i for i in items if not is_government_entity(i.get('company', ''))]
+    items = _drop_low_quality_sourced(items, 'company')
     items = _drop_future_dated(items, coverage_date, today)
     for item in items:
         body, ratings = _extract_dev_ratings(item.get('body', ''))
@@ -379,7 +415,9 @@ def parse_actions(text):
         if owner:
             meta["owner"] = ' '.join(owner.group(1).split()).strip(' .,;')
             rationale = ' '.join(owner.group(2).split()).strip(' ;,')
-            if rationale and not rationale.endswith(('.', '!', '?')):
+            # Look past a closing quote or bracket before deciding the sentence
+            # is unterminated, or '...and "transparency."' gains a second stop.
+            if rationale and not rationale.rstrip('"\'\u201d\u2019)]').endswith(('.', '!', '?')):
                 rationale += '.'
             meta["owner_rationale"] = rationale
         else:
@@ -549,7 +587,14 @@ def parse_developments(text, coverage_date=None, today=None):
     date_pattern = re.compile(
         r'^[ \t]*(\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
         r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
-        r'\.?\s+\d{1,2}(?:st|nd|rd|th)?[,.]?)',
+        r'\.?\s+\d{1,2}(?:st|nd|rd|th)?'
+        # A range like "July 22-30" must be consumed whole. Matching only
+        # "July 22" left "-30:" at the front of the body, where the company
+        # split then read it as part of the name — the card published as
+        # "-30: Amazon", and the FAQ answer (and its FAQPage schema) opened
+        # with "30: Amazon:".
+        r'(?:\s*(?:[-\u2013\u2014]|to)\s*\d{1,2}(?:st|nd|rd|th)?)?'
+        r'[,.]?)',
         re.IGNORECASE | re.MULTILINE
     )
 
@@ -699,9 +744,10 @@ def parse_spotlight_items(text):
 
     items = [i for i in items if not is_meta_commentary(i.get('body', '') + ' ' + i.get('org', ''))]
     items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('org', ''))]
+    items = _drop_low_quality_sourced(items, 'org')
 
     if len(items) >= 2:
-        return items[:6]
+        return [_close_sentence(i) for i in items[:6]]
 
     # Strategy 2: numbered list fallback
     items = []
@@ -721,7 +767,8 @@ def parse_spotlight_items(text):
 
     if items:
         items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('org', ''))]
-        return items[:6]
+        items = _drop_low_quality_sourced(items, 'org')
+        return [_close_sentence(i) for i in items[:6]]
 
     # Strategy 3: line fallback
     items = []
@@ -739,7 +786,8 @@ def parse_spotlight_items(text):
         items.append({"org": org, "body": body, "source_name": source_name, "source_url": source_url})
 
     items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('org', ''))]
-    return items[:6]
+    items = _drop_low_quality_sourced(items, 'org')
+    return [_close_sentence(i) for i in items[:6]]
 
 
 def parse_adoption_stats(text):
@@ -760,14 +808,17 @@ def parse_adoption_stats(text):
         if re.match(r'^[,;]|^[a-z]', line_clean.strip()):
             continue
 
+        # [\d,.]* so a thousands separator stays inside the number. Without it
+        # "150,000 jobs" highlighted "150" and left ",000 jobs" as the text,
+        # rendering as "150 ,000 jobs".
         num_match = re.match(
-            r'^([\d.]+\s*(?:%|percent|\+)?(?:\s*(?:billion|million|B|M))?)',
+            r'^(\d[\d,.]*\s*(?:%|percent|\+)?(?:\s*(?:billion|million|B|M))?)',
             line_clean, re.IGNORECASE
         )
 
         if not num_match or not re.search(r'\d', num_match.group(1)):
             num_match2 = re.search(
-                r'((?:nearly|over|about|approximately|around|almost|more than|less than|up to|\$)?\s*[\d.]+\s*(?:%|percent|\+|\$)?(?:\s*(?:billion|million|B|M))?)',
+                r'((?:nearly|over|about|approximately|around|almost|more than|less than|up to|\$)?\s*\d[\d,.]*\s*(?:%|percent|\+|\$)?(?:\s*(?:billion|million|B|M))?)',
                 line_clean, re.IGNORECASE
             )
             if num_match2 and re.search(r'\d', num_match2.group(1)):
