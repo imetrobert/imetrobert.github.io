@@ -22,6 +22,8 @@ SECTION_HEADERS = [
     "KEY AI DEVELOPMENTS",
     "CANADIAN SPOTLIGHT",
     "FROM ROBERTS DESK",
+    # Retired, kept as a boundary for the same reason as the Myth below:
+    # an unrecognised header is absorbed by the section above it, not skipped.
     "WHAT THIS MEANS FOR CANADIAN BUSINESS",
     "STRATEGIC ACTIONS FOR THIS MONTH",
     "ADOPTION SNAPSHOT",

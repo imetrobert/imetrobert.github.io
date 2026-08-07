@@ -78,7 +78,6 @@ Sections, in the order they appear in an issue:
 | `KEY AI DEVELOPMENTS` | 5-6 stories; the **first 3** carry `STRATEGIC READ` + `IMPORTANCE`/`HORIZON`/`ATTENTION` |
 | `CANADIAN SPOTLIGHT` | 3 items, government items mandatory here |
 | `FROM ROBERTS DESK` | 300-450 words, the signature section |
-| `WHAT THIS MEANS FOR CANADIAN BUSINESS` | 3 paragraphs |
 | `STRATEGIC ACTIONS FOR THIS MONTH` | 5 actions + `OWNER`/`PRIORITY`/`EFFORT`/`IMPACT` |
 | `ADOPTION SNAPSHOT` | 5 Canadian stats |
 | `LOOKING AHEAD: THREE PREDICTIONS` | `One month:` / `Six months:` / `One year:` |

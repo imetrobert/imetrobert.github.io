@@ -92,7 +92,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
 
     intro_text      = sections.get("INTRODUCTION", "")
     canadian_spot   = sections.get("CANADIAN SPOTLIGHT", "")
-    business_impact = sections.get("WHAT THIS MEANS FOR CANADIAN BUSINESS", "")
     roberts_raw     = sections.get("FROM ROBERTS DESK", "")
     adoption_raw    = sections.get("ADOPTION SNAPSHOT", "")
 
@@ -126,7 +125,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         "Key AI Developments": developments,
         "Canadian Spotlight":  spotlight_items,
         "From Robert's Desk":  roberts_raw.strip(),
-        "What This Means":     business_impact.strip(),
         "Strategic Actions":   actions,
         "Adoption Snapshot":   adoption,
         "Looking Ahead":       predictions,
@@ -334,20 +332,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     # where a reader who skims stops reading.
     article_parts.append(_build_roberts_desk(roberts_raw))
 
-    if business_impact:
-        paras = [p.strip() for p in business_impact.split('\n\n') if len(p.strip()) > 40]
-        if not paras:
-            paras = [p.strip() for p in business_impact.split('\n') if len(p.strip()) > 40]
-        if not paras:
-            paras = [business_impact.strip()]
-        paras_html = "\n".join(f'<p>{p}</p>' for p in paras)
-        article_parts.append(
-            f'<div class="section impact-section">'
-            f'<h2 class="section-title">What This Means for Canadian Business</h2>'
-            f'{paras_html}'
-            f'</div>'
-        )
-
     if actions:
         action_cards = ""
         for i, a in enumerate(actions[:5]):
@@ -467,10 +451,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             "What Canadian AI companies or initiatives should I know about?",
             _join([f'{i["org"]}: {i["body"]}' if i.get("org") else i["body"]
                    for i in spotlight_items[:3]]),
-        ),
-        (
-            "How do global AI trends affect Canadian competitiveness?",
-            _plain(business_impact),
         ),
         (
             f"What should Canadian executives expect from AI over the next year?",
@@ -707,8 +687,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .spot-source {{ margin-top: 0.4rem; }}
         .spot-source a {{ font-size: 0.72rem; color: var(--canada-red); text-decoration: none; font-weight: 600; opacity: 0.8; transition: opacity 0.2s; }}
         .spot-source a:hover {{ opacity: 1; text-decoration: underline; }}
-        .impact-section p {{ font-size: 0.9rem; line-height: 1.8; color: var(--gray); margin-bottom: 1rem; }}
-        .impact-section p:last-child {{ margin-bottom: 0; }}
         .actions-grid {{ display: grid; gap: 0.875rem; }}
         .action-card {{ display: flex; gap: 1rem; align-items: flex-start; padding: 1.1rem 1.25rem; background: #f8faff; border: 1px solid #dbeafe; border-radius: 12px; border-left: 3px solid var(--blue); transition: box-shadow 0.2s; }}
         .action-card:hover {{ box-shadow: var(--shadow-md); background: var(--white); }}

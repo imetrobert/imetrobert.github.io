@@ -486,7 +486,6 @@ EXECUTIVE SUMMARY
 KEY AI DEVELOPMENTS
 CANADIAN SPOTLIGHT
 FROM ROBERTS DESK
-WHAT THIS MEANS FOR CANADIAN BUSINESS
 STRATEGIC ACTIONS FOR THIS MONTH
 ADOPTION SNAPSHOT
 LOOKING AHEAD: THREE PREDICTIONS
@@ -504,7 +503,6 @@ this budget; it totals roughly 1,300 words:
   KEY AI DEVELOPMENTS                    340 words   (3 major at ~80, then 2-3 log entries at ~35)
   CANADIAN SPOTLIGHT                     115 words   (3 items)
   FROM ROBERTS DESK                  300-450 words
-  WHAT THIS MEANS FOR CANADIAN BUSINESS  135 words   (3 paragraphs)
   STRATEGIC ACTIONS FOR THIS MONTH       250 words   (5 actions, 50 each MAXIMUM, owner line included)
   ADOPTION SNAPSHOT                       70 words
   LOOKING AHEAD: THREE PREDICTIONS        85 words
@@ -521,7 +519,6 @@ Per item, the hard caps are:
   - a log development: 2 sentences, nothing more
   - a spotlight item: 2 sentences
   - an action: 2 sentences, then ONE sentence naming the owner and why
-  - a paragraph of WHAT THIS MEANS: 3 sentences
 
 Never exceed the item counts specified below; they are maximums as well as
 minimums. If a section is running long, cut reported detail before cutting
@@ -617,24 +614,6 @@ Only continue once every item across both sections is a unique, non-overlapping 
 
 {_SPEC_ROBERTS_DESK}
 
-WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs, maximum 3 sentences each):
-CRITICAL CROSS-REFERENCE RULE: Every paragraph MUST name at least one specific event, company, or statistic from KEY AI DEVELOPMENTS, CANADIAN SPOTLIGHT, or ADOPTION SNAPSHOT above.
-Write like a practitioner who has seen this play out. Skip the academic framing. Say what is actually happening and what Canadian leaders need to do about it.
-
-Paragraph 1 — Financial services / technology impact:
-- Open by naming a specific development from KEY AI DEVELOPMENTS.
-- Explain the direct operational consequence for a named Canadian bank, insurer, or tech company.
-- 3-4 sentences maximum.
-
-Paragraph 2 — Sector impact (manufacturing, healthcare, or retail):
-- Open by naming a specific item from CANADIAN SPOTLIGHT or KEY AI DEVELOPMENTS that affects this sector.
-- Name a real Canadian company or describe a real sector dynamic.
-- 3-4 sentences maximum.
-
-Paragraph 3 — Regulatory and competitive pressure:
-- Open by naming a specific regulation or policy item already referenced above.
-- State a specific compliance deadline or decision point Canadian leaders face.
-- 3-4 sentences maximum.
 
 STRATEGIC ACTIONS FOR THIS MONTH (exactly 5 items):
 CRITICAL TRACEABILITY RULE: Each of the 5 actions MUST trace directly to a named item from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT.
