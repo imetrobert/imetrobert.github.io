@@ -126,13 +126,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         )
 
     if summary_points:
-        points_html = "".join(f'<li>{p}</li>' for p in summary_points)
-        article_parts.append(
-            f'<div class="section summary-section">'
-            f'<h2 class="summary-label">Executive Summary</h2>'
-            f'<ul class="summary-list">{points_html}</ul>'
-            f'</div>'
-        )
+        article_parts.append(_build_summary_section(summary_points))
 
     if developments:
         # Two tiers. A development the model rated is a major story and gets the
@@ -325,66 +319,18 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         )
 
     if myth:
-        article_parts.append(
-            f'<div class="section myth-section">'
-            f'<h2 class="myth-label">AI Myth of the Month</h2>'
-            f'<div class="myth-block myth-claim">'
-            f'<span class="myth-tag">Myth</span><p>{myth["myth"]}</p></div>'
-            f'<div class="myth-block myth-reality">'
-            f'<span class="myth-tag">Reality</span><p>{myth["reality"]}</p></div>'
-            f'</div>'
-        )
+        article_parts.append(_build_myth_section(myth))
 
     if predictions:
-        pred_html = "".join(
-            f'<div class="pred-card">'
-            f'<div class="pred-horizon">{p["horizon"]}</div>'
-            f'<p class="pred-body">{p["body"]}</p>'
-            f'</div>'
-            for p in predictions
-        )
-        article_parts.append(
-            f'<div class="section pred-section">'
-            f'<h2 class="section-title">Looking Ahead</h2>'
-            f'<p class="pred-note">These are predictions, not reported facts — '
-            f'Robert’s assessment of where this goes next, offered so you can '
-            f'judge it against your own.</p>'
-            f'<div class="pred-grid">{pred_html}</div>'
-            f'</div>'
-        )
+        article_parts.append(_build_predictions_section(predictions))
 
     # Each question is answered from the section that actually addresses it.
     # Pairing questions against whatever happened to be in `actions` produced
     # confident non-sequiturs — fine while the FAQ was schema-only, actively
     # misleading now that it is on the page and quotable by answer engines.
-    def _plain(text, limit=480):
-        text = re.sub(r"<[^>]+>", " ", str(text))
-        # Answers get quoted verbatim by answer engines, so scrub anything that
-        # betrays the source format: bare URLs, the pipe-delimited field syntax
-        # the generator emits, markdown headings, and leading list bullets.
-        text = re.sub(r"https?://\S+", "", text)
-        text = re.sub(r"#{1,6}\s*[A-Z][A-Z '\u2019]*$", "", text)
-        text = re.sub(r"^[\s\-\*\u2022]+", "", text)
-        text = text.replace(" | ", " \u2014 ")
-        text = re.sub(r"\s+", " ", text)
-        text = re.sub(r"(?:\s*\u2014){2,}", " \u2014", text)          # URL removal can leave a dangling dash
-        text = re.sub(r"\s*\u2014\s*$", "", text)
-        text = text.strip(" \u2014-#*\u2022 ")
-        if len(text) > limit:
-            text = text[: limit - 3].rsplit(" ", 1)[0] + "..."
-        return text
+    _plain = faq_plain
+    _join  = faq_join
 
-    def _join(parts, limit=480):
-        out = ""
-        for part in parts:
-            part = _plain(part, limit)
-            if not part:
-                continue
-            candidate = f"{out} {part}".strip() if out else part
-            if len(candidate) > limit:
-                break
-            out = candidate
-        return out
 
     faq_candidates = [
         (
@@ -444,12 +390,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         )
 
     if closing_question:
-        article_parts.append(
-            f'<div class="section question-section">'
-            f'<h2 class="question-label">One question for your leadership team</h2>'
-            f'<p class="question-body">{closing_question}</p>'
-            f'</div>'
-        )
+        article_parts.append(_build_question_section(closing_question))
 
     article_parts.append(_build_survey_cta())
     article_parts.append(_build_prompts_section(canonical, clean_title, issue_month_year))
@@ -1147,6 +1088,96 @@ def _build_prompts_section(canonical, title_text, issue_month_year):
     )
 
 
+# Each redraftable section is built by exactly one function, so redraft_section.py
+# can rebuild a single block that is byte-identical to what the monthly render
+# would have produced. Inline f-strings here would mean two renderers to keep in
+# step, and the drift would only show up on a redrafted issue.
+# FAQ answer text is quoted verbatim by answer engines and is duplicated into the
+# FAQPage schema, so it is scrubbed of anything that betrays the source format.
+# Module level rather than nested, because redraft_section.py has to regenerate
+# an answer by exactly these rules when it rewrites a section the FAQ quotes —
+# otherwise the schema would keep asserting an answer no longer on the page.
+def faq_plain(text, limit=480):
+    text = re.sub(r"<[^>]+>", " ", str(text))
+    # Answers get quoted verbatim by answer engines, so scrub anything that
+    # betrays the source format: bare URLs, the pipe-delimited field syntax
+    # the generator emits, markdown headings, and leading list bullets.
+    text = re.sub(r"https?://\S+", "", text)
+    text = re.sub(r"#{1,6}\s*[A-Z][A-Z '\u2019]*$", "", text)
+    text = re.sub(r"^[\s\-\*\u2022]+", "", text)
+    text = text.replace(" | ", " \u2014 ")
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"(?:\s*\u2014){2,}", " \u2014", text)          # URL removal can leave a dangling dash
+    text = re.sub(r"\s*\u2014\s*$", "", text)
+    text = text.strip(" \u2014-#*\u2022 ")
+    if len(text) > limit:
+        text = text[: limit - 3].rsplit(" ", 1)[0] + "..."
+    return text
+
+
+def faq_join(parts, limit=480):
+    out = ""
+    for part in parts:
+        part = faq_plain(part, limit)
+        if not part:
+            continue
+        candidate = f"{out} {part}".strip() if out else part
+        if len(candidate) > limit:
+            break
+        out = candidate
+    return out
+
+
+def _build_summary_section(summary_points):
+    points_html = "".join(f'<li>{p}</li>' for p in summary_points)
+    return (
+        f'<div class="section summary-section">'
+        f'<h2 class="summary-label">Executive Summary</h2>'
+        f'<ul class="summary-list">{points_html}</ul>'
+        f'</div>'
+    )
+
+
+def _build_myth_section(myth):
+    return (
+        f'<div class="section myth-section">'
+        f'<h2 class="myth-label">AI Myth of the Month</h2>'
+        f'<div class="myth-block myth-claim">'
+        f'<span class="myth-tag">Myth</span><p>{myth["myth"]}</p></div>'
+        f'<div class="myth-block myth-reality">'
+        f'<span class="myth-tag">Reality</span><p>{myth["reality"]}</p></div>'
+        f'</div>'
+    )
+
+
+def _build_predictions_section(predictions):
+    pred_html = "".join(
+        f'<div class="pred-card">'
+        f'<div class="pred-horizon">{p["horizon"]}</div>'
+        f'<p class="pred-body">{p["body"]}</p>'
+        f'</div>'
+        for p in predictions
+    )
+    return (
+        f'<div class="section pred-section">'
+        f'<h2 class="section-title">Looking Ahead</h2>'
+        f'<p class="pred-note">These are predictions, not reported facts \u2014 '
+        f'Robert\u2019s assessment of where this goes next, offered so you can '
+        f'judge it against your own.</p>'
+        f'<div class="pred-grid">{pred_html}</div>'
+        f'</div>'
+    )
+
+
+def _build_question_section(closing_question):
+    return (
+        f'<div class="section question-section">'
+        f'<h2 class="question-label">One question for your leadership team</h2>'
+        f'<p class="question-body">{closing_question}</p>'
+        f'</div>'
+    )
+
+
 def _build_share_row(canonical, title, issue_month_year):
     """Share controls for a published issue.
 
@@ -1335,7 +1366,7 @@ def _build_roberts_desk(raw_text):
             for p in paras
         )
 
-    return f'<div class="section"><div class="roberts-take">{header}{body}</div></div>'
+    return f'<div class="section desk-section"><div class="roberts-take">{header}{body}</div></div>'
 
 
 def _build_conclusion(sections, coverage_month_year):

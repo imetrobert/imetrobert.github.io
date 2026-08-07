@@ -19,6 +19,7 @@ sys.path.insert(0, _here)
 sys.path.insert(0, os.path.join(os.getcwd(), 'scripts'))
 
 from utils import get_issue_labels
+from gemini import REDRAFTABLE_SECTIONS
 
 import re as _re
 from html import escape as html_escape, unescape as html_unescape
@@ -126,6 +127,16 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     regen_badge = ""
     if regenerated:
         regen_badge = '<div class="regen-badge">🔄 Regenerated with custom prompt</div>'
+
+    # Built from gemini.REDRAFTABLE_SECTIONS rather than hardcoded, so this
+    # picker cannot offer a section the redraft script does not know how to
+    # rebuild. (The choice list in redraft-section.yml still has to be kept in
+    # step by hand — GitHub Actions cannot generate workflow_dispatch options.)
+    redraft_options = "".join(
+        f'<option value="{html_escape(key, quote=True)}">'
+        f'{html_escape(cfg["label"], quote=False)}</option>'
+        for key, cfg in REDRAFTABLE_SECTIONS.items()
+    )
 
     # Pre-load the editor with the model's draft of From Robert's Desk. The
     # section runs 300-450 words now; handed an empty box that often meant
@@ -687,6 +698,36 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </button>
     </div>
 
+    <div class="sidebar-section sec-redraft-section">
+      <h3>Ask Gemini to redraft a section</h3>
+      <p class="take-hint">Rewrites one section in place. The rest of the issue,
+      and the filename, stay exactly as they are &mdash; use this instead of a full
+      regeneration when only one section is flat. Only the judgment sections are
+      listed: the reported ones went through date, source and deduplication rules
+      that a one-section rewrite cannot reproduce.</p>
+      <label class="survey-label">Section
+        <select id="redraft-section" class="survey-input">{redraft_options}</select>
+      </label>
+      <div class="prompt-examples">
+        <p>Quick steers:</p>
+        <span class="prompt-chip" onclick="setRedraftGuidance('Make it more contrarian. Say the thing most people in the room would not say, and back it up.')">More contrarian</span>
+        <span class="prompt-chip" onclick="setRedraftGuidance('Lead with the governance and change-management angle rather than the technology.')">Governance angle</span>
+        <span class="prompt-chip" onclick="setRedraftGuidance('Ground this more in what actually happens inside a large enterprise — procurement friction, legal review capacity, the gap between a pilot and a deployment.')">More enterprise reality</span>
+        <span class="prompt-chip" onclick="setRedraftGuidance('Too abstract. Tie it to a specific decision an executive has to make this quarter.')">Make it concrete</span>
+        <span class="prompt-chip" onclick="setRedraftGuidance('Pick a completely different angle from the current draft. Same section, new argument.')">Different angle</span>
+      </div>
+      <textarea id="redraft-guidance" class="prompt-area" rows="4"
+        placeholder="What should change? e.g. 'Focus the Desk on why cheap compute will not fix the governance queue.' Leave blank to just ask for a different angle."></textarea>
+      <p class="prompt-hint">
+        Runs without web search, so a redraft can sharpen the argument but cannot
+        introduce an event or statistic that was never sourced. If the result does
+        not fit the section&#39;s format, nothing is changed.
+      </p>
+      <button class="btn btn-secondary" id="redraft-btn" style="width:100%;" onclick="triggerRedraft()">
+        &#9998; Redraft This Section
+      </button>
+    </div>
+
     <div class="sidebar-section sec-take">
       <h3>From Robert&#39;s Desk &mdash; in your words</h3>
       <p class="take-hint">The signature section, and the one part of the issue that
@@ -818,6 +859,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   const PERMALINK        = {permalink_json};
   const APPROVE_WF    = "approve-blog.yml";
   const REGENERATE_WF = "regenerate-blog.yml";
+  const REDRAFT_WF    = "redraft-section.yml";
   const DISCARD_WF    = "discard-blog.yml";
   const GITHUB_API    = "https://api.github.com";
 
@@ -1201,6 +1243,49 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       unlockButtons();
       showToast(apiErrorMessage(res, body), "error");
     }}
+  }}
+
+  // ── Redraft one section ─────────────────────────────────────────
+  // Unlike a full regeneration this rewrites a single section in place. The
+  // staging filename does not change, so the buttons are NOT locked the way
+  // triggerRegenerate() locks them — there is no orphaned filename to guard
+  // against, and locking Approve for a one-section edit would be a nuisance.
+  async function triggerRedraft() {{
+    const section  = document.getElementById("redraft-section").value;
+    const guidance = document.getElementById("redraft-guidance").value.trim();
+    if (!section) {{
+      showToast("Pick which section to redraft.", "error");
+      return;
+    }}
+    const label = document.getElementById("redraft-section")
+                    .selectedOptions[0].textContent;
+    showOverlay("loading", "Redrafting " + label + "...",
+      "Gemini is rewriting just this section from the issue as it already stands. Takes about a minute."
+    );
+    const res = await triggerWorkflow(REDRAFT_WF, {{
+      staging_filename: STAGING_FILE,
+      section: section,
+      guidance: guidance,
+      month_year: COVERAGE_MONTH_YEAR
+    }});
+    if (!res) {{ hideOverlay(); return; }}
+    if (res.status === 204) {{
+      startPolling();
+      showOverlay("regen-queued", "Redraft queued",
+        "This page checks every 15s and reloads once the new version is live. Every other section stays exactly as it is.",
+        `https://github.com/${{REPO}}/actions/workflows/${{REDRAFT_WF}}`
+      );
+    }} else {{
+      const body = await res.json().catch(() => ({{}}));
+      hideOverlay();
+      showToast(apiErrorMessage(res, body), "error");
+    }}
+  }}
+
+  function setRedraftGuidance(text) {{
+    const el = document.getElementById("redraft-guidance");
+    el.value = text;
+    el.focus();
   }}
 
   // ── Prompt chips ────────────────────────────────────────────────

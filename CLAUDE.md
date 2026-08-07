@@ -118,6 +118,42 @@ The preview page pre-fills its textarea with the model's draft
 editing rather than writing from nothing. A `localStorage` draft still wins
 over the pre-fill.
 
+### Redrafting one section (`scripts/redraft_section.py`)
+
+The preview page can send a single section back to Gemini instead of
+regenerating the whole issue — pick the section, optionally type a steer, and
+the block is rewritten in place. The staging filename does not change, so every
+other section and the preview URL survive.
+
+- **Only the five judgment sections are redraftable**, registered in
+  `gemini.REDRAFTABLE_SECTIONS`: the Desk, Executive Summary, Myth, Looking
+  Ahead, One Question. The reported sections are deliberately excluded — their
+  items passed date rules, source-quality rules and cross-section deduplication
+  during the monthly run, and a one-section rewrite reproduces none of that.
+- **The redraft call is ungrounded** (no `google_search`). It works only from
+  the issue as already written, so it can sharpen an argument but cannot
+  introduce an event or statistic that never went through the sourcing rules.
+- **Section specs live once**, as `_SPEC_*` constants in `gemini.py`, and are
+  interpolated into both the monthly prompt and the redraft prompt. Never
+  paraphrase a spec into the redraft path — the two would drift, and a
+  redrafted section quietly following different rules is invisible.
+- **Each redraftable section is rendered by exactly one function**
+  (`_build_summary_section`, `_build_myth_section`, …) so the redraft rebuilds a
+  block identical to a full render.
+- **`find_block()` counts div tokens** rather than regex-matching the block.
+  These sections nest divs several deep and a non-greedy regex stops at the
+  first inner `</div>`.
+- **The FAQ is refreshed when a section it quotes is redrafted.** The Myth and
+  Looking Ahead both feed FAQ answers, which exist twice — visible `.faq-a` and
+  FAQPage JSON-LD. `FAQ_FED_BY` in `redraft_section.py` updates both, using
+  `renderer.faq_plain` / `faq_join` so the scrubbing rules match exactly.
+  Its question strings must match `faq_candidates` in `renderer.py` verbatim.
+- **Nothing is written unless the redraft parsed and rendered.** A response that
+  does not fit the section's format leaves the issue untouched.
+- The preview picker is generated from `REDRAFTABLE_SECTIONS`, but the
+  `workflow_dispatch` choice list in `redraft-section.yml` is hand-maintained —
+  Actions cannot generate it. Adding a section means editing both.
+
 ### Sharing — always the permalink, never `latest.html`
 
 Posts carry a share row under "The Bottom Line" (`_build_share_row` in

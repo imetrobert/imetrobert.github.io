@@ -21,30 +21,42 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
         coverage_date.year, coverage_date.month
     ) != (datetime.now().year, datetime.now().month)
 
-    BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-    # Flash first, lite as the fallback. The issue is now half original
-    # judgment — strategic reads, ratings, predictions, the Desk essay — and
-    # flash-lite reliably produces the reported half but flattens the analysis
-    # into restated news. Quality of judgment is the product now, so the
-    # stronger model leads and lite only catches a rate-limited run.
-    models_to_try = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
-
     if topic:
         prompt = _build_custom_prompt(topic, month_year, prev_month, is_backfill)
     else:
         prompt = _build_monthly_prompt(month_year, prev_month, is_backfill)
 
+    # The issue carries four analysis sections the old 4000-token cap never had
+    # to fit (the Desk essay alone is ~450 words). At 4000 the response
+    # truncated mid-section, and a truncated tail is silent: the parser just
+    # renders fewer sections. Headroom is cheap; a missing "Looking Ahead" is not.
+    return _call_gemini(api_key, prompt, max_output_tokens=8192,
+                        temperature=0.55, use_search=True, min_chars=200)
+
+
+# Flash first, lite as the fallback. The issue is now half original judgment —
+# strategic reads, ratings, predictions, the Desk essay — and flash-lite
+# reliably produces the reported half but flattens the analysis into restated
+# news. Quality of judgment is the product now, so the stronger model leads and
+# lite only catches a rate-limited run.
+MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
+
+_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+
+
+def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
+                 use_search=True, min_chars=200):
+    """Post a prompt, walking the model fallback list. Returns {content, model}.
+
+    Shared by the monthly generation and the single-section redraft so both get
+    the same rate-limit handling, the same ungrounded retry on 400/404, and the
+    same content cleanup.
+    """
     payload = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "tools": [{"google_search": {}}],
         "generationConfig": {
-            # The issue carries four analysis sections the old 4000-token cap
-            # never had to fit (the Desk essay alone is ~450 words). At 4000
-            # the response truncated mid-section, and a truncated tail is
-            # silent: the parser just renders fewer sections. Headroom is
-            # cheap; a missing "Looking Ahead" is not.
-            "maxOutputTokens": 8192,
-            "temperature": 0.55,
+            "maxOutputTokens": max_output_tokens,
+            "temperature": temperature,
             "candidateCount": 1
         },
         "safetySettings": [
@@ -54,6 +66,10 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
             {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"}
         ]
     }
+    if use_search:
+        payload["tools"] = [{"google_search": {}}]
+
+    models_to_try = MODELS_TO_TRY
 
     for attempt, model in enumerate(models_to_try):
         if attempt > 0:
@@ -61,7 +77,7 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
             time.sleep(30)
 
         print(f"Trying model: {model} (attempt {attempt+1}/{len(models_to_try)})")
-        url = f"{BASE}/{model}:generateContent?key={api_key}"
+        url = f"{_BASE}/{model}:generateContent?key={api_key}"
 
         try:
             response = requests.post(url, json=payload, timeout=180)
@@ -99,7 +115,8 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
             parts    = candidate.get('content', {}).get('parts', [])
             raw_text = ' '.join(p.get('text', '') for p in parts if p.get('text')).strip()
 
-            if len(raw_text) < 200:
+            if len(raw_text) < min_chars:
+                print(f"  Only {len(raw_text)} chars, below the {min_chars} minimum.")
                 continue
 
             cleaned = clean_ai_content(raw_text)
@@ -116,6 +133,116 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
             continue
 
     raise Exception("All Gemini models failed.")
+
+
+# Sections the preview page can send back to the model on their own. All five
+# are Robert's judgment rather than reported fact, which is exactly why they are
+# the ones worth iterating on — and why redrafting one cannot invent news, since
+# the call runs without search grounding and works only from the issue as
+# already written.
+REDRAFTABLE_SECTIONS = {
+    "FROM ROBERTS DESK": {
+        "label": "From Robert's Desk",
+        "spec":  lambda: _SPEC_ROBERTS_DESK,
+    },
+    "EXECUTIVE SUMMARY": {
+        "label": "Executive Summary",
+        "spec":  lambda: _SPEC_EXECUTIVE_SUMMARY,
+    },
+    "AI MYTH OF THE MONTH": {
+        "label": "AI Myth of the Month",
+        "spec":  lambda: _SPEC_MYTH,
+    },
+    "LOOKING AHEAD: THREE PREDICTIONS": {
+        "label": "Looking Ahead",
+        "spec":  lambda: _SPEC_PREDICTIONS,
+    },
+    "ONE QUESTION FOR YOUR LEADERSHIP TEAM": {
+        "label": "One Question",
+        "spec":  lambda: _SPEC_QUESTION,
+    },
+}
+
+
+def generate_section_redraft(api_key, section, issue_text, guidance="", month_year=None):
+    """Rewrite ONE section, returning just that section's plain text.
+
+    Deliberately ungrounded: no google_search tool. The section is written from
+    the issue as it already stands, so a redraft can sharpen the argument but
+    cannot introduce a new event, statistic or company that never went through
+    the sourcing rules the reported sections are held to.
+
+    Returns the section body WITHOUT its header line — the same shape
+    parse_sections() would have handed the renderer.
+    """
+    if section not in REDRAFTABLE_SECTIONS:
+        raise ValueError(f"'{section}' is not a redraftable section.")
+
+    spec = REDRAFTABLE_SECTIONS[section]["spec"]()
+    month_line = f"This is the {month_year} issue.\n" if month_year else ""
+    guidance_block = ""
+    if guidance and guidance.strip():
+        guidance_block = (
+            "\nROBERT'S DIRECTION FOR THIS REDRAFT — this is the reason you are\n"
+            "being asked to rewrite the section, and it takes precedence over your\n"
+            "own choice of angle. It does NOT relax any rule in the specification\n"
+            "above: length, format, and the constraint against invented specifics\n"
+            "all still apply.\n\n"
+            f"{guidance.strip()}\n"
+        )
+
+    prompt = f"""You are rewriting ONE section of Robert Simon's monthly newsletter, AI Insights for Canadian Business. Robert is an independent AI thought leader in Montreal. His voice is direct, opinionated and grounded in business outcomes. He does not hedge.
+
+{month_line}
+{_EDITORIAL_PREAMBLE}
+
+THE ISSUE AS IT CURRENTLY STANDS — this is your source material. Do not introduce
+any event, company, statistic or date that does not already appear here. You are
+sharpening judgment, not reporting news.
+
+<issue>
+{issue_text.strip()}
+</issue>
+
+YOUR TASK
+Rewrite the section specified below. It must be materially different from the
+version currently in the issue — a new angle or a sharper argument, not a
+paraphrase. Everything else in the issue stays as it is.
+{guidance_block}
+SPECIFICATION FOR THE SECTION YOU ARE WRITING:
+
+{spec}
+
+OUTPUT RULES
+Return ONLY the body of the section. Do NOT repeat the section header. Do not
+add a preamble, a sign-off, markdown, or any commentary about what you changed.
+Plain text only — no *, no **, no #.
+"""
+
+    result = _call_gemini(
+        api_key, prompt,
+        max_output_tokens=2048,
+        temperature=0.8,          # higher than the monthly run: the point of a
+                                  # redraft is to land somewhere different
+        use_search=False,
+        min_chars=40,
+    )
+    return _strip_section_header(result["content"], section), result["model"]
+
+
+def _strip_section_header(text, section):
+    """Drop a repeated header line. The spec says not to emit one, but models
+    echo the header they were just shown often enough that leaving it in would
+    put 'FROM ROBERTS DESK' in the body of the published page."""
+    lines = text.strip().split("\n")
+    if not lines:
+        return ""
+    first = lines[0].strip().rstrip(':').upper()
+    candidates = {section.upper(), REDRAFTABLE_SECTIONS[section]["label"].upper()}
+    candidates |= {c.replace("'", "").replace("’", "") for c in candidates}
+    if first.replace("'", "").replace("’", "") in candidates:
+        lines = lines[1:]
+    return "\n".join(lines).strip()
 
 
 def _build_monthly_prompt(month_year, prev_month, is_backfill=False):
@@ -143,8 +270,16 @@ This directive changes WHAT events and examples you select and emphasise. It doe
 {rules}"""
 
 
-def _shared_rules_block(month_year, prev_month, is_backfill=False):
-    return f"""EDITORIAL MISSION — read this before any other instruction:
+
+# ---------------------------------------------------------------------------
+# Section specs, defined once and shared by two callers: the monthly prompt
+# below, and generate_section_redraft() which sends a single spec back to the
+# model to rewrite one section in place. Inlining these in the monthly prompt
+# and paraphrasing them in the redraft prompt would let the two drift, and the
+# drift would be invisible — a redrafted section that quietly follows different
+# rules than the issue around it.
+# ---------------------------------------------------------------------------
+_EDITORIAL_PREAMBLE = """EDITORIAL MISSION — read this before any other instruction:
 
 This is not an AI news site. There are hundreds of those and none of them are the
 reason anyone subscribes to this one. A reader subscribes for Robert's reading of
@@ -183,7 +318,93 @@ Readers already have the news. What they cannot get elsewhere is judgment. Use
 risk executives are overlooking is", "The organizations that win will".
 Every opinion must be followed by its reasoning in the same breath. An assertion
 with no argument behind it is worse than no assertion. Be willing to say the
-uncomfortable thing if it is what the evidence supports.
+uncomfortable thing if it is what the evidence supports."""
+
+_SPEC_EXECUTIVE_SUMMARY = """EXECUTIVE SUMMARY (exactly 3 numbered items, one sentence each, max 25 words each):
+The three things a busy executive must take away if they read nothing else. Each
+one states a CONCLUSION, not a topic. "Ottawa's compute fund makes on-shore
+inference cheaper than US hosting for the first time" is a conclusion. "Government
+AI funding" is a topic and is useless here.
+At least one of the three must be a judgment call rather than a reported fact.
+Format: 1. [sentence]"""
+
+_SPEC_ROBERTS_DESK = """FROM ROBERTS DESK (300-450 words — this is the most important section in the issue):
+This is the signature section. It is the reason someone subscribes rather than
+reading a news aggregator, and it is the section a reader should look for first.
+Treat every other section as supporting material for this one.
+
+It is NOT a summary of the news above. If a reader could get the substance of this
+section by re-reading the developments, it has failed.
+
+Write 3 or 4 paragraphs of continuous prose, separated by a blank line. No bullet
+points, no sub-headings, no source lines, no numbered lists. First person
+throughout.
+
+Answer three or four of these — not all of them, and not in a mechanical order:
+- What genuinely surprised me this month, and why I did not expect it?
+- What do executives consistently misunderstand about this?
+- What trend worries me, and what specifically is the failure mode?
+- What is overhyped right now, and what is the tell?
+- What should Canadian businesses begin doing now?
+- What can safely wait, and why is waiting the right call?
+- What will actually matter six months from now that almost nobody is discussing?
+
+You may use at most TWO specific items from the sections above, and only as a
+springboard into an argument that goes somewhere they do not. The value here is
+the pattern behind the news, not the news.
+
+At least one paragraph must draw on the experience of running AI transformation
+inside a large enterprise — governance, change management, executive sponsorship,
+procurement friction, the gap between a working pilot and a deployed system.
+Obey the HARD CONSTRAINT above: patterns that are broadly true, never invented
+specifics, never a named or implied employer.
+
+Say at least one thing a cautious writer would leave out. Support it with reasoning
+in the same paragraph.
+
+Do not open with "This month". Do not open with a summary sentence. Open on the
+observation itself."""
+
+_SPEC_MYTH = """AI MYTH OF THE MONTH:
+One belief that is genuinely widespread among senior executives and is wrong or
+badly incomplete. Not a strawman, and not a myth about the technology's
+capabilities — a myth about how AI actually succeeds or fails inside an
+organization. Governance, sponsorship, change management, procurement, process
+redesign, talent, and measurement are the fertile ground here.
+
+Use this EXACT format, both labels on their own lines:
+Myth: [one sentence stating the belief plainly, as a believer would state it].
+Reality: [3-4 sentences. Explain what is actually true and why the myth is so persistent. Give the reader something they can act on, not just a correction.]"""
+
+_SPEC_PREDICTIONS = """LOOKING AHEAD: THREE PREDICTIONS
+Three predictions at three horizons. These are explicitly predictions, not
+reporting, and must read that way — "I expect", "I think it is likely that", "My
+assessment is". Never state a prediction as a fact.
+
+Be conservative. A prediction that is obviously safe is useless, but a dramatic
+one that fails destroys the credibility of everything else in the issue. Aim for
+claims that are specific enough to be wrong, and that you would still defend if
+challenged. Each is 1-2 sentences.
+
+Use this EXACT format, each on its own line:
+One month: [prediction]
+Six months: [prediction]
+One year: [prediction]"""
+
+_SPEC_QUESTION = """ONE QUESTION FOR YOUR LEADERSHIP TEAM:
+A single question a CEO or CIO could put on next month's leadership agenda. Write
+the question and nothing else — no preamble, no answer, no explanation.
+
+It must be answerable in a real meeting and uncomfortable enough to be worth
+asking. It should expose a gap rather than invite a status update.
+Good: "If our AI budget doubled tomorrow, which initiative would produce a
+measurable business result within six months — and can we name the metric today?"
+Weak: "How can we better take advantage of AI?"
+
+Write one or two sentences maximum, ending in a question mark."""
+
+def _shared_rules_block(month_year, prev_month, is_backfill=False):
+    return f"""{_EDITORIAL_PREAMBLE}
 
 WRITING RULES — follow these exactly:
 1. Write as an active peer and practitioner — someone in the room, not observing from the outside. Use "What we're seeing on the ground" over "studies suggest." Be casually authoritative. Enthusiasm for technology is fine; uncritical hype is not.
@@ -274,13 +495,7 @@ Write the headline on ONE line directly under the HEADLINE header, with no quote
 INTRODUCTION (3 sentences maximum):
 Open with one specific fact or event from {month_year}. Second sentence: what it means for Canadian business. Third sentence: what this analysis helps the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase. Lead with the sharpest, most surprising detail you found. Make the reader want to keep going.
 
-EXECUTIVE SUMMARY (exactly 3 numbered items, one sentence each, max 25 words each):
-The three things a busy executive must take away if they read nothing else. Each
-one states a CONCLUSION, not a topic. "Ottawa's compute fund makes on-shore
-inference cheaper than US hosting for the first time" is a conclusion. "Government
-AI funding" is a topic and is useless here.
-At least one of the three must be a judgment call rather than a reported fact.
-Format: 1. [sentence]
+{_SPEC_EXECUTIVE_SUMMARY}
 
 KEY AI DEVELOPMENTS (exactly 5 or 6 items — not more, not fewer):
 This section used to run to ten items. It no longer does, because coverage volume
@@ -349,42 +564,7 @@ Then list every news event in CANADIAN SPOTLIGHT (by topic, one line each).
 Compare the two lists. If ANY topic appears in both lists — even described with different words — you MUST go back and replace the duplicate in CANADIAN SPOTLIGHT with a genuinely different Canadian news item before continuing.
 Only continue once every item across both sections is a unique, non-overlapping news event.
 
-FROM ROBERTS DESK (300-450 words — this is the most important section in the issue):
-This is the signature section. It is the reason someone subscribes rather than
-reading a news aggregator, and it is the section a reader should look for first.
-Treat every other section as supporting material for this one.
-
-It is NOT a summary of the news above. If a reader could get the substance of this
-section by re-reading the developments, it has failed.
-
-Write 3 or 4 paragraphs of continuous prose, separated by a blank line. No bullet
-points, no sub-headings, no source lines, no numbered lists. First person
-throughout.
-
-Answer three or four of these — not all of them, and not in a mechanical order:
-- What genuinely surprised me this month, and why I did not expect it?
-- What do executives consistently misunderstand about this?
-- What trend worries me, and what specifically is the failure mode?
-- What is overhyped right now, and what is the tell?
-- What should Canadian businesses begin doing now?
-- What can safely wait, and why is waiting the right call?
-- What will actually matter six months from now that almost nobody is discussing?
-
-You may use at most TWO specific items from the sections above, and only as a
-springboard into an argument that goes somewhere they do not. The value here is
-the pattern behind the news, not the news.
-
-At least one paragraph must draw on the experience of running AI transformation
-inside a large enterprise — governance, change management, executive sponsorship,
-procurement friction, the gap between a working pilot and a deployed system.
-Obey the HARD CONSTRAINT above: patterns that are broadly true, never invented
-specifics, never a named or implied employer.
-
-Say at least one thing a cautious writer would leave out. Support it with reasoning
-in the same paragraph.
-
-Do not open with "This month". Do not open with a summary sentence. Open on the
-observation itself.
+{_SPEC_ROBERTS_DESK}
 
 WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs, maximum 3 sentences each):
 CRITICAL CROSS-REFERENCE RULE: Every paragraph MUST name at least one specific event, company, or statistic from KEY AI DEVELOPMENTS, CANADIAN SPOTLIGHT, or ADOPTION SNAPSHOT above.
@@ -448,43 +628,11 @@ Format for each line:
 
 Use only real, verifiable Canadian stats from: Statistics Canada, BDC, ISED, CIRA, Conference Board of Canada, Deloitte Canada, KPMG Canada, PwC Canada, Mila Annual Report, Vector Institute Annual Report, McKinsey Canada.
 
-AI MYTH OF THE MONTH:
-One belief that is genuinely widespread among senior executives and is wrong or
-badly incomplete. Not a strawman, and not a myth about the technology's
-capabilities — a myth about how AI actually succeeds or fails inside an
-organization. Governance, sponsorship, change management, procurement, process
-redesign, talent, and measurement are the fertile ground here.
+{_SPEC_MYTH}
 
-Use this EXACT format, both labels on their own lines:
-Myth: [one sentence stating the belief plainly, as a believer would state it].
-Reality: [3-4 sentences. Explain what is actually true and why the myth is so persistent. Give the reader something they can act on, not just a correction.]
+{_SPEC_PREDICTIONS}
 
-LOOKING AHEAD: THREE PREDICTIONS
-Three predictions at three horizons. These are explicitly predictions, not
-reporting, and must read that way — "I expect", "I think it is likely that", "My
-assessment is". Never state a prediction as a fact.
-
-Be conservative. A prediction that is obviously safe is useless, but a dramatic
-one that fails destroys the credibility of everything else in the issue. Aim for
-claims that are specific enough to be wrong, and that you would still defend if
-challenged. Each is 1-2 sentences.
-
-Use this EXACT format, each on its own line:
-One month: [prediction]
-Six months: [prediction]
-One year: [prediction]
-
-ONE QUESTION FOR YOUR LEADERSHIP TEAM:
-A single question a CEO or CIO could put on next month's leadership agenda. Write
-the question and nothing else — no preamble, no answer, no explanation.
-
-It must be answerable in a real meeting and uncomfortable enough to be worth
-asking. It should expose a gap rather than invite a status update.
-Good: "If our AI budget doubled tomorrow, which initiative would produce a
-measurable business result within six months — and can we name the metric today?"
-Weak: "How can we better take advantage of AI?"
-
-Write one or two sentences maximum, ending in a question mark.
+{_SPEC_QUESTION}
 
 ---
 Context: {month_year} edition"""
