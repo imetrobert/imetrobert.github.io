@@ -6,7 +6,7 @@ Gemini API integration and prompt construction for the monthly blog generator.
 import time
 import requests
 from datetime import datetime, timedelta
-from utils import clean_ai_content
+from utils import clean_ai_content, STOCK_VOICE_PHRASES
 
 
 def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
@@ -279,7 +279,11 @@ This directive changes WHAT events and examples you select and emphasise. It doe
 # drift would be invisible — a redrafted section that quietly follows different
 # rules than the issue around it.
 # ---------------------------------------------------------------------------
-_EDITORIAL_PREAMBLE = """EDITORIAL MISSION — read this before any other instruction:
+_BANNED_OPENERS = "\n".join(f'  - "{_p}"' for _p in STOCK_VOICE_PHRASES)
+
+# f-string so the banned list stays tied to utils.STOCK_VOICE_PHRASES, which
+# renderer.py also checks the finished Desk against. Two copies would drift.
+_EDITORIAL_PREAMBLE = f"""EDITORIAL MISSION — read this before any other instruction:
 
 This is not an AI news site. There are hundreds of those and none of them are the
 reason anyone subscribes to this one. A reader subscribes for Robert's reading of
@@ -297,10 +301,19 @@ single most common way this publication fails.
 
 VOICE AND EXPERIENCE:
 Robert writes from experience leading enterprise AI transformation inside a large
-Canadian organization. In the first-person sections he may open observations with
-"In my experience", "What I've seen inside large enterprises", "One lesson I've
-learned helping organizations adopt AI", "The governance challenge usually isn't
-technology", "The hardest part is organizational change".
+Canadian organization. The first-person sections should sound like someone who has
+run large change programmes and watched them stall — specific about mechanism,
+unsentimental about process, willing to name the part nobody wants to discuss.
+
+BANNED OPENERS — do not use any of these, in any section:
+{_BANNED_OPENERS}
+
+Earlier versions of this prompt offered those as suggested openings, and three
+issues in a row opened a paragraph with one of them. They now read as house
+filler rather than as anyone's voice. Write your own opening, in your own
+construction, built from THIS month's material. Vary how you open each
+paragraph — a reader who sees the same four constructions every month stops
+believing there is a person behind them.
 
 HARD CONSTRAINT ON THIS — it is not negotiable: never invent a specific anecdote,
 meeting, client, colleague, project, internal metric, or dated event. Never name

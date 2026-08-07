@@ -9,7 +9,8 @@ from datetime import datetime
 from html import escape as escape_html
 from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
-from utils import BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR
+from utils import (BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR,
+                   is_government_entity, is_recognised_publication, uses_stock_phrase)
 from parser import (
     _resolve_item_date,
     parse_sections, parse_list_items, parse_developments, parse_spotlight_items,
@@ -155,15 +156,37 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                   f"issue covers {_cov:%B %Y}. The prompt bans prior-month items — check it.")
 
     # Every citation in one place, so a source that should not be here is a
-    # single line to scan instead of a scroll through the page.
-    _sources = []
+    # single line to scan instead of a scroll through the page. Anything not a
+    # known outlet, not the subject's own newsroom, and not a government body
+    # is called out separately — that is the shape "Signal49 Research" and
+    # "CanadianAI" took, and no blocklist pattern could have caught either.
+    _sources, _unverified = [], []
     for _group in (developments, spotlight_items, adoption):
         for _i in _group:
             _n = (_i.get("source_name") or "").strip()
-            if _n and _n not in _sources:
-                _sources.append(_n)
+            if not _n or _n in _sources:
+                continue
+            _sources.append(_n)
+            _subject = (_i.get("company") or _i.get("org") or "").lower()
+            _first_party = bool(_subject) and (
+                _n.lower() in _subject or _subject.split()[0] in _n.lower()
+            )
+            if not (is_recognised_publication(_n) or _first_party or is_government_entity(_n)):
+                _unverified.append(_n)
     if _sources:
         print(f"  SOURCES CITED ({len(_sources)}): {', '.join(_sources)}")
+    if _unverified:
+        print(f"  UNRECOGNISED SOURCES ({len(_unverified)}): {', '.join(_unverified)}. "
+              f"Not a known outlet, not the subject's own newsroom, not a government body. "
+              f"Verify each is a real publication before publishing.")
+
+    # The Desk is the one section sold as Robert's own voice, so a phrase the
+    # prompt handed it is the last thing that should survive into print.
+    _stock = uses_stock_phrase(roberts_raw)
+    if _stock:
+        print(f"  STOCK PHRASING IN THE DESK: {'; '.join(repr(p) for p in _stock)}. "
+              f"These came from the prompt and have appeared in past issues — "
+              f"rewrite the opening in the preview page.")
 
     if len(developments) < 4:
         print(f"  WARNING: only {len(developments)} developments survived parsing. "
