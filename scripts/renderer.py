@@ -116,6 +116,28 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
           f"{len(actions)} actions, {len(adoption)} stats, {len(summary_points)} summary points, "
           f"{len(predictions)} predictions, myth={'yes' if myth else 'no'}, "
           f"question={'yes' if closing_question else 'no'}")
+    # A section the model simply did not write is invisible: the parser returns
+    # "" and the renderer skips the block, so the page looks intentional. The
+    # closing question went missing from a real issue this way. Name anything
+    # that came back empty, so a reviewer sees it in the log before publishing.
+    _expected = {
+        "Executive Summary":  summary_points,
+        "Key AI Developments": developments,
+        "Canadian Spotlight":  spotlight_items,
+        "From Robert's Desk":  roberts_raw.strip(),
+        "What This Means":     business_impact.strip(),
+        "Strategic Actions":   actions,
+        "Adoption Snapshot":   adoption,
+        "AI Myth of the Month": myth,
+        "Looking Ahead":       predictions,
+        "One Question":        closing_question,
+    }
+    _missing = [name for name, value in _expected.items() if not value]
+    if _missing:
+        print(f"  MISSING SECTIONS: {', '.join(_missing)}. These will not appear on "
+              f"the page at all. Check the model's raw output for the header — a "
+              f"section it never wrote, and a header it misspelled, look identical here.")
+
     if len(developments) < 4:
         print(f"  WARNING: only {len(developments)} developments survived parsing. "
               f"The issue asks for 5-6, so this one will read thin. Check the log "
@@ -318,12 +340,26 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                 f'  {src_html}'
                 f'</div>\n'
             )
+        # Built from the sources actually cited, not a fixed list. The hardcoded
+        # version named six organisations regardless of what the section
+        # contained — an issue sourced to Statistics Canada, RSM and Deloitte
+        # still credited BDC, ISED, Vector Institute, Conference Board and Mila.
+        # A footer naming who the numbers came from has to be true, or it is
+        # worse than no footer.
+        seen, cited = set(), []
+        for item in adoption:
+            name = (item.get("source_name") or "").strip().rstrip('.,')
+            if name and name.lower() not in seen:
+                seen.add(name.lower())
+                cited.append(name)
+        note_html = (
+            f'<p class="stat-note">Sources: {", ".join(cited)}.</p>' if cited else ""
+        )
         article_parts.append(
             f'<div class="section adoption-section">'
             f'<h2 class="section-title">Canadian AI Adoption Snapshot</h2>'
             f'<div class="stat-grid">{stat_items_html}</div>'
-            f'<p class="stat-note">Sources: Statistics Canada, BDC, ISED, Vector Institute, '
-            f'Conference Board of Canada, Mila.</p>'
+            f'{note_html}'
             f'</div>'
         )
 
