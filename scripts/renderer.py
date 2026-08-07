@@ -11,6 +11,7 @@ from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
 from utils import BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR
 from parser import (
+    _resolve_item_date,
     parse_sections, parse_list_items, parse_developments, parse_spotlight_items,
     parse_adoption_stats, deduplicate_spotlight_against_developments,
     parse_actions, parse_myth, parse_predictions, parse_question,
@@ -137,6 +138,32 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         print(f"  MISSING SECTIONS: {', '.join(_missing)}. These will not appear on "
               f"the page at all. Check the model's raw output for the header — a "
               f"section it never wrote, and a header it misspelled, look identical here.")
+
+    if len(spotlight_items) < 3:
+        print(f"  NOTE: only {len(spotlight_items)} Canadian Spotlight items; the issue asks for 3.")
+
+    # Spotlight items sometimes carry a date. The future-date filter only looks
+    # forward, so an item from a PRIOR month — which the prompt forbids — passes
+    # silently. Not dropped: with three items, removing one guts the section,
+    # and only a human can judge whether a late-breaking item is worth keeping.
+    _cov = (coverage_date or current_date)
+    for _item in spotlight_items:
+        _d = _item.get("date", "")
+        _resolved = _resolve_item_date(_d, _cov) if _d else None
+        if _resolved and (_resolved.year, _resolved.month) != (_cov.year, _cov.month):
+            print(f"  PRIOR-MONTH SPOTLIGHT: '{_item.get('org') or _d}' is dated {_d}, but this "
+                  f"issue covers {_cov:%B %Y}. The prompt bans prior-month items — check it.")
+
+    # Every citation in one place, so a source that should not be here is a
+    # single line to scan instead of a scroll through the page.
+    _sources = []
+    for _group in (developments, spotlight_items, adoption):
+        for _i in _group:
+            _n = (_i.get("source_name") or "").strip()
+            if _n and _n not in _sources:
+                _sources.append(_n)
+    if _sources:
+        print(f"  SOURCES CITED ({len(_sources)}): {', '.join(_sources)}")
 
     if len(developments) < 4:
         print(f"  WARNING: only {len(developments)} developments survived parsing. "
