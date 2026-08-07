@@ -132,6 +132,56 @@ def parse_sections(content):
     return sections
 
 
+def log_model_outline(content):
+    """Print what the model actually emitted, before anything interprets it.
+
+    Every diagnosis of a bad issue so far has been reverse-engineering from
+    rendered HTML. When a section goes missing there is no way to tell from the
+    page whether the model skipped it or spelled the header differently — the
+    parser returns "" either way and the renderer skips the block. Printing the
+    header lines as written, next to what parsing made of them, turns that from
+    an inference into a one-look answer.
+
+    Log only. Nothing is written to the repo.
+    """
+    print("  --- header lines the model actually wrote ---")
+    written = []
+    for number, line in enumerate(content.split("\n"), 1):
+        stripped = line.strip()
+        if not stripped or len(stripped) > 80:
+            continue
+        letters = [c for c in stripped if c.isalpha()]
+        # Four letters filters out "AI" and stray punctuation lines; the
+        # all-upper test finds headers without assuming which ones we expect,
+        # which is the entire point — a misspelled header still shows up.
+        if len(letters) >= 4 and all(c.isupper() for c in letters):
+            written.append((number, stripped))
+
+    if not written:
+        print("    (none — the model emitted no ALL-CAPS header lines at all)")
+    for number, line in written[:40]:
+        print(f"    line {number:>4}: {line}")
+    if len(written) > 40:
+        print(f"    ... and {len(written) - 40} more")
+
+    sections = parse_sections(content)
+    print("  --- what parsing made of them ---")
+    empty = []
+    for header in SECTION_HEADERS:
+        body = sections.get(header, "")
+        if not body:
+            empty.append(header)
+        print(f"    {'ok   ' if body else 'EMPTY'} {header:<40s} {len(body):>5d} chars")
+
+    # A response cut off by the token limit and a response that simply skipped
+    # a section look identical above. The tail tells them apart: a truncated
+    # one stops mid-sentence.
+    if empty:
+        tail = ' '.join(content.split())[-300:]
+        print(f"  --- last 300 chars of the response (mid-sentence here means it was cut off) ---")
+        print(f"    ...{tail}")
+
+
 def parse_list_items(text, min_length=40):
     items = []
 

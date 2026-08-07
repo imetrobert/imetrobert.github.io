@@ -19,7 +19,7 @@ sys.path.insert(0, _scripts)
 
 from utils import clean_filename, get_issue_labels
 from gemini import generate_blog_with_gemini
-from parser import extract_title_and_excerpt
+from parser import extract_title_and_excerpt, log_model_outline
 from renderer import create_html_blog_post
 from blog_index import update_blog_index
 
@@ -59,6 +59,7 @@ def main():
 
     try:
         result = generate_blog_with_gemini(api_key, args.topic, coverage_date=coverage_date)
+        log_model_outline(result["content"])
         labels = get_issue_labels(coverage_date)
         title, excerpt = extract_title_and_excerpt(
             result["content"], labels["issue_month_year"], labels["coverage_month_name"]
