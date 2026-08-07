@@ -182,8 +182,9 @@ Other things that are deliberate:
 - Archive-row buttons sit **outside** the row's `<a>`. Interactive elements
   nested in a link are invalid, recover unpredictably, and can leave a keyboard
   user unable to reach them.
-- The "Copy the full issue text" button strips `.share-row` along with
-  `.prompts-section` — button labels are noise in text meant for an assistant.
+- There is no "copy the full issue text" button and no prompt cards. The
+  "Work this issue with your own AI assistant" section was removed — it never
+  reached a published post, so nothing in `blog/posts/` carries it.
 - To fix a typo in an already-published post: `scripts/fix_old_posts.py`
   exists for bulk fixes; for a one-off, editing the specific
   `blog/posts/YYYY-MM-DD-*.html` file directly is fine since nothing

@@ -598,12 +598,18 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       .topbar-right .btn {{ flex: 1; text-align: center; }}
       .sidebar {{ top: auto; }}
 
-      /* 16px stops iOS zooming on focus; 44px is the minimum comfortable tap */
-      .prompt-area, .survey-input, .pat-input, input[type="text"],
-      input[type="number"], textarea {{ font-size: 16px; }}
+      /* 16px stops iOS zooming on focus; 44px is the minimum comfortable tap.
+         The token field is type="password" and carries no class, so it slipped
+         past both the .pat-input and the input[type="text"] selectors and kept
+         zooming the page on focus. Kept as an explicit list rather than a bare
+         `input` so a future checkbox does not inherit a 16px font. */
+      .prompt-area, .survey-input, .pat-input, select, input[type="text"],
+      input[type="number"], input[type="password"], textarea {{ font-size: 16px; }}
       .survey-opt input {{ width: 5.5rem; font-size: 16px; padding: 0.45rem; }}
       .survey-opt span {{ font-size: 0.8rem; }}
       .btn {{ min-height: 44px; }}
+      /* .btn's min-height does not reach the selects and inputs. */
+      select, .survey-input, input[type="password"] {{ min-height: 44px; }}
       #take-input {{ min-height: 150px; }}
       .perma-row {{ flex-wrap: wrap; }}
       .perma-row code {{ flex-basis: 100%; font-size: 0.72rem; }}

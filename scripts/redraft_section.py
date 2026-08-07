@@ -218,17 +218,17 @@ def redraft(path, section, guidance="", month_year=None):
 def extract_issue_text(html):
     """The issue as plain text, for the model to work from.
 
-    The prompt cards, share row and survey call to action are stripped for the
-    same reason the on-page "copy the full issue" button strips them: they are
-    interface, and handing the model a second set of instructions inside its own
-    source material invites it to follow them.
+    The share row, survey call to action and FAQ are stripped: they are
+    interface and derived copy rather than the issue's argument, and the FAQ in
+    particular is assembled FROM the other sections, so leaving it in would feed
+    the model the same content twice.
     """
     article = re.search(
         r'<div class="article-content"[^>]*>(.*?)</article>', html, re.S
     )
     body = article.group(1) if article else html
 
-    for cls in ("prompts-section", "share-row", "survey-cta", "faq-section"):
+    for cls in ("share-row", "survey-cta", "faq-section"):
         span = find_block(body, cls)
         while span:
             body = body[:span[0]] + body[span[1]:]

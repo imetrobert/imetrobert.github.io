@@ -393,7 +393,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         article_parts.append(_build_question_section(closing_question))
 
     article_parts.append(_build_survey_cta())
-    article_parts.append(_build_prompts_section(canonical, clean_title, issue_month_year))
 
     article_html = "\n".join(article_parts)
 
@@ -697,19 +696,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .survey-btn {{ display: inline-block; background: var(--white); color: var(--blue); font-weight: 700; font-size: 0.85rem; padding: 0.6rem 1.4rem; border-radius: 25px; text-decoration: none; transition: transform 0.15s; }}
         .survey-btn:hover {{ transform: translateY(-1px); }}
         .survey-results {{ color: rgba(255,255,255,0.92); font-size: 0.8rem; font-weight: 600; text-decoration: underline; }}
-        .prompts-section {{ background: linear-gradient(135deg, #f8fafc 0%, #eef4ff 100%); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; }}
-        .prompts-intro {{ font-size: 0.875rem; color: var(--gray); line-height: 1.7; margin-bottom: 1.25rem; }}
-        .prompt-list {{ display: grid; gap: 0.875rem; }}
-        .prompt-card {{ background: var(--white); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }}
-        .prompt-head {{ display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface); }}
-        .prompt-label {{ font-weight: 700; font-size: 0.85rem; color: var(--navy); display: block; }}
-        .prompt-blurb {{ font-size: 0.75rem; color: var(--gray-light); display: block; margin-top: 0.1rem; }}
-        .copy-btn {{ display: inline-flex; align-items: center; gap: 0.4rem; flex-shrink: 0; font: inherit; font-size: 0.78rem; font-weight: 600; color: var(--white); background: linear-gradient(135deg, var(--blue), var(--cyan)); border: none; border-radius: 20px; padding: 0.45rem 0.9rem; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }}
-        .copy-btn:hover {{ transform: translateY(-1px); box-shadow: 0 4px 12px rgb(37 99 235 / 0.3); }}
-        .copy-btn.copied {{ background: var(--green); }}
-        .prompt-text {{ margin: 0; padding: 1rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; line-height: 1.65; color: var(--gray-dark); white-space: pre-wrap; word-break: break-word; background: var(--white); }}
-        .prompt-foot {{ display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px dashed var(--border); font-size: 0.8rem; color: var(--gray); }}
-        .prompt-foot-note {{ font-size: 0.75rem; color: var(--gray-light); flex-basis: 100%; }}
         .conclusion {{ background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%); color: var(--white); padding: 2rem; border-radius: 14px; margin-top: 2.5rem; }}
         .conclusion-label {{ font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.75; margin-bottom: 0.5rem; }}
         .conclusion p {{ color: rgba(255,255,255,0.95); font-size: 0.95rem; font-weight: 500; line-height: 1.75; }}
@@ -722,12 +708,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .share-btn {{ display: inline-flex; align-items: center; gap: 0.45rem; font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--navy); background: var(--white); border: 1px solid var(--border); border-radius: 22px; padding: 0.5rem 1rem; text-decoration: none; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s; }}
         .share-btn:hover {{ border-color: var(--blue); color: var(--blue); box-shadow: var(--shadow-md); transform: translateY(-1px); }}
         .share-btn .icon {{ width: 1.1em; height: 1.1em; }}
-        /* The share row reuses .copy-btn for its clipboard behaviour but not
-           its pill styling, which is a filled gradient built for the prompt
-           cards and would read as the primary action here. */
-        .share-btn.copy-btn {{ background: var(--white); color: var(--navy); border: 1px solid var(--border); }}
-        .share-btn.copy-btn:hover {{ color: var(--blue); box-shadow: var(--shadow-md); }}
-        .share-btn.copy-btn.copied {{ background: var(--green); border-color: var(--green); color: var(--white); }}
+        .share-btn.copied {{ background: var(--green); border-color: var(--green); color: var(--white); }}
         .share-btn[hidden] {{ display: none; }}
         p {{ margin-bottom: 1rem; line-height: 1.75; color: var(--gray); font-size: 0.9rem; }}
         strong {{ color: var(--navy); font-weight: 600; }}
@@ -743,9 +724,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             .canada-section {{ padding: 1.25rem; }}
             .action-card {{ flex-direction: column; gap: 0.6rem; }}
             .action-num {{ width: 1.5rem; height: 1.5rem; min-width: 1.5rem; }}
-            .prompts-section {{ padding: 1.25rem; }}
-            .prompt-head {{ flex-direction: column; align-items: flex-start; }}
-            .prompt-text {{ font-size: 0.72rem; }}
             .summary-section {{ padding: 1.1rem 1.2rem; }}
             .myth-section {{ padding: 1.25rem; }}
             .myth-block {{ flex-direction: column; gap: 0.5rem; }}
@@ -785,11 +763,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         <symbol id="i-share" viewBox="0 0 24 24">
             <circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/>
             <path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/>
-        </symbol>
-        <symbol id="i-doc" viewBox="0 0 24 24">
-            <path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/>
-            <path d="M14 3v5h5"/>
-            <path d="M8.5 13h7M8.5 16.5h4.5"/>
         </symbol>
         <symbol id="i-pencil" viewBox="0 0 24 24">
             <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z"/>
@@ -850,8 +823,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         </article>
     </div>
     <script>
-      // Copy-to-clipboard for the prompt cards. Delegated, so it costs one
-      // listener regardless of how many prompts a post carries.
+      // Share behaviour: copy-to-clipboard and the OS share sheet. Delegated,
+      // so it costs one listener no matter how many share controls a post has.
       (function () {{
         function fallbackCopy(text) {{
           var ta = document.createElement('textarea');
@@ -866,7 +839,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         }}
 
         function flash(btn) {{
-          var label = btn.querySelector('.copy-btn-text');
+          var label = btn.querySelector('.share-btn-text');
           if (!label) return;
           var original = label.textContent;
           label.textContent = 'Copied';
@@ -878,39 +851,13 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         }}
 
         document.addEventListener('click', function (e) {{
-          var btn = e.target.closest ? e.target.closest('.copy-btn') : null;
+          var btn = e.target.closest ? e.target.closest('.share-copy') : null;
           if (!btn) return;
 
-          var text;
-          if (btn.classList.contains('share-copy')) {{
-            // The canonical permalink, baked in at build time. Never
-            // location.href — this same article is also served at
-            // latest.html, which points at a different issue next month.
-            text = btn.dataset.shareUrl || '';
-          }} else if (btn.classList.contains('copy-article')) {{
-            // Clone and strip these sections out first: pasting the issue WITH
-            // the prompt cards in it hands the assistant three competing sets
-            // of instructions alongside the article it is meant to read, and
-            // the share row contributes nothing but button labels.
-            var src = document.querySelector('.article-content');
-            var art = null;
-            if (src) {{
-              art = src.cloneNode(true);
-              ['.prompts-section', '.share-row'].forEach(function (sel) {{
-                var strip = art.querySelector(sel);
-                if (strip) strip.remove();
-              }});
-            }}
-            // Canonical, not location.href: read via latest.html this would
-            // otherwise hand the reader a URL that points at a different
-            // article next month.
-            var link = document.querySelector('link[rel="canonical"]');
-            var url = link ? link.href : location.href;
-            text = document.title + '\\n' + url + '\\n\\n' + (art ? art.innerText : '');
-          }} else {{
-            var pre = document.getElementById(btn.dataset.prompt);
-            text = pre ? pre.innerText : '';
-          }}
+          // The canonical permalink, baked in at build time. Never
+          // location.href — this same article is also served at latest.html,
+          // which points at a different issue next month.
+          var text = btn.dataset.shareUrl || '';
           if (!text) return;
 
           if (navigator.clipboard && navigator.clipboard.writeText) {{
@@ -921,9 +868,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             flash(btn);
           }}
 
-          // So there is evidence of whether any of this gets used.
           if (typeof gtag === 'function') {{
-            gtag('event', 'prompt_copy', {{ prompt_type: btn.dataset.label || 'unknown' }});
+            gtag('event', 'share', {{ method: 'copy_link' }});
           }}
         }});
 
@@ -998,105 +944,7 @@ def _build_survey_cta():
     )
 
 
-def _build_prompts_section(canonical, title_text, issue_month_year):
-    """The "work this issue" block: prompts readers paste into their own
-    chatbot.
 
-    Design notes, because each one is load-bearing:
-
-    * The URL is this issue's PERMALINK, never latest.html. latest.html rotates
-      monthly, so a prompt carrying it would silently start pointing at a
-      different article than the one the reader is holding.
-    * Every prompt carries a refusal instruction. Most readers are on free
-      tiers that cannot browse, and a model asked to analyse a page it cannot
-      open will happily invent "insights from Robert Simon" that he never
-      wrote. Telling it to stop converts the likeliest failure from silent
-      fabrication into an honest "I can't reach that".
-    * Every prompt asks for the source URL back. When the output gets pasted
-      into a deck or a Slack thread, the link travels with it — that is the
-      only part of this section that does anything for discoverability.
-    * The issue title is embedded, so this block is unique per post rather than
-      site-wide boilerplate repeated fourteen times.
-    """
-    guard = ("If you cannot open that link, tell me so and stop \u2014 "
-             "do not answer from memory or guess what it says.")
-    source_line = f"Read this article \u2014 \u201c{title_text}\u201d: {canonical}"
-
-    prompts = [
-        ("Personalize", "What in this issue actually applies to me",
-         "I work in [your industry] at a company of about [number] employees in "
-         "[province], and my role is [your role].\n\n"
-         f"{source_line}\n\n{guard}\n\n"
-         "Using only that article, tell me: which developments genuinely affect a "
-         "business like mine and which I can safely ignore; what the realistic "
-         "impact looks like over the next six months; and the single thing I "
-         "should look into first.\n\n"
-         "Cite the article URL in your answer."),
-        ("Pressure-test", "Argue against it for my situation",
-         "I work in [your industry], we have about [number] employees, and my "
-         "biggest constraint right now is [budget / talent / legacy systems / "
-         "regulatory approval].\n\n"
-         f"{source_line}\n\n{guard}\n\n"
-         "Argue against applying this article's recommendations in my situation. "
-         "Where is the advice too generic, too early, or too expensive for a "
-         "company like mine? What would have to be true for it to be worth acting "
-         "on this quarter? Be specific and skeptical rather than balanced.\n\n"
-         "Cite the article URL in your answer."),
-        ("Operationalize", "Turn it into something I can send upward",
-         "I am a [your role] at a [your industry] company with about [number] "
-         "employees in Canada.\n\n"
-         f"{source_line}\n\n{guard}\n\n"
-         "Turn it into a one-page briefing for my leadership team: what changed "
-         "this month, why it matters for us specifically, the three decisions we "
-         "need to make, and what it costs us to wait a quarter.\n\n"
-         "Cite the article URL so my team can read the source."),
-    ]
-
-    cards = ""
-    for i, (label, blurb, body) in enumerate(prompts, 1):
-        cards += (
-            f'<div class="prompt-card">'
-            f'<div class="prompt-head">'
-            f'<div><span class="prompt-label">{label}</span>'
-            f'<span class="prompt-blurb">{blurb}</span></div>'
-            f'<button type="button" class="copy-btn" data-prompt="p{i}" '
-            f'data-label="{label}" aria-label="Copy the {label} prompt">'
-            f'<svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>'
-            f'<span class="copy-btn-text">Copy</span></button>'
-            f'</div>'
-            f'<pre class="prompt-text" id="p{i}">{escape_html(body)}</pre>'
-            f'</div>'
-        )
-
-    return (
-        f'<div class="section prompts-section">'
-        f'<h2 class="section-title">Work this issue with your own AI assistant</h2>'
-        f'<p class="prompts-intro">These are written for ChatGPT, Claude or Gemini. '
-        f'Copy one, fill in the bracketed parts, and you get analysis of this issue '
-        f'for your situation rather than a generic summary.</p>'
-        f'<div class="prompt-list">{cards}</div>'
-        f'<div class="prompt-foot">'
-        f'<span>Assistant cannot open links?</span>'
-        f'<button type="button" class="copy-btn copy-article" data-label="Full issue" '
-        f'aria-label="Copy the full text of this issue">'
-        f'<svg class="icon" aria-hidden="true"><use href="#i-doc"/></svg>'
-        f'<span class="copy-btn-text">Copy the full issue text</span></button>'
-        f'<span class="prompt-foot-note">Paste it above your prompt and any '
-        f'assistant can work from it, no browsing needed.</span>'
-        f'</div>'
-        f'</div>'
-    )
-
-
-# Each redraftable section is built by exactly one function, so redraft_section.py
-# can rebuild a single block that is byte-identical to what the monthly render
-# would have produced. Inline f-strings here would mean two renderers to keep in
-# step, and the drift would only show up on a redrafted issue.
-# FAQ answer text is quoted verbatim by answer engines and is duplicated into the
-# FAQPage schema, so it is scrubbed of anything that betrays the source format.
-# Module level rather than nested, because redraft_section.py has to regenerate
-# an answer by exactly these rules when it rewrites a section the FAQ quotes —
-# otherwise the schema would keep asserting an answer no longer on the page.
 def faq_plain(text, limit=480):
     text = re.sub(r"<[^>]+>", " ", str(text))
     # Answers get quoted verbatim by answer engines, so scrub anything that
@@ -1223,10 +1071,10 @@ def _build_share_row(canonical, title, issue_month_year):
         f'    <a class="share-btn" href="{escape_html(mailto, quote=True)}">'
         f'<svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg>'
         f'<span>Email</span></a>'
-        f'    <button type="button" class="share-btn copy-btn share-copy" '
-        f'data-share-url="{url_attr}" data-label="share_copy">'
+        f'    <button type="button" class="share-btn share-copy" '
+        f'data-share-url="{url_attr}">'
         f'<svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>'
-        f'<span class="copy-btn-text">Copy link</span></button>'
+        f'<span class="share-btn-text">Copy link</span></button>'
         f'    <button type="button" class="share-btn share-native" hidden '
         f'data-share-url="{url_attr}" data-share-title="{escape_html(title, quote=True)}">'
         f'<svg class="icon" aria-hidden="true"><use href="#i-share"/></svg>'
