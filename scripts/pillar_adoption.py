@@ -23,6 +23,8 @@ import os
 import re
 from datetime import datetime
 
+from utils import BRAND
+
 BASE = "https://www.imetrobert.com"
 OUT = "blog/canadian-ai-adoption.html"
 CANONICAL = f"{BASE}/blog/canadian-ai-adoption.html"
@@ -106,8 +108,8 @@ def _faq(rows):
             + (f", sourced to {latest['source']}." if latest['source'] else ".")))
     items.append((
         "Where do these Canadian AI adoption numbers come from?",
-        "Each figure is reproduced from a monthly issue of AI Insights for Canadian "
-        "Business, with the source named in that issue. Every row links back to the "
+        f"Each figure is reproduced from a monthly issue of {BRAND}, with the "
+        "source named in that issue. Every row links back to the "
         "issue it appeared in so the original reporting and its source can be checked."))
     items.append((
         "How often is this page updated?",
@@ -161,7 +163,7 @@ def build_page(rows):
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>Canadian AI adoption statistics, tracked monthly | Robert Simon</title>
-<meta name="description" content="Every Canadian AI adoption figure tracked in AI Insights for Canadian Business, by month, with the source for each and a link to the issue it was reported in.">
+<meta name="description" content="Every Canadian AI adoption figure tracked in {BRAND}, by month, with the source for each and a link to the issue it was reported in.">
 <meta name="author" content="Robert Simon">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
 <meta name="language" content="en-CA">
@@ -170,23 +172,23 @@ def build_page(rows):
 <meta property="og:type" content="article">
 <meta property="og:url" content="{CANONICAL}">
 <meta property="og:title" content="Canadian AI adoption statistics, tracked monthly">
-<meta property="og:description" content="Every Canadian AI adoption figure tracked in AI Insights for Canadian Business, by month, with sources.">
+<meta property="og:description" content="Every Canadian AI adoption figure tracked in {BRAND}, by month, with sources.">
 <meta property="og:image" content="{BASE}/blog/og/canadian-ai-adoption.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Canadian AI adoption statistics tracked monthly by Robert Simon">
-<meta property="og:site_name" content="Robert Simon - AI Innovation">
+<meta property="og:site_name" content="{BRAND}">
 <meta property="og:locale" content="en_CA">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Canadian AI adoption statistics, tracked monthly">
-<meta name="twitter:description" content="Every Canadian AI adoption figure tracked in AI Insights for Canadian Business, by month, with sources.">
+<meta name="twitter:description" content="Every Canadian AI adoption figure tracked in {BRAND}, by month, with sources.">
 <meta name="twitter:image" content="{BASE}/blog/og/canadian-ai-adoption.jpg">
 <script type="application/ld+json">
 {{
   "@context": "https://schema.org",
   "@type": "Article",
   "headline": "Canadian AI adoption statistics, tracked monthly",
-  "description": "Every Canadian AI adoption figure tracked in AI Insights for Canadian Business, by month, with the source for each.",
+  "description": "Every Canadian AI adoption figure tracked in {BRAND}, by month, with the source for each.",
   "dateModified": "{datetime.now().strftime('%Y-%m-%d')}",
   "author": {{
     "@type": "Person",
@@ -228,7 +230,7 @@ def build_page(rows):
   "@type": "BreadcrumbList",
   "itemListElement": [
     {{"@type": "ListItem", "position": 1, "name": "Home", "item": "{BASE}"}},
-    {{"@type": "ListItem", "position": 2, "name": "AI Insights Blog", "item": "{BASE}/blog/"}},
+    {{"@type": "ListItem", "position": 2, "name": "{BRAND}", "item": "{BASE}/blog/"}},
     {{"@type": "ListItem", "position": 3, "name": "Canadian AI adoption statistics", "item": "{CANONICAL}"}}
   ]
 }}
@@ -289,13 +291,13 @@ h2.sec::before {{ content:''; position:absolute; left:0; top:0.15rem; bottom:0.1
   <a href="/blog/" class="nav-link">&#8592; Back to Blog</a>
 </div></nav>
 <header class="header"><div class="header-content">
-  <img src="/blog/logo.svg" class="brand-logo" alt="AI Insights" width="76" height="76">
+  <img src="/blog/logo.svg" class="brand-logo" alt="{BRAND}" width="76" height="76">
   <h1>Canadian AI adoption statistics, tracked monthly</h1>
-  <p class="sub">Every figure reported in AI Insights for Canadian Business, with its source</p>
+  <p class="sub">Every figure reported in {BRAND}, with its source</p>
 </div></header>
 <div class="container"><div class="card">
   <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a href="{BASE}">Home</a> &#8250; <a href="{BASE}/blog/">AI Insights Blog</a> &#8250;
+    <a href="{BASE}">Home</a> &#8250; <a href="{BASE}/blog/">{BRAND}</a> &#8250;
     <span>Canadian AI adoption statistics</span>
   </nav>
   <p class="pillar-lead">Canadian AI adoption is reported in fragments — a Statistics Canada release here,

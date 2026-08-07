@@ -1,8 +1,13 @@
 """
 inject_take.py
-Replaces the "Robert's Take" body in a staged post with text typed in the
+Replaces the "From Robert's Desk" body in a staged post with text typed in the
 preview page, so the one section that claims to be Robert's own voice can
 actually be his.
+
+The section was called "Robert's Take" and ran two or three sentences; it is now
+the signature section of the issue at 300-450 words. The CSS class names did not
+change with the rename, so this file still finds the block through
+.roberts-header / .roberts-body — see the note in renderer._build_roberts_desk.
 
 Called by approve-blog.yml with the text the reviewer typed. It rewrites the
 staging file in place BEFORE promotion, so the published post and latest.html
@@ -20,11 +25,16 @@ import re
 import sys
 
 # Matches whichever of the two states the renderer produced: the placeholder
-# box when the model wrote nothing usable, or a real quoted paragraph.
+# box when the model wrote nothing usable, or the drafted section itself.
+#
+# The paragraph branch repeats. The Desk is now several paragraphs, and matching
+# only the first one would leave the model's remaining paragraphs sitting
+# underneath the reviewer's replacement — publishing both versions, under
+# Robert's byline, with no visible error.
 BODY_RE = re.compile(
     r'(<div class="roberts-header">.*?</div>\s*</div>\s*)'      # keep the byline block
     r'(?:<div class="roberts-placeholder">.*?</div>'            # ...then either the placeholder
-    r'|<p class="roberts-body">.*?</p>)',                       # ...or an existing take
+    r'|(?:<p class="roberts-body">.*?</p>\s*)+)',               # ...or every drafted paragraph
     re.S,
 )
 
@@ -41,22 +51,19 @@ def clean(text):
 
 
 def to_html(text):
-    """Blank lines become paragraphs; the first and last get the curly quotes
-    the renderer uses, so a typed take looks identical to a generated one."""
+    """Blank lines become paragraphs, matching what the renderer emits.
+
+    No curly quotes. Quotation marks framed the old two-sentence take as an
+    aside, which is wrong for a 400-word essay that is the centrepiece of the
+    issue — and a typed take has to look identical to a generated one, so the
+    two must agree.
+    """
     paras = [p.strip().replace("\n", " ") for p in text.split("\n\n") if p.strip()]
     if not paras:
         return ""
-    out = []
-    for i, p in enumerate(paras):
-        esc = H.escape(p, quote=False)
-        if len(paras) == 1:
-            esc = f"&#8220;{esc}&#8221;"
-        elif i == 0:
-            esc = f"&#8220;{esc}"
-        elif i == len(paras) - 1:
-            esc = f"{esc}&#8221;"
-        out.append(f'<p class="roberts-body">{esc}</p>')
-    return "".join(out)
+    return "".join(
+        f'<p class="roberts-body">{H.escape(p, quote=False)}</p>' for p in paras
+    )
 
 
 def inject(path, text):
@@ -72,7 +79,7 @@ def inject(path, text):
         src = f.read()
 
     if not BODY_RE.search(src):
-        print("  Could not locate the Robert's Take block — leaving the file untouched.")
+        print("  Could not locate the From Robert's Desk block — leaving the file untouched.")
         return False
 
     body = to_html(text)
@@ -85,7 +92,9 @@ def inject(path, text):
     with open(path, "w", encoding="utf-8") as f:
         f.write(updated)
     words = len(text.split())
-    print(f"  Robert's Take replaced with the reviewer's own text ({words} words).")
+    print(f"  From Robert's Desk replaced with the reviewer's own text ({words} words).")
+    if words < 200:
+        print(f"  NOTE: {words} words is short for this section — it is meant to run 300-450.")
     return True
 
 

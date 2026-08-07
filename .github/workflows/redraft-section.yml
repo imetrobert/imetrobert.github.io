@@ -1,0 +1,136 @@
+name: Redraft One Section
+
+# Rewrites a single judgment section of a staged issue in place, rather than
+# regenerating the whole post. Regeneration is the right tool when the issue is
+# wrong; this is the tool when the issue is right and one section is flat.
+#
+# Unlike regenerate-blog.yml this never creates a new staging file, so the
+# filename, the preview URL and every other section stay exactly as they were.
+
+on:
+  workflow_dispatch:
+    inputs:
+      staging_filename:
+        description: 'Staging filename to edit (e.g. 2026-08-31-ai-insights.html)'
+        required: true
+        type: string
+      section:
+        description: 'Which section to redraft'
+        required: true
+        type: choice
+        options:
+          - FROM ROBERTS DESK
+          - EXECUTIVE SUMMARY
+          - AI MYTH OF THE MONTH
+          - 'LOOKING AHEAD: THREE PREDICTIONS'
+          - ONE QUESTION FOR YOUR LEADERSHIP TEAM
+      guidance:
+        description: 'What to change. Blank asks for a different angle with no steer.'
+        required: false
+        default: ''
+        type: string
+      month_year:
+        description: 'Coverage month, e.g. "August 2026". Only used to date the context given to the model.'
+        required: false
+        default: ''
+        type: string
+
+# Shared with monthly-blog.yml / approve-blog.yml — see comment there.
+permissions:
+  contents: write
+
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
+jobs:
+  redraft:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -r scripts/requirements.txt
+          pip3 install beautifulsoup4 lxml
+
+      - name: Validate staging file exists
+        run: |
+          STAGING_PATH="blog/staging/${{ github.event.inputs.staging_filename }}"
+          if [ ! -f "$STAGING_PATH" ]; then
+            echo "ERROR: Staging file not found: $STAGING_PATH"
+            ls blog/staging/ 2>/dev/null || echo "  (staging directory empty)"
+            exit 1
+          fi
+
+      - name: Resolve coverage month
+        id: coverage
+        run: |
+          MONTH="${{ github.event.inputs.month_year }}"
+          if [ -z "$MONTH" ]; then MONTH=$(date +"%B %Y"); fi
+          echo "month=$MONTH" >> $GITHUB_OUTPUT
+
+      - name: Redraft the section
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SECTION: ${{ github.event.inputs.section }}
+          GUIDANCE: ${{ github.event.inputs.guidance }}
+        run: |
+          # redraft_section.py writes the file only after a redraft has parsed
+          # and rendered, so a non-zero exit here means the issue is untouched.
+          python3 scripts/redraft_section.py \
+            "blog/staging/${{ github.event.inputs.staging_filename }}" \
+            "$SECTION" \
+            "$GUIDANCE" \
+            --month "${{ steps.coverage.outputs.month }}"
+
+      - name: Regenerate preview page
+        run: |
+          cd scripts
+          python3 generate-preview-page.py \
+            --filename "${{ github.event.inputs.staging_filename }}" \
+            --month "${{ steps.coverage.outputs.month }}" \
+            --run-id "${{ github.run_id }}"
+          cd ..
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Blog Section Redrafter"
+
+      - name: Commit the redrafted section
+        env:
+          SECTION: ${{ github.event.inputs.section }}
+        run: |
+          git add blog/staging/
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Staging: redrafted '$SECTION' — $(date +%Y-%m-%d)"
+            git push
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Section redrafted" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Section:** ${{ github.event.inputs.section }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Guidance:** ${{ github.event.inputs.guidance }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**File:** ${{ github.event.inputs.staging_filename }} (unchanged filename)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Preview:** https://www.imetrobert.com/blog/staging/preview.html?v=${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> Allow 2-3 minutes for GitHub Pages to rebuild before refreshing." >> $GITHUB_STEP_SUMMARY

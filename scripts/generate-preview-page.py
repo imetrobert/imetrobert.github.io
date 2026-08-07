@@ -19,6 +19,39 @@ sys.path.insert(0, _here)
 sys.path.insert(0, os.path.join(os.getcwd(), 'scripts'))
 
 from utils import get_issue_labels
+from gemini import REDRAFTABLE_SECTIONS
+
+import re as _re
+from html import escape as html_escape, unescape as html_unescape
+
+
+def _extract_desk_draft(staging_filename: str) -> str:
+    """Pull the drafted 'From Robert's Desk' prose back out of the staged post.
+
+    The reviewer edits this section in a plain textarea, so what comes out here
+    has to be plain text: tags stripped, entities decoded, paragraphs separated
+    by a blank line — the same shape inject_take.py expects to be handed back.
+
+    Returns "" for anything unexpected (file missing, placeholder box instead of
+    a draft, path resolved differently by a caller that runs from scripts/).
+    An empty editor is a worse experience but a safe one; failing here must
+    never take the whole approval page down with it.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(root, "blog", "staging", staging_filename)
+    try:
+        with open(path, encoding="utf-8") as f:
+            src = f.read()
+    except OSError:
+        return ""
+
+    paragraphs = []
+    for raw in _re.findall(r'<p class="roberts-body">(.*?)</p>', src, _re.S):
+        text = html_unescape(_re.sub(r'<[^>]+>', '', raw))
+        text = _re.sub(r'\s+', ' ', text).strip()
+        if text:
+            paragraphs.append(text)
+    return "\n\n".join(paragraphs)
 
 
 def build_preview_html(staging_filename: str, month_year: str, run_id: str, regenerated: bool = False) -> str:
@@ -94,6 +127,31 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     regen_badge = ""
     if regenerated:
         regen_badge = '<div class="regen-badge">🔄 Regenerated with custom prompt</div>'
+
+    # Built from gemini.REDRAFTABLE_SECTIONS rather than hardcoded, so this
+    # picker cannot offer a section the redraft script does not know how to
+    # rebuild. (The choice list in redraft-section.yml still has to be kept in
+    # step by hand — GitHub Actions cannot generate workflow_dispatch options.)
+    redraft_options = "".join(
+        f'<option value="{html_escape(key, quote=True)}">'
+        f'{html_escape(cfg["label"], quote=False)}</option>'
+        for key, cfg in REDRAFTABLE_SECTIONS.items()
+    )
+
+    # Pre-load the editor with the model's draft of From Robert's Desk. The
+    # section runs 300-450 words now; handed an empty box that often meant
+    # shipping the model's version under Robert's byline, because rewriting
+    # from nothing is a much bigger ask than editing. A localStorage draft
+    # still wins over this — see initTake().
+    desk_draft = _extract_desk_draft(staging_filename)
+    desk_draft_attr = html_escape(desk_draft)
+    desk_draft_words = len(desk_draft.split())
+    desk_draft_note = (
+        f"Pre-filled with the model&#39;s {desk_draft_words}-word draft &mdash; "
+        f"edit it into your own words."
+        if desk_draft else
+        "The model left this section empty. Whatever you type here is what publishes."
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -540,12 +598,18 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       .topbar-right .btn {{ flex: 1; text-align: center; }}
       .sidebar {{ top: auto; }}
 
-      /* 16px stops iOS zooming on focus; 44px is the minimum comfortable tap */
-      .prompt-area, .survey-input, .pat-input, input[type="text"],
-      input[type="number"], textarea {{ font-size: 16px; }}
+      /* 16px stops iOS zooming on focus; 44px is the minimum comfortable tap.
+         The token field is type="password" and carries no class, so it slipped
+         past both the .pat-input and the input[type="text"] selectors and kept
+         zooming the page on focus. Kept as an explicit list rather than a bare
+         `input` so a future checkbox does not inherit a 16px font. */
+      .prompt-area, .survey-input, .pat-input, select, input[type="text"],
+      input[type="number"], input[type="password"], textarea {{ font-size: 16px; }}
       .survey-opt input {{ width: 5.5rem; font-size: 16px; padding: 0.45rem; }}
       .survey-opt span {{ font-size: 0.8rem; }}
       .btn {{ min-height: 44px; }}
+      /* .btn's min-height does not reach the selects and inputs. */
+      select, .survey-input, input[type="password"] {{ min-height: 44px; }}
       #take-input {{ min-height: 150px; }}
       .perma-row {{ flex-wrap: wrap; }}
       .perma-row code {{ flex-basis: 100%; font-size: 0.72rem; }}
@@ -640,13 +704,44 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       </button>
     </div>
 
+    <div class="sidebar-section sec-redraft-section">
+      <h3>Ask Gemini to redraft a section</h3>
+      <p class="take-hint">Rewrites one section in place. The rest of the issue,
+      and the filename, stay exactly as they are &mdash; use this instead of a full
+      regeneration when only one section is flat. Only the judgment sections are
+      listed: the reported ones went through date, source and deduplication rules
+      that a one-section rewrite cannot reproduce.</p>
+      <label class="survey-label">Section
+        <select id="redraft-section" class="survey-input">{redraft_options}</select>
+      </label>
+      <div class="prompt-examples">
+        <p>Quick steers:</p>
+        <span class="prompt-chip" onclick="setRedraftGuidance('Make it more contrarian. Say the thing most people in the room would not say, and back it up.')">More contrarian</span>
+        <span class="prompt-chip" onclick="setRedraftGuidance('Lead with the governance and change-management angle rather than the technology.')">Governance angle</span>
+        <span class="prompt-chip" onclick="setRedraftGuidance('Ground this more in what actually happens inside a large enterprise — procurement friction, legal review capacity, the gap between a pilot and a deployment.')">More enterprise reality</span>
+        <span class="prompt-chip" onclick="setRedraftGuidance('Too abstract. Tie it to a specific decision an executive has to make this quarter.')">Make it concrete</span>
+        <span class="prompt-chip" onclick="setRedraftGuidance('Pick a completely different angle from the current draft. Same section, new argument.')">Different angle</span>
+      </div>
+      <textarea id="redraft-guidance" class="prompt-area" rows="4"
+        placeholder="What should change? e.g. 'Focus the Desk on why cheap compute will not fix the governance queue.' Leave blank to just ask for a different angle."></textarea>
+      <p class="prompt-hint">
+        Runs without web search, so a redraft can sharpen the argument but cannot
+        introduce an event or statistic that was never sourced. If the result does
+        not fit the section&#39;s format, nothing is changed.
+      </p>
+      <button class="btn btn-secondary" id="redraft-btn" style="width:100%;" onclick="triggerRedraft()">
+        &#9998; Redraft This Section
+      </button>
+    </div>
+
     <div class="sidebar-section sec-take">
-      <h3>Robert&#39;s Take &mdash; in your words</h3>
-      <p class="take-hint">This is the one section on the page that claims to be you.
-      Two or three sentences replace whatever the model wrote. Leave it blank to keep
-      the generated version.</p>
-      <textarea id="take-input" class="prompt-area" rows="7"
-        placeholder="What surprised you this month? What are you hearing from Canadian leaders? What pattern is everyone else missing?"></textarea>
+      <h3>From Robert&#39;s Desk &mdash; in your words</h3>
+      <p class="take-hint">The signature section, and the one part of the issue that
+      claims to be you. {desk_draft_note} Target 300&ndash;450 words. Separate
+      paragraphs with a blank line. Clearing this box entirely keeps the draft
+      below as-is.</p>
+      <textarea id="take-input" class="prompt-area" rows="16"
+        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">{desk_draft_attr}</textarea>
       <div class="take-meta">
         <span id="take-count">0 words</span>
         <span id="take-saved" class="take-saved"></span>
@@ -770,6 +865,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   const PERMALINK        = {permalink_json};
   const APPROVE_WF    = "approve-blog.yml";
   const REGENERATE_WF = "regenerate-blog.yml";
+  const REDRAFT_WF    = "redraft-section.yml";
   const DISCARD_WF    = "discard-blog.yml";
   const GITHUB_API    = "https://api.github.com";
 
@@ -986,7 +1082,14 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     let timer = null;
     function update() {{
       const words = takeText() ? takeText().split(/\s+/).length : 0;
-      if (count) count.textContent = words + (words === 1 ? " word" : " words");
+      if (count) {{
+        // The target range is the whole point of the section — showing the
+        // count alone gives no sense of whether 180 words is short.
+        let note = " · target 300–450";
+        if (words >= 300 && words <= 450) note = " · in range";
+        else if (words > 450) note = " · over 450, consider trimming";
+        count.textContent = words + (words === 1 ? " word" : " words") + note;
+      }}
       clearTimeout(timer);
       timer = setTimeout(function () {{
         localStorage.setItem(TAKE_KEY, el.value);
@@ -1146,6 +1249,49 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       unlockButtons();
       showToast(apiErrorMessage(res, body), "error");
     }}
+  }}
+
+  // ── Redraft one section ─────────────────────────────────────────
+  // Unlike a full regeneration this rewrites a single section in place. The
+  // staging filename does not change, so the buttons are NOT locked the way
+  // triggerRegenerate() locks them — there is no orphaned filename to guard
+  // against, and locking Approve for a one-section edit would be a nuisance.
+  async function triggerRedraft() {{
+    const section  = document.getElementById("redraft-section").value;
+    const guidance = document.getElementById("redraft-guidance").value.trim();
+    if (!section) {{
+      showToast("Pick which section to redraft.", "error");
+      return;
+    }}
+    const label = document.getElementById("redraft-section")
+                    .selectedOptions[0].textContent;
+    showOverlay("loading", "Redrafting " + label + "...",
+      "Gemini is rewriting just this section from the issue as it already stands. Takes about a minute."
+    );
+    const res = await triggerWorkflow(REDRAFT_WF, {{
+      staging_filename: STAGING_FILE,
+      section: section,
+      guidance: guidance,
+      month_year: COVERAGE_MONTH_YEAR
+    }});
+    if (!res) {{ hideOverlay(); return; }}
+    if (res.status === 204) {{
+      startPolling();
+      showOverlay("regen-queued", "Redraft queued",
+        "This page checks every 15s and reloads once the new version is live. Every other section stays exactly as it is.",
+        `https://github.com/${{REPO}}/actions/workflows/${{REDRAFT_WF}}`
+      );
+    }} else {{
+      const body = await res.json().catch(() => ({{}}));
+      hideOverlay();
+      showToast(apiErrorMessage(res, body), "error");
+    }}
+  }}
+
+  function setRedraftGuidance(text) {{
+    const el = document.getElementById("redraft-guidance");
+    el.value = text;
+    el.focus();
   }}
 
   // ── Prompt chips ────────────────────────────────────────────────

@@ -7,8 +7,14 @@ import re
 import json
 from datetime import datetime
 from html import escape as escape_html
+from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
-from parser import parse_sections, parse_list_items, parse_developments, parse_spotlight_items, parse_adoption_stats, deduplicate_spotlight_against_developments
+from utils import BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR
+from parser import (
+    parse_sections, parse_list_items, parse_developments, parse_spotlight_items,
+    parse_adoption_stats, deduplicate_spotlight_against_developments,
+    parse_actions, parse_myth, parse_predictions, parse_question,
+)
 
 
 def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=False):
@@ -33,13 +39,13 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     reading_time   = estimate_reading_time(content)
     word_count     = len(re.sub(r'\s+', ' ', content).split())
 
-    clean_title = re.sub(r'^[#\*\s]+', '', title).strip() or f"AI Insights for {issue_month_year}"
+    clean_title = re.sub(r'^[#\*\s]+', '', title).strip() or f"{BRAND} \u2014 {issue_month_year}"
     slug        = clean_filename(clean_title)
     canonical   = f"https://www.imetrobert.com/blog/posts/{iso_date}-{slug}.html"
     # Per-issue social card. Falls back to the static one rather than risking a
     # 404 og:image if Pillow or the fonts are unavailable in the runner.
     og_image    = "https://www.imetrobert.com/blog/og-blog.jpg"
-    og_alt      = f"AI Insights for Canadian Business \u2014 {issue_month_year} issue by Robert Simon"
+    og_alt      = f"{BRAND} \u2014 {issue_month_year} issue by {AUTHOR}"
     try:
         import os as _os
         from og_image import build_og_image
@@ -78,23 +84,46 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     # Topic first: the front of the title carries the most retrieval weight, and
     # it is what survives truncation in a SERP. Month second for freshness and
     # issue identity, brand last.
-    seo_title         = f"{clean_title_html} | AI Insights {issue_month_year} | Robert Simon"
+    seo_title         = f"{clean_title_html} | {BRAND_SHORT}, {issue_month_year} | {AUTHOR}"
 
     sections = parse_sections(content)
 
     intro_text      = sections.get("INTRODUCTION", "")
     canadian_spot   = sections.get("CANADIAN SPOTLIGHT", "")
     business_impact = sections.get("WHAT THIS MEANS FOR CANADIAN BUSINESS", "")
-    roberts_raw     = sections.get("ROBERTS TAKE", "")
+    roberts_raw     = sections.get("FROM ROBERTS DESK", "")
     adoption_raw    = sections.get("ADOPTION SNAPSHOT", "")
 
-    developments    = parse_developments(sections.get("KEY AI DEVELOPMENTS", ""))
+    # Coverage date resolves the year on a bare "August 12" so the parser can
+    # tell a past item from a forward-dated one. See _drop_future_dated.
+    developments    = parse_developments(
+        sections.get("KEY AI DEVELOPMENTS", ""), coverage_date or current_date
+    )
     spotlight_items = parse_spotlight_items(canadian_spot)
     spotlight_items = deduplicate_spotlight_against_developments(spotlight_items, developments)
-    actions         = parse_list_items(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""), min_length=40)
+    actions         = parse_actions(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""))
     adoption        = parse_adoption_stats(adoption_raw)
+    summary_points  = parse_list_items(sections.get("EXECUTIVE SUMMARY", ""), min_length=25)[:3]
+    myth            = parse_myth(sections.get("AI MYTH OF THE MONTH", ""))
+    predictions     = parse_predictions(sections.get("LOOKING AHEAD: THREE PREDICTIONS", ""))
+    closing_question = parse_question(sections.get("ONE QUESTION FOR YOUR LEADERSHIP TEAM", ""))
 
-    print(f"  Parsed: {len(developments)} developments, {len(spotlight_items)} spotlight, {len(actions)} actions, {len(adoption)} stats")
+    # Action bodies are what the FAQ and the conclusion quote; they should never
+    # carry the OWNER/PRIORITY labels into prose meant to be read as a sentence.
+    action_bodies   = [a["body"] for a in actions]
+
+    print(f"  Parsed: {len(developments)} developments, {len(spotlight_items)} spotlight, "
+          f"{len(actions)} actions, {len(adoption)} stats, {len(summary_points)} summary points, "
+          f"{len(predictions)} predictions, myth={'yes' if myth else 'no'}, "
+          f"question={'yes' if closing_question else 'no'}")
+    if len(developments) < 4:
+        print(f"  WARNING: only {len(developments)} developments survived parsing. "
+              f"The issue asks for 5-6, so this one will read thin. Check the log "
+              f"above for future-dated items removed on a mid-month run.")
+    desk_words = len(roberts_raw.split())
+    if desk_words < 200:
+        print(f"  NOTE: From Robert's Desk is only {desk_words} words — the signature "
+              f"section is meant to run 300-450. Consider rewriting it in the preview page.")
 
     article_parts = []
 
@@ -105,28 +134,57 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             f'</div>'
         )
 
+    if summary_points:
+        article_parts.append(_build_summary_section(summary_points))
+
     if developments:
+        # Two tiers. A development the model rated is a major story and gets the
+        # full treatment; the rest are the log. The split is driven by whether
+        # the ratings are actually present, so a month where the model rates
+        # nothing degrades to the old flat list instead of rendering empty
+        # badge rows.
+        major   = [d for d in developments if d.get("strategic_read") or d.get("importance")]
+        minor   = [d for d in developments if d not in major]
         dev_cards = ""
-        for d in developments:
+
+        for d in major:
             date_html    = f'<span class="dev-date">{d["date"]}</span>' if d["date"] else ""
             company_html = f'<div class="dev-company">{d["company"]}</div>' if d["company"] else ""
-            source_html  = ""
-            if d.get("source_url"):
-                src_label = d.get("source_name") or "Source"
-                source_html = (
-                    f'<div class="dev-source">'
-                    f'<a href="{d["source_url"]}" target="_blank" rel="noopener noreferrer" '
-                    f'title="Search Google for this article">'
-                    f'<svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> {src_label}'
-                    f'</a></div>'
-                )
             dev_cards += (
-                f'<div class="dev-card">'
-                f'  <div class="dev-header">{date_html}{company_html}</div>'
+                f'<div class="dev-card dev-card-major">'
+                f'  <div class="dev-header">{date_html}{company_html}'
+                f'<span class="dev-tier">Major story</span></div>'
                 f'  <p class="dev-body">{d["body"]}</p>'
-                f'  {source_html}'
+                f'  {_build_strategic_read(d)}'
+                f'  {_build_rating_row(d)}'
+                f'  {_build_dev_source(d)}'
                 f'</div>\n'
             )
+
+        if minor:
+            # "Also worth knowing" only means something when there is something
+            # above it. If the model rated nothing this month, every item is in
+            # this list, and the subordinate framing plus the de-emphasised card
+            # style would present the entire section as a footnote.
+            demote = bool(major)
+            minor_rows = ""
+            for d in minor:
+                date_html = f'<span class="dev-date">{d["date"]}</span>' if d["date"] else ""
+                company_html = f'<span class="dev-company">{d["company"]}</span>' if d["company"] else ""
+                minor_rows += (
+                    f'<div class="dev-card{" dev-card-minor" if demote else ""}">'
+                    f'  <div class="dev-header">{date_html}{company_html}</div>'
+                    f'  <p class="dev-body">{d["body"]}</p>'
+                    f'  {_build_dev_source(d)}'
+                    f'</div>\n'
+                )
+            dev_cards += (
+                f'<div class="dev-log">'
+                f'<div class="dev-log-label">Also worth knowing</div>'
+                f'{minor_rows}'
+                f'</div>'
+            ) if demote else minor_rows
+
         article_parts.append(
             f'<div class="section">'
             f'<h2 class="section-title">Key AI Developments This Month</h2>'
@@ -174,6 +232,12 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             f'</div>'
         )
 
+    # The signature section sits here on purpose — immediately after the facts
+    # and before the analysis that leans on them, at the point in the page where
+    # attention is still high. It used to close the issue, which is exactly
+    # where a reader who skims stops reading.
+    article_parts.append(_build_roberts_desk(roberts_raw))
+
     if business_impact:
         paras = [p.strip() for p in business_impact.split('\n\n') if len(p.strip()) > 40]
         if not paras:
@@ -191,10 +255,27 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     if actions:
         action_cards = ""
         for i, a in enumerate(actions[:5]):
+            owner_html = ""
+            if a.get("owner"):
+                rationale = (
+                    f'<div class="action-owner-why">{a["owner_rationale"]}</div>'
+                    if a.get("owner_rationale") else ""
+                )
+                owner_html = (
+                    f'<div class="action-owner">'
+                    f'<span class="action-owner-label">Owner</span>'
+                    f'<span class="action-owner-role">{a["owner"]}</span>'
+                    f'{rationale}'
+                    f'</div>'
+                )
             action_cards += (
                 f'<div class="action-card">'
                 f'  <div class="action-num">{i+1}</div>'
-                f'  <div class="action-body">{a}</div>'
+                f'  <div class="action-main">'
+                f'    <div class="action-body">{a["body"]}</div>'
+                f'    {owner_html}'
+                f'    {_build_action_meta(a)}'
+                f'  </div>'
                 f'</div>\n'
             )
         article_parts.append(
@@ -246,40 +327,19 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             f'</div>'
         )
 
-    article_parts.append(_build_roberts_take(roberts_raw, coverage_month_year))
+    if myth:
+        article_parts.append(_build_myth_section(myth))
+
+    if predictions:
+        article_parts.append(_build_predictions_section(predictions))
 
     # Each question is answered from the section that actually addresses it.
     # Pairing questions against whatever happened to be in `actions` produced
     # confident non-sequiturs — fine while the FAQ was schema-only, actively
     # misleading now that it is on the page and quotable by answer engines.
-    def _plain(text, limit=480):
-        text = re.sub(r"<[^>]+>", " ", str(text))
-        # Answers get quoted verbatim by answer engines, so scrub anything that
-        # betrays the source format: bare URLs, the pipe-delimited field syntax
-        # the generator emits, markdown headings, and leading list bullets.
-        text = re.sub(r"https?://\S+", "", text)
-        text = re.sub(r"#{1,6}\s*[A-Z][A-Z '\u2019]*$", "", text)
-        text = re.sub(r"^[\s\-\*\u2022]+", "", text)
-        text = text.replace(" | ", " \u2014 ")
-        text = re.sub(r"\s+", " ", text)
-        text = re.sub(r"(?:\s*\u2014){2,}", " \u2014", text)          # URL removal can leave a dangling dash
-        text = re.sub(r"\s*\u2014\s*$", "", text)
-        text = text.strip(" \u2014-#*\u2022 ")
-        if len(text) > limit:
-            text = text[: limit - 3].rsplit(" ", 1)[0] + "..."
-        return text
+    _plain = faq_plain
+    _join  = faq_join
 
-    def _join(parts, limit=480):
-        out = ""
-        for part in parts:
-            part = _plain(part, limit)
-            if not part:
-                continue
-            candidate = f"{out} {part}".strip() if out else part
-            if len(candidate) > limit:
-                break
-            out = candidate
-        return out
 
     faq_candidates = [
         (
@@ -289,7 +349,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         ),
         (
             "What should Canadian executives do about AI right now?",
-            _join(actions[:3]),
+            _join(action_bodies[:3]),
         ),
         (
             "How is AI adoption tracking across Canada?",
@@ -304,6 +364,17 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         (
             "How do global AI trends affect Canadian competitiveness?",
             _plain(business_impact),
+        ),
+        # The myth section is already a question and its answer — the format an
+        # answer engine quotes most readily — and it is original judgment rather
+        # than restated news, which is the whole point of being citable.
+        (
+            "What is the biggest misconception executives have about AI adoption?",
+            _plain(f'{myth["reality"]}') if myth else "",
+        ),
+        (
+            f"What should Canadian executives expect from AI over the next year?",
+            _join([f'{p["horizon"]}: {p["body"]}' for p in predictions]),
         ),
     ]
     # Only publish a Q&A when the post genuinely contains the answer.
@@ -327,8 +398,10 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             f'</div>'
         )
 
+    if closing_question:
+        article_parts.append(_build_question_section(closing_question))
+
     article_parts.append(_build_survey_cta())
-    article_parts.append(_build_prompts_section(canonical, clean_title, issue_month_year))
 
     article_html = "\n".join(article_parts)
 
@@ -368,13 +441,13 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     <link rel="canonical" href="{canonical}">
     <meta property="og:type" content="article">
     <meta property="og:url" content="{canonical}">
-    <meta property="og:title" content="{clean_title_html} | AI Insights for Canadian Business">
+    <meta property="og:title" content="{clean_title_html} | {BRAND}">
     <meta property="og:description" content="{meta_desc_html}">
     <meta property="og:image" content="{og_image}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="{og_alt}">
-    <meta property="og:site_name" content="Robert Simon - AI Innovation">
+    <meta property="og:site_name" content="{BRAND}">
     <meta property="og:locale" content="en_CA">
     <meta property="article:published_time" content="{iso_date}T00:00:00+00:00">
     <meta property="article:modified_time" content="{iso_date}T00:00:00+00:00">
@@ -432,7 +505,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
       "isAccessibleForFree": true,
       "speakable": {{
         "@type": "SpeakableSpecification",
-        "cssSelector": [".intro-lead", ".faq-q", ".faq-a"]
+        "cssSelector": [".intro-lead", ".summary-list li", ".faq-q", ".faq-a"]
       }}
     }}
     </script>
@@ -443,7 +516,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
       "@type": "BreadcrumbList",
       "itemListElement": [
         {{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.imetrobert.com"}},
-        {{"@type": "ListItem", "position": 2, "name": "AI Insights Blog", "item": "https://www.imetrobert.com/blog/"}},
+        {{"@type": "ListItem", "position": 2, "name": "{BRAND}", "item": "https://www.imetrobert.com/blog/"}},
         {{"@type": "ListItem", "position": 3, "name": {json.dumps(clean_title)}, "item": {json.dumps(canonical)}}}
       ]
     }}
@@ -554,10 +627,70 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .roberts-header {{ display: flex; align-items: center; gap: 0.875rem; margin-bottom: 1.1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.12); }}
         .roberts-header img {{ width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.25); flex-shrink: 0; }}
         .roberts-label {{ font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 0.1rem; }}
-        .roberts-name {{ font-weight: 700; font-size: 0.9rem; }}
+        .roberts-name {{ margin: 0; font-weight: 700; font-size: 0.9rem; }}
         .roberts-body {{ font-size: 0.925rem; line-height: 1.85; color: #ffffff; font-style: normal; font-weight: 400; }}
         .roberts-placeholder {{ font-size: 0.825rem; line-height: 1.7; opacity: 0.65; border: 1px dashed rgba(255,255,255,0.25); padding: 1rem 1.25rem; border-radius: 10px; }}
         .roberts-placeholder strong {{ color: var(--white); opacity: 1; font-style: normal; }}
+        .roberts-body + .roberts-body {{ margin-top: 0.9rem; }}
+        /* Executive summary — the three things, above the fold. */
+        .summary-section {{ background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--navy); border-radius: 12px; padding: 1.4rem 1.6rem; }}
+        .summary-label {{ margin: 0 0 0.85rem; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: var(--navy); opacity: 0.75; }}
+        .summary-list {{ list-style: none; padding: 0; display: grid; gap: 0.7rem; counter-reset: summary; }}
+        .summary-list li {{ position: relative; padding-left: 1.9rem; font-size: 0.9rem; line-height: 1.6; color: var(--gray-dark); font-weight: 500; counter-increment: summary; }}
+        .summary-list li::before {{ content: counter(summary); position: absolute; left: 0; top: 0.05rem; width: 1.3rem; height: 1.3rem; display: flex; align-items: center; justify-content: center; background: var(--navy); color: var(--white); border-radius: 50%; font-size: 0.65rem; font-weight: 800; }}
+        /* Major stories carry judgment and ratings; the log below does not. */
+        .dev-card-major {{ padding: 1.25rem 1.4rem; }}
+        .dev-tier {{ margin-left: auto; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--blue); opacity: 0.7; }}
+        .dev-read {{ margin-top: 0.85rem; padding: 0.9rem 1.1rem; background: var(--white); border: 1px solid #dbeafe; border-left: 3px solid var(--cyan); border-radius: 0 10px 10px 0; }}
+        .dev-read-label {{ display: block; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--cyan); margin-bottom: 0.35rem; }}
+        .dev-read p {{ font-size: 0.86rem; line-height: 1.7; color: var(--gray-dark); margin: 0; }}
+        .dev-log {{ margin-top: 1.25rem; padding-top: 1.1rem; border-top: 1px dashed var(--border); display: grid; gap: 0.6rem; }}
+        .dev-log-label {{ font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray-light); }}
+        .dev-card-minor {{ padding: 0.8rem 1rem; background: var(--white); border-left-color: var(--border); }}
+        .dev-card-minor .dev-body {{ font-size: 0.83rem; }}
+        .dev-card-minor .dev-company {{ font-size: 0.8rem; }}
+        /* Rating badges. Label above value so a badge reads without a legend. */
+        .badge-row {{ display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }}
+        .badge {{ display: inline-flex; flex-direction: column; gap: 0.1rem; padding: 0.35rem 0.7rem; border-radius: 8px; border: 1px solid var(--border); background: var(--white); min-width: 5.5rem; }}
+        .badge-label {{ font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--gray-light); }}
+        .badge-value {{ font-size: 0.8rem; font-weight: 800; color: var(--navy); line-height: 1.2; }}
+        .badge.tone-high {{ background: #fff7ed; border-color: #fed7aa; }}
+        .badge.tone-high .badge-value {{ color: #c2410c; }}
+        .badge.tone-mid {{ background: #eff6ff; border-color: #bfdbfe; }}
+        .badge.tone-mid .badge-value {{ color: #1d4ed8; }}
+        .badge.tone-low {{ background: var(--surface); border-color: var(--border); }}
+        .badge.tone-low .badge-value {{ color: var(--gray); }}
+        .badge.tone-neutral .badge-value {{ color: var(--gray-dark); }}
+        .badge-row-action {{ margin-top: 0.75rem; }}
+        /* Actions: body, then who owns it and why, then the triage badges. */
+        .action-main {{ flex: 1; }}
+        .action-owner {{ margin-top: 0.75rem; padding: 0.6rem 0.85rem; background: var(--white); border: 1px solid #dbeafe; border-radius: 8px; }}
+        .action-owner-label {{ font-size: 0.55rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--gray-light); margin-right: 0.45rem; }}
+        .action-owner-role {{ font-size: 0.8rem; font-weight: 800; color: var(--navy); }}
+        .action-owner-why {{ font-size: 0.78rem; line-height: 1.6; color: var(--gray); margin-top: 0.3rem; }}
+        /* Myth of the month. */
+        .myth-section {{ background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 1.6rem 1.75rem; }}
+        .myth-label {{ margin: 0 0 1rem; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: #b45309; }}
+        .myth-block {{ display: flex; gap: 0.8rem; align-items: flex-start; padding: 0.9rem 1.1rem; border-radius: 10px; background: var(--white); }}
+        .myth-block + .myth-block {{ margin-top: 0.65rem; }}
+        .myth-block p {{ margin: 0; font-size: 0.875rem; line-height: 1.7; }}
+        .myth-tag {{ flex-shrink: 0; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.22rem 0.55rem; border-radius: 6px; margin-top: 0.15rem; }}
+        .myth-claim {{ border: 1px solid #fde68a; }}
+        .myth-claim .myth-tag {{ background: #fef3c7; color: #b45309; }}
+        .myth-claim p {{ color: var(--gray); }}
+        .myth-reality {{ border: 1px solid #bbf7d0; }}
+        .myth-reality .myth-tag {{ background: #dcfce7; color: #15803d; }}
+        .myth-reality p {{ color: var(--gray-dark); }}
+        /* Looking ahead — three predictions, explicitly labelled as such. */
+        .pred-note {{ font-size: 0.78rem; color: var(--gray-light); line-height: 1.6; margin-bottom: 1.1rem; font-style: italic; }}
+        .pred-grid {{ display: grid; gap: 0.75rem; }}
+        .pred-card {{ padding: 1rem 1.25rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--navy); border-radius: 0 10px 10px 0; }}
+        .pred-horizon {{ font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--navy); opacity: 0.7; margin-bottom: 0.35rem; }}
+        .pred-body {{ font-size: 0.875rem; line-height: 1.7; color: var(--gray-dark); margin: 0; }}
+        /* The closing question. Deliberately the largest type in the article. */
+        .question-section {{ border: 2px solid var(--navy); border-radius: 16px; padding: 1.75rem 2rem; background: var(--white); }}
+        .question-label {{ margin: 0 0 0.7rem; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: var(--navy); opacity: 0.7; }}
+        .question-body {{ font-size: 1.15rem; line-height: 1.6; font-weight: 600; color: var(--navy); margin: 0; letter-spacing: -0.01em; }}
         .faq-section {{ background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; }}
         .faq-list {{ display: grid; gap: 1rem; }}
         .faq-item {{ padding: 1rem 1.25rem; background: var(--white); border: 1px solid var(--border); border-radius: 12px; border-left: 3px solid var(--blue); }}
@@ -572,23 +705,20 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .survey-btn {{ display: inline-block; background: var(--white); color: var(--blue); font-weight: 700; font-size: 0.85rem; padding: 0.6rem 1.4rem; border-radius: 25px; text-decoration: none; transition: transform 0.15s; }}
         .survey-btn:hover {{ transform: translateY(-1px); }}
         .survey-results {{ color: rgba(255,255,255,0.92); font-size: 0.8rem; font-weight: 600; text-decoration: underline; }}
-        .prompts-section {{ background: linear-gradient(135deg, #f8fafc 0%, #eef4ff 100%); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; }}
-        .prompts-intro {{ font-size: 0.875rem; color: var(--gray); line-height: 1.7; margin-bottom: 1.25rem; }}
-        .prompt-list {{ display: grid; gap: 0.875rem; }}
-        .prompt-card {{ background: var(--white); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }}
-        .prompt-head {{ display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface); }}
-        .prompt-label {{ font-weight: 700; font-size: 0.85rem; color: var(--navy); display: block; }}
-        .prompt-blurb {{ font-size: 0.75rem; color: var(--gray-light); display: block; margin-top: 0.1rem; }}
-        .copy-btn {{ display: inline-flex; align-items: center; gap: 0.4rem; flex-shrink: 0; font: inherit; font-size: 0.78rem; font-weight: 600; color: var(--white); background: linear-gradient(135deg, var(--blue), var(--cyan)); border: none; border-radius: 20px; padding: 0.45rem 0.9rem; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }}
-        .copy-btn:hover {{ transform: translateY(-1px); box-shadow: 0 4px 12px rgb(37 99 235 / 0.3); }}
-        .copy-btn.copied {{ background: var(--green); }}
-        .prompt-text {{ margin: 0; padding: 1rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; line-height: 1.65; color: var(--gray-dark); white-space: pre-wrap; word-break: break-word; background: var(--white); }}
-        .prompt-foot {{ display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px dashed var(--border); font-size: 0.8rem; color: var(--gray); }}
-        .prompt-foot-note {{ font-size: 0.75rem; color: var(--gray-light); flex-basis: 100%; }}
         .conclusion {{ background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%); color: var(--white); padding: 2rem; border-radius: 14px; margin-top: 2.5rem; }}
         .conclusion-label {{ font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.75; margin-bottom: 0.5rem; }}
         .conclusion p {{ color: rgba(255,255,255,0.95); font-size: 0.95rem; font-weight: 500; line-height: 1.75; }}
         .conclusion strong {{ color: var(--white); font-weight: 700; }}
+        /* Share row. Sits under The Bottom Line — the point at which a reader
+           who found the issue useful decides to pass it on. */
+        .share-row {{ margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }}
+        .share-label {{ font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: var(--gray-light); margin-bottom: 0.8rem; }}
+        .share-actions {{ display: flex; flex-wrap: wrap; gap: 0.5rem; }}
+        .share-btn {{ display: inline-flex; align-items: center; gap: 0.45rem; font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--navy); background: var(--white); border: 1px solid var(--border); border-radius: 22px; padding: 0.5rem 1rem; text-decoration: none; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s; }}
+        .share-btn:hover {{ border-color: var(--blue); color: var(--blue); box-shadow: var(--shadow-md); transform: translateY(-1px); }}
+        .share-btn .icon {{ width: 1.1em; height: 1.1em; }}
+        .share-btn.copied {{ background: var(--green); border-color: var(--green); color: var(--white); }}
+        .share-btn[hidden] {{ display: none; }}
         p {{ margin-bottom: 1rem; line-height: 1.75; color: var(--gray); font-size: 0.9rem; }}
         strong {{ color: var(--navy); font-weight: 600; }}
         @media (max-width: 640px) {{
@@ -603,9 +733,14 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             .canada-section {{ padding: 1.25rem; }}
             .action-card {{ flex-direction: column; gap: 0.6rem; }}
             .action-num {{ width: 1.5rem; height: 1.5rem; min-width: 1.5rem; }}
-            .prompts-section {{ padding: 1.25rem; }}
-            .prompt-head {{ flex-direction: column; align-items: flex-start; }}
-            .prompt-text {{ font-size: 0.72rem; }}
+            .summary-section {{ padding: 1.1rem 1.2rem; }}
+            .myth-section {{ padding: 1.25rem; }}
+            .myth-block {{ flex-direction: column; gap: 0.5rem; }}
+            .question-section {{ padding: 1.25rem 1.35rem; }}
+            .question-body {{ font-size: 1rem; }}
+            .dev-tier {{ margin-left: 0; flex-basis: 100%; }}
+            /* Badges go full width rather than wrapping into ragged rows. */
+            .badge {{ flex: 1 1 auto; min-width: 6.5rem; }}
         }}
     </style>
 </head>
@@ -627,10 +762,16 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             <rect x="9" y="9" width="11" height="11" rx="2.5"/>
             <path d="M6.5 15H5.5A2.5 2.5 0 0 1 3 12.5v-7A2.5 2.5 0 0 1 5.5 3h7A2.5 2.5 0 0 1 15 5.5v1"/>
         </symbol>
-        <symbol id="i-doc" viewBox="0 0 24 24">
-            <path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/>
-            <path d="M14 3v5h5"/>
-            <path d="M8.5 13h7M8.5 16.5h4.5"/>
+        <symbol id="i-linkedin" viewBox="0 0 24 24">
+            <path fill="currentColor" stroke="none" d="M4.98 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM3 9.5h4v11H3zm7 0h3.8v1.5a4.2 4.2 0 0 1 3.7-1.9c3 0 4.5 1.9 4.5 5.3v6.1h-4v-5.4c0-1.6-.6-2.6-2-2.6s-2.2 1-2.2 2.6v5.4h-3.8z"/>
+        </symbol>
+        <symbol id="i-mail" viewBox="0 0 24 24">
+            <rect x="3" y="5" width="18" height="14" rx="2.5"/>
+            <path d="m3.5 7 8.5 6 8.5-6"/>
+        </symbol>
+        <symbol id="i-share" viewBox="0 0 24 24">
+            <circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/>
+            <path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/>
         </symbol>
         <symbol id="i-pencil" viewBox="0 0 24 24">
             <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z"/>
@@ -645,7 +786,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             <a href="https://www.imetrobert.com/blog/" class="nav-link">&#8592; Back to Blog</a>
             <div class="nav-meta">
                 <img src="/blog/logo.svg" class="brand-icon" alt="" width="22" height="22">
-                <span>AI Insights for Canadian Business</span>
+                <span>{BRAND}</span>
                 <span>&#8226;</span>
                 <span>{formatted_date}</span>
             </div>
@@ -653,10 +794,10 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     </nav>
     <header class="header">
         <div class="header-content">
-            <img src="/blog/logo.svg" class="brand-logo" alt="AI Insights" width="76" height="76">
+            <img src="/blog/logo.svg" class="brand-logo" alt="{BRAND}" width="76" height="76">
             <div class="issue-badge">Issue #{issue_num} &nbsp;&#8226;&nbsp; {issue_month_year} <span class="issue-badge-coverage">&mdash; Covering {coverage_month_name}</span></div>
             <h1>{clean_title_html}</h1>
-            <div class="subtitle">The AI briefing built for Canadian business leaders</div>
+            <div class="subtitle">{BRAND_TAGLINE}</div>
             <div class="intro-text">{excerpt_html}</div>
             <div class="reading-badge"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg> {reading_time} min read</div>
         </div>
@@ -670,7 +811,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             <meta itemprop="description"   content="{meta_desc_html}">
             <nav class="breadcrumb" aria-label="Breadcrumb">
                 <a href="https://www.imetrobert.com">Home</a> &#8250;
-                <a href="https://www.imetrobert.com/blog/">AI Insights Blog</a> &#8250;
+                <a href="https://www.imetrobert.com/blog/">{BRAND}</a> &#8250;
                 <span>{clean_title_html}</span>
             </nav>
             <div class="author-byline">
@@ -686,12 +827,13 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                     <div class="conclusion-label">The Bottom Line</div>
                     <p>{_build_conclusion(sections, coverage_month_year)}</p>
                 </div>
+                {_build_share_row(canonical, clean_title, issue_month_year)}
             </div>
         </article>
     </div>
     <script>
-      // Copy-to-clipboard for the prompt cards. Delegated, so it costs one
-      // listener regardless of how many prompts a post carries.
+      // Share behaviour: copy-to-clipboard and the OS share sheet. Delegated,
+      // so it costs one listener no matter how many share controls a post has.
       (function () {{
         function fallbackCopy(text) {{
           var ta = document.createElement('textarea');
@@ -706,7 +848,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         }}
 
         function flash(btn) {{
-          var label = btn.querySelector('.copy-btn-text');
+          var label = btn.querySelector('.share-btn-text');
           if (!label) return;
           var original = label.textContent;
           label.textContent = 'Copied';
@@ -718,31 +860,13 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         }}
 
         document.addEventListener('click', function (e) {{
-          var btn = e.target.closest ? e.target.closest('.copy-btn') : null;
+          var btn = e.target.closest ? e.target.closest('.share-copy') : null;
           if (!btn) return;
 
-          var text;
-          if (btn.classList.contains('copy-article')) {{
-            // Clone and strip this section out first: pasting the issue WITH
-            // the prompt cards in it hands the assistant three competing sets
-            // of instructions alongside the article it is meant to read.
-            var src = document.querySelector('.article-content');
-            var art = null;
-            if (src) {{
-              art = src.cloneNode(true);
-              var strip = art.querySelector('.prompts-section');
-              if (strip) strip.remove();
-            }}
-            // Canonical, not location.href: read via latest.html this would
-            // otherwise hand the reader a URL that points at a different
-            // article next month.
-            var link = document.querySelector('link[rel="canonical"]');
-            var url = link ? link.href : location.href;
-            text = document.title + '\\n' + url + '\\n\\n' + (art ? art.innerText : '');
-          }} else {{
-            var pre = document.getElementById(btn.dataset.prompt);
-            text = pre ? pre.innerText : '';
-          }}
+          // The canonical permalink, baked in at build time. Never
+          // location.href — this same article is also served at latest.html,
+          // which points at a different issue next month.
+          var text = btn.dataset.shareUrl || '';
           if (!text) return;
 
           if (navigator.clipboard && navigator.clipboard.writeText) {{
@@ -753,10 +877,33 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             flash(btn);
           }}
 
-          // So there is evidence of whether any of this gets used.
           if (typeof gtag === 'function') {{
-            gtag('event', 'prompt_copy', {{ prompt_type: btn.dataset.label || 'unknown' }});
+            gtag('event', 'share', {{ method: 'copy_link' }});
           }}
+        }});
+
+        // The OS share sheet, where the browser has one. Revealed rather than
+        // rendered, so a desktop visitor never sees a button that would do
+        // nothing — LinkedIn, email and copy already cover that case.
+        if (navigator.share) {{
+          document.querySelectorAll('.share-native').forEach(function (b) {{
+            b.hidden = false;
+          }});
+        }}
+
+        document.addEventListener('click', function (e) {{
+          var btn = e.target.closest ? e.target.closest('.share-native') : null;
+          if (!btn || !navigator.share) return;
+          navigator.share({{
+            title: btn.dataset.shareTitle || document.title,
+            url: btn.dataset.shareUrl
+          }}).then(function () {{
+            if (typeof gtag === 'function') {{
+              gtag('event', 'share', {{ method: 'web_share' }});
+            }}
+          }}).catch(function () {{
+            // The user dismissed the sheet. Not an error, and not worth a message.
+          }});
         }});
       }})();
     </script>
@@ -806,110 +953,253 @@ def _build_survey_cta():
     )
 
 
-def _build_prompts_section(canonical, title_text, issue_month_year):
-    """The "work this issue" block: prompts readers paste into their own
-    chatbot.
 
-    Design notes, because each one is load-bearing:
+def faq_plain(text, limit=480):
+    text = re.sub(r"<[^>]+>", " ", str(text))
+    # Answers get quoted verbatim by answer engines, so scrub anything that
+    # betrays the source format: bare URLs, the pipe-delimited field syntax
+    # the generator emits, markdown headings, and leading list bullets.
+    text = re.sub(r"https?://\S+", "", text)
+    text = re.sub(r"#{1,6}\s*[A-Z][A-Z '\u2019]*$", "", text)
+    text = re.sub(r"^[\s\-\*\u2022]+", "", text)
+    text = text.replace(" | ", " \u2014 ")
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"(?:\s*\u2014){2,}", " \u2014", text)          # URL removal can leave a dangling dash
+    text = re.sub(r"\s*\u2014\s*$", "", text)
+    text = text.strip(" \u2014-#*\u2022 ")
+    if len(text) > limit:
+        text = text[: limit - 3].rsplit(" ", 1)[0] + "..."
+    return text
 
-    * The URL is this issue's PERMALINK, never latest.html. latest.html rotates
-      monthly, so a prompt carrying it would silently start pointing at a
-      different article than the one the reader is holding.
-    * Every prompt carries a refusal instruction. Most readers are on free
-      tiers that cannot browse, and a model asked to analyse a page it cannot
-      open will happily invent "insights from Robert Simon" that he never
-      wrote. Telling it to stop converts the likeliest failure from silent
-      fabrication into an honest "I can't reach that".
-    * Every prompt asks for the source URL back. When the output gets pasted
-      into a deck or a Slack thread, the link travels with it — that is the
-      only part of this section that does anything for discoverability.
-    * The issue title is embedded, so this block is unique per post rather than
-      site-wide boilerplate repeated fourteen times.
-    """
-    guard = ("If you cannot open that link, tell me so and stop \u2014 "
-             "do not answer from memory or guess what it says.")
-    source_line = f"Read this article \u2014 \u201c{title_text}\u201d: {canonical}"
 
-    prompts = [
-        ("Personalize", "What in this issue actually applies to me",
-         "I work in [your industry] at a company of about [number] employees in "
-         "[province], and my role is [your role].\n\n"
-         f"{source_line}\n\n{guard}\n\n"
-         "Using only that article, tell me: which developments genuinely affect a "
-         "business like mine and which I can safely ignore; what the realistic "
-         "impact looks like over the next six months; and the single thing I "
-         "should look into first.\n\n"
-         "Cite the article URL in your answer."),
-        ("Pressure-test", "Argue against it for my situation",
-         "I work in [your industry], we have about [number] employees, and my "
-         "biggest constraint right now is [budget / talent / legacy systems / "
-         "regulatory approval].\n\n"
-         f"{source_line}\n\n{guard}\n\n"
-         "Argue against applying this article's recommendations in my situation. "
-         "Where is the advice too generic, too early, or too expensive for a "
-         "company like mine? What would have to be true for it to be worth acting "
-         "on this quarter? Be specific and skeptical rather than balanced.\n\n"
-         "Cite the article URL in your answer."),
-        ("Operationalize", "Turn it into something I can send upward",
-         "I am a [your role] at a [your industry] company with about [number] "
-         "employees in Canada.\n\n"
-         f"{source_line}\n\n{guard}\n\n"
-         "Turn it into a one-page briefing for my leadership team: what changed "
-         "this month, why it matters for us specifically, the three decisions we "
-         "need to make, and what it costs us to wait a quarter.\n\n"
-         "Cite the article URL so my team can read the source."),
-    ]
+def faq_join(parts, limit=480):
+    out = ""
+    for part in parts:
+        part = faq_plain(part, limit)
+        if not part:
+            continue
+        candidate = f"{out} {part}".strip() if out else part
+        if len(candidate) > limit:
+            break
+        out = candidate
+    return out
 
-    cards = ""
-    for i, (label, blurb, body) in enumerate(prompts, 1):
-        cards += (
-            f'<div class="prompt-card">'
-            f'<div class="prompt-head">'
-            f'<div><span class="prompt-label">{label}</span>'
-            f'<span class="prompt-blurb">{blurb}</span></div>'
-            f'<button type="button" class="copy-btn" data-prompt="p{i}" '
-            f'data-label="{label}" aria-label="Copy the {label} prompt">'
-            f'<svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>'
-            f'<span class="copy-btn-text">Copy</span></button>'
-            f'</div>'
-            f'<pre class="prompt-text" id="p{i}">{escape_html(body)}</pre>'
-            f'</div>'
-        )
 
+def _build_summary_section(summary_points):
+    points_html = "".join(f'<li>{p}</li>' for p in summary_points)
     return (
-        f'<div class="section prompts-section">'
-        f'<h2 class="section-title">Work this issue with your own AI assistant</h2>'
-        f'<p class="prompts-intro">These are written for ChatGPT, Claude or Gemini. '
-        f'Copy one, fill in the bracketed parts, and you get analysis of this issue '
-        f'for your situation rather than a generic summary.</p>'
-        f'<div class="prompt-list">{cards}</div>'
-        f'<div class="prompt-foot">'
-        f'<span>Assistant cannot open links?</span>'
-        f'<button type="button" class="copy-btn copy-article" data-label="Full issue" '
-        f'aria-label="Copy the full text of this issue">'
-        f'<svg class="icon" aria-hidden="true"><use href="#i-doc"/></svg>'
-        f'<span class="copy-btn-text">Copy the full issue text</span></button>'
-        f'<span class="prompt-foot-note">Paste it above your prompt and any '
-        f'assistant can work from it, no browsing needed.</span>'
-        f'</div>'
+        f'<div class="section summary-section">'
+        f'<h2 class="summary-label">Executive Summary</h2>'
+        f'<ul class="summary-list">{points_html}</ul>'
         f'</div>'
     )
 
 
-def _build_roberts_take(raw_text, coverage_month_year):
+def _build_myth_section(myth):
+    return (
+        f'<div class="section myth-section">'
+        f'<h2 class="myth-label">AI Myth of the Month</h2>'
+        f'<div class="myth-block myth-claim">'
+        f'<span class="myth-tag">Myth</span><p>{myth["myth"]}</p></div>'
+        f'<div class="myth-block myth-reality">'
+        f'<span class="myth-tag">Reality</span><p>{myth["reality"]}</p></div>'
+        f'</div>'
+    )
+
+
+def _build_predictions_section(predictions):
+    pred_html = "".join(
+        f'<div class="pred-card">'
+        f'<div class="pred-horizon">{p["horizon"]}</div>'
+        f'<p class="pred-body">{p["body"]}</p>'
+        f'</div>'
+        for p in predictions
+    )
+    return (
+        f'<div class="section pred-section">'
+        f'<h2 class="section-title">Looking Ahead</h2>'
+        f'<p class="pred-note">These are predictions, not reported facts \u2014 '
+        f'Robert\u2019s assessment of where this goes next, offered so you can '
+        f'judge it against your own.</p>'
+        f'<div class="pred-grid">{pred_html}</div>'
+        f'</div>'
+    )
+
+
+def _build_question_section(closing_question):
+    return (
+        f'<div class="section question-section">'
+        f'<h2 class="question-label">One question for your leadership team</h2>'
+        f'<p class="question-body">{closing_question}</p>'
+        f'</div>'
+    )
+
+
+def _build_share_row(canonical, title, issue_month_year):
+    """Share controls for a published issue.
+
+    Every link is built from `canonical`, never from the page's own address.
+    A post is served at BOTH its dated permalink and at latest.html, and
+    latest.html is a rotating alias — same URL, a different article every
+    month. Sharing the address the reader happens to be at means a link that
+    silently points at next month's issue, and social platforms cache Open
+    Graph data per URL essentially forever, so the preview stays wrong too.
+
+    LinkedIn and email are plain hrefs resolved at build time, so they work
+    with JavaScript disabled. Only copy-to-clipboard and the OS share sheet
+    need scripting, and the share sheet button stays hidden until the browser
+    says it supports it.
+    """
+    url_q = quote(canonical, safe='')
+    # A topical headline gets the publication name appended for context; a
+    # fallback title already carries the brand and would otherwise read
+    # "Practical AI for Canadian Business — Practical AI Canada, September 2026".
+    # "ai insights" stays in the guard for issues written before the rename.
+    already_branded = any(
+        s in title.lower() for s in (BRAND.lower(), BRAND_SHORT.lower(), "ai insights")
+    )
+    subject = (
+        title if already_branded
+        else f"{title} — {BRAND_SHORT}, {issue_month_year}"
+    )
+    subject_q = quote(subject, safe='')
+    body_q    = quote(
+        f"Thought this was worth your time — Robert Simon's monthly AI briefing "
+        f"for Canadian business leaders.\n\n{title}\n{canonical}\n",
+        safe=''
+    )
+
+    linkedin = f"https://www.linkedin.com/sharing/share-offsite/?url={url_q}"
+    mailto   = f"mailto:?subject={subject_q}&body={body_q}"
+    url_attr = escape_html(canonical, quote=True)
+
+    return (
+        f'<div class="share-row">'
+        f'  <div class="share-label">Forward this issue</div>'
+        f'  <div class="share-actions">'
+        f'    <a class="share-btn" href="{escape_html(linkedin, quote=True)}" '
+        f'target="_blank" rel="noopener noreferrer">'
+        f'<svg class="icon" aria-hidden="true"><use href="#i-linkedin"/></svg>'
+        f'<span>LinkedIn</span></a>'
+        f'    <a class="share-btn" href="{escape_html(mailto, quote=True)}">'
+        f'<svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg>'
+        f'<span>Email</span></a>'
+        f'    <button type="button" class="share-btn share-copy" '
+        f'data-share-url="{url_attr}">'
+        f'<svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>'
+        f'<span class="share-btn-text">Copy link</span></button>'
+        f'    <button type="button" class="share-btn share-native" hidden '
+        f'data-share-url="{url_attr}" data-share-title="{escape_html(title, quote=True)}">'
+        f'<svg class="icon" aria-hidden="true"><use href="#i-share"/></svg>'
+        f'<span>Share</span></button>'
+        f'  </div>'
+        f'</div>'
+    )
+
+
+def _build_dev_source(d):
+    if not d.get("source_url"):
+        return ""
+    src_label = d.get("source_name") or "Source"
+    return (
+        f'<div class="dev-source">'
+        f'<a href="{d["source_url"]}" target="_blank" rel="noopener noreferrer" '
+        f'title="Search Google for this article">'
+        f'<svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> {src_label}'
+        f'</a></div>'
+    )
+
+
+def _build_strategic_read(d):
+    """Robert's interpretation of a major story. Visually distinct from the
+    reported sentences above it — a reader must be able to tell at a glance
+    which half of this card is fact and which half is judgment."""
+    text = (d.get("strategic_read") or "").strip()
+    if len(text) < 40:
+        return ""
+    return (
+        f'<div class="dev-read">'
+        f'<span class="dev-read-label">Strategic read</span>'
+        f'<p>{escape_html(text, quote=False)}</p>'
+        f'</div>'
+    )
+
+
+# Rating value -> modifier class. Anything unrecognised renders neutral rather
+# than unstyled, so an off-script value from the model still looks deliberate.
+_RATING_TONE = {
+    "high": "tone-high", "medium": "tone-mid", "low": "tone-low",
+    "yes": "tone-high", "monitor": "tone-mid", "ignore": "tone-low",
+    "now": "tone-high", "3 months": "tone-mid",
+    "6 months": "tone-low", "12 months": "tone-low",
+    "small": "tone-low", "large": "tone-high",
+}
+
+
+def _badge(label, value, extra=""):
+    if not value:
+        return ""
+    tone = _RATING_TONE.get(value.strip().lower(), "tone-neutral")
+    return (
+        f'<span class="badge {tone} {extra}">'
+        f'<span class="badge-label">{label}</span>'
+        f'<span class="badge-value">{escape_html(value, quote=False)}</span>'
+        f'</span>'
+    )
+
+
+def _build_rating_row(d):
+    badges = (
+        _badge("Strategic importance", d.get("importance", ""))
+        + _badge("Time horizon", d.get("horizon", ""))
+        + _badge("Executive attention", d.get("attention", ""))
+    )
+    if not badges:
+        return ""
+    return f'<div class="badge-row">{badges}</div>'
+
+
+def _build_action_meta(a):
+    badges = (
+        _badge("Priority", a.get("priority", ""))
+        + _badge("Effort", a.get("effort", ""))
+        + _badge("Impact", a.get("impact", ""))
+    )
+    if not badges:
+        return ""
+    return f'<div class="badge-row badge-row-action">{badges}</div>'
+
+
+def _build_roberts_desk(raw_text):
+    """The signature section.
+
+    Rendered as ordinary paragraphs, not a pull quote. The old two-sentence
+    take was wrapped in curly quotes, which reads as an aside; at 300-450 words
+    that framing would undercut the one section the publication is sold on.
+
+    The class names (.roberts-take / .roberts-header / .roberts-body) are load
+    bearing — inject_take.py finds and replaces the body through them when the
+    reviewer types their own version in the preview page. Renaming them here
+    silently breaks that path, and the failure mode is the model's draft
+    shipping under Robert's byline.
+    """
+    cleaned = (raw_text or "").strip()
+    cleaned = re.sub(r'^\[.*?\]\s*', '', cleaned, flags=re.DOTALL).strip()
+    cleaned = re.sub(r'\*\*(.*?)\*\*', r'\1', cleaned)
+    cleaned = re.sub(r'\*(.*?)\*', r'\1', cleaned)
+
     is_placeholder = (
-        not raw_text
-        or 'PLACEHOLDER' in raw_text.upper()
-        or '[PLACEHOLDER' in raw_text
-        or len(raw_text.strip()) < 40
+        not cleaned
+        or 'PLACEHOLDER' in cleaned.upper()
+        or len(cleaned) < 120
     )
 
     header = (
         '<div class="roberts-header">'
         '<img src="https://imetrobert.github.io/profile.jpg" alt="Robert Simon">'
         '<div>'
-        '<div class="roberts-label">Editor\'s Note</div>'
-        '<div class="roberts-name">Robert\'s Take</div>'
+        '<div class="roberts-label">Executive Perspective</div>'
+        '<h2 class="roberts-name">From Robert&#39;s Desk</h2>'
         '</div>'
         '</div>'
     )
@@ -917,26 +1207,32 @@ def _build_roberts_take(raw_text, coverage_month_year):
     if is_placeholder:
         body = (
             '<div class="roberts-placeholder">'
-            '<strong><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg> Add your personal take before publishing.</strong><br><br>'
-            'What surprised you most this month? What are you hearing from Canadian leaders right now? '
-            'What is the pattern others are missing? 2-3 sentences in your own voice — '
-            'this is the E-E-A-T signal that makes this newsletter yours.'
+            '<strong><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg> '
+            'Write this section before publishing.</strong><br><br>'
+            'What surprised you this month? What do executives keep getting wrong about it? '
+            'What is overhyped, what can wait, and what will matter six months from now? '
+            '300-450 words in your own voice. This is the section people subscribe for — '
+            'it is also the E-E-A-T signal that separates this from an aggregator.'
             '</div>'
         )
     else:
-        cleaned = raw_text.strip()
-        cleaned = re.sub(r'^\[.*?\]\s*', '', cleaned, flags=re.DOTALL).strip()
-        cleaned = re.sub(r'\*\*(.*?)\*\*', r'\1', cleaned)
-        cleaned = re.sub(r'\*(.*?)\*', r'\1', cleaned)
-        cleaned = cleaned.replace('"', '&quot;').replace("'", '&#39;')
-        body = f'<p class="roberts-body">&#8220;{cleaned}&#8221;</p>'
+        paras = [p.strip() for p in re.split(r'\n\s*\n', cleaned) if len(p.strip()) > 25]
+        if len(paras) < 2:
+            # Single-newline paragraphing, or one long block. Splitting a wall of
+            # text on sentence boundaries is worse than leaving it whole, so only
+            # the line-break case is recovered.
+            paras = [p.strip() for p in cleaned.split('\n') if len(p.strip()) > 25] or [cleaned]
+        body = "".join(
+            f'<p class="roberts-body">{escape_html(" ".join(p.split()), quote=False)}</p>'
+            for p in paras
+        )
 
-    return f'<div class="section"><div class="roberts-take">{header}{body}</div></div>'
+    return f'<div class="section desk-section"><div class="roberts-take">{header}{body}</div></div>'
 
 
 def _build_conclusion(sections, coverage_month_year):
     impact  = sections.get("WHAT THIS MEANS FOR CANADIAN BUSINESS", "")
-    actions = parse_list_items(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""), min_length=40)
+    actions = parse_actions(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""))
 
     if impact:
         sentences = re.split(r'(?<=[.!?])\s+', impact.strip())

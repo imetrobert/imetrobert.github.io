@@ -59,6 +59,193 @@ under `blog/` or `scripts/`.
 - If you want to influence the *voice* of future posts (not fix a typo in
   a past one), that's a prompt/generation change in `scripts/generate-blog.py`
   or `scripts/renderer.py`, not a content edit.
+
+### The issue structure is a three-file contract
+
+`gemini.py` emits plain text under ALL-CAPS section headers → `parser.py`
+splits on `SECTION_HEADERS` → `renderer.py` renders one block per section.
+**Adding, renaming or removing a section means editing all three**, plus the
+CSS in `renderer.py`. Change one and the section silently disappears from the
+published page — the parser returns `""` and the renderer skips it, with no
+error anywhere.
+
+Sections, in the order they appear in an issue:
+
+| Section | Carries |
+|---------|---------|
+| `HEADLINE` / `INTRODUCTION` | Title + 3-sentence opener |
+| `EXECUTIVE SUMMARY` | 3 conclusions, numbered |
+| `KEY AI DEVELOPMENTS` | 5-6 stories; the **first 3** carry `STRATEGIC READ` + `IMPORTANCE`/`HORIZON`/`ATTENTION` |
+| `CANADIAN SPOTLIGHT` | 3 items, government items mandatory here |
+| `FROM ROBERTS DESK` | 300-450 words, the signature section |
+| `WHAT THIS MEANS FOR CANADIAN BUSINESS` | 3 paragraphs |
+| `STRATEGIC ACTIONS FOR THIS MONTH` | 5 actions + `OWNER`/`PRIORITY`/`EFFORT`/`IMPACT` |
+| `ADOPTION SNAPSHOT` | 5 Canadian stats |
+| `AI MYTH OF THE MONTH` | `Myth:` / `Reality:` |
+| `LOOKING AHEAD: THREE PREDICTIONS` | `One month:` / `Six months:` / `One year:` |
+| `ONE QUESTION FOR YOUR LEADERSHIP TEAM` | One question |
+
+Rules that keep this working:
+
+- **Ratings are inline labels ending in a full stop, before `Source:`.** The
+  source regex anchors on a period or newline preceding the word "Source", so
+  `ATTENTION: Yes. Source: Reuters | ...` parses and
+  `ATTENTION: Yes | Source: ...` does not.
+- **Every rating is optional in the parser.** A story with no ratings renders
+  as a compact log entry, an action with no owner renders without badges. That
+  is what lets an old-format post, or a bad month, degrade instead of shipping
+  empty badge rows.
+- **Section headers must start their own line.** `parse_sections` anchors on
+  line starts precisely because "Looking ahead" and "Executive summary" are
+  ordinary English — an unanchored match would cut the document at the first
+  prose use and swallow everything after it. Both phrases are banned from prose
+  in the prompt for the same reason.
+- `SECTION_ALIASES` in `parser.py` maps old and misspelled headers to the
+  canonical one. `ROBERTS TAKE` is there so posts written before the rename
+  still parse.
+
+### `From Robert's Desk` — the one section that must be Robert's
+
+It was "Robert's Take" (2-3 sentences) and is now the signature section. The
+CSS classes did **not** change with the rename: `.roberts-take`,
+`.roberts-header`, `.roberts-body` are load bearing, because
+`inject_take.py` finds the block through them to substitute the text typed in
+the preview page. Rename those classes and injection silently no-ops — and the
+failure mode is the *model's* draft publishing under Robert's byline.
+
+The preview page pre-fills its textarea with the model's draft
+(`_extract_desk_draft` in `generate-preview-page.py`), so the monthly job is
+editing rather than writing from nothing. A `localStorage` draft still wins
+over the pre-fill.
+
+### Redrafting one section (`scripts/redraft_section.py`)
+
+The preview page can send a single section back to Gemini instead of
+regenerating the whole issue — pick the section, optionally type a steer, and
+the block is rewritten in place. The staging filename does not change, so every
+other section and the preview URL survive.
+
+- **Only the five judgment sections are redraftable**, registered in
+  `gemini.REDRAFTABLE_SECTIONS`: the Desk, Executive Summary, Myth, Looking
+  Ahead, One Question. The reported sections are deliberately excluded — their
+  items passed date rules, source-quality rules and cross-section deduplication
+  during the monthly run, and a one-section rewrite reproduces none of that.
+- **The redraft call is ungrounded** (no `google_search`). It works only from
+  the issue as already written, so it can sharpen an argument but cannot
+  introduce an event or statistic that never went through the sourcing rules.
+- **Section specs live once**, as `_SPEC_*` constants in `gemini.py`, and are
+  interpolated into both the monthly prompt and the redraft prompt. Never
+  paraphrase a spec into the redraft path — the two would drift, and a
+  redrafted section quietly following different rules is invisible.
+- **Each redraftable section is rendered by exactly one function**
+  (`_build_summary_section`, `_build_myth_section`, …) so the redraft rebuilds a
+  block identical to a full render.
+- **`find_block()` counts div tokens** rather than regex-matching the block.
+  These sections nest divs several deep and a non-greedy regex stops at the
+  first inner `</div>`.
+- **The FAQ is refreshed when a section it quotes is redrafted.** The Myth and
+  Looking Ahead both feed FAQ answers, which exist twice — visible `.faq-a` and
+  FAQPage JSON-LD. `FAQ_FED_BY` in `redraft_section.py` updates both, using
+  `renderer.faq_plain` / `faq_join` so the scrubbing rules match exactly.
+  Its question strings must match `faq_candidates` in `renderer.py` verbatim.
+- **Nothing is written unless the redraft parsed and rendered.** A response that
+  does not fit the section's format leaves the issue untouched.
+- The preview picker is generated from `REDRAFTABLE_SECTIONS`, but the
+  `workflow_dispatch` choice list in `redraft-section.yml` is hand-maintained —
+  Actions cannot generate it. Adding a section means editing both.
+
+### Dates — nothing may be reported before it happens
+
+The scheduled run fires on the **last day of the month** (`monthly-blog.yml`
+gates on `CURRENT_DAY = LAST_DAY`) and reports that month, so every event is
+already in the past. Two paths bypass that gate and ask for a month still in
+progress: `force_run: true`, and `regenerate-blog.yml`, which has no last-day
+check and defaults `coverage_month` to the current month. The prompt demands
+5-6 dated developments, so when the real ones run out a forward-dated item is
+the obvious gap-fill.
+
+Guarded in two places, deliberately:
+
+1. **Prompt** — a `CRITICAL FUTURE-DATE RULE` naming today's actual date, and a
+   reminder in the developments spec. It tells the model that forward-dating is
+   fabrication rather than forecasting, that predictions belong in Looking
+   Ahead, and that such items are discarded before publication.
+2. **Parser** — `_drop_future_dated()` removes any development dated after
+   today, because a prompt rule is not a guarantee.
+
+Details worth knowing before changing it:
+
+- Items carry no year. `_resolve_item_date()` resolves one from the coverage
+  date by trying the year either side and taking the closest, so a December
+  item in a January issue does not land eleven months out.
+- The filter is **skipped when `coverage_date` is None** — without a year there
+  is no way to resolve "August 12", and guessing is worse than not checking.
+  `renderer.py` passes `coverage_date or current_date`.
+- Comparison is strictly `>`, so a same-day item survives. Undated items and
+  unparseable dates survive too — an unreadable date is not evidence.
+- Only **developments** are filtered. Spotlight items carry no dates, and
+  adoption stats carry source years, not event dates.
+- Dropping is loud: the parser prints a summary explaining the mid-month cause,
+  and `renderer.py` warns when fewer than 4 developments survive. The visible
+  symptom is a thin issue, and without that the reviewer assumes a bug.
+
+### Brand — one definition in `utils.py`
+
+`BRAND` ("Practical AI for Canadian Business"), `BRAND_SHORT`
+("Practical AI Canada"), `BRAND_TAGLINE` and `AUTHOR` live in `utils.py` and are
+imported by every generator. **Never hardcode the publication name.**
+
+Before this existed the publication answered to four names across its own
+surfaces — "AI Insights for Canadian Business" in the feed and post nav,
+"AI Insights Blog" in the h1 and breadcrumbs, "AI News for Canadians | Monthly
+AI Insights Blog" in the index title, and "Robert Simon - AI Innovation" as
+`og:site_name` on every share. Nothing enforced agreement, so they drifted one
+edit at a time.
+
+- `BRAND_SHORT` is a space alias, not a second brand — nav bars, breadcrumbs and
+  the post SEO title, where 34 characters does not fit. The post SEO title is
+  already past Google's ~60-character cut, so the short form there buys the
+  headline room rather than protecting the brand.
+- The social card (`og_image.py`) sets the name as a two-line lockup:
+  `headline="Practical AI"` over `subhead="for Canadian Business"`.
+- **The archive was deliberately not backfilled.** Posts under `blog/posts/`
+  keep the old name in their nav and `og:site_name`; only new issues carry the
+  new one. `blog/index.html`, `feed.xml`, `llms.txt`, `sitemap.xml` and the
+  pillar page are all regenerated, so those flipped on the next run. Some old
+  issues also contain the old name inside their own body copy — that is
+  historical text, not branding, and is correct to leave.
+
+### Sharing — always the permalink, never `latest.html`
+
+Posts carry a share row under "The Bottom Line" (`_build_share_row` in
+`renderer.py`); the blog index carries one on the latest-issue card and two
+buttons per archive row (`_share_hrefs` / `_permalink` in `blog_index.py`).
+LinkedIn, email, copy link, and the OS share sheet on mobile.
+
+**Every share target must be the dated permalink.** A post is served at both
+`/blog/posts/YYYY-MM-DD-slug.html` and `/blog/posts/latest.html`, and
+`latest.html` is a rotating alias — same URL, different article next month. So:
+
+- Posts build their links from `canonical`, never `location.href`.
+- The blog index builds them via `_permalink()`, which prefers
+  `canonical_filename` — `posts[0]` is read from `latest.html` and its
+  `filename` really is `latest.html`.
+- This is the same reason the index already links the newest issue by its
+  permalink, and why social platforms caching OG data per URL makes a shared
+  alias actively wrong rather than merely stale.
+
+Other things that are deliberate:
+
+- LinkedIn and email are plain `href`s resolved at build time, so they work
+  with JavaScript off. Only clipboard and the share sheet need scripting.
+- `.share-native` renders `hidden` and is revealed only if `navigator.share`
+  exists, so desktop never shows a button that would do nothing.
+- Archive-row buttons sit **outside** the row's `<a>`. Interactive elements
+  nested in a link are invalid, recover unpredictably, and can leave a keyboard
+  user unable to reach them.
+- There is no "copy the full issue text" button and no prompt cards. The
+  "Work this issue with your own AI assistant" section was removed — it never
+  reached a published post, so nothing in `blog/posts/` carries it.
 - To fix a typo in an already-published post: `scripts/fix_old_posts.py`
   exists for bulk fixes; for a one-off, editing the specific
   `blog/posts/YYYY-MM-DD-*.html` file directly is fine since nothing

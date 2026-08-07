@@ -4,7 +4,9 @@ Parses Gemini's plain-text output into structured data for HTML rendering.
 """
 
 import re
+from datetime import datetime
 from utils import (
+    BRAND,
     build_search_url,
     is_episode_or_newsletter_item,
     is_government_entity,
@@ -15,26 +17,101 @@ from utils import (
 SECTION_HEADERS = [
     "HEADLINE",
     "INTRODUCTION",
+    "EXECUTIVE SUMMARY",
     "KEY AI DEVELOPMENTS",
     "CANADIAN SPOTLIGHT",
+    "FROM ROBERTS DESK",
     "WHAT THIS MEANS FOR CANADIAN BUSINESS",
     "STRATEGIC ACTIONS FOR THIS MONTH",
     "ADOPTION SNAPSHOT",
-    "ROBERTS TAKE",
+    "AI MYTH OF THE MONTH",
+    "LOOKING AHEAD: THREE PREDICTIONS",
+    "ONE QUESTION FOR YOUR LEADERSHIP TEAM",
 ]
+
+# Spellings the model actually produces, mapped to the canonical header.
+# "FROM ROBERTS DESK" is asked for without an apostrophe because the header has
+# to survive a literal string match, but the model types the possessive anyway
+# often enough to be worth accepting. "ROBERTS TAKE" is the pre-rename header:
+# keeping it here means an archived draft, or a regeneration that answers in the
+# old format, still lands in the right section instead of vanishing.
+SECTION_ALIASES = {
+    "FROM ROBERTS DESK": [
+        "FROM ROBERT'S DESK", "FROM ROBERT’S DESK", "ROBERT'S DESK",
+        "ROBERTS TAKE", "ROBERT'S TAKE", "ROBERT’S TAKE",
+    ],
+    "LOOKING AHEAD: THREE PREDICTIONS": [
+        "LOOKING AHEAD - THREE PREDICTIONS",
+        "LOOKING AHEAD — THREE PREDICTIONS",
+        "LOOKING AHEAD",
+    ],
+    "ONE QUESTION FOR YOUR LEADERSHIP TEAM": [
+        "ONE QUESTION FOR THE LEADERSHIP TEAM",
+        "ONE QUESTION EVERY EXECUTIVE SHOULD ASK THIS MONTH",
+        "ONE QUESTION",
+    ],
+    "AI MYTH OF THE MONTH": ["MYTH OF THE MONTH"],
+}
+
+
+def _header_candidates(header):
+    """Canonical spelling first, then known aliases, then the loose plural
+    variants the original implementation tolerated."""
+    out = [header]
+    out.extend(SECTION_ALIASES.get(header, []))
+    out.extend([header + "S", header.replace(" ", "S ")])
+    seen, ordered = set(), []
+    for c in out:
+        if c not in seen:
+            seen.add(c)
+            ordered.append(c)
+    return ordered
+
+
+def _find_header(content_upper, candidate):
+    """Locate a header, requiring it to start its own line.
+
+    Anchoring matters: several headers are ordinary English ("LOOKING AHEAD",
+    "EXECUTIVE SUMMARY"). An unanchored substring search finds the first
+    occurrence, so one such phrase used mid-paragraph would silently cut the
+    document at the wrong place and swallow every section after it.
+    Returns (index, matched_length) or (None, 0).
+    """
+    pattern = re.compile(
+        r'^[ \t]*' + re.escape(candidate) + r'[ \t]*:?[ \t]*(?=\n|$)',
+        re.MULTILINE,
+    )
+    m = pattern.search(content_upper)
+    if m:
+        return m.start(), len(m.group(0))
+    return None, 0
 
 
 def parse_sections(content):
     sections = {h: "" for h in SECTION_HEADERS}
     positions = {}
+    lengths = {}
     content_upper = content.upper()
 
     for header in SECTION_HEADERS:
-        variants = [header, header + ":", header + "S", header.replace(" ", "S ")]
-        for variant in variants:
-            idx = content_upper.find(variant)
+        for candidate in _header_candidates(header):
+            idx, matched_len = _find_header(content_upper, candidate)
+            if idx is not None:
+                positions[header] = idx
+                lengths[header] = matched_len
+                break
+
+    # Fall back to the old unanchored search only for headers still missing —
+    # a model that runs a header into the same line as its content should not
+    # cost us the whole section.
+    for header in SECTION_HEADERS:
+        if header in positions:
+            continue
+        for candidate in _header_candidates(header):
+            idx = content_upper.find(candidate)
             if idx != -1:
                 positions[header] = idx
+                lengths[header] = len(candidate)
                 break
 
     if not positions:
@@ -43,7 +120,7 @@ def parse_sections(content):
 
     sorted_headers = sorted(positions.keys(), key=lambda h: positions[h])
     for i, header in enumerate(sorted_headers):
-        start = positions[header] + len(header)
+        start = positions[header] + lengths[header]
         while start < len(content) and content[start] in ':\n ':
             start += 1
         end = positions[sorted_headers[i + 1]] if i + 1 < len(sorted_headers) else len(content)
@@ -115,6 +192,274 @@ def _extract_source_from_text(text):
     return "", "", text.strip()
 
 
+# The labels the generator appends to a major development, in the order they
+# appear. Everything from the first one onward is metadata, not body copy.
+_DEV_META_LABEL = r'(?:STRATEGIC\s+READ|IMPORTANCE|HORIZON|ATTENTION)'
+_ACTION_META_LABEL = r'(?:OWNER|PRIORITY|EFFORT|IMPACT)'
+
+
+def _titlecase_rating(value):
+    """'3 months' -> '3 Months', 'high' -> 'High'. The model is asked for exact
+    casing and mostly complies, but a rating badge that reads 'high' next to one
+    that reads 'High' looks like a bug to a reader."""
+    if not value:
+        return ""
+    value = re.sub(r'\s+', ' ', value.strip())
+    return ' '.join(w if w.isdigit() else w.capitalize() for w in value.split())
+
+
+def _extract_dev_ratings(text):
+    """Split a development body from the executive ratings appended to it.
+
+    Only the major stories carry these, so absence is normal and returns the
+    body untouched with empty ratings — that is what makes a development render
+    as a compact log entry rather than a rated card.
+    """
+    ratings = {"strategic_read": "", "importance": "", "horizon": "", "attention": ""}
+    if not text:
+        return text, ratings
+
+    read = re.search(
+        r'\bSTRATEGIC\s+READ\s*[:\-–—]\s*(.+?)'
+        r'(?=\s*\b(?:IMPORTANCE|HORIZON|ATTENTION)\s*[:\-–—]|\Z)',
+        text, re.IGNORECASE | re.DOTALL
+    )
+    if read:
+        body = ' '.join(read.group(1).split()).strip(' ;,')
+        if body and not body.endswith(('.', '!', '?')):
+            body += '.'
+        ratings["strategic_read"] = body
+
+    imp = re.search(r'\bIMPORTANCE\s*[:\-–—]\s*(High|Medium|Low)\b', text, re.IGNORECASE)
+    hor = re.search(
+        r'\bHORIZON\s*[:\-–—]\s*(Now|3\s*Months?|6\s*Months?|12\s*Months?)\b',
+        text, re.IGNORECASE
+    )
+    att = re.search(r'\bATTENTION\s*[:\-–—]\s*(Yes|Monitor|Ignore)\b', text, re.IGNORECASE)
+
+    ratings["importance"] = _titlecase_rating(imp.group(1)) if imp else ""
+    ratings["horizon"]    = _titlecase_rating(hor.group(1)) if hor else ""
+    ratings["attention"]  = _titlecase_rating(att.group(1)) if att else ""
+
+    cut = re.search(r'\s*\b' + _DEV_META_LABEL + r'\s*[:\-–—]', text, re.IGNORECASE)
+    body = text[:cut.start()].strip() if cut else text.strip()
+    # Strip separators but never the terminal full stop: rstrip it and the
+    # "does it already end in punctuation" test below can only ever see the
+    # stripped string, so the sentence ships without its period.
+    body = body.rstrip(' ;,')
+    if body and not body.endswith(('.', '!', '?')):
+        body += '.'
+    return body, ratings
+
+
+_MONTH_NUMBERS = {
+    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+}
+
+
+def _resolve_item_date(date_str, coverage_date):
+    """Turn "August 12" into a real date, using the coverage month for the year.
+
+    Items carry no year — the generator is told to report one month, so the
+    year is implied. Candidate years are tried on both sides of the coverage
+    date and the closest one wins, which is what keeps a December item in a
+    January issue from landing eleven months out.
+
+    Returns None when the string is not a date or the date does not exist
+    (February 30), because an unparseable date is not evidence of anything.
+    """
+    if not date_str or not coverage_date:
+        return None
+    m = re.match(r'\s*([A-Za-z]{3,9})\.?\s+(\d{1,2})', date_str)
+    if not m:
+        return None
+    month = _MONTH_NUMBERS.get(m.group(1)[:3].lower())
+    if not month:
+        return None
+    day = int(m.group(2))
+
+    best = None
+    for year in (coverage_date.year - 1, coverage_date.year, coverage_date.year + 1):
+        try:
+            candidate = datetime(year, month, day)
+        except ValueError:
+            continue
+        if best is None or abs((candidate - coverage_date).days) < abs((best - coverage_date).days):
+            best = candidate
+    return best
+
+
+def _drop_future_dated(items, coverage_date, today=None):
+    """Remove developments dated after today.
+
+    The scheduled run fires on the last day of the month, so every item it asks
+    for has already happened. A manual force_run, or a regeneration with no
+    coverage_month, asks for the CURRENT month while it is still in progress —
+    and the prompt demands five or six dated items from it. When the real ones
+    run out, a plausible-looking forward-dated item is exactly the gap-filling
+    to expect, and nothing downstream would catch it.
+
+    Skipped entirely when coverage_date is unknown: without a year there is no
+    way to resolve "August 12", and guessing would be worse than not checking.
+    """
+    if not coverage_date:
+        return items
+    today = (today or datetime.now()).date()
+
+    kept = []
+    for item in items:
+        resolved = _resolve_item_date(item.get('date', ''), coverage_date)
+        if resolved and resolved.date() > today:
+            print(f"  future-date: dropping '{item.get('date')}' "
+                  f"({item.get('company') or item.get('body', '')[:40]}) — after {today}")
+            continue
+        kept.append(item)
+
+    dropped = len(items) - len(kept)
+    if dropped:
+        # Said plainly, because the visible symptom is a thin issue and the
+        # cause is three lines further up the log. A reviewer who does not
+        # connect the two will assume the generator broke.
+        print(f"  future-date: removed {dropped} of {len(items)} developments dated "
+              f"after {today}. Expected on a mid-month run — the month is not over, "
+              f"so those events have not happened yet. Re-run on the last day of the "
+              f"month for a full issue.")
+    return kept
+
+
+def _finalize_developments(items, strategy, coverage_date=None, today=None):
+    items = [i for i in items if not is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
+    items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
+    items = [i for i in items if not is_government_entity(i.get('company', ''))]
+    items = _drop_future_dated(items, coverage_date, today)
+    for item in items:
+        body, ratings = _extract_dev_ratings(item.get('body', ''))
+        item['body'] = body
+        item.update(ratings)
+    rated = sum(1 for i in items if i.get('strategic_read'))
+    print(f"  parse_developments: strategy {strategy} found {len(items)} items ({rated} with a strategic read)")
+    return items[:8]
+
+
+def parse_actions(text):
+    """Strategic actions, split from the decision metadata appended to each.
+
+    Falls back to a bare body with empty metadata, so an action the model wrote
+    without the OWNER/PRIORITY labels still renders — just without its badges.
+    """
+    actions = []
+    for raw in parse_list_items(text, min_length=40):
+        meta = {"owner": "", "owner_rationale": "", "priority": "", "effort": "", "impact": ""}
+
+        owner = re.search(
+            r'\bOWNER\s*[:\-]\s*([^—–\r\n.]{2,45}?)\s*[—–-]\s*(.+?)'
+            r'(?=\s*\b(?:PRIORITY|EFFORT|IMPACT)\s*[:\-]|\Z)',
+            raw, re.IGNORECASE | re.DOTALL
+        )
+        if owner:
+            meta["owner"] = ' '.join(owner.group(1).split()).strip(' .,;')
+            rationale = ' '.join(owner.group(2).split()).strip(' ;,')
+            if rationale and not rationale.endswith(('.', '!', '?')):
+                rationale += '.'
+            meta["owner_rationale"] = rationale
+        else:
+            # OWNER present but with no rationale after a dash.
+            bare = re.search(
+                r'\bOWNER\s*[:\-]\s*([^\r\n.]{2,45}?)\s*(?=\.|\b(?:PRIORITY|EFFORT|IMPACT)\s*[:\-]|\Z)',
+                raw, re.IGNORECASE
+            )
+            if bare:
+                meta["owner"] = ' '.join(bare.group(1).split()).strip(' .,;')
+
+        for key, allowed in (
+            ("priority", r'High|Medium|Low'),
+            ("effort",   r'Small|Medium|Large'),
+            ("impact",   r'High|Medium|Low'),
+        ):
+            m = re.search(rf'\b{key.upper()}\s*[:\-]\s*({allowed})\b', raw, re.IGNORECASE)
+            meta[key] = _titlecase_rating(m.group(1)) if m else ""
+
+        cut = re.search(r'\s*\b' + _ACTION_META_LABEL + r'\s*[:\-]', raw, re.IGNORECASE)
+        body = raw[:cut.start()].strip() if cut else raw.strip()
+        if not body:
+            continue
+
+        actions.append({"body": body, **meta})
+
+    owned = sum(1 for a in actions if a["owner"])
+    print(f"  parse_actions: {len(actions)} actions ({owned} with an assigned owner)")
+    return actions
+
+
+def parse_myth(text):
+    """{'myth': ..., 'reality': ...}, or None when either half is missing —
+    half a myth box is worse than none."""
+    if not text or len(text.strip()) < 40:
+        return None
+
+    myth = re.search(
+        r'\bMyth\s*[:\-–—]\s*(.+?)(?=\s*\bReality\s*[:\-–—]|\Z)',
+        text, re.IGNORECASE | re.DOTALL
+    )
+    reality = re.search(
+        r'\bReality\s*[:\-–—]\s*(.+)\Z',
+        text, re.IGNORECASE | re.DOTALL
+    )
+    if not myth or not reality:
+        return None
+
+    myth_text    = ' '.join(myth.group(1).split()).strip()
+    reality_text = ' '.join(reality.group(1).split()).strip()
+    if len(myth_text) < 15 or len(reality_text) < 40:
+        return None
+    return {"myth": myth_text, "reality": reality_text}
+
+
+_PREDICTION_HORIZONS = ("One month", "Six months", "One year")
+
+
+def parse_predictions(text):
+    """The three horizons, in the fixed order the section is designed around —
+    not whatever order the model emitted them in."""
+    if not text:
+        return []
+
+    found = []
+    for label in _PREDICTION_HORIZONS:
+        m = re.search(
+            rf'^[\s\-•\d.)]*{label}\s*[:\-–—]\s*(.+?)'
+            rf'(?=^[\s\-•\d.)]*(?:{"|".join(_PREDICTION_HORIZONS)})\s*[:\-–—]|\Z)',
+            text, re.IGNORECASE | re.MULTILINE | re.DOTALL
+        )
+        if not m:
+            continue
+        body = ' '.join(m.group(1).split()).strip()
+        if len(body) < 25:
+            continue
+        found.append({"horizon": label, "body": body})
+    return found
+
+
+def parse_question(text):
+    """The closing question. Anything the model added around it is dropped:
+    the section is one question, and a preamble dilutes it."""
+    if not text:
+        return ""
+    flat = ' '.join(text.split()).strip()
+    flat = re.sub(r'^(?:Question|The question)\s*[:\-–—]\s*', '', flat, flags=re.IGNORECASE)
+
+    questions = re.findall(r'[^.?!]*\?', flat)
+    if questions:
+        # The last question is the real one when the model wrote a lead-in;
+        # keep a preceding setup sentence only if it is short enough to help.
+        candidate = questions[-1].strip()
+        if len(candidate) < 25 and len(questions) > 1:
+            candidate = questions[-2].strip() + ' ' + candidate
+        return candidate
+    return flat if 25 <= len(flat) <= 400 else ""
+
+
 def deduplicate_spotlight_against_developments(spotlight_items, development_items):
     if not spotlight_items or not development_items:
         return spotlight_items
@@ -171,7 +516,7 @@ def deduplicate_spotlight_against_developments(spotlight_items, development_item
     return cleaned
 
 
-def parse_developments(text):
+def parse_developments(text, coverage_date=None, today=None):
     items = []
 
     date_pattern = re.compile(
@@ -211,11 +556,7 @@ def parse_developments(text):
             i += 2
 
         if len(items) >= 3:
-            items = [i for i in items if not is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
-            items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
-            items = [i for i in items if not is_government_entity(i.get('company', ''))]
-            print(f"  parse_developments: strategy 1 found {len(items)} items")
-            return items[:10]
+            return _finalize_developments(items, 1, coverage_date, today)
 
     # Strategy 2: numbered list
     items = []
@@ -259,11 +600,7 @@ def parse_developments(text):
             })
 
         if len(items) >= 3:
-            items = [i for i in items if not is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
-            items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
-            items = [i for i in items if not is_government_entity(i.get('company', ''))]
-            print(f"  parse_developments: strategy 2 found {len(items)} items")
-            return items[:10]
+            return _finalize_developments(items, 2, coverage_date, today)
 
     # Strategy 3: line-by-line fallback
     items = []
@@ -312,11 +649,7 @@ def parse_developments(text):
             items.append({"date": "", "company": "", "body": block_clean,
                           "source_name": source_name, "source_url": source_url})
 
-    items = [i for i in items if not is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
-    items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
-    items = [i for i in items if not is_government_entity(i.get('company', ''))]
-    print(f"  parse_developments: strategy 3 found {len(items)} items")
-    return items[:10]
+    return _finalize_developments(items, 3, coverage_date, today)
 
 
 def parse_spotlight_items(text):
@@ -479,7 +812,7 @@ def extract_title_and_excerpt(content, issue_month_year, coverage_month_name=Non
     #
     # The month is NOT in the title. It is already carried by the issue badge,
     # the dateline and the URL, and spending title characters on it costs topic.
-    fallback_title = f"AI Insights for {issue_month_year}"
+    fallback_title = f"{BRAND} \u2014 {issue_month_year}"
     title   = fallback_title
     excerpt = ""
 
