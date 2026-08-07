@@ -7,6 +7,7 @@ import re
 import json
 from datetime import datetime
 from html import escape as escape_html
+from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
 from parser import (
     parse_sections, parse_list_items, parse_developments, parse_spotlight_items,
@@ -761,6 +762,21 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .conclusion-label {{ font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.75; margin-bottom: 0.5rem; }}
         .conclusion p {{ color: rgba(255,255,255,0.95); font-size: 0.95rem; font-weight: 500; line-height: 1.75; }}
         .conclusion strong {{ color: var(--white); font-weight: 700; }}
+        /* Share row. Sits under The Bottom Line — the point at which a reader
+           who found the issue useful decides to pass it on. */
+        .share-row {{ margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }}
+        .share-label {{ font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: var(--gray-light); margin-bottom: 0.8rem; }}
+        .share-actions {{ display: flex; flex-wrap: wrap; gap: 0.5rem; }}
+        .share-btn {{ display: inline-flex; align-items: center; gap: 0.45rem; font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--navy); background: var(--white); border: 1px solid var(--border); border-radius: 22px; padding: 0.5rem 1rem; text-decoration: none; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s; }}
+        .share-btn:hover {{ border-color: var(--blue); color: var(--blue); box-shadow: var(--shadow-md); transform: translateY(-1px); }}
+        .share-btn .icon {{ width: 1.1em; height: 1.1em; }}
+        /* The share row reuses .copy-btn for its clipboard behaviour but not
+           its pill styling, which is a filled gradient built for the prompt
+           cards and would read as the primary action here. */
+        .share-btn.copy-btn {{ background: var(--white); color: var(--navy); border: 1px solid var(--border); }}
+        .share-btn.copy-btn:hover {{ color: var(--blue); box-shadow: var(--shadow-md); }}
+        .share-btn.copy-btn.copied {{ background: var(--green); border-color: var(--green); color: var(--white); }}
+        .share-btn[hidden] {{ display: none; }}
         p {{ margin-bottom: 1rem; line-height: 1.75; color: var(--gray); font-size: 0.9rem; }}
         strong {{ color: var(--navy); font-weight: 600; }}
         @media (max-width: 640px) {{
@@ -806,6 +822,17 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         <symbol id="i-copy" viewBox="0 0 24 24">
             <rect x="9" y="9" width="11" height="11" rx="2.5"/>
             <path d="M6.5 15H5.5A2.5 2.5 0 0 1 3 12.5v-7A2.5 2.5 0 0 1 5.5 3h7A2.5 2.5 0 0 1 15 5.5v1"/>
+        </symbol>
+        <symbol id="i-linkedin" viewBox="0 0 24 24">
+            <path fill="currentColor" stroke="none" d="M4.98 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM3 9.5h4v11H3zm7 0h3.8v1.5a4.2 4.2 0 0 1 3.7-1.9c3 0 4.5 1.9 4.5 5.3v6.1h-4v-5.4c0-1.6-.6-2.6-2-2.6s-2.2 1-2.2 2.6v5.4h-3.8z"/>
+        </symbol>
+        <symbol id="i-mail" viewBox="0 0 24 24">
+            <rect x="3" y="5" width="18" height="14" rx="2.5"/>
+            <path d="m3.5 7 8.5 6 8.5-6"/>
+        </symbol>
+        <symbol id="i-share" viewBox="0 0 24 24">
+            <circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/>
+            <path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/>
         </symbol>
         <symbol id="i-doc" viewBox="0 0 24 24">
             <path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/>
@@ -866,6 +893,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                     <div class="conclusion-label">The Bottom Line</div>
                     <p>{_build_conclusion(sections, coverage_month_year)}</p>
                 </div>
+                {_build_share_row(canonical, clean_title, issue_month_year)}
             </div>
         </article>
     </div>
@@ -902,16 +930,24 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
           if (!btn) return;
 
           var text;
-          if (btn.classList.contains('copy-article')) {{
-            // Clone and strip this section out first: pasting the issue WITH
+          if (btn.classList.contains('share-copy')) {{
+            // The canonical permalink, baked in at build time. Never
+            // location.href — this same article is also served at
+            // latest.html, which points at a different issue next month.
+            text = btn.dataset.shareUrl || '';
+          }} else if (btn.classList.contains('copy-article')) {{
+            // Clone and strip these sections out first: pasting the issue WITH
             // the prompt cards in it hands the assistant three competing sets
-            // of instructions alongside the article it is meant to read.
+            // of instructions alongside the article it is meant to read, and
+            // the share row contributes nothing but button labels.
             var src = document.querySelector('.article-content');
             var art = null;
             if (src) {{
               art = src.cloneNode(true);
-              var strip = art.querySelector('.prompts-section');
-              if (strip) strip.remove();
+              ['.prompts-section', '.share-row'].forEach(function (sel) {{
+                var strip = art.querySelector(sel);
+                if (strip) strip.remove();
+              }});
             }}
             // Canonical, not location.href: read via latest.html this would
             // otherwise hand the reader a URL that points at a different
@@ -937,6 +973,30 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
           if (typeof gtag === 'function') {{
             gtag('event', 'prompt_copy', {{ prompt_type: btn.dataset.label || 'unknown' }});
           }}
+        }});
+
+        // The OS share sheet, where the browser has one. Revealed rather than
+        // rendered, so a desktop visitor never sees a button that would do
+        // nothing — LinkedIn, email and copy already cover that case.
+        if (navigator.share) {{
+          document.querySelectorAll('.share-native').forEach(function (b) {{
+            b.hidden = false;
+          }});
+        }}
+
+        document.addEventListener('click', function (e) {{
+          var btn = e.target.closest ? e.target.closest('.share-native') : null;
+          if (!btn || !navigator.share) return;
+          navigator.share({{
+            title: btn.dataset.shareTitle || document.title,
+            url: btn.dataset.shareUrl
+          }}).then(function () {{
+            if (typeof gtag === 'function') {{
+              gtag('event', 'share', {{ method: 'web_share' }});
+            }}
+          }}).catch(function () {{
+            // The user dismissed the sheet. Not an error, and not worth a message.
+          }});
         }});
       }})();
     </script>
@@ -1072,6 +1132,64 @@ def _build_prompts_section(canonical, title_text, issue_month_year):
         f'<span class="prompt-foot-note">Paste it above your prompt and any '
         f'assistant can work from it, no browsing needed.</span>'
         f'</div>'
+        f'</div>'
+    )
+
+
+def _build_share_row(canonical, title, issue_month_year):
+    """Share controls for a published issue.
+
+    Every link is built from `canonical`, never from the page's own address.
+    A post is served at BOTH its dated permalink and at latest.html, and
+    latest.html is a rotating alias — same URL, a different article every
+    month. Sharing the address the reader happens to be at means a link that
+    silently points at next month's issue, and social platforms cache Open
+    Graph data per URL essentially forever, so the preview stays wrong too.
+
+    LinkedIn and email are plain hrefs resolved at build time, so they work
+    with JavaScript disabled. Only copy-to-clipboard and the OS share sheet
+    need scripting, and the share sheet button stays hidden until the browser
+    says it supports it.
+    """
+    url_q = quote(canonical, safe='')
+    # A topical headline gets the publication name appended for context; a
+    # fallback title like "AI Insights for August 2026" already carries it and
+    # would otherwise read "... — AI Insights, September 2026".
+    subject = (
+        title if "ai insights" in title.lower()
+        else f"{title} — AI Insights, {issue_month_year}"
+    )
+    subject_q = quote(subject, safe='')
+    body_q    = quote(
+        f"Thought this was worth your time — Robert Simon's monthly AI briefing "
+        f"for Canadian business leaders.\n\n{title}\n{canonical}\n",
+        safe=''
+    )
+
+    linkedin = f"https://www.linkedin.com/sharing/share-offsite/?url={url_q}"
+    mailto   = f"mailto:?subject={subject_q}&body={body_q}"
+    url_attr = escape_html(canonical, quote=True)
+
+    return (
+        f'<div class="share-row">'
+        f'  <div class="share-label">Forward this issue</div>'
+        f'  <div class="share-actions">'
+        f'    <a class="share-btn" href="{escape_html(linkedin, quote=True)}" '
+        f'target="_blank" rel="noopener noreferrer">'
+        f'<svg class="icon" aria-hidden="true"><use href="#i-linkedin"/></svg>'
+        f'<span>LinkedIn</span></a>'
+        f'    <a class="share-btn" href="{escape_html(mailto, quote=True)}">'
+        f'<svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg>'
+        f'<span>Email</span></a>'
+        f'    <button type="button" class="share-btn copy-btn share-copy" '
+        f'data-share-url="{url_attr}" data-label="share_copy">'
+        f'<svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>'
+        f'<span class="copy-btn-text">Copy link</span></button>'
+        f'    <button type="button" class="share-btn share-native" hidden '
+        f'data-share-url="{url_attr}" data-share-title="{escape_html(title, quote=True)}">'
+        f'<svg class="icon" aria-hidden="true"><use href="#i-share"/></svg>'
+        f'<span>Share</span></button>'
+        f'  </div>'
         f'</div>'
     )
 

@@ -117,6 +117,37 @@ The preview page pre-fills its textarea with the model's draft
 (`_extract_desk_draft` in `generate-preview-page.py`), so the monthly job is
 editing rather than writing from nothing. A `localStorage` draft still wins
 over the pre-fill.
+
+### Sharing — always the permalink, never `latest.html`
+
+Posts carry a share row under "The Bottom Line" (`_build_share_row` in
+`renderer.py`); the blog index carries one on the latest-issue card and two
+buttons per archive row (`_share_hrefs` / `_permalink` in `blog_index.py`).
+LinkedIn, email, copy link, and the OS share sheet on mobile.
+
+**Every share target must be the dated permalink.** A post is served at both
+`/blog/posts/YYYY-MM-DD-slug.html` and `/blog/posts/latest.html`, and
+`latest.html` is a rotating alias — same URL, different article next month. So:
+
+- Posts build their links from `canonical`, never `location.href`.
+- The blog index builds them via `_permalink()`, which prefers
+  `canonical_filename` — `posts[0]` is read from `latest.html` and its
+  `filename` really is `latest.html`.
+- This is the same reason the index already links the newest issue by its
+  permalink, and why social platforms caching OG data per URL makes a shared
+  alias actively wrong rather than merely stale.
+
+Other things that are deliberate:
+
+- LinkedIn and email are plain `href`s resolved at build time, so they work
+  with JavaScript off. Only clipboard and the share sheet need scripting.
+- `.share-native` renders `hidden` and is revealed only if `navigator.share`
+  exists, so desktop never shows a button that would do nothing.
+- Archive-row buttons sit **outside** the row's `<a>`. Interactive elements
+  nested in a link are invalid, recover unpredictably, and can leave a keyboard
+  user unable to reach them.
+- The "Copy the full issue text" button strips `.share-row` along with
+  `.prompts-section` — button labels are noise in text meant for an assistant.
 - To fix a typo in an already-published post: `scripts/fix_old_posts.py`
   exists for bulk fixes; for a one-off, editing the specific
   `blog/posts/YYYY-MM-DD-*.html` file directly is fine since nothing
