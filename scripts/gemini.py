@@ -307,10 +307,19 @@ meeting, client, colleague, project, internal metric, or dated event. Never name
 or imply any current or former employer. Every experience-based observation must
 be a pattern that is broadly true of large enterprises generally, not a story.
 
-Correct: "The governance bottleneck is almost always legal review capacity, not
-model accuracy — the pilot finishes in six weeks and then waits four months."
-Forbidden: "Last quarter my team discovered...", "A bank I worked with...", "When
-we rolled this out at...".
+ILLUSTRATION ONLY — these show the SHAPE of an allowed observation. They are
+about ERP and warehouse automation precisely so they cannot be reused in an AI
+newsletter. Never copy a sentence, clause or example out of these instructions
+into your output; a real issue lifted one of these examples verbatim and
+published it under Robert's byline as his own hard-won experience.
+
+Allowed shape: "Every ERP replacement I have seen stalls at the same place —
+not the software, but the three business units that cannot agree whose
+definition of a customer wins."
+Forbidden outright: "Last quarter my team discovered...", "A bank I worked
+with...", "When we rolled this out at...".
+
+Write your own observation about THIS month's material, in your own words.
 
 BE OPINIONATED — strategically, never politically:
 Readers already have the news. What they cannot get elsewhere is judgment. Use
@@ -408,6 +417,9 @@ def _shared_rules_block(month_year, prev_month, is_backfill=False, today=None):
     return f"""{_EDITORIAL_PREAMBLE}
 
 WRITING RULES — follow these exactly:
+0. NEVER reuse wording from these instructions. Every example below shows the
+   required FORM. The content is disposable and must not appear in your output.
+   If a sentence you are about to write also appears in this prompt, rewrite it.
 1. Write as an active peer and practitioner — someone in the room, not observing from the outside. Use "What we're seeing on the ground" over "studies suggest." Be casually authoritative. Enthusiasm for technology is fine; uncritical hype is not.
 2. Maximum 22 words per sentence. Short sentences hit harder. Mix punchy 4-word sentences with longer conversational ones. Vary the rhythm deliberately.
 3. Start every section with a direct hook or a counter-intuitive observation. No warmup phrases, no formal introductions.
@@ -503,7 +515,15 @@ No colon-free clickbait, no questions, no "you won't believe". Plain declarative
 Write the headline on ONE line directly under the HEADLINE header, with no quotes around it.
 
 INTRODUCTION (3 sentences maximum):
-Open with one specific fact or event from {month_year}. Second sentence: what it means for Canadian business. Third sentence: what this analysis helps the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase. Lead with the sharpest, most surprising detail you found. Make the reader want to keep going.
+CRITICAL: The first sentence MUST contain the specific claim you made in the
+HEADLINE — the same entity and the same number, policy or figure, stated as a
+fact. The headline is a promise; the sentence under it has to pay that promise
+immediately. An issue titled "Ottawa's new AI strategy commits $700M for SME
+compute access" whose opening paragraph says only "a five-year plan for domestic
+AI leadership" reads as though the title belongs to a different article, and the
+reader has to hunt for the number that drew them in.
+
+Second sentence: what it means for Canadian business. Third sentence: what this analysis helps the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase. Make the reader want to keep going.
 
 {_SPEC_EXECUTIVE_SUMMARY}
 

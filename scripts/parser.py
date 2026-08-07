@@ -189,6 +189,25 @@ def _extract_source_from_text(text):
         cleaned = text[:source_kw].strip().rstrip('.') if source_kw > 0 else text[:m.start()].strip()
         return source_name, source_url, cleaned
 
+    # None of the expected shapes matched, which means the model wrote a Source
+    # line without the "Publication | Headline" format. Left alone the raw
+    # "Source: ..." string ships as body copy — and worse, flows into the FAQ
+    # answer and the FAQPage schema, which answer engines quote verbatim.
+    # Salvage it as a search link and take it out of the prose either way.
+    trailer = re.search(
+        r'(?:^|[.\n])\s*Sources?\s*[:–—-]\s*(\S.*)$',
+        text, re.IGNORECASE | re.DOTALL
+    )
+    if trailer:
+        cited = ' '.join(trailer.group(1).split()).strip().rstrip('.,;')
+        cited = re.sub(r'https?://\S+', '', cited).strip(' |.,;')
+        cut_at = text.upper().rfind('SOURCE', 0, trailer.end())
+        body = text[:cut_at].strip().rstrip('.,;').strip() if cut_at > 0 else text.strip()
+        if body:
+            url = build_search_url("", cited) if len(cited) > 6 else None
+            # No publication name to show, so the chip falls back to "Source".
+            return "", url, body
+
     return "", "", text.strip()
 
 
@@ -519,11 +538,19 @@ def deduplicate_spotlight_against_developments(spotlight_items, development_item
 def parse_developments(text, coverage_date=None, today=None):
     items = []
 
+    # The date must START A LINE. Every item is emitted as "[Month Day]: ..."
+    # on its own line, so anchoring costs nothing — and without it the split
+    # fires on any date inside body prose. One real story reading "...closing
+    # them to new customers effective July 30. These services are being folded
+    # into Bedrock..." was cut in half: the first half lost its strategic read
+    # and ratings, and the second half published as a headless card dated
+    # July 30 with no company, carrying the analysis that belonged to the
+    # story above it. Same failure mode as an unanchored section header.
     date_pattern = re.compile(
-        r'(\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
+        r'^[ \t]*(\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
         r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
         r'\.?\s+\d{1,2}(?:st|nd|rd|th)?[,.]?)',
-        re.IGNORECASE
+        re.IGNORECASE | re.MULTILINE
     )
 
     splits = date_pattern.split(text)
