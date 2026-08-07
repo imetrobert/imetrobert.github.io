@@ -774,6 +774,43 @@ def parse_developments(text, coverage_date=None, today=None):
     return _finalize_developments(items, 3, coverage_date, today)
 
 
+_LEADING_DATE = re.compile(
+    r'^\s*(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|'
+    r'Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+    r'\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:\s*[-–—]\s*\d{1,2})?\s*$',
+    re.IGNORECASE,
+)
+
+
+def _repair_dated_spotlight(item):
+    """Spotlight items are specified as "[Organisation]: [what happened]", but
+    the model sometimes writes them in the DEVELOPMENT format instead —
+    "June 04: Government of Canada — Launched...". Splitting on the first colon
+    then puts the date in the organisation slot, and the card renders with a
+    bold "June 04" where the organisation should be.
+
+    Recover the real organisation from the front of the body and keep the date
+    separately, so it can still be checked against the coverage month.
+    """
+    org = (item.get('org') or '').strip()
+    if not _LEADING_DATE.match(org):
+        return item
+
+    body = (item.get('body') or '').strip()
+    item['date'] = org
+    for sep in (' — ', ' – ', ' - ', ': '):
+        if sep in body[:90]:
+            head, rest = body.split(sep, 1)
+            if 2 < len(head) < 70:
+                item['org'] = head.strip().rstrip(':')
+                item['body'] = rest.strip()
+                return item
+    # No organisation to recover — better an unlabelled item than one labelled
+    # with a date pretending to be an organisation.
+    item['org'] = ''
+    return item
+
+
 def parse_spotlight_items(text):
     items = []
 
@@ -797,7 +834,7 @@ def parse_spotlight_items(text):
     items = _drop_low_quality_sourced(items, 'org')
 
     if len(items) >= 2:
-        return [_close_sentence(i) for i in items[:6]]
+        return [_close_sentence(_repair_dated_spotlight(i)) for i in items[:6]]
 
     # Strategy 2: numbered list fallback
     items = []
@@ -818,7 +855,7 @@ def parse_spotlight_items(text):
     if items:
         items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('org', ''))]
         items = _drop_low_quality_sourced(items, 'org')
-        return [_close_sentence(i) for i in items[:6]]
+        return [_close_sentence(_repair_dated_spotlight(i)) for i in items[:6]]
 
     # Strategy 3: line fallback
     items = []
@@ -837,7 +874,7 @@ def parse_spotlight_items(text):
 
     items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('org', ''))]
     items = _drop_low_quality_sourced(items, 'org')
-    return [_close_sentence(i) for i in items[:6]]
+    return [_close_sentence(_repair_dated_spotlight(i)) for i in items[:6]]
 
 
 def parse_adoption_stats(text):

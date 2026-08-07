@@ -24,6 +24,32 @@ from gemini import REDRAFTABLE_SECTIONS
 import re as _re
 from html import escape as html_escape, unescape as html_unescape
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
+
+def _generated_stamp():
+    """When this draft was generated, in Robert's timezone.
+
+    The runner is UTC, so an unlabelled date on this page is ambiguous — and
+    with several drafts generated on the same day it is the time, not the date,
+    that tells you which one you are looking at. %Z gives EDT or EST, so the
+    label is right on both sides of the DST switch.
+
+    Falls back to UTC if tzdata is unavailable; a stamp in the wrong zone,
+    clearly labelled, beats no stamp.
+    """
+    now = datetime.now()
+    if ZoneInfo is not None:
+        try:
+            now = datetime.now(ZoneInfo("America/Toronto"))
+        except Exception:
+            return datetime.utcnow().strftime("%B %-d, %Y at %H:%M UTC").replace(" 0", " ")
+    hour = now.strftime("%I").lstrip("0") or "12"
+    return f"{now.strftime('%B')} {now.day}, {now.year} at {hour}:{now.strftime('%M %p')} {now.strftime('%Z') or 'ET'}"
+
 
 def _extract_desk_draft(staging_filename: str) -> str:
     """Pull the drafted 'From Robert's Desk' prose back out of the staged post.
@@ -143,6 +169,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     # shipping the model's version under Robert's byline, because rewriting
     # from nothing is a much bigger ask than editing. A localStorage draft
     # still wins over this — see initTake().
+    generated_stamp = _generated_stamp()
+
     desk_draft = _extract_desk_draft(staging_filename)
     desk_draft_attr = html_escape(desk_draft)
     desk_draft_words = len(desk_draft.split())
@@ -825,6 +853,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     <div class="preview-toolbar">
       <div>
         <h2>Post Preview — {issue_month_year} <span style="font-weight:400;opacity:0.6;">(covers {coverage_month_name})</span></h2>
+        <div class="preview-meta">Generated {generated_stamp}</div>
         <div class="preview-meta">Staging file: {staging_filename}</div>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
