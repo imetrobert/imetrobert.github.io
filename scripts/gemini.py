@@ -149,10 +149,6 @@ REDRAFTABLE_SECTIONS = {
         "label": "Executive Summary",
         "spec":  lambda: _SPEC_EXECUTIVE_SUMMARY,
     },
-    "AI MYTH OF THE MONTH": {
-        "label": "AI Myth of the Month",
-        "spec":  lambda: _SPEC_MYTH,
-    },
     "LOOKING AHEAD: THREE PREDICTIONS": {
         "label": "Looking Ahead",
         "spec":  lambda: _SPEC_PREDICTIONS,
@@ -387,16 +383,6 @@ in the same paragraph.
 Do not open with "This month". Do not open with a summary sentence. Open on the
 observation itself."""
 
-_SPEC_MYTH = """AI MYTH OF THE MONTH:
-One belief that is genuinely widespread among senior executives and is wrong or
-badly incomplete. Not a strawman, and not a myth about the technology's
-capabilities — a myth about how AI actually succeeds or fails inside an
-organization. Governance, sponsorship, change management, procurement, process
-redesign, talent, and measurement are the fertile ground here.
-
-Use this EXACT format, both labels on their own lines:
-Myth: [one sentence stating the belief plainly, as a believer would state it].
-Reality: [3-4 sentences. Explain what is actually true and why the myth is so persistent. Give the reader something they can act on, not just a correction.]"""
 
 _SPEC_PREDICTIONS = """LOOKING AHEAD: THREE PREDICTIONS
 Three predictions at three horizons. These are explicitly predictions, not
@@ -503,7 +489,6 @@ FROM ROBERTS DESK
 WHAT THIS MEANS FOR CANADIAN BUSINESS
 STRATEGIC ACTIONS FOR THIS MONTH
 ADOPTION SNAPSHOT
-AI MYTH OF THE MONTH
 LOOKING AHEAD: THREE PREDICTIONS
 ONE QUESTION FOR YOUR LEADERSHIP TEAM
 
@@ -520,11 +505,23 @@ this budget; it totals roughly 1,300 words:
   CANADIAN SPOTLIGHT                     115 words   (3 items)
   FROM ROBERTS DESK                  300-450 words
   WHAT THIS MEANS FOR CANADIAN BUSINESS  135 words   (3 paragraphs)
-  STRATEGIC ACTIONS FOR THIS MONTH       250 words   (5 actions, ~50 each including the owner line)
+  STRATEGIC ACTIONS FOR THIS MONTH       250 words   (5 actions, 50 each MAXIMUM, owner line included)
   ADOPTION SNAPSHOT                       70 words
-  AI MYTH OF THE MONTH                    80 words
   LOOKING AHEAD: THREE PREDICTIONS        85 words
   ONE QUESTION FOR YOUR LEADERSHIP TEAM   30 words
+
+These are CEILINGS, not targets to grow into. Recent issues came in at 2,100
+words against this 1,300-word budget and read at nine minutes rather than six;
+the promise on the tin is a short briefing. Before you finish, count your
+STRATEGIC ACTIONS section in particular — it has been the longest section in
+every recent issue while the budget makes it one of the shortest.
+
+Per item, the hard caps are:
+  - a major development: 2 sentences of report + 3 sentences of strategic read
+  - a log development: 2 sentences, nothing more
+  - a spotlight item: 2 sentences
+  - an action: 2 sentences, then ONE sentence naming the owner and why
+  - a paragraph of WHAT THIS MEANS: 3 sentences
 
 Never exceed the item counts specified below; they are maximums as well as
 minimums. If a section is running long, cut reported detail before cutting
@@ -681,8 +678,6 @@ Format for each line:
 [Number]% [rest of stat]. Source: [Organization], [year].
 
 Use only real, verifiable Canadian stats from: Statistics Canada, BDC, ISED, CIRA, Conference Board of Canada, Deloitte Canada, KPMG Canada, PwC Canada, Mila Annual Report, Vector Institute Annual Report, McKinsey Canada.
-
-{_SPEC_MYTH}
 
 {_SPEC_PREDICTIONS}
 
