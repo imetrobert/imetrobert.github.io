@@ -465,7 +465,18 @@ publication, so writing one costs you the slot and gains nothing.
 BACKFILL NOTICE: This is a re-run of the {month_year} report, being regenerated after {month_year} has already ended. Today's real date is later than {month_year} — ignore that. Your search results will surface newer news by default; you must actively filter it out. Every single item, statistic, and example must be dated within {month_year}. If you cannot find 8 qualifying developments strictly from {month_year}, use fewer rather than reaching into a later month.
 '''}
 
-SOURCE QUALITY RULE: Only cite primary sources — official company blogs, government press releases, major news outlets (Globe and Mail, Financial Post, CBC, Reuters, Bloomberg, TechCrunch, The Verge, Wired). Do NOT cite newsletters, podcast episodes, Substack posts, or aggregator summaries. If a result looks like "26: GPT-5.5, Claude Mythos & What It Means" or "Episode 14: ..." it is a newsletter/podcast — skip it and find the original primary source instead.
+SOURCE QUALITY RULE: Only cite primary sources — official company blogs, government press releases, major news outlets (Globe and Mail, Financial Post, CBC, Reuters, Bloomberg, TechCrunch, The Verge, Wired). Do NOT cite newsletters, podcast episodes, Substack posts, Medium posts, personal or community blogs, or aggregator summaries. If a result looks like "26: GPT-5.5, Claude Mythos & What It Means" or "Episode 14: ..." it is a newsletter/podcast — skip it and find the original primary source instead.
+
+The distinction is WHO PUBLISHED IT, not what it says. "AWS News Blog", "Google
+Blog" and "OpenAI Blog" are first-party newsrooms and are fine. "Something
+Blogs", "<Anything> - Medium", a Substack, or a personal site are not,
+regardless of how accurate the post looks — a real issue cited "ML Kenya Blogs"
+and "TechCraft Chronicles - Medium" for its two most specific product claims,
+and neither could be verified.
+
+Any item you can only source to one of those is DISCARDED before publication.
+Report fewer developments rather than citing a blog: a thin issue costs you one
+story, a bad citation costs the publication its credibility.
 
 OUTPUT FORMAT
 Write plain text only. No markdown (no *, no **, no #). Use EXACTLY these section headers, spelled exactly like this, each on its own line, in this order:
@@ -562,7 +573,7 @@ Use this EXACT format for items 4 onward — no strategic read, no ratings:
 
 Rules:
 - EXACTLY 5 or 6 items total. The first 3 carry STRATEGIC READ and all three ratings; the rest carry none.
-- Every item has a date from {month_year}
+- Every item has ONE date from {month_year}. A single day, never a range: write "July 22", never "July 22-30" or "July 22 to 30". If the story unfolded over a week, date it to the day the thing you are reporting actually happened.
 - Every item ends with Source: [Publication] | [Headline] — no URLs, no brackets around the headline
 - The word "Source" must always be preceded by a full stop, so ratings lines end with a full stop as shown
 - Every source is a PRIMARY source (company blog, government site, major news outlet) — NEVER a newsletter or podcast

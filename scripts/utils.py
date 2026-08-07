@@ -190,6 +190,31 @@ def is_episode_or_newsletter_item(body, company):
     return False
 
 
+# Platforms that host anyone's writing. The prompt already bans them, but a
+# prompt rule is not enforcement: a real issue cited "ML Kenya Blogs" and
+# "TechCraft Chronicles - Medium" for its two most specific, most checkable
+# claims. Sourcing is the thing a sceptical reader checks first.
+#
+# Deliberately NOT a bare "blog": official company blogs are primary sources and
+# explicitly allowed — "AWS News Blog", "Google Blog" and "OpenAI Blog" must all
+# survive this. Only third-party platforms and the plural "Blogs" (which no
+# first-party newsroom uses) are matched.
+_LOW_QUALITY_SOURCE_MARKERS = (
+    "medium", "substack", "blogspot", "wordpress", "blogs",
+    "newsletter", "podcast", "episode",
+)
+
+
+def is_low_quality_source(source_name):
+    """True when a citation names a self-publishing platform rather than a
+    publication. Callers drop the item — the same treatment episode/newsletter
+    items already get, and what the prompt says should happen to them."""
+    if not source_name:
+        return False
+    name = re.sub(r'[^a-z0-9 ]+', ' ', source_name.lower())
+    return any(f' {marker} ' in f' {name} ' for marker in _LOW_QUALITY_SOURCE_MARKERS)
+
+
 def is_government_entity(company):
     if not company:
         return False
