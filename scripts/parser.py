@@ -241,7 +241,13 @@ def _extract_dev_ratings(text):
 
     cut = re.search(r'\s*\b' + _DEV_META_LABEL + r'\s*[:\-–—]', text, re.IGNORECASE)
     body = text[:cut.start()].strip() if cut else text.strip()
-    return body.rstrip(' .;,') + ('.' if body and not body.endswith(('.', '!', '?')) else ''), ratings
+    # Strip separators but never the terminal full stop: rstrip it and the
+    # "does it already end in punctuation" test below can only ever see the
+    # stripped string, so the sentence ships without its period.
+    body = body.rstrip(' ;,')
+    if body and not body.endswith(('.', '!', '?')):
+        body += '.'
+    return body, ratings
 
 
 def _finalize_developments(items, strategy):

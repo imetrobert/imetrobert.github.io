@@ -253,7 +253,7 @@ def create_blog_index_html(posts):
         header {{ background: linear-gradient(135deg, #2563eb 0%, #1a7fb5 50%, #06b6d4 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 2.5rem; border-radius: 20px; }}
         h1 {{ font-size: 2.8rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.02em; }}
         .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 3px rgb(0 0 0 / 0.08); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e2e8f0; }}
-        .nav-content {{ max-width: 900px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: flex-start; gap: 0.6rem; }}
+        .nav-content {{ max-width: 900px; margin: 0 auto; padding: 0 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.6rem; }}
         .nav-brand {{ display: flex; align-items: center; gap: 0.5rem; text-decoration: none; margin-right: auto; }}
         .nav-brand img {{ width: 28px; height: 28px; border-radius: 9px; }}
         .nav-brand span {{ font-weight: 800; font-size: 0.9rem; color: #0f172a; letter-spacing: -0.01em; }}
@@ -281,7 +281,7 @@ def create_blog_index_html(posts):
            used in the archive rows below. */
         .latest-share {{ display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.2); }}
         .latest-share-label {{ font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; opacity: 0.7; margin-right: 0.2rem; }}
-        .latest-share .share-btn {{ display: inline-flex; align-items: center; gap: 0.4rem; font: inherit; font-size: 0.78rem; font-weight: 600; color: white; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 0.4rem 0.9rem; text-decoration: none; cursor: pointer; transition: background 0.2s, transform 0.15s; }}
+        .latest-share .share-btn {{ display: inline-flex; align-items: center; justify-content: center; min-height: 36px; gap: 0.4rem; font: inherit; font-size: 0.78rem; font-weight: 600; color: white; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 0.4rem 0.9rem; text-decoration: none; cursor: pointer; transition: background 0.2s, transform 0.15s; }}
         .latest-share .share-btn:hover {{ background: rgba(255,255,255,0.28); transform: translateY(-1px); }}
         .latest-share .share-btn.copied {{ background: #16a34a; border-color: #16a34a; }}
         .share-btn[hidden] {{ display: none; }}
@@ -290,7 +290,7 @@ def create_blog_index_html(posts):
         .older-post-item {{ display: flex; align-items: center; gap: 0.5rem; padding-right: 0.75rem; }}
         .older-post-link {{ flex: 1; min-width: 0; }}
         .older-post-share {{ display: flex; gap: 0.3rem; flex-shrink: 0; }}
-        .mini-btn {{ display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; text-decoration: none; transition: color 0.2s, border-color 0.2s, background 0.2s; font-size: 0.85rem; }}
+        .mini-btn {{ display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; text-decoration: none; transition: color 0.2s, border-color 0.2s, background 0.2s; font-size: 0.85rem; }}
         .mini-btn:hover {{ color: #2563eb; border-color: #2563eb; }}
         .mini-btn.copied {{ background: #16a34a; border-color: #16a34a; color: white; }}
         @media (max-width: 640px) {{
@@ -303,6 +303,9 @@ def create_blog_index_html(posts):
                is never competing with the share buttons for the same tap. */
             .older-post-item {{ flex-direction: column; align-items: stretch; padding-right: 0; }}
             .older-post-share {{ padding: 0 1.25rem 0.9rem; }}
+            .mini-btn {{ width: 2.75rem; height: 2.75rem; }}
+            .latest-share .share-btn {{ min-height: 44px; padding: 0.55rem 1rem; }}
+            .nav-content {{ padding: 0 1rem; row-gap: 0.5rem; }}
         }}
     </style>
 </head>

@@ -129,7 +129,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         points_html = "".join(f'<li>{p}</li>' for p in summary_points)
         article_parts.append(
             f'<div class="section summary-section">'
-            f'<div class="summary-label">Executive Summary</div>'
+            f'<h2 class="summary-label">Executive Summary</h2>'
             f'<ul class="summary-list">{points_html}</ul>'
             f'</div>'
         )
@@ -327,7 +327,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     if myth:
         article_parts.append(
             f'<div class="section myth-section">'
-            f'<div class="myth-label">AI Myth of the Month</div>'
+            f'<h2 class="myth-label">AI Myth of the Month</h2>'
             f'<div class="myth-block myth-claim">'
             f'<span class="myth-tag">Myth</span><p>{myth["myth"]}</p></div>'
             f'<div class="myth-block myth-reality">'
@@ -410,6 +410,17 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             "How do global AI trends affect Canadian competitiveness?",
             _plain(business_impact),
         ),
+        # The myth section is already a question and its answer — the format an
+        # answer engine quotes most readily — and it is original judgment rather
+        # than restated news, which is the whole point of being citable.
+        (
+            "What is the biggest misconception executives have about AI adoption?",
+            _plain(f'{myth["reality"]}') if myth else "",
+        ),
+        (
+            f"What should Canadian executives expect from AI over the next year?",
+            _join([f'{p["horizon"]}: {p["body"]}' for p in predictions]),
+        ),
     ]
     # Only publish a Q&A when the post genuinely contains the answer.
     faq_items = [{"question": q, "answer": a} for q, a in faq_candidates if len(a) > 60]
@@ -435,7 +446,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     if closing_question:
         article_parts.append(
             f'<div class="section question-section">'
-            f'<div class="question-label">One question for your leadership team</div>'
+            f'<h2 class="question-label">One question for your leadership team</h2>'
             f'<p class="question-body">{closing_question}</p>'
             f'</div>'
         )
@@ -545,7 +556,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
       "isAccessibleForFree": true,
       "speakable": {{
         "@type": "SpeakableSpecification",
-        "cssSelector": [".intro-lead", ".faq-q", ".faq-a"]
+        "cssSelector": [".intro-lead", ".summary-list li", ".faq-q", ".faq-a"]
       }}
     }}
     </script>
@@ -667,14 +678,14 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .roberts-header {{ display: flex; align-items: center; gap: 0.875rem; margin-bottom: 1.1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.12); }}
         .roberts-header img {{ width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.25); flex-shrink: 0; }}
         .roberts-label {{ font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 0.1rem; }}
-        .roberts-name {{ font-weight: 700; font-size: 0.9rem; }}
+        .roberts-name {{ margin: 0; font-weight: 700; font-size: 0.9rem; }}
         .roberts-body {{ font-size: 0.925rem; line-height: 1.85; color: #ffffff; font-style: normal; font-weight: 400; }}
         .roberts-placeholder {{ font-size: 0.825rem; line-height: 1.7; opacity: 0.65; border: 1px dashed rgba(255,255,255,0.25); padding: 1rem 1.25rem; border-radius: 10px; }}
         .roberts-placeholder strong {{ color: var(--white); opacity: 1; font-style: normal; }}
         .roberts-body + .roberts-body {{ margin-top: 0.9rem; }}
         /* Executive summary — the three things, above the fold. */
         .summary-section {{ background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--navy); border-radius: 12px; padding: 1.4rem 1.6rem; }}
-        .summary-label {{ font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: var(--navy); opacity: 0.75; margin-bottom: 0.85rem; }}
+        .summary-label {{ margin: 0 0 0.85rem; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: var(--navy); opacity: 0.75; }}
         .summary-list {{ list-style: none; padding: 0; display: grid; gap: 0.7rem; counter-reset: summary; }}
         .summary-list li {{ position: relative; padding-left: 1.9rem; font-size: 0.9rem; line-height: 1.6; color: var(--gray-dark); font-weight: 500; counter-increment: summary; }}
         .summary-list li::before {{ content: counter(summary); position: absolute; left: 0; top: 0.05rem; width: 1.3rem; height: 1.3rem; display: flex; align-items: center; justify-content: center; background: var(--navy); color: var(--white); border-radius: 50%; font-size: 0.65rem; font-weight: 800; }}
@@ -710,7 +721,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .action-owner-why {{ font-size: 0.78rem; line-height: 1.6; color: var(--gray); margin-top: 0.3rem; }}
         /* Myth of the month. */
         .myth-section {{ background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 1.6rem 1.75rem; }}
-        .myth-label {{ font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: #b45309; margin-bottom: 1rem; }}
+        .myth-label {{ margin: 0 0 1rem; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: #b45309; }}
         .myth-block {{ display: flex; gap: 0.8rem; align-items: flex-start; padding: 0.9rem 1.1rem; border-radius: 10px; background: var(--white); }}
         .myth-block + .myth-block {{ margin-top: 0.65rem; }}
         .myth-block p {{ margin: 0; font-size: 0.875rem; line-height: 1.7; }}
@@ -729,7 +740,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .pred-body {{ font-size: 0.875rem; line-height: 1.7; color: var(--gray-dark); margin: 0; }}
         /* The closing question. Deliberately the largest type in the article. */
         .question-section {{ border: 2px solid var(--navy); border-radius: 16px; padding: 1.75rem 2rem; background: var(--white); }}
-        .question-label {{ font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: var(--navy); opacity: 0.7; margin-bottom: 0.7rem; }}
+        .question-label {{ margin: 0 0 0.7rem; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: var(--navy); opacity: 0.7; }}
         .question-body {{ font-size: 1.15rem; line-height: 1.6; font-weight: 600; color: var(--navy); margin: 0; letter-spacing: -0.01em; }}
         .faq-section {{ background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; }}
         .faq-list {{ display: grid; gap: 1rem; }}
@@ -1296,7 +1307,7 @@ def _build_roberts_desk(raw_text):
         '<img src="https://imetrobert.github.io/profile.jpg" alt="Robert Simon">'
         '<div>'
         '<div class="roberts-label">Executive Perspective</div>'
-        '<div class="roberts-name">From Robert&#39;s Desk</div>'
+        '<h2 class="roberts-name">From Robert&#39;s Desk</h2>'
         '</div>'
         '</div>'
     )
