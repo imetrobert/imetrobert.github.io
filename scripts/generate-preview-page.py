@@ -20,6 +20,38 @@ sys.path.insert(0, os.path.join(os.getcwd(), 'scripts'))
 
 from utils import get_issue_labels
 
+import re as _re
+from html import escape as html_escape, unescape as html_unescape
+
+
+def _extract_desk_draft(staging_filename: str) -> str:
+    """Pull the drafted 'From Robert's Desk' prose back out of the staged post.
+
+    The reviewer edits this section in a plain textarea, so what comes out here
+    has to be plain text: tags stripped, entities decoded, paragraphs separated
+    by a blank line — the same shape inject_take.py expects to be handed back.
+
+    Returns "" for anything unexpected (file missing, placeholder box instead of
+    a draft, path resolved differently by a caller that runs from scripts/).
+    An empty editor is a worse experience but a safe one; failing here must
+    never take the whole approval page down with it.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(root, "blog", "staging", staging_filename)
+    try:
+        with open(path, encoding="utf-8") as f:
+            src = f.read()
+    except OSError:
+        return ""
+
+    paragraphs = []
+    for raw in _re.findall(r'<p class="roberts-body">(.*?)</p>', src, _re.S):
+        text = html_unescape(_re.sub(r'<[^>]+>', '', raw))
+        text = _re.sub(r'\s+', ' ', text).strip()
+        if text:
+            paragraphs.append(text)
+    return "\n\n".join(paragraphs)
+
 
 def build_preview_html(staging_filename: str, month_year: str, run_id: str, regenerated: bool = False) -> str:
     repo = os.environ.get("GITHUB_REPOSITORY", "imetrobert/imetrobert.github.io")
@@ -94,6 +126,21 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     regen_badge = ""
     if regenerated:
         regen_badge = '<div class="regen-badge">🔄 Regenerated with custom prompt</div>'
+
+    # Pre-load the editor with the model's draft of From Robert's Desk. The
+    # section runs 300-450 words now; handed an empty box that often meant
+    # shipping the model's version under Robert's byline, because rewriting
+    # from nothing is a much bigger ask than editing. A localStorage draft
+    # still wins over this — see initTake().
+    desk_draft = _extract_desk_draft(staging_filename)
+    desk_draft_attr = html_escape(desk_draft)
+    desk_draft_words = len(desk_draft.split())
+    desk_draft_note = (
+        f"Pre-filled with the model&#39;s {desk_draft_words}-word draft &mdash; "
+        f"edit it into your own words."
+        if desk_draft else
+        "The model left this section empty. Whatever you type here is what publishes."
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -641,12 +688,13 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     </div>
 
     <div class="sidebar-section sec-take">
-      <h3>Robert&#39;s Take &mdash; in your words</h3>
-      <p class="take-hint">This is the one section on the page that claims to be you.
-      Two or three sentences replace whatever the model wrote. Leave it blank to keep
-      the generated version.</p>
-      <textarea id="take-input" class="prompt-area" rows="7"
-        placeholder="What surprised you this month? What are you hearing from Canadian leaders? What pattern is everyone else missing?"></textarea>
+      <h3>From Robert&#39;s Desk &mdash; in your words</h3>
+      <p class="take-hint">The signature section, and the one part of the issue that
+      claims to be you. {desk_draft_note} Target 300&ndash;450 words. Separate
+      paragraphs with a blank line. Clearing this box entirely keeps the draft
+      below as-is.</p>
+      <textarea id="take-input" class="prompt-area" rows="16"
+        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">{desk_draft_attr}</textarea>
       <div class="take-meta">
         <span id="take-count">0 words</span>
         <span id="take-saved" class="take-saved"></span>
@@ -986,7 +1034,14 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     let timer = null;
     function update() {{
       const words = takeText() ? takeText().split(/\s+/).length : 0;
-      if (count) count.textContent = words + (words === 1 ? " word" : " words");
+      if (count) {{
+        // The target range is the whole point of the section — showing the
+        // count alone gives no sense of whether 180 words is short.
+        let note = " · target 300–450";
+        if (words >= 300 && words <= 450) note = " · in range";
+        else if (words > 450) note = " · over 450, consider trimming";
+        count.textContent = words + (words === 1 ? " word" : " words") + note;
+      }}
       clearTimeout(timer);
       timer = setTimeout(function () {{
         localStorage.setItem(TAKE_KEY, el.value);

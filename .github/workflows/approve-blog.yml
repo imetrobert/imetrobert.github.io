@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       roberts_take:
-        description: "Robert's Take, in his own words. Blank keeps whatever the model wrote."
+        description: "From Robert's Desk, in his own words. Blank keeps whatever the model drafted."
         required: false
         default: ''
         type: string
@@ -63,7 +63,7 @@ jobs:
           fi
           echo "Found staging file: $STAGING_PATH"
 
-      - name: Apply Robert's Take from the preview page
+      - name: Apply From Robert's Desk from the preview page
         env:
           ROBERTS_TAKE: ${{ github.event.inputs.roberts_take }}
         run: |

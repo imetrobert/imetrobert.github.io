@@ -22,7 +22,12 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
     ) != (datetime.now().year, datetime.now().month)
 
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-    models_to_try = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"]
+    # Flash first, lite as the fallback. The issue is now half original
+    # judgment — strategic reads, ratings, predictions, the Desk essay — and
+    # flash-lite reliably produces the reported half but flattens the analysis
+    # into restated news. Quality of judgment is the product now, so the
+    # stronger model leads and lite only catches a rate-limited run.
+    models_to_try = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
 
     if topic:
         prompt = _build_custom_prompt(topic, month_year, prev_month, is_backfill)
@@ -33,7 +38,12 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "tools": [{"google_search": {}}],
         "generationConfig": {
-            "maxOutputTokens": 4000,
+            # The issue carries four analysis sections the old 4000-token cap
+            # never had to fit (the Desk essay alone is ~450 words). At 4000
+            # the response truncated mid-section, and a truncated tail is
+            # silent: the parser just renders fewer sections. Headroom is
+            # cheap; a missing "Looking Ahead" is not.
+            "maxOutputTokens": 8192,
             "temperature": 0.55,
             "candidateCount": 1
         },
@@ -134,7 +144,48 @@ This directive changes WHAT events and examples you select and emphasise. It doe
 
 
 def _shared_rules_block(month_year, prev_month, is_backfill=False):
-    return f"""WRITING RULES — follow these exactly:
+    return f"""EDITORIAL MISSION — read this before any other instruction:
+
+This is not an AI news site. There are hundreds of those and none of them are the
+reason anyone subscribes to this one. A reader subscribes for Robert's reading of
+what AI developments actually mean for a Canadian organization.
+
+Roughly HALF this issue is reported fact. The other half is original strategic
+judgment: what matters, what does not, what to ignore, what to prioritise. The
+reader must finish every issue understanding not only what happened, but what to
+do next.
+
+Test every sentence in an analysis section against this: could it appear verbatim
+in a Reuters summary of the same event? If yes, it is reporting, and it does not
+count toward the analysis half. Restating the news in a more emphatic tone is the
+single most common way this publication fails.
+
+VOICE AND EXPERIENCE:
+Robert writes from experience leading enterprise AI transformation inside a large
+Canadian organization. In the first-person sections he may open observations with
+"In my experience", "What I've seen inside large enterprises", "One lesson I've
+learned helping organizations adopt AI", "The governance challenge usually isn't
+technology", "The hardest part is organizational change".
+
+HARD CONSTRAINT ON THIS — it is not negotiable: never invent a specific anecdote,
+meeting, client, colleague, project, internal metric, or dated event. Never name
+or imply any current or former employer. Every experience-based observation must
+be a pattern that is broadly true of large enterprises generally, not a story.
+
+Correct: "The governance bottleneck is almost always legal review capacity, not
+model accuracy — the pilot finishes in six weeks and then waits four months."
+Forbidden: "Last quarter my team discovered...", "A bank I worked with...", "When
+we rolled this out at...".
+
+BE OPINIONATED — strategically, never politically:
+Readers already have the news. What they cannot get elsewhere is judgment. Use
+"I believe", "My assessment is", "I expect", "The bigger implication is", "The
+risk executives are overlooking is", "The organizations that win will".
+Every opinion must be followed by its reasoning in the same breath. An assertion
+with no argument behind it is worse than no assertion. Be willing to say the
+uncomfortable thing if it is what the evidence supports.
+
+WRITING RULES — follow these exactly:
 1. Write as an active peer and practitioner — someone in the room, not observing from the outside. Use "What we're seeing on the ground" over "studies suggest." Be casually authoritative. Enthusiasm for technology is fine; uncritical hype is not.
 2. Maximum 22 words per sentence. Short sentences hit harder. Mix punchy 4-word sentences with longer conversational ones. Vary the rhythm deliberately.
 3. Start every section with a direct hook or a counter-intuitive observation. No warmup phrases, no formal introductions.
@@ -160,6 +211,9 @@ def _shared_rules_block(month_year, prev_month, is_backfill=False):
    - "Moreover" → cut entirely
    - "It is important to remember" → cut entirely
    - "In conclusion" → cut entirely
+   - "Looking ahead" → cut entirely; it is a section header below and using it
+     in prose breaks the parser that splits this document into sections
+   - "Executive summary" → same reason; never use the phrase inside prose
 5. Ground everything in Canadian business reality: US-Canada trade tensions under the Carney government, Bill C-27 (AIDA) working through Parliament, Quebec Law 25 privacy requirements, PIPEDA, the Canadian dollar, AI talent competition between Toronto/Montreal/Vancouver.
 6. Name real Canadian companies and institutions where relevant: Shopify, Cohere, D-Wave, Ada, Coveo, RBC, TD, Scotiabank, CIBC, Manulife, Sun Life, Bell, Rogers, Telus, BCE, Loblaw, Couche-Tard, CAE, BRP, Bombardier, Mila, Vector Institute, Amii, Ivey Business School, Rotman School of Management.
 
@@ -171,16 +225,43 @@ BACKFILL NOTICE: This is a re-run of the {month_year} report, being regenerated 
 SOURCE QUALITY RULE: Only cite primary sources — official company blogs, government press releases, major news outlets (Globe and Mail, Financial Post, CBC, Reuters, Bloomberg, TechCrunch, The Verge, Wired). Do NOT cite newsletters, podcast episodes, Substack posts, or aggregator summaries. If a result looks like "26: GPT-5.5, Claude Mythos & What It Means" or "Episode 14: ..." it is a newsletter/podcast — skip it and find the original primary source instead.
 
 OUTPUT FORMAT
-Write plain text only. No markdown (no *, no **, no #). Use EXACTLY these section headers on their own lines:
+Write plain text only. No markdown (no *, no **, no #). Use EXACTLY these section headers, spelled exactly like this, each on its own line, in this order:
 
 HEADLINE
 INTRODUCTION
+EXECUTIVE SUMMARY
 KEY AI DEVELOPMENTS
 CANADIAN SPOTLIGHT
+FROM ROBERTS DESK
 WHAT THIS MEANS FOR CANADIAN BUSINESS
 STRATEGIC ACTIONS FOR THIS MONTH
 ADOPTION SNAPSHOT
-ROBERTS TAKE
+AI MYTH OF THE MONTH
+LOOKING AHEAD: THREE PREDICTIONS
+ONE QUESTION FOR YOUR LEADERSHIP TEAM
+
+Write FROM ROBERTS DESK without an apostrophe, exactly as shown.
+
+LENGTH BUDGET — the issue is a focused executive briefing, not a digest. These
+readers have limited time and the publication's promise is a short read. Depth in
+the analysis sections is paid for by discipline in the reported ones. Stay inside
+this budget; it totals roughly 1,300 words:
+
+  INTRODUCTION                            55 words
+  EXECUTIVE SUMMARY                       55 words   (3 items, max 25 each)
+  KEY AI DEVELOPMENTS                    340 words   (3 major at ~80, then 2-3 log entries at ~35)
+  CANADIAN SPOTLIGHT                     115 words   (3 items)
+  FROM ROBERTS DESK                  300-450 words
+  WHAT THIS MEANS FOR CANADIAN BUSINESS  135 words   (3 paragraphs)
+  STRATEGIC ACTIONS FOR THIS MONTH       250 words   (5 actions, ~50 each including the owner line)
+  ADOPTION SNAPSHOT                       70 words
+  AI MYTH OF THE MONTH                    80 words
+  LOOKING AHEAD: THREE PREDICTIONS        85 words
+  ONE QUESTION FOR YOUR LEADERSHIP TEAM   30 words
+
+Never exceed the item counts specified below; they are maximums as well as
+minimums. If a section is running long, cut reported detail before cutting
+judgment — the analysis is what the reader came for.
 
 ---
 
@@ -193,26 +274,56 @@ Write the headline on ONE line directly under the HEADLINE header, with no quote
 INTRODUCTION (3 sentences maximum):
 Open with one specific fact or event from {month_year}. Second sentence: what it means for Canadian business. Third sentence: what this analysis helps the reader do. Do NOT start with "Welcome", "This month", or any warmup phrase. Lead with the sharpest, most surprising detail you found. Make the reader want to keep going.
 
-KEY AI DEVELOPMENTS (MINIMUM 8 items — this is a hard requirement):
+EXECUTIVE SUMMARY (exactly 3 numbered items, one sentence each, max 25 words each):
+The three things a busy executive must take away if they read nothing else. Each
+one states a CONCLUSION, not a topic. "Ottawa's compute fund makes on-shore
+inference cheaper than US hosting for the first time" is a conclusion. "Government
+AI funding" is a topic and is useless here.
+At least one of the three must be a judgment call rather than a reported fact.
+Format: 1. [sentence]
+
+KEY AI DEVELOPMENTS (exactly 5 or 6 items — not more, not fewer):
+This section used to run to ten items. It no longer does, because coverage volume
+is not the value of this publication. Select ruthlessly: an item earns its place
+only if a Canadian executive would make a different decision knowing it.
 CRITICAL DATE RULE: Include ONLY events from {month_year}. Never fabricate. Never use events from prior months.
 CRITICAL SECTION ROUTING RULE: KEY AI DEVELOPMENTS is strictly for AI company announcements — products, models, partnerships, research. It must NEVER contain items from any government entity. This includes: the Government of Canada, any provincial or municipal government, the Prime Minister, any federal minister, any G7/G20/OECD ministerial body, Statistics Canada, Bank of Canada policy announcements, or any Crown corporation acting in a regulatory/policy capacity. Any government funding, policy, regulation, or strategy announcement MUST go in CANADIAN SPOTLIGHT — never here.
 CRITICAL SOURCE RULE: Every single item MUST end with a Source line. No exceptions.
 CRITICAL SOURCE QUALITY RULE: Every source MUST be a primary source — official company announcements, government press releases, or major news publications. Newsletters, podcast episodes, Substack posts, and aggregator blogs are NEVER acceptable sources. If your search returns a newsletter item (e.g. "26: GPT-5.5..." or "Episode 14:..."), discard it and find the original primary source announcement instead.
 CRITICAL DEDUPLICATION RULE: Treat KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT as one combined list. Every individual news event, funding program, company announcement, or policy decision may appear ONCE across both sections combined — never twice. Same program = same event = one section only. If the AI Compute Access Fund, RAII, or any government initiative appears in KEY AI DEVELOPMENTS, it must NOT appear in CANADIAN SPOTLIGHT under any name, wording, or angle. No exceptions.
 
-Use this EXACT format for every item — copy it precisely:
+THIS SECTION HAS TWO TIERS. The FIRST THREE items are the major stories and carry
+Robert's interpretation plus executive ratings. Items 4 onward are the compact log
+and carry neither. Order the section so the three highest-consequence stories come
+first — that ordering IS the designation.
+
+Use this EXACT format for items 1, 2 and 3 — copy the label words precisely,
+including the capitalisation and the full stops:
+[Month Day]: [Company] — [One sentence: what they did]. [One sentence: why it matters for Canadian business]. STRATEGIC READ: [2-3 sentences of Robert's own interpretation]. IMPORTANCE: [High or Medium or Low]. HORIZON: [Now or 3 Months or 6 Months or 12 Months]. ATTENTION: [Yes or Monitor or Ignore]. Source: [Publication name] | [Exact article headline as published]
+
+Example of a correct major item:
+May 15: Google — Released Gemini 3.1 with enhanced reasoning for enterprise. Canadian financial services firms can deploy it inside existing Workspace contracts. STRATEGIC READ: Most firms will treat this as a procurement question and route it to IT. It is a data-residency question, and the people who should be in the room are Legal and the Chief Risk Officer. The opportunity competitors are missing is that an existing contract means you can pilot this in weeks without a new vendor review. IMPORTANCE: High. HORIZON: Now. ATTENTION: Yes. Source: The Verge | Google Releases Gemini 3.1 With Stronger Reasoning
+
+What STRATEGIC READ must do — it answers some of these, never all:
+- Why does this actually matter, beyond the announcement?
+- How should an executive react, concretely?
+- What mistake will most companies make in response to this?
+- What opportunity are competitors likely to miss?
+It must NOT restate the two sentences above it in different words. If your
+strategic read could be deleted without losing any information, rewrite it.
+
+Use this EXACT format for items 4 onward — no strategic read, no ratings:
 [Month Day]: [Company] — [One sentence: what they did]. [One sentence: why it matters for Canadian business]. Source: [Publication name] | [Exact article headline as published]
 
-Example of correct format:
-May 15: Google — Released Gemini 3.1 with enhanced reasoning for enterprise. Canadian financial services firms can now deploy it within existing Google Workspace contracts. Source: The Verge | Google Releases Gemini 3.1 With Stronger Reasoning
-
 Rules:
-- MINIMUM 8 items. Aim for 8-10.
+- EXACTLY 5 or 6 items total. The first 3 carry STRATEGIC READ and all three ratings; the rest carry none.
 - Every item has a date from {month_year}
 - Every item ends with Source: [Publication] | [Headline] — no URLs, no brackets around the headline
+- The word "Source" must always be preceded by a full stop, so ratings lines end with a full stop as shown
 - Every source is a PRIMARY source (company blog, government site, major news outlet) — NEVER a newsletter or podcast
 - Vary the companies — mix US tech, Canadian companies, global players
 - The Canadian relevance sentence must be specific, not generic
+- Do not rate everything High. If all three major stories are High importance, you have not made a judgment. ATTENTION: Ignore is a legitimate and useful verdict on a story that is loud but consequence-free.
 - UNIQUENESS RULE: Every item must cover a distinct news event or announcement.
 
 CANADIAN SPOTLIGHT (MINIMUM 3 items — hard requirement):
@@ -227,7 +338,7 @@ Use this EXACT format for every item:
 [Company/Organization]: [What happened — one sentence]. [Why it matters — one sentence]. Source: [Publication name] | [Exact article headline as published]
 
 Rules:
-- MINIMUM 3 items. Aim for 3-4.
+- EXACTLY 3 items.
 - No generic "Canada is positioning itself" filler
 - Every item ends with Source: [Publication] | [Headline]
 - Every source is a PRIMARY source — NEVER a newsletter or podcast
@@ -236,9 +347,46 @@ MANDATORY SELF-CHECK — DO THIS BEFORE WRITING ANY FURTHER:
 List every news event you have written in KEY AI DEVELOPMENTS (by topic, one line each).
 Then list every news event in CANADIAN SPOTLIGHT (by topic, one line each).
 Compare the two lists. If ANY topic appears in both lists — even described with different words — you MUST go back and replace the duplicate in CANADIAN SPOTLIGHT with a genuinely different Canadian news item before continuing.
-Only continue to WHAT THIS MEANS once every item across both sections is a unique, non-overlapping news event.
+Only continue once every item across both sections is a unique, non-overlapping news event.
 
-WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs):
+FROM ROBERTS DESK (300-450 words — this is the most important section in the issue):
+This is the signature section. It is the reason someone subscribes rather than
+reading a news aggregator, and it is the section a reader should look for first.
+Treat every other section as supporting material for this one.
+
+It is NOT a summary of the news above. If a reader could get the substance of this
+section by re-reading the developments, it has failed.
+
+Write 3 or 4 paragraphs of continuous prose, separated by a blank line. No bullet
+points, no sub-headings, no source lines, no numbered lists. First person
+throughout.
+
+Answer three or four of these — not all of them, and not in a mechanical order:
+- What genuinely surprised me this month, and why I did not expect it?
+- What do executives consistently misunderstand about this?
+- What trend worries me, and what specifically is the failure mode?
+- What is overhyped right now, and what is the tell?
+- What should Canadian businesses begin doing now?
+- What can safely wait, and why is waiting the right call?
+- What will actually matter six months from now that almost nobody is discussing?
+
+You may use at most TWO specific items from the sections above, and only as a
+springboard into an argument that goes somewhere they do not. The value here is
+the pattern behind the news, not the news.
+
+At least one paragraph must draw on the experience of running AI transformation
+inside a large enterprise — governance, change management, executive sponsorship,
+procurement friction, the gap between a working pilot and a deployed system.
+Obey the HARD CONSTRAINT above: patterns that are broadly true, never invented
+specifics, never a named or implied employer.
+
+Say at least one thing a cautious writer would leave out. Support it with reasoning
+in the same paragraph.
+
+Do not open with "This month". Do not open with a summary sentence. Open on the
+observation itself.
+
+WHAT THIS MEANS FOR CANADIAN BUSINESS (3 paragraphs, maximum 3 sentences each):
 CRITICAL CROSS-REFERENCE RULE: Every paragraph MUST name at least one specific event, company, or statistic from KEY AI DEVELOPMENTS, CANADIAN SPOTLIGHT, or ADOPTION SNAPSHOT above.
 Write like a practitioner who has seen this play out. Skip the academic framing. Say what is actually happening and what Canadian leaders need to do about it.
 
@@ -261,14 +409,30 @@ STRATEGIC ACTIONS FOR THIS MONTH (exactly 5 items):
 CRITICAL TRACEABILITY RULE: Each of the 5 actions MUST trace directly to a named item from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT.
 These are not generic best practices. Each action responds to something specific that happened this month. Make that connection explicit.
 
+Each action carries a decision header so an executive can triage the five at a
+glance. Use this EXACT format — copy the label words precisely, including the
+capitalisation and the full stops:
+
+1. [Action, 2 sentences. Starts with a strong verb, names the specific development it responds to, and includes a specific deadline.] OWNER: [Role] — [one sentence: why this role and not the obvious alternative]. PRIORITY: [High or Medium or Low]. EFFORT: [Small or Medium or Large]. IMPACT: [Low or Medium or High].
+
+Example of a correct action:
+1. Audit your Microsoft and Google enterprise agreements for the inference data-residency clauses both vendors revised this month. You need the answer before any business unit expands a pilot past proof of concept, so set a 30-day deadline. OWNER: General Counsel — the instinct is to hand this to the CIO, but the exposure is contractual rather than technical, and Legal is the only function that can actually reopen the terms. PRIORITY: High. EFFORT: Small. IMPACT: High.
+
 Each action must:
 - Start with a strong verb: Audit, Pilot, Negotiate, Commission, Assign, Test, Require, Demand, Sunset, Block time to
 - Name the specific development, company, tool, regulation, or funding program it responds to
-- State WHO in the organization owns it (CTO, CFO, CHRO, Legal team, Board Audit Committee, etc.)
 - Include a specific deadline (this week / by end of Q2 / before June 30 / within 30 days)
-- Be 2-3 sentences
+- Be 2 sentences before the OWNER label
 
-Format: 1. [Action text]
+OWNER rules:
+- Pick from: CEO, President, CIO, CTO, CDO, CFO, CHRO, Chief Risk Officer, General Counsel, Head of Data Governance, VP Marketing, VP Operations, Board Audit Committee
+- The rationale after the dash must explain why THIS role rather than the one a reader would assume. "CIO — because it is a technology decision" is worthless. The useful version names the alternative and rules it out.
+- Do not assign every action to the CIO or CTO. If AI work in an organization only ever lands on technology leadership, that is itself the problem this publication exists to correct.
+
+PRIORITY, EFFORT and IMPACT rules:
+- These are independent axes. A High priority action can be Small effort; that combination is exactly what an executive is scanning for.
+- At most two of the five actions may be PRIORITY: High. Five high priorities is no priority.
+- Be honest about EFFORT: Large. Understating effort is how these lists lose credibility.
 
 ADOPTION SNAPSHOT (exactly 5 data points):
 CRITICAL: Each stat on its own line. Never combine into a paragraph.
@@ -284,12 +448,43 @@ Format for each line:
 
 Use only real, verifiable Canadian stats from: Statistics Canada, BDC, ISED, CIRA, Conference Board of Canada, Deloitte Canada, KPMG Canada, PwC Canada, Mila Annual Report, Vector Institute Annual Report, McKinsey Canada.
 
-ROBERTS TAKE:
-CRITICAL: This is NOT a summary of the newsletter. Robert speaks in first person. He has a point of view the reader would not get from reading the news items alone. He is willing to say something slightly uncomfortable if that is what he actually thinks.
+AI MYTH OF THE MONTH:
+One belief that is genuinely widespread among senior executives and is wrong or
+badly incomplete. Not a strawman, and not a myth about the technology's
+capabilities — a myth about how AI actually succeeds or fails inside an
+organization. Governance, sponsorship, change management, procurement, process
+redesign, talent, and measurement are the fertile ground here.
 
-Write 2-3 sentences. Start with "The thing that surprised me most this month was..." or "What I keep hearing from Canadian leaders right now is..." or a similarly direct first-person opener. Never start with "This month" or "The AI landscape". Pick 1-2 specific items from KEY AI DEVELOPMENTS or CANADIAN SPOTLIGHT and say something worth reading.
+Use this EXACT format, both labels on their own lines:
+Myth: [one sentence stating the belief plainly, as a believer would state it].
+Reality: [3-4 sentences. Explain what is actually true and why the myth is so persistent. Give the reader something they can act on, not just a correction.]
 
-Do NOT write the placeholder. Write actual content that Robert would say based on the specific news reported above.
+LOOKING AHEAD: THREE PREDICTIONS
+Three predictions at three horizons. These are explicitly predictions, not
+reporting, and must read that way — "I expect", "I think it is likely that", "My
+assessment is". Never state a prediction as a fact.
+
+Be conservative. A prediction that is obviously safe is useless, but a dramatic
+one that fails destroys the credibility of everything else in the issue. Aim for
+claims that are specific enough to be wrong, and that you would still defend if
+challenged. Each is 1-2 sentences.
+
+Use this EXACT format, each on its own line:
+One month: [prediction]
+Six months: [prediction]
+One year: [prediction]
+
+ONE QUESTION FOR YOUR LEADERSHIP TEAM:
+A single question a CEO or CIO could put on next month's leadership agenda. Write
+the question and nothing else — no preamble, no answer, no explanation.
+
+It must be answerable in a real meeting and uncomfortable enough to be worth
+asking. It should expose a gap rather than invite a status update.
+Good: "If our AI budget doubled tomorrow, which initiative would produce a
+measurable business result within six months — and can we name the metric today?"
+Weak: "How can we better take advantage of AI?"
+
+Write one or two sentences maximum, ending in a question mark.
 
 ---
 Context: {month_year} edition"""

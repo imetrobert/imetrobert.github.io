@@ -59,6 +59,64 @@ under `blog/` or `scripts/`.
 - If you want to influence the *voice* of future posts (not fix a typo in
   a past one), that's a prompt/generation change in `scripts/generate-blog.py`
   or `scripts/renderer.py`, not a content edit.
+
+### The issue structure is a three-file contract
+
+`gemini.py` emits plain text under ALL-CAPS section headers → `parser.py`
+splits on `SECTION_HEADERS` → `renderer.py` renders one block per section.
+**Adding, renaming or removing a section means editing all three**, plus the
+CSS in `renderer.py`. Change one and the section silently disappears from the
+published page — the parser returns `""` and the renderer skips it, with no
+error anywhere.
+
+Sections, in the order they appear in an issue:
+
+| Section | Carries |
+|---------|---------|
+| `HEADLINE` / `INTRODUCTION` | Title + 3-sentence opener |
+| `EXECUTIVE SUMMARY` | 3 conclusions, numbered |
+| `KEY AI DEVELOPMENTS` | 5-6 stories; the **first 3** carry `STRATEGIC READ` + `IMPORTANCE`/`HORIZON`/`ATTENTION` |
+| `CANADIAN SPOTLIGHT` | 3 items, government items mandatory here |
+| `FROM ROBERTS DESK` | 300-450 words, the signature section |
+| `WHAT THIS MEANS FOR CANADIAN BUSINESS` | 3 paragraphs |
+| `STRATEGIC ACTIONS FOR THIS MONTH` | 5 actions + `OWNER`/`PRIORITY`/`EFFORT`/`IMPACT` |
+| `ADOPTION SNAPSHOT` | 5 Canadian stats |
+| `AI MYTH OF THE MONTH` | `Myth:` / `Reality:` |
+| `LOOKING AHEAD: THREE PREDICTIONS` | `One month:` / `Six months:` / `One year:` |
+| `ONE QUESTION FOR YOUR LEADERSHIP TEAM` | One question |
+
+Rules that keep this working:
+
+- **Ratings are inline labels ending in a full stop, before `Source:`.** The
+  source regex anchors on a period or newline preceding the word "Source", so
+  `ATTENTION: Yes. Source: Reuters | ...` parses and
+  `ATTENTION: Yes | Source: ...` does not.
+- **Every rating is optional in the parser.** A story with no ratings renders
+  as a compact log entry, an action with no owner renders without badges. That
+  is what lets an old-format post, or a bad month, degrade instead of shipping
+  empty badge rows.
+- **Section headers must start their own line.** `parse_sections` anchors on
+  line starts precisely because "Looking ahead" and "Executive summary" are
+  ordinary English — an unanchored match would cut the document at the first
+  prose use and swallow everything after it. Both phrases are banned from prose
+  in the prompt for the same reason.
+- `SECTION_ALIASES` in `parser.py` maps old and misspelled headers to the
+  canonical one. `ROBERTS TAKE` is there so posts written before the rename
+  still parse.
+
+### `From Robert's Desk` — the one section that must be Robert's
+
+It was "Robert's Take" (2-3 sentences) and is now the signature section. The
+CSS classes did **not** change with the rename: `.roberts-take`,
+`.roberts-header`, `.roberts-body` are load bearing, because
+`inject_take.py` finds the block through them to substitute the text typed in
+the preview page. Rename those classes and injection silently no-ops — and the
+failure mode is the *model's* draft publishing under Robert's byline.
+
+The preview page pre-fills its textarea with the model's draft
+(`_extract_desk_draft` in `generate-preview-page.py`), so the monthly job is
+editing rather than writing from nothing. A `localStorage` draft still wins
+over the pre-fill.
 - To fix a typo in an already-published post: `scripts/fix_old_posts.py`
   exists for bulk fixes; for a one-off, editing the specific
   `blog/posts/YYYY-MM-DD-*.html` file directly is fine since nothing

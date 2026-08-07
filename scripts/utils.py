@@ -55,7 +55,26 @@ def clean_ai_content(content):
     return content.strip()
 
 
+# Labels the generator emits so the renderer can turn them into badges. They are
+# scaffolding, not prose: "IMPORTANCE: High. HORIZON: Now. ATTENTION: Yes." is
+# read as three chips at a glance, not as eleven words of sentence.
+_SCAFFOLD_RE = re.compile(
+    r'\b(?:IMPORTANCE|HORIZON|ATTENTION|PRIORITY|EFFORT|IMPACT)\s*[:\-]\s*'
+    r'(?:High|Medium|Low|Now|Small|Large|Yes|Monitor|Ignore|\d{1,2}\s*Months?)\s*\.?',
+    re.IGNORECASE,
+)
+_LABEL_RE = re.compile(r'\b(?:STRATEGIC READ|OWNER)\s*[:\-]\s*', re.IGNORECASE)
+
+
 def estimate_reading_time(text):
+    """Minutes at 200 wpm, counting only what a reader actually reads as prose.
+
+    Without the strip below, the rating labels alone add roughly a minute to
+    every issue — the badge would overstate the read by more than the closing
+    question takes to read in full.
+    """
+    text = _SCAFFOLD_RE.sub(' ', text or '')
+    text = _LABEL_RE.sub(' ', text)
     words = len(text.split())
     return max(3, round(words / 200))
 

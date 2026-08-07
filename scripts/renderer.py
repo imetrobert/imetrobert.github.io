@@ -8,7 +8,11 @@ import json
 from datetime import datetime
 from html import escape as escape_html
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
-from parser import parse_sections, parse_list_items, parse_developments, parse_spotlight_items, parse_adoption_stats, deduplicate_spotlight_against_developments
+from parser import (
+    parse_sections, parse_list_items, parse_developments, parse_spotlight_items,
+    parse_adoption_stats, deduplicate_spotlight_against_developments,
+    parse_actions, parse_myth, parse_predictions, parse_question,
+)
 
 
 def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=False):
@@ -85,16 +89,31 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     intro_text      = sections.get("INTRODUCTION", "")
     canadian_spot   = sections.get("CANADIAN SPOTLIGHT", "")
     business_impact = sections.get("WHAT THIS MEANS FOR CANADIAN BUSINESS", "")
-    roberts_raw     = sections.get("ROBERTS TAKE", "")
+    roberts_raw     = sections.get("FROM ROBERTS DESK", "")
     adoption_raw    = sections.get("ADOPTION SNAPSHOT", "")
 
     developments    = parse_developments(sections.get("KEY AI DEVELOPMENTS", ""))
     spotlight_items = parse_spotlight_items(canadian_spot)
     spotlight_items = deduplicate_spotlight_against_developments(spotlight_items, developments)
-    actions         = parse_list_items(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""), min_length=40)
+    actions         = parse_actions(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""))
     adoption        = parse_adoption_stats(adoption_raw)
+    summary_points  = parse_list_items(sections.get("EXECUTIVE SUMMARY", ""), min_length=25)[:3]
+    myth            = parse_myth(sections.get("AI MYTH OF THE MONTH", ""))
+    predictions     = parse_predictions(sections.get("LOOKING AHEAD: THREE PREDICTIONS", ""))
+    closing_question = parse_question(sections.get("ONE QUESTION FOR YOUR LEADERSHIP TEAM", ""))
 
-    print(f"  Parsed: {len(developments)} developments, {len(spotlight_items)} spotlight, {len(actions)} actions, {len(adoption)} stats")
+    # Action bodies are what the FAQ and the conclusion quote; they should never
+    # carry the OWNER/PRIORITY labels into prose meant to be read as a sentence.
+    action_bodies   = [a["body"] for a in actions]
+
+    print(f"  Parsed: {len(developments)} developments, {len(spotlight_items)} spotlight, "
+          f"{len(actions)} actions, {len(adoption)} stats, {len(summary_points)} summary points, "
+          f"{len(predictions)} predictions, myth={'yes' if myth else 'no'}, "
+          f"question={'yes' if closing_question else 'no'}")
+    desk_words = len(roberts_raw.split())
+    if desk_words < 200:
+        print(f"  NOTE: From Robert's Desk is only {desk_words} words — the signature "
+              f"section is meant to run 300-450. Consider rewriting it in the preview page.")
 
     article_parts = []
 
@@ -105,28 +124,63 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             f'</div>'
         )
 
+    if summary_points:
+        points_html = "".join(f'<li>{p}</li>' for p in summary_points)
+        article_parts.append(
+            f'<div class="section summary-section">'
+            f'<div class="summary-label">Executive Summary</div>'
+            f'<ul class="summary-list">{points_html}</ul>'
+            f'</div>'
+        )
+
     if developments:
+        # Two tiers. A development the model rated is a major story and gets the
+        # full treatment; the rest are the log. The split is driven by whether
+        # the ratings are actually present, so a month where the model rates
+        # nothing degrades to the old flat list instead of rendering empty
+        # badge rows.
+        major   = [d for d in developments if d.get("strategic_read") or d.get("importance")]
+        minor   = [d for d in developments if d not in major]
         dev_cards = ""
-        for d in developments:
+
+        for d in major:
             date_html    = f'<span class="dev-date">{d["date"]}</span>' if d["date"] else ""
             company_html = f'<div class="dev-company">{d["company"]}</div>' if d["company"] else ""
-            source_html  = ""
-            if d.get("source_url"):
-                src_label = d.get("source_name") or "Source"
-                source_html = (
-                    f'<div class="dev-source">'
-                    f'<a href="{d["source_url"]}" target="_blank" rel="noopener noreferrer" '
-                    f'title="Search Google for this article">'
-                    f'<svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> {src_label}'
-                    f'</a></div>'
-                )
             dev_cards += (
-                f'<div class="dev-card">'
-                f'  <div class="dev-header">{date_html}{company_html}</div>'
+                f'<div class="dev-card dev-card-major">'
+                f'  <div class="dev-header">{date_html}{company_html}'
+                f'<span class="dev-tier">Major story</span></div>'
                 f'  <p class="dev-body">{d["body"]}</p>'
-                f'  {source_html}'
+                f'  {_build_strategic_read(d)}'
+                f'  {_build_rating_row(d)}'
+                f'  {_build_dev_source(d)}'
                 f'</div>\n'
             )
+
+        if minor:
+            # "Also worth knowing" only means something when there is something
+            # above it. If the model rated nothing this month, every item is in
+            # this list, and the subordinate framing plus the de-emphasised card
+            # style would present the entire section as a footnote.
+            demote = bool(major)
+            minor_rows = ""
+            for d in minor:
+                date_html = f'<span class="dev-date">{d["date"]}</span>' if d["date"] else ""
+                company_html = f'<span class="dev-company">{d["company"]}</span>' if d["company"] else ""
+                minor_rows += (
+                    f'<div class="dev-card{" dev-card-minor" if demote else ""}">'
+                    f'  <div class="dev-header">{date_html}{company_html}</div>'
+                    f'  <p class="dev-body">{d["body"]}</p>'
+                    f'  {_build_dev_source(d)}'
+                    f'</div>\n'
+                )
+            dev_cards += (
+                f'<div class="dev-log">'
+                f'<div class="dev-log-label">Also worth knowing</div>'
+                f'{minor_rows}'
+                f'</div>'
+            ) if demote else minor_rows
+
         article_parts.append(
             f'<div class="section">'
             f'<h2 class="section-title">Key AI Developments This Month</h2>'
@@ -174,6 +228,12 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             f'</div>'
         )
 
+    # The signature section sits here on purpose — immediately after the facts
+    # and before the analysis that leans on them, at the point in the page where
+    # attention is still high. It used to close the issue, which is exactly
+    # where a reader who skims stops reading.
+    article_parts.append(_build_roberts_desk(roberts_raw))
+
     if business_impact:
         paras = [p.strip() for p in business_impact.split('\n\n') if len(p.strip()) > 40]
         if not paras:
@@ -191,10 +251,27 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     if actions:
         action_cards = ""
         for i, a in enumerate(actions[:5]):
+            owner_html = ""
+            if a.get("owner"):
+                rationale = (
+                    f'<div class="action-owner-why">{a["owner_rationale"]}</div>'
+                    if a.get("owner_rationale") else ""
+                )
+                owner_html = (
+                    f'<div class="action-owner">'
+                    f'<span class="action-owner-label">Owner</span>'
+                    f'<span class="action-owner-role">{a["owner"]}</span>'
+                    f'{rationale}'
+                    f'</div>'
+                )
             action_cards += (
                 f'<div class="action-card">'
                 f'  <div class="action-num">{i+1}</div>'
-                f'  <div class="action-body">{a}</div>'
+                f'  <div class="action-main">'
+                f'    <div class="action-body">{a["body"]}</div>'
+                f'    {owner_html}'
+                f'    {_build_action_meta(a)}'
+                f'  </div>'
                 f'</div>\n'
             )
         article_parts.append(
@@ -246,7 +323,34 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             f'</div>'
         )
 
-    article_parts.append(_build_roberts_take(roberts_raw, coverage_month_year))
+    if myth:
+        article_parts.append(
+            f'<div class="section myth-section">'
+            f'<div class="myth-label">AI Myth of the Month</div>'
+            f'<div class="myth-block myth-claim">'
+            f'<span class="myth-tag">Myth</span><p>{myth["myth"]}</p></div>'
+            f'<div class="myth-block myth-reality">'
+            f'<span class="myth-tag">Reality</span><p>{myth["reality"]}</p></div>'
+            f'</div>'
+        )
+
+    if predictions:
+        pred_html = "".join(
+            f'<div class="pred-card">'
+            f'<div class="pred-horizon">{p["horizon"]}</div>'
+            f'<p class="pred-body">{p["body"]}</p>'
+            f'</div>'
+            for p in predictions
+        )
+        article_parts.append(
+            f'<div class="section pred-section">'
+            f'<h2 class="section-title">Looking Ahead</h2>'
+            f'<p class="pred-note">These are predictions, not reported facts — '
+            f'Robert’s assessment of where this goes next, offered so you can '
+            f'judge it against your own.</p>'
+            f'<div class="pred-grid">{pred_html}</div>'
+            f'</div>'
+        )
 
     # Each question is answered from the section that actually addresses it.
     # Pairing questions against whatever happened to be in `actions` produced
@@ -289,7 +393,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         ),
         (
             "What should Canadian executives do about AI right now?",
-            _join(actions[:3]),
+            _join(action_bodies[:3]),
         ),
         (
             "How is AI adoption tracking across Canada?",
@@ -324,6 +428,14 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             f'<div class="section faq-section">'
             f'<h2 class="section-title">Questions Canadian Leaders Are Asking</h2>'
             f'<div class="faq-list">{faq_html}</div>'
+            f'</div>'
+        )
+
+    if closing_question:
+        article_parts.append(
+            f'<div class="section question-section">'
+            f'<div class="question-label">One question for your leadership team</div>'
+            f'<p class="question-body">{closing_question}</p>'
             f'</div>'
         )
 
@@ -558,6 +670,66 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .roberts-body {{ font-size: 0.925rem; line-height: 1.85; color: #ffffff; font-style: normal; font-weight: 400; }}
         .roberts-placeholder {{ font-size: 0.825rem; line-height: 1.7; opacity: 0.65; border: 1px dashed rgba(255,255,255,0.25); padding: 1rem 1.25rem; border-radius: 10px; }}
         .roberts-placeholder strong {{ color: var(--white); opacity: 1; font-style: normal; }}
+        .roberts-body + .roberts-body {{ margin-top: 0.9rem; }}
+        /* Executive summary — the three things, above the fold. */
+        .summary-section {{ background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--navy); border-radius: 12px; padding: 1.4rem 1.6rem; }}
+        .summary-label {{ font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: var(--navy); opacity: 0.75; margin-bottom: 0.85rem; }}
+        .summary-list {{ list-style: none; padding: 0; display: grid; gap: 0.7rem; counter-reset: summary; }}
+        .summary-list li {{ position: relative; padding-left: 1.9rem; font-size: 0.9rem; line-height: 1.6; color: var(--gray-dark); font-weight: 500; counter-increment: summary; }}
+        .summary-list li::before {{ content: counter(summary); position: absolute; left: 0; top: 0.05rem; width: 1.3rem; height: 1.3rem; display: flex; align-items: center; justify-content: center; background: var(--navy); color: var(--white); border-radius: 50%; font-size: 0.65rem; font-weight: 800; }}
+        /* Major stories carry judgment and ratings; the log below does not. */
+        .dev-card-major {{ padding: 1.25rem 1.4rem; }}
+        .dev-tier {{ margin-left: auto; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--blue); opacity: 0.7; }}
+        .dev-read {{ margin-top: 0.85rem; padding: 0.9rem 1.1rem; background: var(--white); border: 1px solid #dbeafe; border-left: 3px solid var(--cyan); border-radius: 0 10px 10px 0; }}
+        .dev-read-label {{ display: block; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--cyan); margin-bottom: 0.35rem; }}
+        .dev-read p {{ font-size: 0.86rem; line-height: 1.7; color: var(--gray-dark); margin: 0; }}
+        .dev-log {{ margin-top: 1.25rem; padding-top: 1.1rem; border-top: 1px dashed var(--border); display: grid; gap: 0.6rem; }}
+        .dev-log-label {{ font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray-light); }}
+        .dev-card-minor {{ padding: 0.8rem 1rem; background: var(--white); border-left-color: var(--border); }}
+        .dev-card-minor .dev-body {{ font-size: 0.83rem; }}
+        .dev-card-minor .dev-company {{ font-size: 0.8rem; }}
+        /* Rating badges. Label above value so a badge reads without a legend. */
+        .badge-row {{ display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }}
+        .badge {{ display: inline-flex; flex-direction: column; gap: 0.1rem; padding: 0.35rem 0.7rem; border-radius: 8px; border: 1px solid var(--border); background: var(--white); min-width: 5.5rem; }}
+        .badge-label {{ font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--gray-light); }}
+        .badge-value {{ font-size: 0.8rem; font-weight: 800; color: var(--navy); line-height: 1.2; }}
+        .badge.tone-high {{ background: #fff7ed; border-color: #fed7aa; }}
+        .badge.tone-high .badge-value {{ color: #c2410c; }}
+        .badge.tone-mid {{ background: #eff6ff; border-color: #bfdbfe; }}
+        .badge.tone-mid .badge-value {{ color: #1d4ed8; }}
+        .badge.tone-low {{ background: var(--surface); border-color: var(--border); }}
+        .badge.tone-low .badge-value {{ color: var(--gray); }}
+        .badge.tone-neutral .badge-value {{ color: var(--gray-dark); }}
+        .badge-row-action {{ margin-top: 0.75rem; }}
+        /* Actions: body, then who owns it and why, then the triage badges. */
+        .action-main {{ flex: 1; }}
+        .action-owner {{ margin-top: 0.75rem; padding: 0.6rem 0.85rem; background: var(--white); border: 1px solid #dbeafe; border-radius: 8px; }}
+        .action-owner-label {{ font-size: 0.55rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--gray-light); margin-right: 0.45rem; }}
+        .action-owner-role {{ font-size: 0.8rem; font-weight: 800; color: var(--navy); }}
+        .action-owner-why {{ font-size: 0.78rem; line-height: 1.6; color: var(--gray); margin-top: 0.3rem; }}
+        /* Myth of the month. */
+        .myth-section {{ background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 1.6rem 1.75rem; }}
+        .myth-label {{ font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: #b45309; margin-bottom: 1rem; }}
+        .myth-block {{ display: flex; gap: 0.8rem; align-items: flex-start; padding: 0.9rem 1.1rem; border-radius: 10px; background: var(--white); }}
+        .myth-block + .myth-block {{ margin-top: 0.65rem; }}
+        .myth-block p {{ margin: 0; font-size: 0.875rem; line-height: 1.7; }}
+        .myth-tag {{ flex-shrink: 0; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.22rem 0.55rem; border-radius: 6px; margin-top: 0.15rem; }}
+        .myth-claim {{ border: 1px solid #fde68a; }}
+        .myth-claim .myth-tag {{ background: #fef3c7; color: #b45309; }}
+        .myth-claim p {{ color: var(--gray); }}
+        .myth-reality {{ border: 1px solid #bbf7d0; }}
+        .myth-reality .myth-tag {{ background: #dcfce7; color: #15803d; }}
+        .myth-reality p {{ color: var(--gray-dark); }}
+        /* Looking ahead — three predictions, explicitly labelled as such. */
+        .pred-note {{ font-size: 0.78rem; color: var(--gray-light); line-height: 1.6; margin-bottom: 1.1rem; font-style: italic; }}
+        .pred-grid {{ display: grid; gap: 0.75rem; }}
+        .pred-card {{ padding: 1rem 1.25rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--navy); border-radius: 0 10px 10px 0; }}
+        .pred-horizon {{ font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--navy); opacity: 0.7; margin-bottom: 0.35rem; }}
+        .pred-body {{ font-size: 0.875rem; line-height: 1.7; color: var(--gray-dark); margin: 0; }}
+        /* The closing question. Deliberately the largest type in the article. */
+        .question-section {{ border: 2px solid var(--navy); border-radius: 16px; padding: 1.75rem 2rem; background: var(--white); }}
+        .question-label {{ font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: var(--navy); opacity: 0.7; margin-bottom: 0.7rem; }}
+        .question-body {{ font-size: 1.15rem; line-height: 1.6; font-weight: 600; color: var(--navy); margin: 0; letter-spacing: -0.01em; }}
         .faq-section {{ background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; }}
         .faq-list {{ display: grid; gap: 1rem; }}
         .faq-item {{ padding: 1rem 1.25rem; background: var(--white); border: 1px solid var(--border); border-radius: 12px; border-left: 3px solid var(--blue); }}
@@ -606,6 +778,14 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             .prompts-section {{ padding: 1.25rem; }}
             .prompt-head {{ flex-direction: column; align-items: flex-start; }}
             .prompt-text {{ font-size: 0.72rem; }}
+            .summary-section {{ padding: 1.1rem 1.2rem; }}
+            .myth-section {{ padding: 1.25rem; }}
+            .myth-block {{ flex-direction: column; gap: 0.5rem; }}
+            .question-section {{ padding: 1.25rem 1.35rem; }}
+            .question-body {{ font-size: 1rem; }}
+            .dev-tier {{ margin-left: 0; flex-basis: 100%; }}
+            /* Badges go full width rather than wrapping into ragged rows. */
+            .badge {{ flex: 1 1 auto; min-width: 6.5rem; }}
         }}
     </style>
 </head>
@@ -896,20 +1076,109 @@ def _build_prompts_section(canonical, title_text, issue_month_year):
     )
 
 
-def _build_roberts_take(raw_text, coverage_month_year):
+def _build_dev_source(d):
+    if not d.get("source_url"):
+        return ""
+    src_label = d.get("source_name") or "Source"
+    return (
+        f'<div class="dev-source">'
+        f'<a href="{d["source_url"]}" target="_blank" rel="noopener noreferrer" '
+        f'title="Search Google for this article">'
+        f'<svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> {src_label}'
+        f'</a></div>'
+    )
+
+
+def _build_strategic_read(d):
+    """Robert's interpretation of a major story. Visually distinct from the
+    reported sentences above it — a reader must be able to tell at a glance
+    which half of this card is fact and which half is judgment."""
+    text = (d.get("strategic_read") or "").strip()
+    if len(text) < 40:
+        return ""
+    return (
+        f'<div class="dev-read">'
+        f'<span class="dev-read-label">Strategic read</span>'
+        f'<p>{escape_html(text, quote=False)}</p>'
+        f'</div>'
+    )
+
+
+# Rating value -> modifier class. Anything unrecognised renders neutral rather
+# than unstyled, so an off-script value from the model still looks deliberate.
+_RATING_TONE = {
+    "high": "tone-high", "medium": "tone-mid", "low": "tone-low",
+    "yes": "tone-high", "monitor": "tone-mid", "ignore": "tone-low",
+    "now": "tone-high", "3 months": "tone-mid",
+    "6 months": "tone-low", "12 months": "tone-low",
+    "small": "tone-low", "large": "tone-high",
+}
+
+
+def _badge(label, value, extra=""):
+    if not value:
+        return ""
+    tone = _RATING_TONE.get(value.strip().lower(), "tone-neutral")
+    return (
+        f'<span class="badge {tone} {extra}">'
+        f'<span class="badge-label">{label}</span>'
+        f'<span class="badge-value">{escape_html(value, quote=False)}</span>'
+        f'</span>'
+    )
+
+
+def _build_rating_row(d):
+    badges = (
+        _badge("Strategic importance", d.get("importance", ""))
+        + _badge("Time horizon", d.get("horizon", ""))
+        + _badge("Executive attention", d.get("attention", ""))
+    )
+    if not badges:
+        return ""
+    return f'<div class="badge-row">{badges}</div>'
+
+
+def _build_action_meta(a):
+    badges = (
+        _badge("Priority", a.get("priority", ""))
+        + _badge("Effort", a.get("effort", ""))
+        + _badge("Impact", a.get("impact", ""))
+    )
+    if not badges:
+        return ""
+    return f'<div class="badge-row badge-row-action">{badges}</div>'
+
+
+def _build_roberts_desk(raw_text):
+    """The signature section.
+
+    Rendered as ordinary paragraphs, not a pull quote. The old two-sentence
+    take was wrapped in curly quotes, which reads as an aside; at 300-450 words
+    that framing would undercut the one section the publication is sold on.
+
+    The class names (.roberts-take / .roberts-header / .roberts-body) are load
+    bearing — inject_take.py finds and replaces the body through them when the
+    reviewer types their own version in the preview page. Renaming them here
+    silently breaks that path, and the failure mode is the model's draft
+    shipping under Robert's byline.
+    """
+    cleaned = (raw_text or "").strip()
+    cleaned = re.sub(r'^\[.*?\]\s*', '', cleaned, flags=re.DOTALL).strip()
+    cleaned = re.sub(r'\*\*(.*?)\*\*', r'\1', cleaned)
+    cleaned = re.sub(r'\*(.*?)\*', r'\1', cleaned)
+
     is_placeholder = (
-        not raw_text
-        or 'PLACEHOLDER' in raw_text.upper()
-        or '[PLACEHOLDER' in raw_text
-        or len(raw_text.strip()) < 40
+        not cleaned
+        or 'PLACEHOLDER' in cleaned.upper()
+        or len(cleaned) < 120
     )
 
     header = (
         '<div class="roberts-header">'
         '<img src="https://imetrobert.github.io/profile.jpg" alt="Robert Simon">'
         '<div>'
-        '<div class="roberts-label">Editor\'s Note</div>'
-        '<div class="roberts-name">Robert\'s Take</div>'
+        '<div class="roberts-label">Executive Perspective</div>'
+        '<div class="roberts-name">From Robert&#39;s Desk</div>'
         '</div>'
         '</div>'
     )
@@ -917,26 +1186,32 @@ def _build_roberts_take(raw_text, coverage_month_year):
     if is_placeholder:
         body = (
             '<div class="roberts-placeholder">'
-            '<strong><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg> Add your personal take before publishing.</strong><br><br>'
-            'What surprised you most this month? What are you hearing from Canadian leaders right now? '
-            'What is the pattern others are missing? 2-3 sentences in your own voice — '
-            'this is the E-E-A-T signal that makes this newsletter yours.'
+            '<strong><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg> '
+            'Write this section before publishing.</strong><br><br>'
+            'What surprised you this month? What do executives keep getting wrong about it? '
+            'What is overhyped, what can wait, and what will matter six months from now? '
+            '300-450 words in your own voice. This is the section people subscribe for — '
+            'it is also the E-E-A-T signal that separates this from an aggregator.'
             '</div>'
         )
     else:
-        cleaned = raw_text.strip()
-        cleaned = re.sub(r'^\[.*?\]\s*', '', cleaned, flags=re.DOTALL).strip()
-        cleaned = re.sub(r'\*\*(.*?)\*\*', r'\1', cleaned)
-        cleaned = re.sub(r'\*(.*?)\*', r'\1', cleaned)
-        cleaned = cleaned.replace('"', '&quot;').replace("'", '&#39;')
-        body = f'<p class="roberts-body">&#8220;{cleaned}&#8221;</p>'
+        paras = [p.strip() for p in re.split(r'\n\s*\n', cleaned) if len(p.strip()) > 25]
+        if len(paras) < 2:
+            # Single-newline paragraphing, or one long block. Splitting a wall of
+            # text on sentence boundaries is worse than leaving it whole, so only
+            # the line-break case is recovered.
+            paras = [p.strip() for p in cleaned.split('\n') if len(p.strip()) > 25] or [cleaned]
+        body = "".join(
+            f'<p class="roberts-body">{escape_html(" ".join(p.split()), quote=False)}</p>'
+            for p in paras
+        )
 
     return f'<div class="section"><div class="roberts-take">{header}{body}</div></div>'
 
 
 def _build_conclusion(sections, coverage_month_year):
     impact  = sections.get("WHAT THIS MEANS FOR CANADIAN BUSINESS", "")
-    actions = parse_list_items(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""), min_length=40)
+    actions = parse_actions(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""))
 
     if impact:
         sentences = re.split(r'(?<=[.!?])\s+', impact.strip())
