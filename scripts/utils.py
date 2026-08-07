@@ -215,6 +215,86 @@ def is_low_quality_source(source_name):
     return any(f' {marker} ' in f' {name} ' for marker in _LOW_QUALITY_SOURCE_MARKERS)
 
 
+# Openers offered to the model in earlier versions of the prompt. Three issues
+# in a row opened a Desk paragraph with one of them, which is how a signature
+# voice turns into a house style nobody chose. Defined once so the prompt can
+# ban them by name and the renderer can check whether the ban held.
+STOCK_VOICE_PHRASES = (
+    "In my experience",
+    "What I've seen inside large enterprises",
+    "One lesson I've learned",
+    "The governance challenge usually isn't technology",
+    "The hardest part is organizational change",
+)
+
+
+def uses_stock_phrase(text):
+    """Stock openers present in `text`.
+
+    Contractions are expanded on both sides before matching: the model writes
+    "What I have seen inside large enterprises" as readily as "What I've seen",
+    and the phrase is equally stock either way. Matching the literal string
+    would let a one-character rewording through.
+    """
+    if not text:
+        return []
+
+    def norm(s):
+        s = re.sub(r'\s+', ' ', s.lower().replace('’', "'"))
+        s = re.sub(r"\bi've\b", "i have", s)
+        s = re.sub(r"\b(\w+)n't\b", r"\1 not", s)
+        s = re.sub(r"\bisn not\b", "is not", s)      # "isn't" -> "isn not"
+        s = re.sub(r"\bdoesn not\b", "does not", s)
+        s = re.sub(r"\bwon not\b", "will not", s)
+        return s
+
+    body = norm(text)
+    return [p for p in STOCK_VOICE_PHRASES if norm(p) in body]
+
+
+# Publications a reader could look up. Not a whitelist for dropping — plenty of
+# legitimate outlets are missing — but anything outside it, that is also not the
+# subject's own newsroom and not a government body, is worth a human glance.
+# A run cited "Signal49 Research" and "CanadianAI"; neither is a publication,
+# and no blocklist pattern could ever have caught them.
+_KNOWN_PUBLICATIONS = {
+    # Canadian
+    "globe and mail", "financial post", "national post", "toronto star", "cbc",
+    "ctv", "global news", "bnn bloomberg", "the logic", "betakit",
+    "canadian press", "la presse", "le devoir", "the hub", "cbc news",
+    "canadian business journal", "it world canada", "montreal gazette",
+    # International news
+    "reuters", "bloomberg", "associated press", "wall street journal",
+    "new york times", "financial times", "the economist", "wired", "the verge",
+    "techcrunch", "ars technica", "mit technology review", "cnbc", "forbes",
+    "business insider", "axios", "the information", "fortune", "cbs news",
+    "nbc news", "abc news", "bbc", "the guardian", "thestreet", "venturebeat",
+    "zdnet", "engadget", "semafor", "politico", "time", "the atlantic",
+    # Research, analyst and statistical bodies
+    "mckinsey", "deloitte", "kpmg", "pwc", "ernst young", "gartner",
+    "forrester", "idc", "accenture", "boston consulting group", "bcg",
+    "statistics canada", "conference board of canada", "bdc", "ised",
+    "vector institute", "mila", "amii", "oecd", "world economic forum",
+    "pew research", "stanford hai", "borderless ai",
+    # First-party newsrooms. The prompt allows official company blogs as primary
+    # sources, and they are frequently the source for a rival's announcement —
+    # "AWS News Blog" carrying an Anthropic release, say — so they cannot be
+    # cleared by the subject-matches-source check alone.
+    "aws", "amazon", "google", "openai", "anthropic", "microsoft", "nvidia",
+    "meta", "ibm", "intel", "apple", "oracle", "salesforce", "shopify",
+    "cohere", "mistral", "hugging face", "databricks", "snowflake",
+}
+
+
+def is_recognised_publication(source_name):
+    """True when the citation names an outlet on the known list."""
+    if not source_name:
+        return False
+    name = re.sub(r'[^a-z0-9 ]+', ' ', source_name.lower())
+    name = re.sub(r'\s+', ' ', name).strip()
+    return any(k in name or name in k for k in _KNOWN_PUBLICATIONS)
+
+
 def is_government_entity(company):
     if not company:
         return False
