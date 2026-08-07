@@ -191,7 +191,7 @@ def generate_section_redraft(api_key, section, issue_text, guidance="", month_ye
             f"{guidance.strip()}\n"
         )
 
-    prompt = f"""You are rewriting ONE section of Robert Simon's monthly newsletter, AI Insights for Canadian Business. Robert is an independent AI thought leader in Montreal. His voice is direct, opinionated and grounded in business outcomes. He does not hedge.
+    prompt = f"""You are rewriting ONE section of Robert Simon's monthly newsletter, Practical AI for Canadian Business. Robert is an independent AI thought leader in Montreal. His voice is direct, opinionated and grounded in business outcomes. He does not hedge.
 
 {month_line}
 {_EDITORIAL_PREAMBLE}
@@ -247,7 +247,7 @@ def _strip_section_header(text, section):
 
 def _build_monthly_prompt(month_year, prev_month, is_backfill=False):
     rules = _shared_rules_block(month_year, prev_month, is_backfill)
-    return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
+    return f"""You are writing Practical AI for Canadian Business, the monthly executive AI briefing by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
 
 AUDIENCE
 Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadian enterprises across financial services, retail, manufacturing, telecom, and healthcare. These are busy, experienced executives. They have seen every tech hype cycle. Give them signal, cut the noise, and respect their time.
@@ -257,7 +257,7 @@ Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadi
 
 def _build_custom_prompt(topic, month_year, prev_month, is_backfill=False):
     rules = _shared_rules_block(month_year, prev_month, is_backfill)
-    return f"""You are writing the monthly AI insights newsletter for Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
+    return f"""You are writing Practical AI for Canadian Business, the monthly executive AI briefing by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
 
 AUDIENCE
 Canadian business leaders — C-suite, VPs, and directors at mid-to-large Canadian enterprises across financial services, retail, manufacturing, telecom, and healthcare. These are busy, experienced executives. They have seen every tech hype cycle. Give them signal, cut the noise, and respect their time.

@@ -9,6 +9,7 @@ from datetime import datetime
 from html import escape as escape_html
 from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
+from utils import BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR
 from parser import (
     parse_sections, parse_list_items, parse_developments, parse_spotlight_items,
     parse_adoption_stats, deduplicate_spotlight_against_developments,
@@ -38,13 +39,13 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     reading_time   = estimate_reading_time(content)
     word_count     = len(re.sub(r'\s+', ' ', content).split())
 
-    clean_title = re.sub(r'^[#\*\s]+', '', title).strip() or f"AI Insights for {issue_month_year}"
+    clean_title = re.sub(r'^[#\*\s]+', '', title).strip() or f"{BRAND} \u2014 {issue_month_year}"
     slug        = clean_filename(clean_title)
     canonical   = f"https://www.imetrobert.com/blog/posts/{iso_date}-{slug}.html"
     # Per-issue social card. Falls back to the static one rather than risking a
     # 404 og:image if Pillow or the fonts are unavailable in the runner.
     og_image    = "https://www.imetrobert.com/blog/og-blog.jpg"
-    og_alt      = f"AI Insights for Canadian Business \u2014 {issue_month_year} issue by Robert Simon"
+    og_alt      = f"{BRAND} \u2014 {issue_month_year} issue by {AUTHOR}"
     try:
         import os as _os
         from og_image import build_og_image
@@ -83,7 +84,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     # Topic first: the front of the title carries the most retrieval weight, and
     # it is what survives truncation in a SERP. Month second for freshness and
     # issue identity, brand last.
-    seo_title         = f"{clean_title_html} | AI Insights {issue_month_year} | Robert Simon"
+    seo_title         = f"{clean_title_html} | {BRAND_SHORT}, {issue_month_year} | {AUTHOR}"
 
     sections = parse_sections(content)
 
@@ -432,13 +433,13 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     <link rel="canonical" href="{canonical}">
     <meta property="og:type" content="article">
     <meta property="og:url" content="{canonical}">
-    <meta property="og:title" content="{clean_title_html} | AI Insights for Canadian Business">
+    <meta property="og:title" content="{clean_title_html} | {BRAND}">
     <meta property="og:description" content="{meta_desc_html}">
     <meta property="og:image" content="{og_image}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="{og_alt}">
-    <meta property="og:site_name" content="Robert Simon - AI Innovation">
+    <meta property="og:site_name" content="{BRAND}">
     <meta property="og:locale" content="en_CA">
     <meta property="article:published_time" content="{iso_date}T00:00:00+00:00">
     <meta property="article:modified_time" content="{iso_date}T00:00:00+00:00">
@@ -507,7 +508,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
       "@type": "BreadcrumbList",
       "itemListElement": [
         {{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.imetrobert.com"}},
-        {{"@type": "ListItem", "position": 2, "name": "AI Insights Blog", "item": "https://www.imetrobert.com/blog/"}},
+        {{"@type": "ListItem", "position": 2, "name": "{BRAND}", "item": "https://www.imetrobert.com/blog/"}},
         {{"@type": "ListItem", "position": 3, "name": {json.dumps(clean_title)}, "item": {json.dumps(canonical)}}}
       ]
     }}
@@ -777,7 +778,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             <a href="https://www.imetrobert.com/blog/" class="nav-link">&#8592; Back to Blog</a>
             <div class="nav-meta">
                 <img src="/blog/logo.svg" class="brand-icon" alt="" width="22" height="22">
-                <span>AI Insights for Canadian Business</span>
+                <span>{BRAND}</span>
                 <span>&#8226;</span>
                 <span>{formatted_date}</span>
             </div>
@@ -785,10 +786,10 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     </nav>
     <header class="header">
         <div class="header-content">
-            <img src="/blog/logo.svg" class="brand-logo" alt="AI Insights" width="76" height="76">
+            <img src="/blog/logo.svg" class="brand-logo" alt="{BRAND}" width="76" height="76">
             <div class="issue-badge">Issue #{issue_num} &nbsp;&#8226;&nbsp; {issue_month_year} <span class="issue-badge-coverage">&mdash; Covering {coverage_month_name}</span></div>
             <h1>{clean_title_html}</h1>
-            <div class="subtitle">The AI briefing built for Canadian business leaders</div>
+            <div class="subtitle">{BRAND_TAGLINE}</div>
             <div class="intro-text">{excerpt_html}</div>
             <div class="reading-badge"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg> {reading_time} min read</div>
         </div>
@@ -802,7 +803,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             <meta itemprop="description"   content="{meta_desc_html}">
             <nav class="breadcrumb" aria-label="Breadcrumb">
                 <a href="https://www.imetrobert.com">Home</a> &#8250;
-                <a href="https://www.imetrobert.com/blog/">AI Insights Blog</a> &#8250;
+                <a href="https://www.imetrobert.com/blog/">{BRAND}</a> &#8250;
                 <span>{clean_title_html}</span>
             </nav>
             <div class="author-byline">
@@ -1043,11 +1044,15 @@ def _build_share_row(canonical, title, issue_month_year):
     """
     url_q = quote(canonical, safe='')
     # A topical headline gets the publication name appended for context; a
-    # fallback title like "AI Insights for August 2026" already carries it and
-    # would otherwise read "... — AI Insights, September 2026".
+    # fallback title already carries the brand and would otherwise read
+    # "Practical AI for Canadian Business — Practical AI Canada, September 2026".
+    # "ai insights" stays in the guard for issues written before the rename.
+    already_branded = any(
+        s in title.lower() for s in (BRAND.lower(), BRAND_SHORT.lower(), "ai insights")
+    )
     subject = (
-        title if "ai insights" in title.lower()
-        else f"{title} — AI Insights, {issue_month_year}"
+        title if already_branded
+        else f"{title} — {BRAND_SHORT}, {issue_month_year}"
     )
     subject_q = quote(subject, safe='')
     body_q    = quote(

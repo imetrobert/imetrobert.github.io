@@ -154,6 +154,32 @@ other section and the preview URL survive.
   `workflow_dispatch` choice list in `redraft-section.yml` is hand-maintained —
   Actions cannot generate it. Adding a section means editing both.
 
+### Brand — one definition in `utils.py`
+
+`BRAND` ("Practical AI for Canadian Business"), `BRAND_SHORT`
+("Practical AI Canada"), `BRAND_TAGLINE` and `AUTHOR` live in `utils.py` and are
+imported by every generator. **Never hardcode the publication name.**
+
+Before this existed the publication answered to four names across its own
+surfaces — "AI Insights for Canadian Business" in the feed and post nav,
+"AI Insights Blog" in the h1 and breadcrumbs, "AI News for Canadians | Monthly
+AI Insights Blog" in the index title, and "Robert Simon - AI Innovation" as
+`og:site_name` on every share. Nothing enforced agreement, so they drifted one
+edit at a time.
+
+- `BRAND_SHORT` is a space alias, not a second brand — nav bars, breadcrumbs and
+  the post SEO title, where 34 characters does not fit. The post SEO title is
+  already past Google's ~60-character cut, so the short form there buys the
+  headline room rather than protecting the brand.
+- The social card (`og_image.py`) sets the name as a two-line lockup:
+  `headline="Practical AI"` over `subhead="for Canadian Business"`.
+- **The archive was deliberately not backfilled.** Posts under `blog/posts/`
+  keep the old name in their nav and `og:site_name`; only new issues carry the
+  new one. `blog/index.html`, `feed.xml`, `llms.txt`, `sitemap.xml` and the
+  pillar page are all regenerated, so those flipped on the next run. Some old
+  issues also contain the old name inside their own body copy — that is
+  historical text, not branding, and is correct to leave.
+
 ### Sharing — always the permalink, never `latest.html`
 
 Posts carry a share row under "The Bottom Line" (`_build_share_row` in

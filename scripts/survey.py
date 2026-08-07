@@ -25,6 +25,8 @@ import json
 import os
 from datetime import datetime
 
+from utils import BRAND
+
 BASE = "https://www.imetrobert.com"
 OUT = "blog/canadian-ai-pulse.html"
 CANONICAL = f"{BASE}/blog/canadian-ai-pulse.html"
@@ -151,7 +153,7 @@ def build_page(cfg, waves):
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>{H.escape(cfg['survey_name'])}: original survey data on Canadian AI adoption | Robert Simon</title>
-<meta name="description" content="{H.escape(lead)} Original reader survey data from AI Insights for Canadian Business, with methodology and sample size.">
+<meta name="description" content="{H.escape(lead)} Original reader survey data from {BRAND}, with methodology and sample size.">
 <meta name="author" content="Robert Simon">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
 <link rel="canonical" href="{CANONICAL}">
@@ -199,7 +201,7 @@ def build_page(cfg, waves):
   "@type": "BreadcrumbList",
   "itemListElement": [
     {{"@type": "ListItem", "position": 1, "name": "Home", "item": "{BASE}"}},
-    {{"@type": "ListItem", "position": 2, "name": "AI Insights Blog", "item": "{BASE}/blog/"}},
+    {{"@type": "ListItem", "position": 2, "name": "{BRAND}", "item": "{BASE}/blog/"}},
     {{"@type": "ListItem", "position": 3, "name": "{H.escape(cfg['survey_name'])}", "item": "{CANONICAL}"}}
   ]
 }}
@@ -253,7 +255,7 @@ table.trend th {{ font-size:0.72rem; text-transform:uppercase; letter-spacing:0.
 <body>
 <nav class="nav-bar"><div class="nav-content"><a href="/blog/" class="nav-link">&#8592; Back to Blog</a></div></nav>
 <header class="header"><div class="header-content">
-  <img src="/blog/logo.svg" class="brand-logo" alt="AI Insights" width="76" height="76">
+  <img src="/blog/logo.svg" class="brand-logo" alt="{BRAND}" width="76" height="76">
   <div class="badge">Original research</div>
   <h1>{H.escape(cfg['survey_name'])}</h1>
   <p>Reader survey of Canadian business and technology leaders</p>

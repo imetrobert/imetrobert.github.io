@@ -67,7 +67,7 @@ def _decor(img):
     img.alpha_composite(layer)
 
 
-def build_og_image(out_path, issue_label, headline="AI Insights",
+def build_og_image(out_path, issue_label, headline="Practical AI",
                    subhead="for Canadian Business"):
     """Render the card. `issue_label` fills the badge, e.g. 'AUGUST 2026'."""
     img = _gradient().convert("RGBA")

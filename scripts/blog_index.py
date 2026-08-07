@@ -11,6 +11,7 @@ from html import escape as escape_html
 from urllib.parse import quote
 from xml.sax.saxutils import escape as escape_xml
 from bs4 import BeautifulSoup
+from utils import BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR
 
 SITE = "https://www.imetrobert.com"
 
@@ -37,10 +38,10 @@ def _share_hrefs(url, title):
     linkedin = (
         "https://www.linkedin.com/sharing/share-offsite/?url=" + quote(url, safe='')
     )
-    # Most archive titles already lead with "AI Insights for <month>"; appending
-    # the publication name to those produces "AI Insights for August 2026 — AI
-    # Insights" in the recipient's inbox.
-    subject = title if "ai insights" in title.lower() else f"{title} — AI Insights"
+    # Archive titles lead with "AI Insights for <month>" — the pre-rename issue
+    # naming — and appending the publication name to those reads as two brands
+    # in one subject line. New topical titles carry no brand, so they get one.
+    subject = title if "ai insights" in title.lower() else f"{title} — {BRAND_SHORT}"
     mailto = (
         "mailto:?subject=" + quote(subject, safe='')
         + "&body=" + quote(
@@ -71,7 +72,7 @@ def extract_post_info(html_file):
     soup = BeautifulSoup(html_content, "html.parser")
 
     title_tag = soup.find("h1")
-    title = title_tag.get_text(strip=True) if title_tag else "AI Insights"
+    title = title_tag.get_text(strip=True) if title_tag else BRAND
     title = re.sub(r'^[#\*\s]+', '', title).strip()
 
     date_text = None
@@ -178,8 +179,8 @@ def create_blog_index_html(posts):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <title>AI News for Canadians | Monthly AI Insights Blog | Robert Simon</title>
-    <meta name="description" content="Monthly AI insights for Canadian business leaders. Expert analysis of AI breakthroughs, Canadian AI adoption data, and practical implementation strategies from Montreal-based AI Thought Leader Robert Simon.">
+    <title>{BRAND} | Monthly AI Briefing for Canadian Executives | {AUTHOR}</title>
+    <meta name="description" content="{BRAND}. Each month: what happened in AI, what it means for Canadian organizations, and the specific actions to take — with an owner, an effort estimate and a business impact for each. By {AUTHOR}, Montreal.">
     <meta name="keywords" content="AI blog Canada, Canadian AI insights, AI news for Canadians, artificial intelligence Canada, AI strategy Canada, Montreal AI expert, Canadian business AI, AI adoption Canada, digital transformation Canada">
     <meta name="author" content="Robert Simon">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
@@ -190,24 +191,24 @@ def create_blog_index_html(posts):
     <meta name="ICBM" content="45.5017, -73.5673">
     <meta name="DC.coverage" content="Canada">
     <link rel="canonical" href="https://www.imetrobert.com/blog/">
-    <link rel="alternate" type="application/rss+xml" title="AI Insights for Canadian Business — RSS Feed" href="https://www.imetrobert.com/blog/feed.xml">
+    <link rel="alternate" type="application/rss+xml" title="{BRAND} — RSS Feed" href="https://www.imetrobert.com/blog/feed.xml">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.imetrobert.com/blog/">
-    <meta property="og:title" content="AI News for Canadians | Monthly AI Insights Blog | Robert Simon">
-    <meta property="og:description" content="Monthly AI insights for Canadian business leaders from Montreal-based AI Thought Leader Robert Simon.">
+    <meta property="og:title" content="{BRAND} | Monthly AI Briefing for Canadian Executives">
+    <meta property="og:description" content="{BRAND_TAGLINE}. Written for Canadian executives by {AUTHOR}.">
     <meta property="og:image" content="https://www.imetrobert.com/blog/og-blog.jpg">
-    <meta property="og:site_name" content="Robert Simon - AI Innovation">
+    <meta property="og:site_name" content="{BRAND}">
     <meta property="og:locale" content="en_CA">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="AI News for Canadians | Monthly AI Insights | Robert Simon">
-    <meta name="twitter:description" content="Monthly AI insights for Canadian business leaders from Montreal-based AI Thought Leader Robert Simon.">
+    <meta name="twitter:title" content="{BRAND} | {AUTHOR}">
+    <meta name="twitter:description" content="{BRAND_TAGLINE}. Written for Canadian executives by {AUTHOR}.">
     <meta name="twitter:image" content="https://www.imetrobert.com/blog/og-blog.jpg">
     <meta name="twitter:creator" content="@thedigitalrobert">
     <script type="application/ld+json">
     {{
       "@context": "https://schema.org",
       "@type": "Blog",
-      "name": "AI Insights for Canadian Business",
+      "name": "{BRAND}",
       "description": "Monthly AI intelligence for Canadian business leaders by Robert Simon.",
       "url": "https://www.imetrobert.com/blog/",
       "inLanguage": "en-CA",
@@ -234,7 +235,7 @@ def create_blog_index_html(posts):
     {{
       "@context": "https://schema.org",
       "@type": "ItemList",
-      "name": "AI Insights Blog Posts",
+      "name": "{BRAND} — every issue",
       "url": "https://www.imetrobert.com/blog/",
       "numberOfItems": {len(validated)},
       "itemListElement": [{", ".join(itemlist_elements)}]
@@ -335,7 +336,7 @@ def create_blog_index_html(posts):
         <div class="nav-content">
             <a href="/blog/" class="nav-brand">
                 <img src="/blog/logo.svg" alt="" width="28" height="28">
-                <span>AI Insights</span>
+                <span>{BRAND_SHORT}</span>
             </a>
             <a href="https://www.imetrobert.com" class="nav-link">&#8592; Back to Homepage</a>
             <a href="/blog/canadian-ai-adoption.html" class="nav-link">Adoption Data</a>
@@ -344,9 +345,9 @@ def create_blog_index_html(posts):
     </nav>
     <div class="container">
         <header>
-            <img src="/blog/logo.svg" class="brand-logo" alt="AI Insights" width="76" height="76">
-            <h1>AI Insights Blog</h1>
-            <p>Monthly intelligence for Canadian business leaders</p>
+            <img src="/blog/logo.svg" class="brand-logo" alt="{BRAND}" width="76" height="76">
+            <h1>{BRAND}</h1>
+            <p>{BRAND_TAGLINE}</p>
             <p class="blog-tagline">by Robert Simon &mdash; Montreal, QC</p>
         </header>
         <section class="latest-post-section">
@@ -482,7 +483,7 @@ def create_feed_xml(posts):
     return f'''<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-  <title>AI Insights for Canadian Business &#8212; Robert Simon</title>
+  <title>{BRAND} &#8212; {AUTHOR}</title>
   <link>https://www.imetrobert.com/blog/</link>
   <atom:link href="https://www.imetrobert.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
   <description>Monthly AI insights for Canadian business leaders. Expert analysis of AI breakthroughs, Canadian AI adoption data, and practical implementation strategies from Montreal-based AI Thought Leader Robert Simon.</description>
@@ -490,7 +491,7 @@ def create_feed_xml(posts):
   <lastBuildDate>{build_date}</lastBuildDate>
   <image>
     <url>https://www.imetrobert.com/blog/og-blog.jpg</url>
-    <title>AI Insights for Canadian Business &#8212; Robert Simon</title>
+    <title>{BRAND} &#8212; {AUTHOR}</title>
     <link>https://www.imetrobert.com/blog/</link>
   </image>
 {chr(10).join(items)}
@@ -505,7 +506,7 @@ def create_llms_txt(posts):
     about and who is behind it, rather than inferring it from markup. Kept in
     sync with the post list here so it can never drift out of date."""
     lines = [
-        "# Robert Simon — AI Insights for Canadian Business",
+        f"# {BRAND} — by {AUTHOR}",
         "",
         "> Monthly AI intelligence written for Canadian business leaders by Robert",
         "> Simon, a Montreal-based AI thought leader and digital transformation",
@@ -527,7 +528,7 @@ def create_llms_txt(posts):
         "## Key pages",
         "",
         "- [Homepage](https://www.imetrobert.com): background, career and areas of expertise",
-        "- [AI Insights Blog](https://www.imetrobert.com/blog/): index of every issue",
+        f"- [{BRAND}](https://www.imetrobert.com/blog/): index of every issue",
         "- [RSS feed](https://www.imetrobert.com/blog/feed.xml): machine-readable issue list with dates",
         "- [Canadian AI adoption statistics](https://www.imetrobert.com/blog/canadian-ai-adoption.html): every adoption figure reported across the issues, by month, with sources",
         "",

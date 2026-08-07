@@ -5,6 +5,7 @@ Parses Gemini's plain-text output into structured data for HTML rendering.
 
 import re
 from utils import (
+    BRAND,
     build_search_url,
     is_episode_or_newsletter_item,
     is_government_entity,
@@ -733,7 +734,7 @@ def extract_title_and_excerpt(content, issue_month_year, coverage_month_name=Non
     #
     # The month is NOT in the title. It is already carried by the issue badge,
     # the dateline and the URL, and spending title characters on it costs topic.
-    fallback_title = f"AI Insights for {issue_month_year}"
+    fallback_title = f"{BRAND} \u2014 {issue_month_year}"
     title   = fallback_title
     excerpt = ""
 

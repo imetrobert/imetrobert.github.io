@@ -8,6 +8,26 @@ import requests
 from datetime import datetime
 
 
+# ---------------------------------------------------------------------------
+# Brand. Defined once and imported by every generator.
+#
+# Before this existed the publication answered to four different names across
+# its own surfaces — "AI Insights for Canadian Business" in the feed and post
+# nav, "AI Insights Blog" in the h1 and breadcrumbs, "AI News for Canadians |
+# Monthly AI Insights Blog" in the index title, and "Robert Simon - AI
+# Innovation" as og:site_name on every share. Nothing enforced agreement, so
+# they drifted apart one edit at a time. Add a surface, import from here.
+#
+# BRAND is the canonical name. BRAND_SHORT exists because the full name is 34
+# characters and does not fit a nav bar or a breadcrumb on a phone; it is a
+# space-constrained alias, not a second brand.
+# ---------------------------------------------------------------------------
+BRAND         = "Practical AI for Canadian Business"
+BRAND_SHORT   = "Practical AI Canada"
+BRAND_TAGLINE = "The month's AI developments, and what to do about them"
+AUTHOR        = "Robert Simon"
+
+
 def clean_filename(title, max_len=70):
     """Slug for the post URL. Capped at a word boundary: topical headlines are
     longer than the old "AI Insights for August 2026" titles, and an uncapped
