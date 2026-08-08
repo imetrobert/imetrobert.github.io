@@ -129,6 +129,31 @@ def parse_sections(content):
         sections["INTRODUCTION"] = content
         return sections
 
+    # The model sometimes writes the whole issue TWICE. Only first occurrences
+    # are recorded above, and the LAST section runs to end-of-document, so the
+    # entire second copy lands inside it: a real run put 9,776 characters — the
+    # duplicate issue — into ONE QUESTION, and the closing question published
+    # with a raw ALL-CAPS header inline in its own text. Cut the document at
+    # the restart. A header appearing after the last known header start is not
+    # a section, it is the issue beginning again.
+    last_start = max(positions.values())
+    restart = None
+    for header in SECTION_HEADERS:
+        for candidate in _header_candidates(header):
+            pattern = re.compile(
+                r'^[ \t]*' + re.escape(candidate) + r'[ \t]*:?[ \t]*(?=\n|$)',
+                re.MULTILINE,
+            )
+            for m in pattern.finditer(content_upper):
+                if m.start() > last_start and (restart is None or m.start() < restart):
+                    restart = m.start()
+    if restart is not None:
+        print(f"  DUPLICATE ISSUE: the model wrote the issue more than once. Discarding "
+              f"{len(content) - restart} characters from the second copy onward. Without "
+              f"this the whole duplicate lands in the final section.")
+        content = content[:restart]
+        content_upper = content_upper[:restart]
+
     sorted_headers = sorted(positions.keys(), key=lambda h: positions[h])
     for i, header in enumerate(sorted_headers):
         start = positions[header] + lengths[header]

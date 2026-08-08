@@ -210,6 +210,32 @@ corporate PR report itself as independently sourced.
   press-release wire)` — because "first-party" alone hides how much of the
   month came through PR.
 - `"cnw"` is exact-match only; three letters would collide with ordinary words.
+- **Corporate newsrooms stay in `_KNOWN_PUBLICATIONS` but never count as
+  independent.** `_FIRST_PARTY_NEWSROOMS` / `is_first_party_newsroom()` are
+  tested *before* the publication branch in the tally, exactly like the wires —
+  Microsoft Source reporting a Microsoft partnership has a stake in the story.
+  A run scored `2 independent` on Hugging Face and Microsoft Source, which
+  suppressed `ALL FIRST-PARTY` on an issue where every development was in fact
+  first-party. The tally was reporting the opposite of the truth on the one
+  number the reviewer steers by.
+
+### The model sometimes writes the issue twice
+
+`parse_sections` records only **first** occurrences, and the last section runs
+to end-of-document — so a duplicated issue lands entirely inside the final
+section. A real run put 9,776 characters into `ONE QUESTION FOR YOUR LEADERSHIP
+TEAM`, and the closing question published with a raw ALL-CAPS header inline in
+its own text.
+
+Guarded in both places, like the future-date rule:
+
+1. **Prompt** — `WRITE THE ISSUE EXACTLY ONCE` in the OUTPUT FORMAT block.
+2. **Parser** — any header found *after* the last known header start marks a
+   restart, and the document is truncated there with a `DUPLICATE ISSUE:` line
+   naming how much was discarded.
+
+Detection uses the anchored `_find_header` pattern, not a loose search, so
+ordinary prose cannot trigger it.
 
 `WEAK SOURCING` fires when a development carries **no usable source line at
 all**, and it means what it says: regenerate, or cut those items. It does *not*

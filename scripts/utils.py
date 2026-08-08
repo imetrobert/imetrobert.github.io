@@ -242,6 +242,33 @@ _NEWSWIRE_NAMES = {
 }
 
 
+# Corporate newsrooms. These stay in _KNOWN_PUBLICATIONS so they remain
+# ACCEPTABLE sources — the prompt allows an official company blog, and one
+# company's newsroom frequently carries a rival's or partner's announcement.
+# But they must never be counted INDEPENDENT: Microsoft Source reporting a
+# Microsoft partnership has a stake in the story. A run scored "2 independent"
+# on Hugging Face and Microsoft Source, which suppressed the ALL FIRST-PARTY
+# note on an issue where every development was in fact first-party.
+_FIRST_PARTY_NEWSROOMS = {
+    "aws", "amazon", "google", "openai", "anthropic", "microsoft", "nvidia",
+    "meta", "ibm", "intel", "apple", "oracle", "salesforce", "shopify",
+    "cohere", "mistral", "hugging face", "databricks", "snowflake",
+}
+
+
+def is_first_party_newsroom(source_name):
+    """True when the citation is a company's own newsroom or blog.
+
+    Acceptable as a source; never independent. Callers score it first-party
+    whoever the story is about.
+    """
+    if not source_name:
+        return False
+    name = re.sub(r'[^a-z0-9 ]+', ' ', source_name.lower())
+    name = re.sub(r'\s+', ' ', name).strip()
+    return any(k in name or name in k for k in _FIRST_PARTY_NEWSROOMS)
+
+
 def is_newswire(source_name):
     """True when the citation is a press-release wire.
 
@@ -400,7 +427,8 @@ _KNOWN_PUBLICATIONS = {
     "forrester", "idc", "accenture", "boston consulting group", "bcg",
     "statistics canada", "conference board of canada", "bdc", "ised",
     "vector institute", "mila", "amii", "oecd", "world economic forum",
-    "pew research", "stanford hai", "borderless ai",
+    "pew research", "stanford hai", "borderless ai", "crunchbase", "rsm",
+    "alleywatch",
     # Canadian trade and regional press
     "the logic", "it business", "mobilesyrup", "investment executive",
     "advisor", "canadian lawyer", "communitech", "techvibes", "cartt",

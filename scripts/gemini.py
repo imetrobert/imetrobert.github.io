@@ -523,6 +523,7 @@ Report fewer developments rather than citing an aggregator: a thin issue costs
 you one story, a bad citation costs the publication its credibility.
 
 OUTPUT FORMAT
+WRITE THE ISSUE EXACTLY ONCE. Emit each section header one time only and stop after ONE QUESTION FOR YOUR LEADERSHIP TEAM. Do not restate, repeat or re-draft the issue after finishing it. A run that wrote every section twice put the entire duplicate inside the closing question, which then published with a raw header in its text.
 Write plain text only. No markdown (no *, no **, no #). Use EXACTLY these section headers, spelled exactly like this, each on its own line, in this order:
 
 HEADLINE
