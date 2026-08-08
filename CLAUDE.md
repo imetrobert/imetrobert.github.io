@@ -214,6 +214,36 @@ corporate PR report itself as independently sourced.
 `WEAK SOURCING` fires when fewer than two developments rest on an independent
 publication, and it means what it says: regenerate rather than publish.
 
+Two rules that keep the allowlist from refusing real journalism:
+
+- **`_KNOWN_ABBREVIATIONS` is matched exactly, and must stay out of
+  `_KNOWN_PUBLICATIONS`.** That set is matched as a *substring*, so a
+  three-letter key in it would fire inside unrelated names. `TNW` (The Next
+  Web) carried a real story that was dropped because only the long form was
+  listed.
+- **A domain that names a known outlet is that outlet.** The bare-domain test
+  runs *after* stripping the suffix and asking `is_recognised_publication`,
+  including a camelCase split, so `Reuters.com`, `BetaKit.com` and
+  `TheGlobeAndMail.com` survive while `Fintech.ca` and `BenchLM.ai` do not.
+  `.ca` belongs in that TLD list — it is the likeliest bare domain a Canadian
+  publication will meet, and it was missing.
+
+### The headline is written before the filters run
+
+`HEADLINE` comes from the model, but the date, source-quality and dedup filters
+run afterwards — so a dropped story can leave the title promising something the
+page never delivers. Two diagnostics in `renderer.py`, deliberately tiered:
+
+- `TITLE MISMATCH` — **none** of the headline's distinctive terms appears
+  anywhere in the issue.
+- `TITLE NOT REPORTED` — they appear only in the introduction or commentary, so
+  no development or spotlight item actually covers the headline.
+
+**Warn only when nothing matches, never when one term is missing.** Requiring
+every term to appear flagged a correct headline over a synonym: the title read
+"…$700M for SMEs" and the introduction said "small and medium businesses". One
+match is enough to prove the headline belongs to the issue.
+
 ### Coverage month is a dropdown, and the year list needs extending
 
 `monthly-blog.yml` takes the coverage month as two `choice` inputs

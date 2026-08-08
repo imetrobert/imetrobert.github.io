@@ -332,6 +332,33 @@ def _extract_dev_ratings(text):
     return body, ratings
 
 
+_LEADING_DATE_PREFIX = re.compile(
+    r'^\s*(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
+    r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+    r'\.?\s*\d{0,4}\s*[:,\-–—]*\s*',
+    re.IGNORECASE
+)
+
+
+def _clean_company(name):
+    """Strip a date prefix the splitter could not consume.
+
+    An item headed "July 2026: Microsoft" carries a year where a day belongs,
+    so the date splitter (which only takes real days, see date_pattern) leaves
+    the whole prefix attached to the subject. Without this the card publishes
+    with "July 2026: Microsoft" as the company, and the FAQ quotes it that way.
+    """
+    raw = (name or '').strip()
+    cleaned = _LEADING_DATE_PREFIX.sub('', raw).strip().strip(':').strip()
+    # "July 2026" reducing to nothing is right — no company was named, and the
+    # caller renders a compact card for an empty one. A bare "May" reducing to
+    # nothing is not: that is a month-shaped name, not a date. Require a digit
+    # before accepting the empty result.
+    if not cleaned and not any(c.isdigit() for c in raw):
+        return raw
+    return cleaned
+
+
 _MONTH_NUMBERS = {
     'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
     'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
@@ -643,13 +670,18 @@ def parse_developments(text, coverage_date=None, today=None):
     date_pattern = re.compile(
         r'^[ \t]*(\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
         r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
-        r'\.?\s+\d{1,2}(?:st|nd|rd|th)?'
+        # (?!\d) so a YEAR is never read as a day. An item headed
+        # "July 2026: Microsoft" matched "July 20", which fabricated a date the
+        # model never wrote and left "26:" glued to the front of the company —
+        # the card published as "26: Microsoft" dated July 20. A day is one or
+        # two digits followed by something that is not another digit.
+        r'\.?\s+\d{1,2}(?!\d)(?:st|nd|rd|th)?'
         # A range like "July 22-30" must be consumed whole. Matching only
         # "July 22" left "-30:" at the front of the body, where the company
         # split then read it as part of the name — the card published as
         # "-30: Amazon", and the FAQ answer (and its FAQPage schema) opened
         # with "30: Amazon:".
-        r'(?:\s*(?:[-\u2013\u2014]|to)\s*\d{1,2}(?:st|nd|rd|th)?)?'
+        r'(?:\s*(?:[-\u2013\u2014]|to)\s*\d{1,2}(?!\d)(?:st|nd|rd|th)?)?'
         r'[,.]?)',
         re.IGNORECASE | re.MULTILINE
     )
@@ -670,7 +702,7 @@ def parse_developments(text, coverage_date=None, today=None):
                 for sep in [" — ", " – ", " - "]:
                     if sep in body_clean:
                         parts = body_clean.split(sep, 1)
-                        company = parts[0].strip().rstrip(":")
+                        company = _clean_company(parts[0])
                         desc = parts[1].strip()
                         break
 
@@ -715,7 +747,7 @@ def parse_developments(text, coverage_date=None, today=None):
             for sep in [" — ", " – ", " - "]:
                 if sep in desc:
                     parts = desc.split(sep, 1)
-                    company = parts[0].strip().rstrip(":")
+                    company = _clean_company(parts[0])
                     desc = parts[1].strip()
                     break
 
@@ -760,7 +792,7 @@ def parse_developments(text, coverage_date=None, today=None):
             for sep in [" — ", " – ", " - "]:
                 if sep in desc:
                     parts = desc.split(sep, 1)
-                    company = parts[0].strip().rstrip(":")
+                    company = _clean_company(parts[0])
                     desc = parts[1].strip()
                     break
 
