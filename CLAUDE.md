@@ -250,16 +250,30 @@ accurate issues, and a warning that fires on good issues stops being read.
 was independently reported, so anything a company would have reason to spin is
 uncorroborated. A prompt for a closer read, not a blocker.
 
-**Sourcing failures concentrate in `KEY AI DEVELOPMENTS`, never in the
-Spotlight.** Across five runs the aggregators (BenchLM.ai ×3, Analytics Vidhya,
+**Sourcing failures started in `KEY AI DEVELOPMENTS` and have since reached the
+Spotlight too.** For five runs the aggregators (BenchLM.ai ×3, Analytics Vidhya,
 ThursdAI ×3) all landed in the global section while the Canadian section cited
-BetaKit, Mila and the Government of Canada correctly. The model sources well
-when the beat is narrow. So the developments spec tells it **how to search**:
+BetaKit, Mila and the Government of Canada correctly — but a later run cited an
+ISED funding program to a business-services blog and Quebec Law 25 guidance to a
+marketing site, when both bodies had announced them themselves. Do not assume
+the Spotlight is safe; it is still parsed **flag-only**, so a bad citation there
+publishes with nothing but an `UNRECOGNISED SOURCES` line. Hence the
+government-source rule in its spec: cite the body's own page.
+
+The developments spec tells the model **how to search**:
 a roundup is a lead to follow, not a result to discard — the old "discard it"
 rule threw away the lead along with the bad citation, leaving nothing and a
 quota of 5-6 to fill — and it asks for one search per beat rather than one
 "AI news <month>" query, which returns roundups because roundups are what match
 it. Prohibition alone was escalated four times and never worked.
+
+**Documentation is not an announcement.** `is_documentation_source()` rejects
+help centres, docs pages, `Microsoft Learn`, release notes and API references,
+and it is checked *first* in `is_acceptable_source` — those names carry the
+company's own name, so every other test would wave them through. A run cited a
+ChatGPT Work launch to "OpenAI Help Center": undated evergreen material used as
+evidence that something happened that month. Matched on specific phrases, never
+on bare "learn" or "support", which would fire inside real publication names.
 
 Two rules that keep the allowlist from refusing real journalism:
 

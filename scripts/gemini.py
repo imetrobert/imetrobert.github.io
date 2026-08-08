@@ -612,6 +612,8 @@ Search per beat, not per month. One search for "AI news {month_year}" returns ro
   - funding rounds, compute and data-centre investment
 Aim for 5-6 items spanning DIFFERENT beats. Five model releases is a worse issue than one release, one deal, one regulation, one incident and one investment — and searching beat by beat is what surfaces the outlet that actually broke each story.
 
+Documentation is not an announcement. A help centre article, a docs page, "Microsoft Learn", release notes or an API reference describes how something works — it is undated evergreen material and is no evidence the thing happened this month. A run cited a ChatGPT Work launch to "OpenAI Help Center". If the docs are all you can find, the announcement post exists somewhere: cite that, or drop the item.
+
 Name the outlet, not the aggregator that repeated it. If you cannot say which publication reported a story, or which company announced it, you do not have the source yet — keep looking or drop the item.
 CRITICAL DEDUPLICATION RULE: Treat KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT as one combined list. Every individual news event, funding program, company announcement, or policy decision may appear ONCE across both sections combined — never twice. Same program = same event = one section only. If the AI Compute Access Fund, RAII, or any government initiative appears in KEY AI DEVELOPMENTS, it must NOT appear in CANADIAN SPOTLIGHT under any name, wording, or angle. No exceptions.
 
@@ -655,6 +657,7 @@ SECTION ROUTING RULE FOR SPOTLIGHT: This section receives TWO types of content:
 2. CANADIAN PRIVATE SECTOR items (optional, if not already in Key Developments): Canadian AI companies making news (Cohere, Ada, Coveo, D-Wave, Mila spinouts, etc.)
 
 CRITICAL SOURCE RULE: Every single Canadian Spotlight item MUST end with a Source line using a PRIMARY source only.
+CRITICAL GOVERNMENT-SOURCE RULE: When the item is a government, regulator or Crown-agency action — ISED, the AI Compute Access Fund, OSFI, the Privacy Commissioner, Quebec's Commission d'acces a l'information, a provincial ministry — cite THAT BODY'S OWN page or release. Those bodies publish everything they announce. A run cited an ISED funding program to a business-services blog and Quebec Law 25 guidance to a marketing site, when both were announced by the bodies themselves. A consultancy or vendor blog writing about a government program is not the source for it.
 CRITICAL UNIQUENESS RULE: Canadian Spotlight items MUST NOT repeat any announcement already in KEY AI DEVELOPMENTS.
 
 Use this EXACT format for every item:
