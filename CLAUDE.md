@@ -194,6 +194,20 @@ Other things that matter:
   but it would change the model under a published issue with no decision point,
   and the whole reason a new model is offered rather than adopted is that
   availability is not quality.
+- **The question is not "is it newer" but "does it cost headroom".** Free-tier
+  Pro limits are tens of requests a day against Flash's thousands, so adopting
+  a Pro model would remove most of the daily budget. The panel shows the
+  CURRENT model's limit beside the new one, computes the delta live as the
+  number is typed (green for a gain, amber under 50% loss, red beyond), and
+  `modelTierRisk()` warns from the model NAME before any lookup — pro and lite
+  each get a specific caution. A cut of more than half needs an explicit
+  `confirm()`; it is an informed decision, not a blocked one, because the
+  budget does not recover until midnight Pacific.
+- **The help block leads with the rate-limits doc, not the console.** For a
+  model the project has never called there is usually no console quota row yet,
+  so `_RATE_LIMIT_DOC` is the only place the number exists *before* adoption —
+  which is exactly when the decision is made. The console step follows, to
+  confirm what the project actually has.
 - **The offer is a dropdown, not a label.** Discovery can return several newer
   models at once, and a single "Lead with it" button taking the first would
   adopt something never chosen.
