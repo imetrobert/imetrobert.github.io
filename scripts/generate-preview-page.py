@@ -805,7 +805,9 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         <div id="model-new" style="display:none;margin-top:0.6rem;padding:0.6rem;
              border-radius:6px;background:#78350f;color:#fff;font-size:0.72rem;line-height:1.5;">
           <div style="font-weight:700;margin-bottom:0.35rem;">New Gemini model available</div>
-          <div id="model-new-name" style="font-family:monospace;font-size:0.72rem;margin-bottom:0.45rem;"></div>
+          <select id="model-new-name" style="width:100%;font-family:monospace;font-size:0.72rem;
+                  margin-bottom:0.45rem;padding:0.25rem;border-radius:4px;border:1px solid #a16207;
+                  background:#451a03;color:#fff;"></select>
           <div style="display:flex;gap:0.4rem;align-items:center;margin-bottom:0.45rem;flex-wrap:wrap;">
             <label style="font-size:0.68rem;">Daily request limit</label>
             <input id="model-new-limit" type="number" min="1" placeholder="e.g. 1500"
@@ -1221,7 +1223,16 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
     const box = document.getElementById("model-new");
     if (fresh.length) {{
-      document.getElementById("model-new-name").textContent = fresh.join(", ");
+      // A dropdown, not a label: the discovery call can return several newer
+      // models at once, and "Lead with it" silently taking the first would
+      // adopt something the reviewer never chose.
+      const sel = document.getElementById("model-new-name");
+      sel.innerHTML = "";
+      fresh.forEach(function (m) {{
+        const o = document.createElement("option");
+        o.value = m; o.textContent = m;
+        sel.appendChild(o);
+      }});
       box.style.display = "block";
     }} else {{
       box.style.display = "none";
@@ -1272,7 +1283,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     const cfg = MODEL_CFG || {{}};
     const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
     if (!fresh.length) return;
-    const model = fresh[0];
+    const model = document.getElementById("model-new-name").value || fresh[0];
     const limit = parseInt(document.getElementById("model-new-limit").value, 10);
     if (!limit || limit <= 0) {{
       showToast("Set the daily request limit first — it cannot be discovered.", "error");
