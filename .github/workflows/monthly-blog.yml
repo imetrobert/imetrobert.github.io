@@ -22,10 +22,44 @@ on:
         required: false
         default: false
         type: boolean
+      # Dropdowns rather than a free-text "June 2026". Actions has no date
+      # input type — string, choice, boolean and environment are the only ones
+      # — so a picker is out, but choice removes the typo entirely. It matters
+      # more than it looks: generate-blog.py parses this with strptime("%B %Y"),
+      # so "Jul 2026" or "July, 2026" fails and the run silently covers the
+      # CURRENT month with only a WARNING in the log, while "July 2062" parses
+      # cleanly and generates a nonsense issue. Neither is reachable now.
       coverage_month:
-        description: 'Override which month this run is ABOUT, e.g. "June 2026". Use this to fully re-run a past month''s report (not just tweak an existing staging draft — for that, use the Regenerate button on the preview page instead). Leave blank for a normal run.'
+        description: 'Month this run is ABOUT. Use this to fully re-run a past month''s report (not just tweak an existing staging draft — for that, use the Regenerate button on the preview page). Leave as "(normal run)" for a normal run.'
         required: false
-        type: string
+        default: '(normal run)'
+        type: choice
+        options:
+        - '(normal run)'
+        - January
+        - February
+        - March
+        - April
+        - May
+        - June
+        - July
+        - August
+        - September
+        - October
+        - November
+        - December
+      coverage_year:
+        description: 'Year of the month above. Ignored on a normal run.'
+        required: false
+        default: '(current year)'
+        type: choice
+        options:
+        - '(current year)'
+        - '2026'
+        - '2027'
+        - '2028'
+        - '2029'
+        - '2030'
 
 # Shared across monthly-blog / regenerate-blog / approve-blog: all three read
 # and rewrite files under blog/ and push to main. Without a shared group,
@@ -50,14 +84,30 @@ jobs:
     steps:
       - name: Check if today is last day of month
         id: check
+        # Read through env, not by interpolating ${{ }} straight into the
+        # script: inputs land in the shell as data instead of as code.
+        env:
+          IN_MONTH: ${{ github.event.inputs.coverage_month }}
+          IN_YEAR:  ${{ github.event.inputs.coverage_year }}
         run: |
           CURRENT_DAY=$(date +%-d)
           CURRENT_MONTH=$(date +%-m)
           CURRENT_YEAR=$(date +%Y)
           MONTH_YEAR=$(date +"%B %Y")
-          if [ -n "${{ github.event.inputs.coverage_month }}" ]; then
-            MONTH_YEAR="${{ github.event.inputs.coverage_month }}"
+          # Empty on a scheduled run — only workflow_dispatch supplies inputs.
+          if [ -n "$IN_MONTH" ] && [ "$IN_MONTH" != "(normal run)" ]; then
+            OVERRIDE_YEAR="$IN_YEAR"
+            if [ -z "$OVERRIDE_YEAR" ] || [ "$OVERRIDE_YEAR" = "(current year)" ]; then
+              OVERRIDE_YEAR="$CURRENT_YEAR"
+            fi
+            MONTH_YEAR="$IN_MONTH $OVERRIDE_YEAR"
             echo "coverage_month override provided — using: $MONTH_YEAR"
+          elif [ -n "$IN_YEAR" ] && [ "$IN_YEAR" != "(current year)" ]; then
+            # A year without a month is almost certainly a half-finished
+            # override; say so rather than quietly running the current month.
+            echo "NOTE: coverage_year is set to $IN_YEAR but coverage_month is"
+            echo "'(normal run)', so the year is ignored and this run covers"
+            echo "$MONTH_YEAR. Pick a month too if you meant to override."
           fi
           CURRENT_DATE=$(date +"%Y-%m-%d")
           NEXT_MONTH=$((CURRENT_MONTH + 1))
