@@ -1,9 +1,9 @@
 {
   "2026-08-08": {
     "models": {
-      "gemini-2.5-flash": 1
+      "gemini-2.5-flash": 2
     },
-    "requests": 1,
-    "tokens": 25008
+    "requests": 2,
+    "tokens": 50864
   }
 }
