@@ -203,6 +203,24 @@ Other things that matter:
   each get a specific caution. A cut of more than half needs an explicit
   `confirm()`; it is an informed decision, not a blocked one, because the
   budget does not recover until midnight Pacific.
+- **The panel hands over a COPY-PASTE PROMPT, not instructions.** Step-by-step
+  console directions told the reviewer where to click; the prompt answers the
+  question. It is built from the models actually in play, names the current
+  model and its recorded limit, asks for RPD/RPM/TPM plus the percentage change,
+  and asks for uncertainty to be stated rather than estimated — a confidently
+  wrong RPD drives a quota bar that is confidently wrong too.
+- **RPM is captured but is not the constraint.** This pipeline peaks at roughly
+  three requests inside a minute (the 400/404 retry is immediate, the transient
+  retry waits 45s, the fallback waits 30s) and the `blog-pipeline` concurrency
+  group serialises runs, so anything from about 5 RPM up is untouchable. The
+  field exists because free-tier RPD is often IDENTICAL across candidate models —
+  all four offered in one run were 1500 RPD — so RPM is sometimes the only
+  number that differentiates them, and because a future low-RPM model would
+  throttle a single generation.
+- **The JS lives inside a Python f-string.** `"\n"` there is interpreted at
+  render time and becomes a real newline inside a JS string literal, which kills
+  the entire script block — every button on the page, silently. Write `"\\n"`.
+  Run `node --check` on the extracted `<script>` after touching this file.
 - **The help block leads with the rate-limits doc, not the console.** For a
   model the project has never called there is usually no console quota row yet,
   so `_RATE_LIMIT_DOC` is the only place the number exists *before* adoption —
