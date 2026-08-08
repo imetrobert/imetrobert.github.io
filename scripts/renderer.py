@@ -218,14 +218,37 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         w.strip(",.:;'’\"").lower()
         for w in re.findall(r"\b[A-Z][A-Za-z0-9&.\-]{2,}\b", clean_title)
     }
+    # Figures carry the claim in a headline like "$500M to AI compute access",
+    # where the only capitalised word is a metonym. Without this the guard has
+    # a single term to judge on, and "none matched" becomes a coin flip.
+    for _fig in re.findall(r"\$?(\d[\d.,]*)\s*(?:[MBKmbk]\b|million|billion)?", clean_title):
+        _fig = _fig.strip(".,")
+        if len(_fig) >= 2:
+            _title_terms.add(_fig.lower())
     _terms = [t for t in _title_terms if t and t not in _title_stop]
+
+    # Metonyms this publication actually uses. "Ottawa" IS the federal
+    # government in Canadian usage, and a Spotlight item citing ISED or the
+    # Government of Canada will never contain the word — a real issue was
+    # flagged as unreported for exactly that reason, with the story sitting in
+    # the section the guard was reading.
+    _title_synonyms = {
+        "ottawa": ("government of canada", "ised", "innovation, science", "federal"),
+        "quebec": ("commission d'acc", "law 25", "loi 25"),
+        "canada": ("canadian", "federal"),
+    }
+
+    def _present(term, hay):
+        if term in hay:
+            return True
+        return any(alt in hay for alt in _title_synonyms.get(term, ()))
     # Warn only when NOTHING in the headline is anchored — not when one term is
     # phrased differently. Requiring every term to appear cried wolf on a real
     # issue: the headline said "…$700M for SMEs", the intro said "small and
     # medium businesses", and a correct headline was flagged over a synonym.
     # One match is enough to prove the headline belongs to this issue.
-    _anywhere  = [t for t in _terms if t in _body_text]
-    _reported  = [t for t in _terms if t in _reported_text]
+    _anywhere  = [t for t in _terms if _present(t, _body_text)]
+    _reported  = [t for t in _terms if _present(t, _reported_text)]
     if _terms and developments and not _anywhere:
         print(f"  TITLE MISMATCH: the headline names {', '.join(sorted(_terms))}, none of "
               f"which appears anywhere in the issue. A story the headline was written for "
