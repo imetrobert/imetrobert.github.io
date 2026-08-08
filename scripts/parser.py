@@ -10,6 +10,7 @@ from utils import (
     build_search_url,
     is_episode_or_newsletter_item,
     is_acceptable_source,
+    is_documentation_source,
     is_low_quality_source,
     is_government_entity,
     is_meta_commentary,
@@ -503,6 +504,15 @@ def _drop_low_quality_sourced(items, label_key, strict=False):
                   f"domain, or somebody's byline).")
             continue
 
+        # Named separately from the allowlist message: "not a known
+        # publication" would be misleading for a first-party docs page, and
+        # the fix is different — the announcement exists, the model just cited
+        # the manual instead of the blog post.
+        if strict and is_documentation_source(source):
+            print(f"  source-quality: dropping '{who}' — cited to '{source}', which is "
+                  f"product documentation, not an announcement. A help centre or docs "
+                  f"page is undated and is no evidence the event happened this month.")
+            continue
         if strict and source and not is_acceptable_source(source, who):
             print(f"  source-quality: dropping '{who}' — cited to '{source}', which is "
                   f"not a known publication, a government body, or its own newsroom. "

@@ -242,6 +242,36 @@ _NEWSWIRE_NAMES = {
 }
 
 
+# Product documentation and support surfaces. These are NOT announcements: a
+# help-centre article or a docs page is evergreen and undated, so it is no
+# evidence an event happened in the month being reported. A run cited a
+# ChatGPT Work launch to "OpenAI Help Center" and a platform change to
+# "Microsoft Learn" — both first-party, both accepted, neither a report of
+# anything happening.
+#
+# Deliberately specific rather than matching bare "learn" or "support", which
+# would fire inside ordinary publication names.
+_DOC_SURFACES = (
+    "help center", "help centre", "helpcenter", "support center",
+    "support centre", "knowledge base", "documentation", "docs",
+    "developer guide", "dev guide", "api reference", "release notes",
+    "changelog", "microsoft learn", "faq",
+)
+
+
+def is_documentation_source(source_name):
+    """True when the citation is a docs, help-centre or reference page.
+
+    Callers drop these from reported developments: the company blog post
+    announcing the thing is the source, not the manual describing it.
+    """
+    if not source_name:
+        return False
+    name = re.sub(r'[^a-z0-9 ]+', ' ', source_name.lower())
+    name = re.sub(r'\s+', ' ', name).strip()
+    return any(re.search(r'\b' + re.escape(k) + r'\b', name) for k in _DOC_SURFACES)
+
+
 # Corporate newsrooms. These stay in _KNOWN_PUBLICATIONS so they remain
 # ACCEPTABLE sources — the prompt allows an official company blog, and one
 # company's newsroom frequently carries a rival's or partner's announcement.
@@ -476,6 +506,11 @@ def is_acceptable_source(source_name, subject=""):
     resting on sources nobody can check.
     """
     if not source_name:
+        return False
+    # Before everything else: a docs or help-centre page passes every test
+    # below (it carries the company's name) while being no evidence that
+    # anything happened. Reject it and make the model find the announcement.
+    if is_documentation_source(source_name):
         return False
     if is_recognised_publication(source_name) or is_government_entity(source_name):
         return True
