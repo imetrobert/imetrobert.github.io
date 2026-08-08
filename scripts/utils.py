@@ -215,6 +215,22 @@ _KNOWN_ABBREVIATIONS = {
 }
 
 
+# Compiled on first use, not at import: _KNOWN_PUBLICATIONS is defined further
+# down the file. Longest key first so the most specific name wins. Word
+# boundaries are the whole point — see is_recognised_publication.
+_PUBLICATION_RE = None
+
+
+def _publication_re():
+    global _PUBLICATION_RE
+    if _PUBLICATION_RE is None:
+        _PUBLICATION_RE = re.compile(
+            r'\b(?:' + '|'.join(re.escape(k) for k in
+                                sorted(_KNOWN_PUBLICATIONS, key=len, reverse=True)) + r')\b'
+        )
+    return _PUBLICATION_RE
+
+
 def is_recognised_publication(source_name):
     """True when the citation names an outlet on the known list."""
     if not source_name:
@@ -223,7 +239,19 @@ def is_recognised_publication(source_name):
     name = re.sub(r'\s+', ' ', name).strip()
     if name in _KNOWN_ABBREVIATIONS:
         return True
-    return any(k in name or name in k for k in _KNOWN_PUBLICATIONS)
+    # Word-boundary, not raw substring. "intel" (the chipmaker) was matching
+    # inside "futurum intelligence", so ANY source named "... Intelligence" was
+    # silently accepted as Intel's newsroom — and analyst-style names ending in
+    # "Intelligence" are exactly the shape this allowlist exists to catch.
+    # Boundaries keep "CBC News" matching "cbc" while "intelligence" no longer
+    # matches "intel". Same hazard the abbreviations set was created for; that
+    # note said "three-letter", and "intel" is five.
+    if _publication_re().search(name):
+        return True
+    # A source name shorter than the key it belongs to ("globe and mail" for
+    # "the globe and mail"). Kept, but require enough of a name to be
+    # meaningful, so a two-letter fragment cannot claim a long publication.
+    return len(name) >= 6 and any(name in k for k in _KNOWN_PUBLICATIONS)
 
 
 # Press-release distributors. Deliberately NOT in _KNOWN_PUBLICATIONS: a wire
