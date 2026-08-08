@@ -11,7 +11,7 @@ without regenerating the whole issue and losing the parts that were already
 good.
 
 Only the judgment sections are redraftable — the Desk, the executive summary,
-the myth, the predictions, the closing question. The reported sections are not,
+the predictions, the closing question. The reported sections are not,
 on purpose: those items went through date rules, source-quality rules and
 deduplication in the monthly run, and a one-section rewrite has none of that
 context. The redraft call is also ungrounded, so it can sharpen an argument but
@@ -37,9 +37,9 @@ sys.path.insert(0, os.path.join(os.getcwd(), 'scripts'))
 
 from utils import clean_ai_content
 from gemini import REDRAFTABLE_SECTIONS, generate_section_redraft
-from parser import parse_list_items, parse_myth, parse_predictions, parse_question
+from parser import parse_list_items, parse_predictions, parse_question
 from renderer import (
-    _build_summary_section, _build_myth_section,
+    _build_summary_section,
     _build_predictions_section, _build_question_section, _build_roberts_desk,
     faq_plain, faq_join,
 )
@@ -61,11 +61,6 @@ SECTION_BLOCKS = {
         "parse":       lambda t: (parse_list_items(t, min_length=25)[:3] or None),
         "render":      lambda v: _build_summary_section(v),
     },
-    "AI MYTH OF THE MONTH": {
-        "block_class": "myth-section",
-        "parse":       parse_myth,
-        "render":      lambda v: _build_myth_section(v),
-    },
     "LOOKING AHEAD: THREE PREDICTIONS": {
         "block_class": "pred-section",
         "parse":       lambda t: (parse_predictions(t) or None),
@@ -84,10 +79,6 @@ SECTION_BLOCKS = {
 # anywhere on the page — the exact structured-data mismatch the FAQ was built to
 # avoid. The question text must match renderer.py's faq_candidates verbatim.
 FAQ_FED_BY = {
-    "AI MYTH OF THE MONTH": {
-        "question": "What is the biggest misconception executives have about AI adoption?",
-        "answer":   lambda v: faq_plain(v["reality"]),
-    },
     "LOOKING AHEAD: THREE PREDICTIONS": {
         "question": "What should Canadian executives expect from AI over the next year?",
         "answer":   lambda v: faq_join([f'{p["horizon"]}: {p["body"]}' for p in v]),

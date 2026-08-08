@@ -15,7 +15,7 @@ from parser import (
     _resolve_item_date,
     parse_sections, parse_list_items, parse_developments, parse_spotlight_items,
     parse_adoption_stats, deduplicate_spotlight_against_developments,
-    parse_actions, parse_myth, parse_predictions, parse_question,
+    parse_actions, parse_predictions, parse_question,
 )
 
 
@@ -92,7 +92,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
 
     intro_text      = sections.get("INTRODUCTION", "")
     canadian_spot   = sections.get("CANADIAN SPOTLIGHT", "")
-    business_impact = sections.get("WHAT THIS MEANS FOR CANADIAN BUSINESS", "")
     roberts_raw     = sections.get("FROM ROBERTS DESK", "")
     adoption_raw    = sections.get("ADOPTION SNAPSHOT", "")
 
@@ -106,17 +105,16 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     actions         = parse_actions(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""))
     adoption        = parse_adoption_stats(adoption_raw)
     summary_points  = parse_list_items(sections.get("EXECUTIVE SUMMARY", ""), min_length=25)[:3]
-    myth            = parse_myth(sections.get("AI MYTH OF THE MONTH", ""))
     predictions     = parse_predictions(sections.get("LOOKING AHEAD: THREE PREDICTIONS", ""))
     closing_question = parse_question(sections.get("ONE QUESTION FOR YOUR LEADERSHIP TEAM", ""))
 
-    # Action bodies are what the FAQ and the conclusion quote; they should never
+    # Action bodies are what the FAQ quotes; they should never
     # carry the OWNER/PRIORITY labels into prose meant to be read as a sentence.
     action_bodies   = [a["body"] for a in actions]
 
     print(f"  Parsed: {len(developments)} developments, {len(spotlight_items)} spotlight, "
           f"{len(actions)} actions, {len(adoption)} stats, {len(summary_points)} summary points, "
-          f"{len(predictions)} predictions, myth={'yes' if myth else 'no'}, "
+          f"{len(predictions)} predictions, "
           f"question={'yes' if closing_question else 'no'}")
     # A section the model simply did not write is invisible: the parser returns
     # "" and the renderer skips the block, so the page looks intentional. The
@@ -127,14 +125,14 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         "Key AI Developments": developments,
         "Canadian Spotlight":  spotlight_items,
         "From Robert's Desk":  roberts_raw.strip(),
-        "What This Means":     business_impact.strip(),
         "Strategic Actions":   actions,
         "Adoption Snapshot":   adoption,
-        "AI Myth of the Month": myth,
         "Looking Ahead":       predictions,
         "One Question":        closing_question,
     }
     _missing = [name for name, value in _expected.items() if not value]
+    # "AI MYTH OF THE MONTH" is intentionally absent from _expected: the header
+    # is still a parse boundary (see SECTION_HEADERS) but the section is retired.
     if _missing:
         print(f"  MISSING SECTIONS: {', '.join(_missing)}. These will not appear on "
               f"the page at all. Check the model's raw output for the header — a "
@@ -175,6 +173,30 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                 _unverified.append(_n)
     if _sources:
         print(f"  SOURCES CITED ({len(_sources)}): {', '.join(_sources)}")
+
+    # Concentration, not just presence. One run cited the same unrecognised site
+    # for three of five stories and its own subject for a fourth, so no story
+    # rested on independent reporting — a fact the per-source list stated only
+    # by implication.
+    _independent = _firstparty = _unknown = 0
+    for _d in developments:
+        _n = (_d.get("source_name") or "").strip()
+        _subj = (_d.get("company") or "").lower()
+        if not _n:
+            _unknown += 1
+        elif _subj and (_n.lower() in _subj or _subj.split()[0] in _n.lower()):
+            _firstparty += 1
+        elif is_recognised_publication(_n) or is_government_entity(_n):
+            _independent += 1
+        else:
+            _unknown += 1
+    if developments:
+        print(f"  SOURCING: {len(developments)} developments — {_independent} independent, "
+              f"{_firstparty} first-party, {_unknown} unverified.")
+        if _independent < 2:
+            print(f"  WEAK SOURCING: only {_independent} development(s) rest on an independent "
+                  f"publication. The month's reporting is effectively unsourced — regenerate "
+                  f"rather than publish.")
     if _unverified:
         print(f"  UNRECOGNISED SOURCES ({len(_unverified)}): {', '.join(_unverified)}. "
               f"Not a known outlet, not the subject's own newsroom, not a government body. "
@@ -310,20 +332,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     # where a reader who skims stops reading.
     article_parts.append(_build_roberts_desk(roberts_raw))
 
-    if business_impact:
-        paras = [p.strip() for p in business_impact.split('\n\n') if len(p.strip()) > 40]
-        if not paras:
-            paras = [p.strip() for p in business_impact.split('\n') if len(p.strip()) > 40]
-        if not paras:
-            paras = [business_impact.strip()]
-        paras_html = "\n".join(f'<p>{p}</p>' for p in paras)
-        article_parts.append(
-            f'<div class="section impact-section">'
-            f'<h2 class="section-title">What This Means for Canadian Business</h2>'
-            f'{paras_html}'
-            f'</div>'
-        )
-
     if actions:
         action_cards = ""
         for i, a in enumerate(actions[:5]):
@@ -413,9 +421,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             f'</div>'
         )
 
-    if myth:
-        article_parts.append(_build_myth_section(myth))
-
     if predictions:
         article_parts.append(_build_predictions_section(predictions))
 
@@ -446,17 +451,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             "What Canadian AI companies or initiatives should I know about?",
             _join([f'{i["org"]}: {i["body"]}' if i.get("org") else i["body"]
                    for i in spotlight_items[:3]]),
-        ),
-        (
-            "How do global AI trends affect Canadian competitiveness?",
-            _plain(business_impact),
-        ),
-        # The myth section is already a question and its answer — the format an
-        # answer engine quotes most readily — and it is original judgment rather
-        # than restated news, which is the whole point of being citable.
-        (
-            "What is the biggest misconception executives have about AI adoption?",
-            _plain(f'{myth["reality"]}') if myth else "",
         ),
         (
             f"What should Canadian executives expect from AI over the next year?",
@@ -693,8 +687,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .spot-source {{ margin-top: 0.4rem; }}
         .spot-source a {{ font-size: 0.72rem; color: var(--canada-red); text-decoration: none; font-weight: 600; opacity: 0.8; transition: opacity 0.2s; }}
         .spot-source a:hover {{ opacity: 1; text-decoration: underline; }}
-        .impact-section p {{ font-size: 0.9rem; line-height: 1.8; color: var(--gray); margin-bottom: 1rem; }}
-        .impact-section p:last-child {{ margin-bottom: 0; }}
         .actions-grid {{ display: grid; gap: 0.875rem; }}
         .action-card {{ display: flex; gap: 1rem; align-items: flex-start; padding: 1.1rem 1.25rem; background: #f8faff; border: 1px solid #dbeafe; border-radius: 12px; border-left: 3px solid var(--blue); transition: box-shadow 0.2s; }}
         .action-card:hover {{ box-shadow: var(--shadow-md); background: var(--white); }}
@@ -754,19 +746,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .action-owner-label {{ font-size: 0.55rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--gray-light); margin-right: 0.45rem; }}
         .action-owner-role {{ font-size: 0.8rem; font-weight: 800; color: var(--navy); }}
         .action-owner-why {{ font-size: 0.78rem; line-height: 1.6; color: var(--gray); margin-top: 0.3rem; }}
-        /* Myth of the month. */
-        .myth-section {{ background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 1.6rem 1.75rem; }}
-        .myth-label {{ margin: 0 0 1rem; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: #b45309; }}
-        .myth-block {{ display: flex; gap: 0.8rem; align-items: flex-start; padding: 0.9rem 1.1rem; border-radius: 10px; background: var(--white); }}
-        .myth-block + .myth-block {{ margin-top: 0.65rem; }}
-        .myth-block p {{ margin: 0; font-size: 0.875rem; line-height: 1.7; }}
-        .myth-tag {{ flex-shrink: 0; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.22rem 0.55rem; border-radius: 6px; margin-top: 0.15rem; }}
-        .myth-claim {{ border: 1px solid #fde68a; }}
-        .myth-claim .myth-tag {{ background: #fef3c7; color: #b45309; }}
-        .myth-claim p {{ color: var(--gray); }}
-        .myth-reality {{ border: 1px solid #bbf7d0; }}
-        .myth-reality .myth-tag {{ background: #dcfce7; color: #15803d; }}
-        .myth-reality p {{ color: var(--gray-dark); }}
         /* Looking ahead — three predictions, explicitly labelled as such. */
         .pred-note {{ font-size: 0.78rem; color: var(--gray-light); line-height: 1.6; margin-bottom: 1.1rem; font-style: italic; }}
         .pred-grid {{ display: grid; gap: 0.75rem; }}
@@ -791,11 +770,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         .survey-btn {{ display: inline-block; background: var(--white); color: var(--blue); font-weight: 700; font-size: 0.85rem; padding: 0.6rem 1.4rem; border-radius: 25px; text-decoration: none; transition: transform 0.15s; }}
         .survey-btn:hover {{ transform: translateY(-1px); }}
         .survey-results {{ color: rgba(255,255,255,0.92); font-size: 0.8rem; font-weight: 600; text-decoration: underline; }}
-        .conclusion {{ background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%); color: var(--white); padding: 2rem; border-radius: 14px; margin-top: 2.5rem; }}
-        .conclusion-label {{ font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.75; margin-bottom: 0.5rem; }}
-        .conclusion p {{ color: rgba(255,255,255,0.95); font-size: 0.95rem; font-weight: 500; line-height: 1.75; }}
-        .conclusion strong {{ color: var(--white); font-weight: 700; }}
-        /* Share row. Sits under The Bottom Line — the point at which a reader
+        /* Share row. Sits at the end of the issue — the point at which a reader
            who found the issue useful decides to pass it on. */
         .share-row {{ margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }}
         .share-label {{ font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.11em; color: var(--gray-light); margin-bottom: 0.8rem; }}
@@ -820,8 +795,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             .action-card {{ flex-direction: column; gap: 0.6rem; }}
             .action-num {{ width: 1.5rem; height: 1.5rem; min-width: 1.5rem; }}
             .summary-section {{ padding: 1.1rem 1.2rem; }}
-            .myth-section {{ padding: 1.25rem; }}
-            .myth-block {{ flex-direction: column; gap: 0.5rem; }}
             .question-section {{ padding: 1.25rem 1.35rem; }}
             .question-body {{ font-size: 1rem; }}
             .dev-tier {{ margin-left: 0; flex-basis: 100%; }}
@@ -909,10 +882,6 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             </div>
             <div class="article-content" itemprop="articleBody">
                 {article_html}
-                <div class="conclusion">
-                    <div class="conclusion-label">The Bottom Line</div>
-                    <p>{_build_conclusion(sections, coverage_month_year)}</p>
-                </div>
                 {_build_share_row(canonical, clean_title, issue_month_year)}
             </div>
         </article>
@@ -1080,17 +1049,6 @@ def _build_summary_section(summary_points):
         f'</div>'
     )
 
-
-def _build_myth_section(myth):
-    return (
-        f'<div class="section myth-section">'
-        f'<h2 class="myth-label">AI Myth of the Month</h2>'
-        f'<div class="myth-block myth-claim">'
-        f'<span class="myth-tag">Myth</span><p>{myth["myth"]}</p></div>'
-        f'<div class="myth-block myth-reality">'
-        f'<span class="myth-tag">Reality</span><p>{myth["reality"]}</p></div>'
-        f'</div>'
-    )
 
 
 def _build_predictions_section(predictions):
@@ -1316,27 +1274,3 @@ def _build_roberts_desk(raw_text):
     return f'<div class="section desk-section"><div class="roberts-take">{header}{body}</div></div>'
 
 
-def _build_conclusion(sections, coverage_month_year):
-    impact  = sections.get("WHAT THIS MEANS FOR CANADIAN BUSINESS", "")
-    actions = parse_actions(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""))
-
-    if impact:
-        sentences = re.split(r'(?<=[.!?])\s+', impact.strip())
-        if sentences:
-            base = sentences[-1].strip()
-            if base and len(base) > 40:
-                return (
-                    f"{base} The organizations that act on this month's intelligence "
-                    f"will set the AI standard in their sector for the next 12 months."
-                )
-
-    if actions:
-        return (
-            f"With {len(actions)} clear priorities this month, Canadian leaders have no shortage of direction. "
-            f"The gap between organizations that act and those that wait is growing every month."
-        )
-
-    return (
-        f"The {coverage_month_year} AI landscape demands decisive action from Canadian business leaders. "
-        f"Strategy documents are not enough — execution is the only differentiator now."
-    )

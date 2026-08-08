@@ -205,14 +205,81 @@ _LOW_QUALITY_SOURCE_MARKERS = (
 )
 
 
-def is_low_quality_source(source_name):
-    """True when a citation names a self-publishing platform rather than a
-    publication. Callers drop the item — the same treatment episode/newsletter
-    items already get, and what the prompt says should happen to them."""
+def is_recognised_publication(source_name):
+    """True when the citation names an outlet on the known list."""
     if not source_name:
         return False
     name = re.sub(r'[^a-z0-9 ]+', ' ', source_name.lower())
-    return any(f' {marker} ' in f' {name} ' for marker in _LOW_QUALITY_SOURCE_MARKERS)
+    name = re.sub(r'\s+', ' ', name).strip()
+    return any(k in name or name in k for k in _KNOWN_PUBLICATIONS)
+
+
+# Words that mark a name as a publication or an organisation rather than a
+# person. Used only to decide whether a two-or-three-word citation is somebody's
+# byline — "Mark McNeilly" carried a real story in one issue, and a byline is
+# not a source.
+_PUBLICATION_WORDS = {
+    "news", "times", "post", "journal", "review", "wire", "daily", "weekly",
+    "monitor", "report", "reports", "insider", "watch", "press", "media",
+    "magazine", "digest", "gazette", "herald", "tribune", "chronicle",
+    "standard", "observer", "register", "bulletin", "today", "now", "hub",
+    "street", "verge", "tech", "technica", "ai", "labs", "lab", "institute",
+    "research", "group", "inc", "ltd", "llc", "corp", "co", "company",
+    "canada", "canadian", "global", "international", "business", "financial",
+    "economic", "science", "technology", "digital", "network", "channel",
+    "radio", "broadcasting", "publishing", "analytics", "insights", "intel",
+    "university", "school", "college", "foundation", "council", "association",
+    "agency", "bureau", "office", "ministry", "department", "government",
+}
+
+
+def _looks_like_a_person(name):
+    """Two or three capitalised words with nothing publication-like in them.
+
+    Conservative on purpose: this only ever runs on names that already failed
+    the known-publication check, and a legitimate outlet missing from that list
+    would be dropped by a false positive here. Requiring every word to be a
+    plain capitalised word with no publication noun keeps "Tech Monitor" and
+    "Signal49 Research" out of it.
+    """
+    words = name.strip().split()
+    if not 2 <= len(words) <= 3:
+        return False
+    if any(w.lower().strip(".,") in _PUBLICATION_WORDS for w in words):
+        return False
+    # Every word must be Title Case with at least one lowercase letter. An
+    # all-caps word is an acronym, and organisations are what carry those:
+    # "NTT DATA" and "IBM Research" are sources, "Mark McNeilly" is a byline.
+    return all(
+        re.fullmatch(r"[A-Z][A-Za-z'’.\-]*", w) and any(c.islower() for c in w)
+        for w in words
+    )
+
+
+def is_low_quality_source(source_name):
+    """True when a citation is not a publication at all.
+
+    Three shapes, all of which reached a real issue:
+      - self-publishing platforms (Medium, Substack, "... Blogs")
+      - a bare domain, which names a site or a product rather than a newsroom
+        ("BenchLM.ai" was the sole source for three of five stories in one run)
+      - a person's name, which is a byline ("Mark McNeilly")
+
+    Callers drop the item — the same treatment episode and newsletter items
+    already get, and what the prompt says should happen to all of them.
+    """
+    if not source_name:
+        return False
+    raw = source_name.strip()
+
+    if re.search(r'\.(ai|com|io|co|net|org|dev|app|xyz)\b', raw, re.IGNORECASE):
+        return True
+
+    name = re.sub(r'[^a-z0-9 ]+', ' ', raw.lower())
+    if any(f' {marker} ' in f' {name} ' for marker in _LOW_QUALITY_SOURCE_MARKERS):
+        return True
+
+    return _looks_like_a_person(raw) and not is_recognised_publication(raw)
 
 
 # Openers offered to the model in earlier versions of the prompt. Three issues
@@ -286,13 +353,6 @@ _KNOWN_PUBLICATIONS = {
 }
 
 
-def is_recognised_publication(source_name):
-    """True when the citation names an outlet on the known list."""
-    if not source_name:
-        return False
-    name = re.sub(r'[^a-z0-9 ]+', ' ', source_name.lower())
-    name = re.sub(r'\s+', ' ', name).strip()
-    return any(k in name or name in k for k in _KNOWN_PUBLICATIONS)
 
 
 def is_government_entity(company):

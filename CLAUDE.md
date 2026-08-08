@@ -78,10 +78,8 @@ Sections, in the order they appear in an issue:
 | `KEY AI DEVELOPMENTS` | 5-6 stories; the **first 3** carry `STRATEGIC READ` + `IMPORTANCE`/`HORIZON`/`ATTENTION` |
 | `CANADIAN SPOTLIGHT` | 3 items, government items mandatory here |
 | `FROM ROBERTS DESK` | 300-450 words, the signature section |
-| `WHAT THIS MEANS FOR CANADIAN BUSINESS` | 3 paragraphs |
 | `STRATEGIC ACTIONS FOR THIS MONTH` | 5 actions + `OWNER`/`PRIORITY`/`EFFORT`/`IMPACT` |
 | `ADOPTION SNAPSHOT` | 5 Canadian stats |
-| `AI MYTH OF THE MONTH` | `Myth:` / `Reality:` |
 | `LOOKING AHEAD: THREE PREDICTIONS` | `One month:` / `Six months:` / `One year:` |
 | `ONE QUESTION FOR YOUR LEADERSHIP TEAM` | One question |
 
@@ -125,9 +123,9 @@ regenerating the whole issue — pick the section, optionally type a steer, and
 the block is rewritten in place. The staging filename does not change, so every
 other section and the preview URL survive.
 
-- **Only the five judgment sections are redraftable**, registered in
-  `gemini.REDRAFTABLE_SECTIONS`: the Desk, Executive Summary, Myth, Looking
-  Ahead, One Question. The reported sections are deliberately excluded — their
+- **Only the four judgment sections are redraftable**, registered in
+  `gemini.REDRAFTABLE_SECTIONS`: the Desk, Executive Summary, Looking Ahead,
+  One Question. The reported sections are deliberately excluded — their
   items passed date rules, source-quality rules and cross-section deduplication
   during the monthly run, and a one-section rewrite reproduces none of that.
 - **The redraft call is ungrounded** (no `google_search`). It works only from
@@ -138,13 +136,13 @@ other section and the preview URL survive.
   paraphrase a spec into the redraft path — the two would drift, and a
   redrafted section quietly following different rules is invisible.
 - **Each redraftable section is rendered by exactly one function**
-  (`_build_summary_section`, `_build_myth_section`, …) so the redraft rebuilds a
+  (`_build_summary_section`, `_build_predictions_section`, …) so the redraft rebuilds a
   block identical to a full render.
 - **`find_block()` counts div tokens** rather than regex-matching the block.
   These sections nest divs several deep and a non-greedy regex stops at the
   first inner `</div>`.
-- **The FAQ is refreshed when a section it quotes is redrafted.** The Myth and
-  Looking Ahead both feed FAQ answers, which exist twice — visible `.faq-a` and
+- **The FAQ is refreshed when a section it quotes is redrafted.** Looking Ahead
+  feeds an FAQ answer, which exists twice — visible `.faq-a` and
   FAQPage JSON-LD. `FAQ_FED_BY` in `redraft_section.py` updates both, using
   `renderer.faq_plain` / `faq_join` so the scrubbing rules match exactly.
   Its question strings must match `faq_candidates` in `renderer.py` verbatim.
@@ -217,7 +215,7 @@ edit at a time.
 
 ### Sharing — always the permalink, never `latest.html`
 
-Posts carry a share row under "The Bottom Line" (`_build_share_row` in
+Posts carry a share row at the end of the issue (`_build_share_row` in
 `renderer.py`); the blog index carries one on the latest-issue card and two
 buttons per archive row (`_share_hrefs` / `_permalink` in `blog_index.py`).
 LinkedIn, email, copy link, and the OS share sheet on mobile.

@@ -22,9 +22,18 @@ SECTION_HEADERS = [
     "KEY AI DEVELOPMENTS",
     "CANADIAN SPOTLIGHT",
     "FROM ROBERTS DESK",
+    # Retired, kept as a boundary for the same reason as the Myth below:
+    # an unrecognised header is absorbed by the section above it, not skipped.
     "WHAT THIS MEANS FOR CANADIAN BUSINESS",
     "STRATEGIC ACTIONS FOR THIS MONTH",
     "ADOPTION SNAPSHOT",
+    # Retired section, still listed on purpose. The Myth was removed from the
+    # issue, but a model trained on the old prompt still writes the header
+    # sometimes — and a header the splitter does not recognise is not skipped,
+    # it is absorbed by the section above it. Dropping this line silently
+    # appended the myth text to ADOPTION SNAPSHOT, which then parsed three
+    # sentences of prose as adoption statistics. Kept here so the boundary
+    # holds; nothing reads the section, so its content is discarded.
     "AI MYTH OF THE MONTH",
     "LOOKING AHEAD: THREE PREDICTIONS",
     "ONE QUESTION FOR YOUR LEADERSHIP TEAM",
@@ -37,6 +46,7 @@ SECTION_HEADERS = [
 # keeping it here means an archived draft, or a regeneration that answers in the
 # old format, still lands in the right section instead of vanishing.
 SECTION_ALIASES = {
+    "AI MYTH OF THE MONTH": ["MYTH OF THE MONTH"],
     "FROM ROBERTS DESK": [
         "FROM ROBERT'S DESK", "FROM ROBERT’S DESK", "ROBERT'S DESK",
         "ROBERTS TAKE", "ROBERT'S TAKE", "ROBERT’S TAKE",
@@ -51,7 +61,6 @@ SECTION_ALIASES = {
         "ONE QUESTION EVERY EXECUTIVE SHOULD ASK THIS MONTH",
         "ONE QUESTION",
     ],
-    "AI MYTH OF THE MONTH": ["MYTH OF THE MONTH"],
 }
 
 
@@ -426,7 +435,8 @@ def _drop_low_quality_sourced(items, label_key):
         if is_low_quality_source(source):
             who = item.get(label_key) or item.get('body', '')[:40]
             print(f"  source-quality: dropping '{who}' — cited to '{source}', "
-                  f"which is a self-publishing platform, not a publication.")
+                  f"which is not a publication (a self-publishing platform, a bare "
+                  f"domain, or somebody's byline).")
             continue
         kept.append(item)
     return kept
@@ -498,29 +508,6 @@ def parse_actions(text):
     print(f"  parse_actions: {len(actions)} actions ({owned} with an assigned owner)")
     return actions
 
-
-def parse_myth(text):
-    """{'myth': ..., 'reality': ...}, or None when either half is missing —
-    half a myth box is worse than none."""
-    if not text or len(text.strip()) < 40:
-        return None
-
-    myth = re.search(
-        r'\bMyth\s*[:\-–—]\s*(.+?)(?=\s*\bReality\s*[:\-–—]|\Z)',
-        text, re.IGNORECASE | re.DOTALL
-    )
-    reality = re.search(
-        r'\bReality\s*[:\-–—]\s*(.+)\Z',
-        text, re.IGNORECASE | re.DOTALL
-    )
-    if not myth or not reality:
-        return None
-
-    myth_text    = ' '.join(myth.group(1).split()).strip()
-    reality_text = ' '.join(reality.group(1).split()).strip()
-    if len(myth_text) < 15 or len(reality_text) < 40:
-        return None
-    return {"myth": myth_text, "reality": reality_text}
 
 
 _PREDICTION_HORIZONS = ("One month", "Six months", "One year")
