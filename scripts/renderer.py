@@ -10,7 +10,8 @@ from html import escape as escape_html
 from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
 from utils import (BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR,
-                   is_government_entity, is_recognised_publication, uses_stock_phrase)
+                   is_government_entity, is_recognised_publication, is_newswire,
+                   uses_stock_phrase)
 from parser import (
     _resolve_item_date,
     parse_sections, parse_list_items, parse_developments, parse_spotlight_items,
@@ -169,7 +170,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             _first_party = bool(_subject) and (
                 _n.lower() in _subject or _subject.split()[0] in _n.lower()
             )
-            if not (is_recognised_publication(_n) or _first_party or is_government_entity(_n)):
+            if not (is_recognised_publication(_n) or _first_party
+                    or is_government_entity(_n) or is_newswire(_n)):
                 _unverified.append(_n)
     if _sources:
         print(f"  SOURCES CITED ({len(_sources)}): {', '.join(_sources)}")
@@ -178,7 +180,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     # for three of five stories and its own subject for a fourth, so no story
     # rested on independent reporting — a fact the per-source list stated only
     # by implication.
-    _independent = _firstparty = _unknown = 0
+    _independent = _firstparty = _unknown = _wire = 0
     for _d in developments:
         _n = (_d.get("source_name") or "").strip()
         _subj = (_d.get("company") or "").lower()
@@ -186,13 +188,21 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             _unknown += 1
         elif _subj and (_n.lower() in _subj or _subj.split()[0] in _n.lower()):
             _firstparty += 1
+        # Before the publication check: a wire release is the company's own
+        # announcement carried for a fee, so counting it as independent would
+        # let a month of pure corporate PR report itself as independently
+        # sourced — exactly what this tally exists to expose.
+        elif is_newswire(_n):
+            _firstparty += 1
+            _wire += 1
         elif is_recognised_publication(_n) or is_government_entity(_n):
             _independent += 1
         else:
             _unknown += 1
     if developments:
+        _wire_note = f" ({_wire} via a press-release wire)" if _wire else ""
         print(f"  SOURCING: {len(developments)} developments — {_independent} independent, "
-              f"{_firstparty} first-party, {_unknown} unverified.")
+              f"{_firstparty} first-party{_wire_note}, {_unknown} unverified.")
         if _independent < 2:
             print(f"  WEAK SOURCING: only {_independent} development(s) rest on an independent "
                   f"publication. The month's reporting is effectively unsourced — regenerate "

@@ -214,6 +214,41 @@ def is_recognised_publication(source_name):
     return any(k in name or name in k for k in _KNOWN_PUBLICATIONS)
 
 
+# Press-release distributors. Deliberately NOT in _KNOWN_PUBLICATIONS: a wire
+# release is the company's own announcement, carried verbatim for a fee, so it
+# is first-party evidence rather than independent reporting. Putting these on
+# the publication list would let a month of pure corporate PR report itself as
+# independently sourced, which is the failure the allowlist exists to prevent.
+#
+# Distinct from wire *journalism* — Reuters, Bloomberg and Canadian Press
+# employ reporters and stay on the publication list.
+_NEWSWIRE_NAMES = {
+    "cnw", "cnw group", "canada newswire", "newswire", "globenewswire",
+    "globe newswire", "business wire", "businesswire", "pr newswire",
+    "prnewswire", "newsfile", "newsfile corp", "accesswire", "marketwired",
+    "ein presswire", "prweb", "the newswire",
+}
+
+
+def is_newswire(source_name):
+    """True when the citation is a press-release wire.
+
+    Acceptable as a source — CNW and GlobeNewswire are how Canadian companies
+    actually issue announcements, and dropping them discards real primary
+    material — but callers must count it as first-party, never independent.
+    """
+    if not source_name:
+        return False
+    name = re.sub(r'[^a-z0-9 ]+', ' ', source_name.lower())
+    name = re.sub(r'\s+', ' ', name).strip()
+    if name in _NEWSWIRE_NAMES:
+        return True
+    # Substring only for unambiguous tokens. "cnw" stays exact-match: three
+    # letters would collide with ordinary words.
+    return any(t in name for t in ("newswire", "presswire", "press wire",
+                                   "business wire", "accesswire"))
+
+
 # Words that mark a name as a publication or an organisation rather than a
 # person. Used only to decide whether a two-or-three-word citation is somebody's
 # byline — "Mark McNeilly" carried a real story in one issue, and a byline is
@@ -372,10 +407,11 @@ _KNOWN_PUBLICATIONS = {
 def is_acceptable_source(source_name, subject=""):
     """Whether a citation may carry a reported development.
 
-    Three ways to qualify, and nothing else:
+    Four ways to qualify, and nothing else:
       - a publication on the known list
       - a government or regulatory body
       - the subject's own newsroom (an official company announcement)
+      - a press-release wire (the same announcement, distributed)
 
     This is an ALLOWLIST, and callers drop what fails it. That is a deliberate
     reversal: for five issues the check flagged unrecognised sources and let
@@ -391,6 +427,11 @@ def is_acceptable_source(source_name, subject=""):
     if not source_name:
         return False
     if is_recognised_publication(source_name) or is_government_entity(source_name):
+        return True
+    # A wire release is the subject's own announcement under a distributor's
+    # name, so the subject-matches-source check below can never clear it.
+    # Acceptable, but callers must score it first-party, not independent.
+    if is_newswire(source_name):
         return True
     # First-party: the citation names the organisation the item is about.
     subject = (subject or "").strip().lower()

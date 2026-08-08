@@ -41,6 +41,10 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
 # lite only catches a rate-limited run.
 MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
 
+# Busy, not broken. These buy the same model a second attempt before the run
+# settles for a weaker one — see the retry loop in _call_gemini.
+_TRANSIENT_STATUSES = (429, 500, 502, 503, 504)
+
 _BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
 
@@ -80,8 +84,22 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
         url = f"{_BASE}/{model}:generateContent?key={api_key}"
 
         try:
-            response = requests.post(url, json=payload, timeout=180)
-            print(f"  HTTP status: {response.status_code}")
+            # A 503 says the model is busy, not broken — Google's own message
+            # calls the spike temporary. Dropping straight to the next model
+            # trades the analysis for availability: the fallbacks reliably
+            # produce the reported half of the issue and flatten the judgment
+            # half, which is now the product. A run went out exactly that way,
+            # so a transient failure buys this model a second attempt first.
+            response = None
+            for transient_attempt in range(2):
+                if transient_attempt:
+                    print(f"  {response.status_code} is transient — retrying "
+                          f"{model} in 45 s before falling back.")
+                    time.sleep(45)
+                response = requests.post(url, json=payload, timeout=180)
+                print(f"  HTTP status: {response.status_code}")
+                if response.status_code not in _TRANSIENT_STATUSES:
+                    break
 
             if response.status_code == 429:
                 print("  Rate limited. Trying next model after wait.")
@@ -121,6 +139,13 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
 
             cleaned = clean_ai_content(raw_text)
             print(f"  SUCCESS: {len(cleaned)} chars from {model}")
+            if model != models_to_try[0]:
+                print(f"  FALLBACK MODEL: this issue came from {model}, not "
+                      f"{models_to_try[0]}. The reported half survives on the "
+                      f"fallbacks; the judgment half — strategic reads, the "
+                      f"Desk, the predictions — flattens into restated news. "
+                      f"Read those sections closely, and prefer regenerating "
+                      f"once the leader is available again.")
             return {"content": cleaned, "model": model}
 
         except requests.exceptions.Timeout:
