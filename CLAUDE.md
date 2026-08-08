@@ -152,6 +152,42 @@ other section and the preview URL survive.
   `workflow_dispatch` choice list in `redraft-section.yml` is hand-maintained —
   Actions cannot generate it. Adding a section means editing both.
 
+### Adopting a new Gemini model without a code change
+
+`blog/model-config.json` holds the model order and per-model daily limits.
+`gemini.py` reads it via `load_model_config()`; `MODELS_TO_TRY` and
+`MODEL_DAILY_LIMITS` are only the fallback for a repo with no config yet. The
+approval page reads the file and writes it back through the GitHub Contents API
+with the same PAT that dispatches workflows — which is what makes adopting a
+newly launched model a UI decision instead of an edit here.
+
+What can and cannot be discovered drives the whole design:
+
+- **The model list can be.** `GET /v1beta/models?key=…` returns everything the
+  key can call, so a new model appears on the next run and is recorded in
+  `available`.
+- **Rate limits cannot.** That response carries names and token limits but no
+  RPD/RPM/TPM and no free-tier flag, and no other Google API exposes them. So
+  the page *asks* for the new model's daily limit and refuses to adopt without
+  one. Do not invent a default for an unknown model.
+- **Whether a new model is better cannot be either.** flash-lite was available
+  and produced a materially worse issue. So a new model is **offered, never
+  adopted automatically**, and adopting it pushes the old order down into the
+  fallback chain rather than replacing it — a bad new model degrades to what
+  was already working.
+
+Other things that matter:
+
+- **Preview and experimental names are filtered out** of the offer
+  (`-exp`, `-preview`, `embedding`, `imagen`, `veo`, `tts`, …). They churn
+  weekly and would turn the prompt into noise.
+- **Discovery runs after the issue is generated and fails silently.** It is a
+  convenience; it must never be able to stop a run.
+- **A malformed config falls back to the constants** rather than raising —
+  verified for broken JSON and for wrong types.
+- **`dismissed` is permanent** for that model, so declining an offer does not
+  re-prompt every month.
+
 ### Gemini quota — requests per day, on the approval page
 
 The free tier is **not a monthly token pool**. It is rate limits: requests per

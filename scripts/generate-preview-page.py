@@ -745,6 +745,41 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
              a single combined bar would misreport both. -->
         <div id="quota-models" style="margin-top:0.5rem;"></div>
         <div id="quota-note" style="font-size:0.68rem;color:#94a3b8;line-height:1.45;margin-top:0.4rem;"></div>
+      </div>
+
+      <!-- Model choice. Lives in blog/model-config.json so adopting a newly
+           launched Gemini model is a decision made here, not a code edit. A new
+           model is never adopted automatically: availability is not quality,
+           and flash-lite proved that by producing a materially worse issue. -->
+      <div class="status-card" id="model-card" style="margin-top:0.75rem;">
+        <div class="status-row">
+          <span class="status-label">Model</span>
+          <span class="status-value" id="model-leader" style="font-family:monospace;font-size:0.7rem;">—</span>
+        </div>
+        <div id="model-fallbacks" style="font-size:0.66rem;color:#64748b;margin-top:0.25rem;"></div>
+        <div id="model-new" style="display:none;margin-top:0.6rem;padding:0.6rem;
+             border-radius:6px;background:#78350f;color:#fff;font-size:0.72rem;line-height:1.5;">
+          <div style="font-weight:700;margin-bottom:0.35rem;">New Gemini model available</div>
+          <div id="model-new-name" style="font-family:monospace;font-size:0.72rem;margin-bottom:0.45rem;"></div>
+          <div style="display:flex;gap:0.4rem;align-items:center;margin-bottom:0.45rem;flex-wrap:wrap;">
+            <label style="font-size:0.68rem;">Daily request limit</label>
+            <input id="model-new-limit" type="number" min="1" placeholder="e.g. 1500"
+                   style="width:5.5rem;padding:0.2rem 0.4rem;font-size:0.7rem;border-radius:4px;
+                          border:1px solid #a16207;background:#451a03;color:#fff;">
+          </div>
+          <div style="font-size:0.64rem;opacity:0.85;margin-bottom:0.5rem;">
+            Google publishes no API for rate limits, so this number cannot be
+            discovered — take it from your console. Nothing switches until you
+            press the button, and it applies from the next run.
+          </div>
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+            <button class="btn btn-secondary" id="model-adopt" style="flex:1;min-width:8rem;"
+                    onclick="adoptNewModel()">Lead with it</button>
+            <button class="btn btn-secondary" id="model-dismiss" style="flex:1;min-width:6rem;"
+                    onclick="dismissNewModel()">Not now</button>
+          </div>
+        </div>
+        <div id="model-status" style="font-size:0.66rem;color:#94a3b8;margin-top:0.4rem;"></div>
         <div style="font-size:0.65rem;color:#64748b;line-height:1.45;margin-top:0.45rem;">
           Counts only runs from this blog. Any other app using the same API key
           draws on the same quota and is not counted here —
@@ -1007,6 +1042,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }}, 3000);
     checkForStalePage();
     loadQuota();
+    loadModelConfig();
     // Every full page load reflects the true current staging_filename (baked
     // in server-side at generation time) — this timestamp is how you can
     // tell whether THIS page still matches what's actually on GitHub.
@@ -1110,6 +1146,132 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       note.textContent = worst + "% of a model's daily requests used. Resets at midnight Pacific.";
     }} else {{
       note.textContent = "Well inside the daily limits. Resets at midnight Pacific.";
+    }}
+  }}
+
+  // ── Model choice ───────────────────────────────────────────────
+  // Config lives in the repo so the workflow reads it too. Written back from
+  // here with the same PAT that dispatches workflows, which is what makes
+  // adopting a new model a UI action rather than a code change.
+  const MODEL_CONFIG_PATH = "blog/model-config.json";
+  let MODEL_CFG = null;
+
+  async function loadModelConfig() {{
+    const leader = document.getElementById("model-leader");
+    const fallbacks = document.getElementById("model-fallbacks");
+    if (!leader) return;
+    let cfg = {{ order: [], limits: {{}}, available: [] }};
+    try {{
+      const res = await fetch("/" + MODEL_CONFIG_PATH + "?v=" + Date.now(),
+                              {{ cache: "no-store" }});
+      if (res.ok) cfg = await res.json();
+    }} catch (e) {{ /* no config yet — the run falls back to built-in defaults */ }}
+    MODEL_CFG = cfg;
+    const order = (cfg.order && cfg.order.length) ? cfg.order : ["(built-in default)"];
+    leader.textContent = order[0].replace("gemini-", "");
+    fallbacks.textContent = order.length > 1
+      ? "falls back to " + order.slice(1).map(m => m.replace("gemini-", "")).join(", ")
+      : "no fallback configured";
+
+    const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
+    const box = document.getElementById("model-new");
+    if (fresh.length) {{
+      document.getElementById("model-new-name").textContent = fresh.join(", ");
+      box.style.display = "block";
+    }} else {{
+      box.style.display = "none";
+    }}
+  }}
+
+  // Read-modify-write through the Contents API. The SHA is fetched immediately
+  // before the write so a config the workflow changed in between is not
+  // silently clobbered.
+  async function writeModelConfig(cfg, message) {{
+    const pat = loadPAT();
+    if (!pat) {{
+      showToast("Please add your GitHub token below first.", "error");
+      flashPatAttention();
+      return false;
+    }}
+    const url = `${{GITHUB_API}}/repos/${{REPO}}/contents/${{MODEL_CONFIG_PATH}}`;
+    const headers = {{ "Authorization": `Bearer ${{pat}}`,
+                      "Accept": "application/vnd.github+json" }};
+    let sha = null;
+    try {{
+      const cur = await fetch(url + "?ref=main", {{ headers, cache: "no-store" }});
+      if (cur.ok) sha = (await cur.json()).sha;
+      else if (cur.status !== 404) {{
+        showToast(`Could not read the config (${{cur.status}}).`, "error");
+        return false;
+      }}
+    }} catch (e) {{ showToast("Network error reading the config.", "error"); return false; }}
+
+    const body = {{
+      message: message,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(cfg, null, 2)))),
+      branch: "main"
+    }};
+    if (sha) body.sha = sha;
+    try {{
+      const res = await fetch(url, {{ method: "PUT", headers, body: JSON.stringify(body) }});
+      if (!res.ok) {{
+        const t = await res.text();
+        showToast(`Write failed (${{res.status}}). ${{t.slice(0, 120)}}`, "error");
+        return false;
+      }}
+      return true;
+    }} catch (e) {{ showToast("Network error writing the config.", "error"); return false; }}
+  }}
+
+  async function adoptNewModel() {{
+    const cfg = MODEL_CFG || {{}};
+    const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
+    if (!fresh.length) return;
+    const model = fresh[0];
+    const limit = parseInt(document.getElementById("model-new-limit").value, 10);
+    if (!limit || limit <= 0) {{
+      showToast("Set the daily request limit first — it cannot be discovered.", "error");
+      return;
+    }}
+    const btn = document.getElementById("model-adopt");
+    btn.disabled = true;
+    // New model leads; the previous order becomes the fallback chain, so a bad
+    // new model degrades to what was already working instead of failing.
+    const order = [model].concat((cfg.order || []).filter(m => m !== model));
+    const next = Object.assign({{}}, cfg, {{
+      order: order,
+      limits: Object.assign({{}}, cfg.limits || {{}}, {{ [model]: limit }}),
+      known: Array.from(new Set((cfg.known || []).concat(order))),
+      available: (cfg.available || []).filter(m => m !== model)
+    }});
+    const ok = await writeModelConfig(next, `Lead with ${{model}} (set from the approval page)`);
+    btn.disabled = false;
+    if (ok) {{
+      MODEL_CFG = next;
+      showToast(`${{model}} will lead from the next run.`, "success");
+      document.getElementById("model-status").textContent =
+        "Saved. Takes effect on the next generation.";
+      loadModelConfig();
+    }}
+  }}
+
+  async function dismissNewModel() {{
+    const cfg = MODEL_CFG || {{}};
+    const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
+    if (!fresh.length) return;
+    const btn = document.getElementById("model-dismiss");
+    btn.disabled = true;
+    const next = Object.assign({{}}, cfg, {{
+      dismissed: Array.from(new Set((cfg.dismissed || []).concat(fresh))),
+      known: Array.from(new Set((cfg.known || []).concat(fresh))),
+      available: []
+    }});
+    const ok = await writeModelConfig(next, "Dismiss new Gemini model(s) (from the approval page)");
+    btn.disabled = false;
+    if (ok) {{
+      MODEL_CFG = next;
+      showToast("Dismissed. It will not be offered again.", "purple");
+      loadModelConfig();
     }}
   }}
 
