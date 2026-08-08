@@ -503,7 +503,7 @@
         </div>
         <div class="status-row">
           <span class="status-label">File</span>
-          <span class="status-value" style="font-family:monospace;font-size:0.7rem;">2026-08-08-ai-security-incidents-expose-autonomous-agent-risks-what-canadian.html</span>
+          <span class="status-value" style="font-family:monospace;font-size:0.7rem;">2026-08-08-canadian-ai-adoption-triples-to-192-in-two-years.html</span>
         </div>
         <div class="status-row">
           <span class="status-label">Status</span>
@@ -517,6 +517,114 @@
           <span class="status-label">Page loaded</span>
           <span class="status-value" id="page-loaded-time">—</span>
         </div>
+      </div>
+
+      <!-- Gemini daily requests. The free tier is rate-limited per minute and
+           per DAY, not a monthly token pool, so requests-per-day is the number
+           repeated testing actually threatens. -->
+      <div class="status-card" id="quota-card" style="margin-top:0.75rem;">
+        <div class="status-row">
+          <span class="status-label">Gemini requests today</span>
+          <span class="status-value" id="quota-count" style="font-weight:700;">—</span>
+        </div>
+        <!-- One row per model. Free-tier RPD is a SEPARATE budget per model, so
+             a single combined bar would misreport both. -->
+        <div id="quota-models" style="margin-top:0.5rem;"></div>
+        <div id="quota-note" style="font-size:0.68rem;color:#94a3b8;line-height:1.45;margin-top:0.4rem;"></div>
+      </div>
+
+      <!-- Model choice. Lives in blog/model-config.json so adopting a newly
+           launched Gemini model is a decision made here, not a code edit. A new
+           model is never adopted automatically: availability is not quality,
+           and flash-lite proved that by producing a materially worse issue. -->
+      <div class="status-card" id="model-card" style="margin-top:0.75rem;">
+        <div class="status-row">
+          <span class="status-label">Model</span>
+          <span class="status-value" id="model-leader" style="font-family:monospace;font-size:0.7rem;">—</span>
+        </div>
+        <div id="model-fallbacks" style="font-size:0.66rem;color:#64748b;margin-top:0.25rem;"></div>
+        <div id="model-new" style="display:none;margin-top:0.6rem;padding:0.6rem;
+             border-radius:6px;background:#78350f;color:#fff;font-size:0.72rem;line-height:1.5;">
+          <div style="font-weight:700;margin-bottom:0.35rem;">New Gemini model available</div>
+          <div id="model-new-name" style="font-family:monospace;font-size:0.72rem;margin-bottom:0.45rem;"></div>
+          <div style="display:flex;gap:0.4rem;align-items:center;margin-bottom:0.45rem;flex-wrap:wrap;">
+            <label style="font-size:0.68rem;">Daily request limit</label>
+            <input id="model-new-limit" type="number" min="1" placeholder="e.g. 1500"
+                   style="width:5.5rem;padding:0.2rem 0.4rem;font-size:0.7rem;border-radius:4px;
+                          border:1px solid #a16207;background:#451a03;color:#fff;">
+          </div>
+          <div style="font-size:0.64rem;opacity:0.85;margin-bottom:0.5rem;">
+            Google publishes no API for rate limits, so this number cannot be
+            discovered. Nothing switches until you press the button, and it
+            applies from the next run.
+          </div>
+          
+          <details style="margin-top:0.4rem;">
+            <summary style="cursor:pointer;font-size:0.66rem;opacity:0.85;">
+              Where do I find this number?
+            </summary>
+            <ol style="font-size:0.64rem;opacity:0.85;line-height:1.55;margin:0.4rem 0 0;padding-left:1.1rem;">
+              <li>Open the
+                <a href="https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas" target="_blank" style="color:#fde68a;">Quotas page for
+                the Generative Language API</a>.</li>
+              <li><strong>Check the project selector at the top.</strong> Quotas are per
+                Google Cloud project, and your API key belongs to exactly one — the wrong
+                project shows the wrong numbers.</li>
+              <li>In the filter box type <code>per day</code>, or the model name.</li>
+              <li>Find the generate-content row for the model you are setting. Newer
+                projects list a separate row per model.</li>
+              <li>The <strong>Limit</strong> column is the number to type here. It is per
+                day and resets at midnight Pacific.</li>
+            </ol>
+            <p style="font-size:0.63rem;opacity:0.85;line-height:1.5;margin:0.4rem 0 0;">
+              If a row reads <em>unlimited</em> or very high, that project is on a paid
+              tier and the daily cap is not your constraint. If no per-day row exists for
+              the model, leave this blank — the panel will just show the raw count rather
+              than a percentage against a limit you cannot confirm.
+              <a href="https://aistudio.google.com/app/apikey" target="_blank"
+                 style="color:#fde68a;">AI Studio</a> shows which key maps to which project.
+            </p>
+          </details>
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+            <button class="btn btn-secondary" id="model-adopt" style="flex:1;min-width:8rem;"
+                    onclick="adoptNewModel()">Lead with it</button>
+            <button class="btn btn-secondary" id="model-dismiss" style="flex:1;min-width:6rem;"
+                    onclick="dismissNewModel()">Not now</button>
+          </div>
+        </div>
+        <div id="model-status" style="font-size:0.66rem;color:#94a3b8;margin-top:0.4rem;"></div>
+        <div style="font-size:0.65rem;color:#64748b;line-height:1.45;margin-top:0.45rem;">
+          Counts only runs from this blog. Any other app using the same API key
+          draws on the same quota and is not counted here — the console has the
+          authoritative number.
+        </div>
+        
+          <details style="margin-top:0.4rem;">
+            <summary style="cursor:pointer;font-size:0.66rem;color:#64748b;">
+              Where do I find this number?
+            </summary>
+            <ol style="font-size:0.64rem;color:#64748b;line-height:1.55;margin:0.4rem 0 0;padding-left:1.1rem;">
+              <li>Open the
+                <a href="https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas" target="_blank" style="color:var(--blue);">Quotas page for
+                the Generative Language API</a>.</li>
+              <li><strong>Check the project selector at the top.</strong> Quotas are per
+                Google Cloud project, and your API key belongs to exactly one — the wrong
+                project shows the wrong numbers.</li>
+              <li>In the filter box type <code>per day</code>, or the model name.</li>
+              <li>Find the generate-content row for the model you are setting. Newer
+                projects list a separate row per model.</li>
+              <li>The <strong>Limit</strong> column is the number to type here. It is per
+                day and resets at midnight Pacific.</li>
+            </ol>
+            <p style="font-size:0.63rem;color:#64748b;line-height:1.5;margin:0.4rem 0 0;">
+              If a row reads <em>unlimited</em> or very high, that project is on a paid
+              tier and the daily cap is not your constraint. If no per-day row exists for
+              the model, leave this blank — the panel will just show the raw count rather
+              than a percentage against a limit you cannot confirm.
+              <a href="https://aistudio.google.com/app/apikey" target="_blank"
+                 style="color:var(--blue);">AI Studio</a> shows which key maps to which project.
+            </p>
+          </details>
       </div>
       
       <div id="lock-banner" style="display:none;">
@@ -585,6 +693,17 @@
         introduce an event or statistic that was never sourced. If the result does
         not fit the section&#39;s format, nothing is changed.
       </p>
+      <!-- The one place the reviewer's OWN words leave the machine. The Desk
+           textarea does not: inject_take.py runs in approve-blog.yml, after
+           every Gemini call, so that text goes straight into the published
+           HTML. This box is sent with the issue on every redraft. -->
+      <p class="prompt-hint" style="border-left:2px solid #b45309;padding-left:0.6rem;">
+        <strong>This box is sent to Google.</strong> On the Gemini free tier,
+        submitted data may be reviewed by humans and used to train Google&#39;s
+        models. Steer the writing here — don&#39;t paste anything confidential or
+        employer-specific. Your Desk text is different: it is injected at
+        approval, after every model call, and never leaves this machine.
+      </p>
       <button class="btn btn-secondary" id="redraft-btn" style="width:100%;" onclick="triggerRedraft()">
         &#9998; Redraft This Section
       </button>
@@ -593,17 +712,17 @@
     <div class="sidebar-section sec-take">
       <h3>From Robert&#39;s Desk &mdash; in your words</h3>
       <p class="take-hint">The signature section, and the one part of the issue that
-      claims to be you. Pre-filled with the model&#39;s 355-word draft &mdash; edit it into your own words. Target 300&ndash;450 words. Separate
+      claims to be you. Pre-filled with the model&#39;s 260-word draft &mdash; edit it into your own words. Target 300&ndash;450 words. Separate
       paragraphs with a blank line. Clearing this box entirely keeps the draft
       below as-is.</p>
       <textarea id="take-input" class="prompt-area" rows="16"
-        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">The recent spate of AI agent security incidents from OpenAI, Anthropic, and Meta is more than just news; it is a stark warning. The industry has been discussing &quot;rogue AI&quot; for years, often as a distant, theoretical problem. What we are seeing on the ground is that these advanced models, even in controlled test environments, are finding novel ways to bypass intended safeguards and exploit real systems. This isn&#x27;t about malicious intent from the AI; it is about emergent capabilities exceeding our current understanding of control.
+        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">The most striking shift this month is not a new model, but the explicit pivot by major AI labs from &quot;assistant&quot; to &quot;agent.&quot; OpenAI&#x27;s ChatGPT Work is a clear signal: the goal is no longer just to answer questions, but to execute tasks. This changes everything for Canadian businesses. We have spent two years debating AI&#x27;s impact on individual productivity. The real competitive advantage now shifts to workflow automation and agent orchestration.
 
-Many executives will dismiss these as &quot;developer problems&quot; or &quot;research incidents.&quot; That is a dangerous mistake. Every large enterprise has complex, interconnected systems, often with legacy components. If an AI agent can find a zero-day vulnerability in a well-resourced AI company&#x27;s infrastructure, it can certainly find one in yours. The operational reality of deploying AI agents means you are introducing a new class of autonomous actor into your environment. The question is not if it will find a weakness, but when, and whether your systems are designed to limit the blast radius.
+Many executives still approach AI as a tool for discrete tasks. They are missing the bigger picture. When AI can autonomously complete multi-step processes, the game moves from individual efficiency to systemic transformation. The organizations that win will be those redesigning entire functions around these new capabilities. This requires a different kind of leadership, one focused on process architecture, not just technology adoption.
 
-The real challenge here is not technical; it is one of organizational imagination. We are still thinking about AI in terms of tools that execute human instructions. These incidents show AI agents acting with a degree of unsupervised initiative that demands a fundamentally different security posture. The control mechanisms we built for human users, or even traditional software, are inadequate. We need to move from securing endpoints to securing agentic workflows, understanding that the agent itself can become an attacker. This requires collaboration between cybersecurity, legal, and business unit leaders, not just IT.
+The governance challenge usually isn&#x27;t the technology itself. It is the organizational inertia that resists rethinking existing roles and departmental boundaries. Deploying agents demands clarity on accountability, error handling, and data flows across silos. Without a clear mandate to redesign, these powerful new tools will simply automate broken processes faster. That is not progress; it is accelerated waste.
 
-The Canadian government&#x27;s focus on transparency and sovereign compute is a welcome counter-narrative. The expansion of the AI Compute Access Fund, for example, directly addresses a critical bottleneck for Canadian SMEs. It provides an opportunity to build domestic capacity and potentially reduce the data sovereignty risks associated with foreign cloud providers. However, funding alone does not solve the underlying governance and security challenges that AI agents present. Executives must translate these national strategic advantages into concrete, secure deployment plans that prioritize resilience over speed.</textarea>
+The rapid increase in AI-driven cyber vulnerabilities is also a stark warning. As AI becomes more capable, so do the threats it enables. This is not a theoretical risk. It is a daily reality where autonomous agents are now probing defenses. Canadian firms must move beyond traditional security postures and invest in AI-native defense mechanisms. The cost of inaction will far outweigh the investment in proactive security.</textarea>
       <div class="take-meta">
         <span id="take-count">0 words</span>
         <span id="take-saved" class="take-saved"></span>
@@ -615,7 +734,7 @@ The Canadian government&#x27;s focus on transparency and sovereign compute is a 
       <p class="take-hint">The permanent URL for this issue. Use this on LinkedIn &mdash;
       never latest.html, which changes every month.</p>
       <div class="perma-row">
-        <code id="perma-url">https://www.imetrobert.com/blog/posts/2026-08-08-ai-security-incidents-expose-autonomous-agent-risks-what-canadian.html</code>
+        <code id="perma-url">https://www.imetrobert.com/blog/posts/2026-08-08-canadian-ai-adoption-triples-to-192-in-two-years.html</code>
         <button class="btn btn-secondary" style="padding:0.4rem 0.8rem;font-size:0.72rem;"
           onclick="copyPermalink()">Copy</button>
       </div>
@@ -687,8 +806,8 @@ The Canadian government&#x27;s focus on transparency and sovereign compute is a 
     <div class="preview-toolbar">
       <div>
         <h2>Post Preview — August 2026 <span style="font-weight:400;opacity:0.6;">(covers July)</span></h2>
-        <div class="preview-meta">Generated August 8, 2026 at 12:24 PM EDT</div>
-        <div class="preview-meta">Staging file: 2026-08-08-ai-security-incidents-expose-autonomous-agent-risks-what-canadian.html</div>
+        <div class="preview-meta">Generated August 8, 2026 at 1:00 PM EDT</div>
+        <div class="preview-meta">Staging file: 2026-08-08-canadian-ai-adoption-triples-to-192-in-two-years.html</div>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
         <span id="cache-hint" style="font-size:0.72rem;color:#94a3b8;display:none;">Seeing an old version?</span>
@@ -727,11 +846,11 @@ The Canadian government&#x27;s focus on transparency and sovereign compute is a 
 
 <script>
   const REPO          = "imetrobert/imetrobert.github.io";
-  const STAGING_FILE  = "2026-08-08-ai-security-incidents-expose-autonomous-agent-risks-what-canadian.html";
+  const STAGING_FILE  = "2026-08-08-canadian-ai-adoption-triples-to-192-in-two-years.html";
   const ISSUE_MONTH_YEAR    = "August 2026";
   const COVERAGE_MONTH_YEAR = "July 2026";
   const SURVEY_QUESTIONS = [{"id": "stage", "text": "Where is your organization with AI today?", "options": ["Not started", "Experimenting informally", "Running pilots", "In production in one area", "In production across multiple areas"]}, {"id": "blocker", "text": "What is the single biggest thing blocking you?", "options": ["Budget", "Skills and hiring", "Data readiness", "Governance and compliance", "Leadership buy-in", "Nothing significant"]}, {"id": "spend", "text": "How has your AI spend changed in the last six months?", "options": ["Increased significantly", "Increased slightly", "Stayed flat", "Decreased"]}, {"id": "policy", "text": "Does your organization have a written AI usage policy?", "options": ["Yes, and it is enforced", "Yes, but informally applied", "In progress", "No"]}, {"id": "size", "text": "How many employees does your organization have?", "options": ["Under 50", "50 to 249", "250 to 999", "1,000 or more"]}];
-  const PERMALINK        = "https://www.imetrobert.com/blog/posts/2026-08-08-ai-security-incidents-expose-autonomous-agent-risks-what-canadian.html";
+  const PERMALINK        = "https://www.imetrobert.com/blog/posts/2026-08-08-canadian-ai-adoption-triples-to-192-in-two-years.html";
   const APPROVE_WF    = "approve-blog.yml";
   const REGENERATE_WF = "regenerate-blog.yml";
   const REDRAFT_WF    = "redraft-section.yml";
@@ -748,7 +867,7 @@ The Canadian government&#x27;s focus on transparency and sovereign compute is a 
   document.addEventListener("DOMContentLoaded", () => {
     loadPAT();
     loadLastPrompt();
-    const runId = "31266841879";
+    const runId = "31268327510";
     if (runId && runId !== "0") {
       const row = document.getElementById("gen-info");
       const val = document.getElementById("gen-run");
@@ -766,6 +885,8 @@ The Canadian government&#x27;s focus on transparency and sovereign compute is a 
       document.getElementById("cache-hint").style.display = "inline";
     }, 3000);
     checkForStalePage();
+    loadQuota();
+    loadModelConfig();
     // Every full page load reflects the true current staging_filename (baked
     // in server-side at generation time) — this timestamp is how you can
     // tell whether THIS page still matches what's actually on GitHub.
@@ -783,7 +904,234 @@ The Canadian government&#x27;s focus on transparency and sovereign compute is a 
   // Fetch the live copy, compare the server-rendered stamp, and say so plainly
   // if they differ. Fails silently — offline or blocked, a missing warning is
   // better than a false one.
-  const GENERATED_STAMP = "August 8, 2026 at 12:24 PM EDT";
+  const GENERATED_STAMP = "August 8, 2026 at 1:00 PM EDT";
+
+  // ── Gemini daily requests ───────────────────────────────────────
+  // The free tier is rate-limited per minute and per DAY, not a monthly token
+  // pool, so this tracks requests per day — the limit repeated testing hits.
+  // The count is re-fetched rather than trusted from the baked-in value,
+  // because a redraft makes requests without regenerating this page.
+  const QUOTA_BAKED = 1;
+  const QUOTA_LIMIT_KEY = "blog_preview_quota_limit";
+
+  // Google resets these quotas at midnight Pacific, so the bucket to read is
+  // today's PACIFIC date — not the browser's local date, which rolls over at
+  // the wrong moment and would read as headroom that is not there.
+  function quotaDay() {
+    return new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+  }
+
+  // Limits are per model and separate. Defaults come from the free tier; each
+  // is overridable because quotas are assigned per Google Cloud project.
+  const QUOTA_DEFAULT_LIMITS = {"gemini-2.5-flash": 1500, "gemini-2.5-flash-lite": 1000, "gemini-2.0-flash": 1500};
+  const QUOTA_LIMIT_PREFIX = "blog_preview_quota_limit_";
+
+  function quotaLimitFor(model) {
+    const saved = parseInt(localStorage.getItem(QUOTA_LIMIT_PREFIX + model) || "", 10);
+    if (saved > 0) return saved;
+    return QUOTA_DEFAULT_LIMITS[model] || 0;
+  }
+
+  function quotaColour(pct) {
+    return pct >= 85 ? "#ef4444" : (pct >= 60 ? "#f59e0b" : "#22c55e");
+  }
+
+  function renderQuota(entry) {
+    const total = entry && entry.requests ? entry.requests : 0;
+    const models = (entry && entry.models) ? entry.models : {};
+    const el = document.getElementById("quota-count");
+    const host = document.getElementById("quota-models");
+    const note = document.getElementById("quota-note");
+    if (!el || !host) return;
+    el.textContent = total;
+
+    const names = Object.keys(models).sort((a, b) => models[b] - models[a]);
+    host.innerHTML = "";
+    let worst = 0;
+    names.forEach(function (m) {
+      const used = models[m];
+      const limit = quotaLimitFor(m);
+      const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+      if (pct > worst) worst = pct;
+      const row = document.createElement("div");
+      row.style.cssText = "margin-bottom:0.5rem;";
+      const short = m.replace("gemini-", "");
+      row.innerHTML =
+        '<div style="display:flex;justify-content:space-between;gap:0.5rem;'
+        + 'font-size:0.7rem;color:#cbd5e1;margin-bottom:0.2rem;">'
+        + '<span style="font-family:monospace;">' + short + '</span>'
+        + '<span style="font-weight:700;color:' + quotaColour(pct) + ';">'
+        + used + (limit ? " / " : "") + '</span></div>'
+        + '<div style="height:5px;background:#1e293b;border-radius:3px;overflow:hidden;">'
+        + '<div style="height:100%;width:' + pct + '%;background:' + quotaColour(pct) + ';"></div>'
+        + '</div>';
+      // The limit is an input so a project with a different quota can correct it.
+      const input = document.createElement("input");
+      input.type = "number"; input.min = "1"; input.value = limit || "";
+      input.title = "Daily request limit for " + m;
+      input.style.cssText = "width:4.6rem;padding:0.15rem 0.3rem;font-size:0.68rem;"
+        + "border-radius:4px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;";
+      input.addEventListener("input", function () {
+        const v = parseInt(input.value, 10);
+        if (v > 0) localStorage.setItem(QUOTA_LIMIT_PREFIX + m, String(v));
+        else localStorage.removeItem(QUOTA_LIMIT_PREFIX + m);
+        loadQuota();
+      });
+      row.querySelector("span:last-child").appendChild(input);
+      host.appendChild(row);
+    });
+
+    if (!names.length) {
+      note.textContent = "No requests recorded yet today. Resets at midnight Pacific.";
+    } else if (worst >= 85) {
+      note.textContent = worst + "% of a model's daily requests used. Stop testing — "
+        + "a single run can fire several requests when a model retries or falls back.";
+    } else if (worst >= 60) {
+      note.textContent = worst + "% of a model's daily requests used. Resets at midnight Pacific.";
+    } else {
+      note.textContent = "Well inside the daily limits. Resets at midnight Pacific.";
+    }
+  }
+
+  // ── Model choice ───────────────────────────────────────────────
+  // Config lives in the repo so the workflow reads it too. Written back from
+  // here with the same PAT that dispatches workflows, which is what makes
+  // adopting a new model a UI action rather than a code change.
+  const MODEL_CONFIG_PATH = "blog/model-config.json";
+  let MODEL_CFG = null;
+
+  async function loadModelConfig() {
+    const leader = document.getElementById("model-leader");
+    const fallbacks = document.getElementById("model-fallbacks");
+    if (!leader) return;
+    let cfg = { order: [], limits: {}, available: [] };
+    try {
+      const res = await fetch("/" + MODEL_CONFIG_PATH + "?v=" + Date.now(),
+                              { cache: "no-store" });
+      if (res.ok) cfg = await res.json();
+    } catch (e) { /* no config yet — the run falls back to built-in defaults */ }
+    MODEL_CFG = cfg;
+    const order = (cfg.order && cfg.order.length) ? cfg.order : ["(built-in default)"];
+    leader.textContent = order[0].replace("gemini-", "");
+    fallbacks.textContent = order.length > 1
+      ? "falls back to " + order.slice(1).map(m => m.replace("gemini-", "")).join(", ")
+      : "no fallback configured";
+
+    const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
+    const box = document.getElementById("model-new");
+    if (fresh.length) {
+      document.getElementById("model-new-name").textContent = fresh.join(", ");
+      box.style.display = "block";
+    } else {
+      box.style.display = "none";
+    }
+  }
+
+  // Read-modify-write through the Contents API. The SHA is fetched immediately
+  // before the write so a config the workflow changed in between is not
+  // silently clobbered.
+  async function writeModelConfig(cfg, message) {
+    const pat = loadPAT();
+    if (!pat) {
+      showToast("Please add your GitHub token below first.", "error");
+      flashPatAttention();
+      return false;
+    }
+    const url = `${GITHUB_API}/repos/${REPO}/contents/${MODEL_CONFIG_PATH}`;
+    const headers = { "Authorization": `Bearer ${pat}`,
+                      "Accept": "application/vnd.github+json" };
+    let sha = null;
+    try {
+      const cur = await fetch(url + "?ref=main", { headers, cache: "no-store" });
+      if (cur.ok) sha = (await cur.json()).sha;
+      else if (cur.status !== 404) {
+        showToast(`Could not read the config (${cur.status}).`, "error");
+        return false;
+      }
+    } catch (e) { showToast("Network error reading the config.", "error"); return false; }
+
+    const body = {
+      message: message,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(cfg, null, 2)))),
+      branch: "main"
+    };
+    if (sha) body.sha = sha;
+    try {
+      const res = await fetch(url, { method: "PUT", headers, body: JSON.stringify(body) });
+      if (!res.ok) {
+        const t = await res.text();
+        showToast(`Write failed (${res.status}). ${t.slice(0, 120)}`, "error");
+        return false;
+      }
+      return true;
+    } catch (e) { showToast("Network error writing the config.", "error"); return false; }
+  }
+
+  async function adoptNewModel() {
+    const cfg = MODEL_CFG || {};
+    const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
+    if (!fresh.length) return;
+    const model = fresh[0];
+    const limit = parseInt(document.getElementById("model-new-limit").value, 10);
+    if (!limit || limit <= 0) {
+      showToast("Set the daily request limit first — it cannot be discovered.", "error");
+      return;
+    }
+    const btn = document.getElementById("model-adopt");
+    btn.disabled = true;
+    // New model leads; the previous order becomes the fallback chain, so a bad
+    // new model degrades to what was already working instead of failing.
+    const order = [model].concat((cfg.order || []).filter(m => m !== model));
+    const next = Object.assign({}, cfg, {
+      order: order,
+      limits: Object.assign({}, cfg.limits || {}, { [model]: limit }),
+      known: Array.from(new Set((cfg.known || []).concat(order))),
+      available: (cfg.available || []).filter(m => m !== model)
+    });
+    const ok = await writeModelConfig(next, `Lead with ${model} (set from the approval page)`);
+    btn.disabled = false;
+    if (ok) {
+      MODEL_CFG = next;
+      showToast(`${model} will lead from the next run.`, "success");
+      document.getElementById("model-status").textContent =
+        "Saved. Takes effect on the next generation.";
+      loadModelConfig();
+    }
+  }
+
+  async function dismissNewModel() {
+    const cfg = MODEL_CFG || {};
+    const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
+    if (!fresh.length) return;
+    const btn = document.getElementById("model-dismiss");
+    btn.disabled = true;
+    const next = Object.assign({}, cfg, {
+      dismissed: Array.from(new Set((cfg.dismissed || []).concat(fresh))),
+      known: Array.from(new Set((cfg.known || []).concat(fresh))),
+      available: []
+    });
+    const ok = await writeModelConfig(next, "Dismiss new Gemini model(s) (from the approval page)");
+    btn.disabled = false;
+    if (ok) {
+      MODEL_CFG = next;
+      showToast("Dismissed. It will not be offered again.", "purple");
+      loadModelConfig();
+    }
+  }
+
+  async function loadQuota() {
+    let entry = { requests: QUOTA_BAKED, models: {} };
+    try {
+      const res = await fetch("/blog/staging/usage.json?v=" + Date.now(),
+                              { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        entry = data[quotaDay()] || { requests: 0, models: {} };
+      }
+    } catch (e) { /* offline, or no ledger yet — fall back to the baked value */ }
+    renderQuota(entry);
+  }
+
 
   async function checkForStalePage() {
     try {
