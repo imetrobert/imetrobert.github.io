@@ -30,6 +30,18 @@ except ImportError:
     ZoneInfo = None
 
 
+def _model_daily_limits():
+    """Free-tier requests per day, per model. Defaults only — the panel lets
+    each be overridden, since quotas are assigned per Google Cloud project."""
+    try:
+        import sys, os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from utils import MODEL_DAILY_LIMITS
+        return dict(MODEL_DAILY_LIMITS)
+    except Exception:
+        return {}
+
+
 def _quota_snapshot():
     """Requests this pipeline has made in the current quota day.
 
@@ -188,6 +200,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     generated_stamp = _generated_stamp()
     generated_stamp_json = json.dumps(generated_stamp)
     quota_baked = _quota_snapshot()
+    quota_limits_json = json.dumps(_model_daily_limits())
 
     desk_draft = _extract_desk_draft(staging_filename)
     desk_draft_attr = html_escape(desk_draft)
@@ -728,16 +741,10 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
           <span class="status-label">Gemini requests today</span>
           <span class="status-value" id="quota-count" style="font-weight:700;">—</span>
         </div>
-        <div id="quota-bar-wrap" style="display:none;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;margin:0.45rem 0 0.3rem;">
-          <div id="quota-bar" style="height:100%;width:0%;background:#22c55e;transition:width .3s;"></div>
-        </div>
-        <div id="quota-note" style="font-size:0.68rem;color:#94a3b8;line-height:1.45;margin-top:0.35rem;"></div>
-        <div style="display:flex;gap:0.4rem;align-items:center;margin-top:0.5rem;">
-          <label for="quota-limit" style="font-size:0.68rem;color:#94a3b8;">Daily limit</label>
-          <input id="quota-limit" type="number" min="1" placeholder="set once"
-                 style="width:5.5rem;padding:0.25rem 0.4rem;font-size:0.72rem;border-radius:5px;
-                        border:1px solid #334155;background:#0f172a;color:#e2e8f0;">
-        </div>
+        <!-- One row per model. Free-tier RPD is a SEPARATE budget per model, so
+             a single combined bar would misreport both. -->
+        <div id="quota-models" style="margin-top:0.5rem;"></div>
+        <div id="quota-note" style="font-size:0.68rem;color:#94a3b8;line-height:1.45;margin-top:0.4rem;"></div>
         <div style="font-size:0.65rem;color:#64748b;line-height:1.45;margin-top:0.45rem;">
           Counts only runs from this blog. Any other app using the same API key
           draws on the same quota and is not counted here —
@@ -812,6 +819,17 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         Runs without web search, so a redraft can sharpen the argument but cannot
         introduce an event or statistic that was never sourced. If the result does
         not fit the section&#39;s format, nothing is changed.
+      </p>
+      <!-- The one place the reviewer's OWN words leave the machine. The Desk
+           textarea does not: inject_take.py runs in approve-blog.yml, after
+           every Gemini call, so that text goes straight into the published
+           HTML. This box is sent with the issue on every redraft. -->
+      <p class="prompt-hint" style="border-left:2px solid #b45309;padding-left:0.6rem;">
+        <strong>This box is sent to Google.</strong> On the Gemini free tier,
+        submitted data may be reviewed by humans and used to train Google&#39;s
+        models. Steer the writing here — don&#39;t paste anything confidential or
+        employer-specific. Your Desk text is different: it is injected at
+        approval, after every model call, and never leaves this machine.
       </p>
       <button class="btn btn-secondary" id="redraft-btn" style="width:100%;" onclick="triggerRedraft()">
         &#9998; Redraft This Section
@@ -988,7 +1006,6 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       document.getElementById("cache-hint").style.display = "inline";
     }}, 3000);
     checkForStalePage();
-    initQuotaLimit();
     loadQuota();
     // Every full page load reflects the true current staging_filename (baked
     // in server-side at generation time) — this timestamp is how you can
@@ -1024,67 +1041,91 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     return new Date().toLocaleDateString("en-CA", {{ timeZone: "America/Los_Angeles" }});
   }}
 
-  function renderQuota(count) {{
+  // Limits are per model and separate. Defaults come from the free tier; each
+  // is overridable because quotas are assigned per Google Cloud project.
+  const QUOTA_DEFAULT_LIMITS = {quota_limits_json};
+  const QUOTA_LIMIT_PREFIX = "blog_preview_quota_limit_";
+
+  function quotaLimitFor(model) {{
+    const saved = parseInt(localStorage.getItem(QUOTA_LIMIT_PREFIX + model) || "", 10);
+    if (saved > 0) return saved;
+    return QUOTA_DEFAULT_LIMITS[model] || 0;
+  }}
+
+  function quotaColour(pct) {{
+    return pct >= 85 ? "#ef4444" : (pct >= 60 ? "#f59e0b" : "#22c55e");
+  }}
+
+  function renderQuota(entry) {{
+    const total = entry && entry.requests ? entry.requests : 0;
+    const models = (entry && entry.models) ? entry.models : {{}};
     const el = document.getElementById("quota-count");
+    const host = document.getElementById("quota-models");
     const note = document.getElementById("quota-note");
-    const wrap = document.getElementById("quota-bar-wrap");
-    const bar = document.getElementById("quota-bar");
-    if (!el) return;
-    const limit = parseInt(localStorage.getItem(QUOTA_LIMIT_KEY) || "", 10);
-    if (!limit || limit <= 0) {{
-      el.textContent = count;
-      el.style.color = "#e2e8f0";
-      wrap.style.display = "none";
-      note.textContent = "Set your daily limit below to see how close this is. "
-        + "It is on the Quotas page for the Generative Language API.";
-      return;
-    }}
-    const pct = Math.min(100, Math.round((count / limit) * 100));
-    el.textContent = count + " / " + limit;
-    wrap.style.display = "block";
-    bar.style.width = pct + "%";
-    // Amber at 60% leaves room to finish a session; red at 85% means stop.
-    const colour = pct >= 85 ? "#ef4444" : (pct >= 60 ? "#f59e0b" : "#22c55e");
-    bar.style.background = colour;
-    el.style.color = colour;
-    if (pct >= 85) {{
-      note.textContent = pct + "% of your daily requests used. Stop testing — a "
-        + "run can fire several requests when a model retries or falls back.";
-    }} else if (pct >= 60) {{
-      note.textContent = pct + "% used. Roughly "
-        + Math.max(0, Math.floor((limit - count) / 3)) + " more full runs at three "
-        + "requests each.";
+    if (!el || !host) return;
+    el.textContent = total;
+
+    const names = Object.keys(models).sort((a, b) => models[b] - models[a]);
+    host.innerHTML = "";
+    let worst = 0;
+    names.forEach(function (m) {{
+      const used = models[m];
+      const limit = quotaLimitFor(m);
+      const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+      if (pct > worst) worst = pct;
+      const row = document.createElement("div");
+      row.style.cssText = "margin-bottom:0.5rem;";
+      const short = m.replace("gemini-", "");
+      row.innerHTML =
+        '<div style="display:flex;justify-content:space-between;gap:0.5rem;'
+        + 'font-size:0.7rem;color:#cbd5e1;margin-bottom:0.2rem;">'
+        + '<span style="font-family:monospace;">' + short + '</span>'
+        + '<span style="font-weight:700;color:' + quotaColour(pct) + ';">'
+        + used + (limit ? " / " : "") + '</span></div>'
+        + '<div style="height:5px;background:#1e293b;border-radius:3px;overflow:hidden;">'
+        + '<div style="height:100%;width:' + pct + '%;background:' + quotaColour(pct) + ';"></div>'
+        + '</div>';
+      // The limit is an input so a project with a different quota can correct it.
+      const input = document.createElement("input");
+      input.type = "number"; input.min = "1"; input.value = limit || "";
+      input.title = "Daily request limit for " + m;
+      input.style.cssText = "width:4.6rem;padding:0.15rem 0.3rem;font-size:0.68rem;"
+        + "border-radius:4px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;";
+      input.addEventListener("input", function () {{
+        const v = parseInt(input.value, 10);
+        if (v > 0) localStorage.setItem(QUOTA_LIMIT_PREFIX + m, String(v));
+        else localStorage.removeItem(QUOTA_LIMIT_PREFIX + m);
+        loadQuota();
+      }});
+      row.querySelector("span:last-child").appendChild(input);
+      host.appendChild(row);
+    }});
+
+    if (!names.length) {{
+      note.textContent = "No requests recorded yet today. Resets at midnight Pacific.";
+    }} else if (worst >= 85) {{
+      note.textContent = worst + "% of a model's daily requests used. Stop testing — "
+        + "a single run can fire several requests when a model retries or falls back.";
+    }} else if (worst >= 60) {{
+      note.textContent = worst + "% of a model's daily requests used. Resets at midnight Pacific.";
     }} else {{
-      note.textContent = pct + "% used, resets at midnight Pacific.";
+      note.textContent = "Well inside the daily limits. Resets at midnight Pacific.";
     }}
   }}
 
   async function loadQuota() {{
-    let count = QUOTA_BAKED;
+    let entry = {{ requests: QUOTA_BAKED, models: {{}} }};
     try {{
       const res = await fetch("/blog/staging/usage.json?v=" + Date.now(),
                               {{ cache: "no-store" }});
       if (res.ok) {{
         const data = await res.json();
-        const entry = data[quotaDay()];
-        count = entry ? (entry.requests || 0) : 0;
+        entry = data[quotaDay()] || {{ requests: 0, models: {{}} }};
       }}
     }} catch (e) {{ /* offline, or no ledger yet — fall back to the baked value */ }}
-    renderQuota(count);
+    renderQuota(entry);
   }}
 
-  function initQuotaLimit() {{
-    const input = document.getElementById("quota-limit");
-    if (!input) return;
-    const saved = localStorage.getItem(QUOTA_LIMIT_KEY);
-    if (saved) input.value = saved;
-    input.addEventListener("input", () => {{
-      const v = parseInt(input.value, 10);
-      if (v > 0) localStorage.setItem(QUOTA_LIMIT_KEY, String(v));
-      else localStorage.removeItem(QUOTA_LIMIT_KEY);
-      loadQuota();
-    }});
-  }}
 
   async function checkForStalePage() {{
     try {{
