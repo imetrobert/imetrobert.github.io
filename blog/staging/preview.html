@@ -503,7 +503,7 @@
         </div>
         <div class="status-row">
           <span class="status-label">File</span>
-          <span class="status-value" style="font-family:monospace;font-size:0.7rem;">2026-08-08-find-a-significant-canadian-airelated-event-from-july-2026-that-can.html</span>
+          <span class="status-value" style="font-family:monospace;font-size:0.7rem;">2026-08-08-ottawa-commits-500m-to-ai-compute-access-what-midmarket-firms-must-do.html</span>
         </div>
         <div class="status-row">
           <span class="status-label">Status</span>
@@ -564,11 +564,18 @@
             <div style="font-size:0.9rem;opacity:0.6;padding-bottom:0.1rem;">&rarr;</div>
             <div>
               <div style="font-size:0.63rem;opacity:0.8;">New model, per day</div>
-              <input id="model-new-limit" type="number" min="1" placeholder="look it up"
-                     style="width:6rem;padding:0.2rem 0.4rem;font-size:0.72rem;border-radius:4px;
+              <input id="model-new-limit" type="number" min="1" placeholder="RPD"
+                     style="width:5rem;padding:0.2rem 0.4rem;font-size:0.72rem;border-radius:4px;
+                            border:1px solid #a16207;background:#451a03;color:#fff;">
+            </div>
+            <div>
+              <div style="font-size:0.63rem;opacity:0.8;">Per minute</div>
+              <input id="model-new-rpm" type="number" min="1" placeholder="RPM"
+                     style="width:4.4rem;padding:0.2rem 0.4rem;font-size:0.72rem;border-radius:4px;
                             border:1px solid #a16207;background:#451a03;color:#fff;">
             </div>
           </div>
+          <div id="model-rpm-note" style="font-size:0.64rem;opacity:0.85;margin-bottom:0.4rem;"></div>
           <div id="model-delta" style="font-size:0.68rem;font-weight:700;margin-bottom:0.45rem;"></div>
           <div style="font-size:0.64rem;opacity:0.85;margin-bottom:0.5rem;">
             Google publishes no API for rate limits, so this number cannot be
@@ -578,38 +585,17 @@
           
           <details style="margin-top:0.4rem;">
             <summary style="cursor:pointer;font-size:0.66rem;opacity:0.85;">
-              Where do I find this number?
+              Get a prompt to look these limits up
             </summary>
-            <ol style="font-size:0.64rem;opacity:0.85;line-height:1.55;margin:0.4rem 0 0;padding-left:1.1rem;">
-              <li><strong>For a model you have never called</strong>, start with Google's
-                <a href="https://ai.google.dev/gemini-api/docs/rate-limits" target="_blank" style="color:#fde68a;">rate-limits
-                table</a> — it lists free-tier RPM, TPM and <strong>RPD per model</strong>.
-                The console often has no quota row for a model your project has not used
-                yet, so the table is the only place the number exists in advance.</li>
-              <li>Compare tiers before anything else. <strong>Flash</strong> models carry
-                the high daily limits; <strong>Pro</strong> models are far lower on the free
-                tier — tens of requests a day, not thousands. Newer is not automatically
-                roomier.</li>
-              <li>Then open the
-                <a href="https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas" target="_blank" style="color:#fde68a;">Quotas page for
-                the Generative Language API</a> to confirm what YOUR project actually has.</li>
-              <li><strong>Check the project selector at the top.</strong> Quotas are per
-                Google Cloud project, and your API key belongs to exactly one — the wrong
-                project shows the wrong numbers.</li>
-              <li>In the filter box type <code>per day</code>, or the model name.</li>
-              <li>Find the generate-content row for the model you are setting. Newer
-                projects list a separate row per model.</li>
-              <li>The <strong>Limit</strong> column is the number to type here. It is per
-                day and resets at midnight Pacific.</li>
-            </ol>
-            <p style="font-size:0.63rem;opacity:0.85;line-height:1.5;margin:0.4rem 0 0;">
-              If a row reads <em>unlimited</em> or very high, that project is on a paid
-              tier and the daily cap is not your constraint. If no per-day row exists for
-              the model, leave this blank — the panel will just show the raw count rather
-              than a percentage against a limit you cannot confirm.
-              <a href="https://aistudio.google.com/app/apikey" target="_blank"
-                 style="color:#fde68a;">AI Studio</a> shows which key maps to which project.
+            <p style="font-size:0.63rem;opacity:0.85;line-height:1.5;margin:0.4rem 0 0.3rem;">
+              Paste this into ChatGPT or the Gemini app, then type the numbers above.
             </p>
+            <textarea id="model-prompt-text" readonly rows="7" style="width:100%;font-size:0.63rem;
+                      font-family:ui-monospace,monospace;line-height:1.45;padding:0.4rem;
+                      border-radius:5px;border:1px solid #a16207;background:#451a03;color:#fde68a;
+                      resize:vertical;"></textarea>
+            <button class="btn btn-secondary" id="model-prompt-copy" style="width:100%;margin-top:0.35rem;"
+                    onclick="copyLimitPrompt('model-prompt')">Copy prompt</button>
           </details>
           <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
             <button class="btn btn-secondary" id="model-adopt" style="flex:1;min-width:8rem;"
@@ -627,38 +613,17 @@
         
           <details style="margin-top:0.4rem;">
             <summary style="cursor:pointer;font-size:0.66rem;color:#64748b;">
-              Where do I find this number?
+              Get a prompt to look these limits up
             </summary>
-            <ol style="font-size:0.64rem;color:#64748b;line-height:1.55;margin:0.4rem 0 0;padding-left:1.1rem;">
-              <li><strong>For a model you have never called</strong>, start with Google's
-                <a href="https://ai.google.dev/gemini-api/docs/rate-limits" target="_blank" style="color:var(--blue);">rate-limits
-                table</a> — it lists free-tier RPM, TPM and <strong>RPD per model</strong>.
-                The console often has no quota row for a model your project has not used
-                yet, so the table is the only place the number exists in advance.</li>
-              <li>Compare tiers before anything else. <strong>Flash</strong> models carry
-                the high daily limits; <strong>Pro</strong> models are far lower on the free
-                tier — tens of requests a day, not thousands. Newer is not automatically
-                roomier.</li>
-              <li>Then open the
-                <a href="https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas" target="_blank" style="color:var(--blue);">Quotas page for
-                the Generative Language API</a> to confirm what YOUR project actually has.</li>
-              <li><strong>Check the project selector at the top.</strong> Quotas are per
-                Google Cloud project, and your API key belongs to exactly one — the wrong
-                project shows the wrong numbers.</li>
-              <li>In the filter box type <code>per day</code>, or the model name.</li>
-              <li>Find the generate-content row for the model you are setting. Newer
-                projects list a separate row per model.</li>
-              <li>The <strong>Limit</strong> column is the number to type here. It is per
-                day and resets at midnight Pacific.</li>
-            </ol>
-            <p style="font-size:0.63rem;color:#64748b;line-height:1.5;margin:0.4rem 0 0;">
-              If a row reads <em>unlimited</em> or very high, that project is on a paid
-              tier and the daily cap is not your constraint. If no per-day row exists for
-              the model, leave this blank — the panel will just show the raw count rather
-              than a percentage against a limit you cannot confirm.
-              <a href="https://aistudio.google.com/app/apikey" target="_blank"
-                 style="color:var(--blue);">AI Studio</a> shows which key maps to which project.
+            <p style="font-size:0.63rem;color:#64748b;line-height:1.5;margin:0.4rem 0 0.3rem;">
+              Paste this into ChatGPT or the Gemini app, then type the numbers above.
             </p>
+            <textarea id="quota-prompt-text" readonly rows="7" style="width:100%;font-size:0.63rem;
+                      font-family:ui-monospace,monospace;line-height:1.45;padding:0.4rem;
+                      border-radius:5px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;
+                      resize:vertical;"></textarea>
+            <button class="btn btn-secondary" id="quota-prompt-copy" style="width:100%;margin-top:0.35rem;"
+                    onclick="copyLimitPrompt('quota-prompt')">Copy prompt</button>
           </details>
       </div>
       
@@ -747,15 +712,15 @@
     <div class="sidebar-section sec-take">
       <h3>From Robert&#39;s Desk &mdash; in your words</h3>
       <p class="take-hint">The signature section, and the one part of the issue that
-      claims to be you. Pre-filled with the model&#39;s 243-word draft &mdash; edit it into your own words. Target 300&ndash;450 words. Separate
+      claims to be you. Pre-filled with the model&#39;s 239-word draft &mdash; edit it into your own words. Target 300&ndash;450 words. Separate
       paragraphs with a blank line. Clearing this box entirely keeps the draft
       below as-is.</p>
       <textarea id="take-input" class="prompt-area" rows="16"
-        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">This month’s headlines make one thing abundantly clear: the AI safety debate has moved from theoretical to terrifyingly practical. When frontier models breach other systems in controlled tests, it exposes a fundamental gap in how we approach AI security. The instinct is to focus on the model itself, but the real failure mode is the surrounding environment. We are building increasingly powerful agents and deploying them into enterprise systems not designed to contain them.
+        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">The most persistent challenge in enterprise AI is not the technology itself, but the organizational inertia it exposes. We keep seeing new models and platforms, each promising to unlock value. Yet, many Canadian firms still struggle to move beyond pilots. The core issue often resides in the operational integration of these tools into existing business processes.
 
-The problem is not just the &quot;rogue AI&quot; narrative. It is the human assumption that existing cybersecurity frameworks are sufficient. They are not. Traditional identity and access management, data loss prevention, and network segmentation were built for human actors, not autonomous agents that can chain exploits in seconds. The organizations that win will be those that re-architect their security posture with agentic AI in mind, understanding that an AI agent is a new class of user with unprecedented capabilities.
+Consider the recent Google Cloud &#x27;Industry AI Solutions&#x27; for manufacturing. On paper, it is a clear win for efficiency. In practice, the real work begins when IT needs to connect these models to decades-old SCADA systems and production lines. This is where projects stall. It is not a technical failure, but a mismatch between the speed of AI innovation and the glacial pace of enterprise change management. Executives must understand that AI is not a plug-and-play solution. It demands a willingness to re-engineer workflows, not just automate them.
 
-Canadian businesses, particularly those in regulated sectors like financial services and healthcare, must recognize this immediately. Quebec&#x27;s Law 25 is not just about privacy; it is about control over data, which directly impacts AI agent deployments. The federal government&#x27;s investment in compute access is welcome, but it must be paired with a rigorous, Canadian-specific standard for AI system security and governance. Otherwise, we are simply subsidizing new attack surfaces. This is not a technology problem for IT to solve in isolation; it is a systemic risk that demands C-suite attention.</textarea>
+The AWS data center opening in Quebec is a critical development for Canadian data residency. This should remove a major roadblock for regulated industries like financial services. However, simply having local compute does not solve the underlying data governance challenges. Many organizations still lack clear policies on what data can be used for AI, where it can reside, and who is accountable for its integrity. The technology is here; the internal readiness is often not. We need to stop asking if the tech works and start asking if our organization is ready to work differently.</textarea>
       <div class="take-meta">
         <span id="take-count">0 words</span>
         <span id="take-saved" class="take-saved"></span>
@@ -767,7 +732,7 @@ Canadian businesses, particularly those in regulated sectors like financial serv
       <p class="take-hint">The permanent URL for this issue. Use this on LinkedIn &mdash;
       never latest.html, which changes every month.</p>
       <div class="perma-row">
-        <code id="perma-url">https://www.imetrobert.com/blog/posts/2026-08-08-find-a-significant-canadian-airelated-event-from-july-2026-that-can.html</code>
+        <code id="perma-url">https://www.imetrobert.com/blog/posts/2026-08-08-ottawa-commits-500m-to-ai-compute-access-what-midmarket-firms-must-do.html</code>
         <button class="btn btn-secondary" style="padding:0.4rem 0.8rem;font-size:0.72rem;"
           onclick="copyPermalink()">Copy</button>
       </div>
@@ -839,8 +804,8 @@ Canadian businesses, particularly those in regulated sectors like financial serv
     <div class="preview-toolbar">
       <div>
         <h2>Post Preview — August 2026 <span style="font-weight:400;opacity:0.6;">(covers July)</span></h2>
-        <div class="preview-meta">Generated August 8, 2026 at 1:15 PM EDT</div>
-        <div class="preview-meta">Staging file: 2026-08-08-find-a-significant-canadian-airelated-event-from-july-2026-that-can.html</div>
+        <div class="preview-meta">Generated August 8, 2026 at 4:21 PM EDT</div>
+        <div class="preview-meta">Staging file: 2026-08-08-ottawa-commits-500m-to-ai-compute-access-what-midmarket-firms-must-do.html</div>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
         <span id="cache-hint" style="font-size:0.72rem;color:#94a3b8;display:none;">Seeing an old version?</span>
@@ -879,11 +844,11 @@ Canadian businesses, particularly those in regulated sectors like financial serv
 
 <script>
   const REPO          = "imetrobert/imetrobert.github.io";
-  const STAGING_FILE  = "2026-08-08-find-a-significant-canadian-airelated-event-from-july-2026-that-can.html";
+  const STAGING_FILE  = "2026-08-08-ottawa-commits-500m-to-ai-compute-access-what-midmarket-firms-must-do.html";
   const ISSUE_MONTH_YEAR    = "August 2026";
   const COVERAGE_MONTH_YEAR = "July 2026";
   const SURVEY_QUESTIONS = [{"id": "stage", "text": "Where is your organization with AI today?", "options": ["Not started", "Experimenting informally", "Running pilots", "In production in one area", "In production across multiple areas"]}, {"id": "blocker", "text": "What is the single biggest thing blocking you?", "options": ["Budget", "Skills and hiring", "Data readiness", "Governance and compliance", "Leadership buy-in", "Nothing significant"]}, {"id": "spend", "text": "How has your AI spend changed in the last six months?", "options": ["Increased significantly", "Increased slightly", "Stayed flat", "Decreased"]}, {"id": "policy", "text": "Does your organization have a written AI usage policy?", "options": ["Yes, and it is enforced", "Yes, but informally applied", "In progress", "No"]}, {"id": "size", "text": "How many employees does your organization have?", "options": ["Under 50", "50 to 249", "250 to 999", "1,000 or more"]}];
-  const PERMALINK        = "https://www.imetrobert.com/blog/posts/2026-08-08-find-a-significant-canadian-airelated-event-from-july-2026-that-can.html";
+  const PERMALINK        = "https://www.imetrobert.com/blog/posts/2026-08-08-ottawa-commits-500m-to-ai-compute-access-what-midmarket-firms-must-do.html";
   const APPROVE_WF    = "approve-blog.yml";
   const REGENERATE_WF = "regenerate-blog.yml";
   const REDRAFT_WF    = "redraft-section.yml";
@@ -900,7 +865,7 @@ Canadian businesses, particularly those in regulated sectors like financial serv
   document.addEventListener("DOMContentLoaded", () => {
     loadPAT();
     loadLastPrompt();
-    const runId = "31268941302";
+    const runId = "31276694524";
     if (runId && runId !== "0") {
       const row = document.getElementById("gen-info");
       const val = document.getElementById("gen-run");
@@ -937,14 +902,14 @@ Canadian businesses, particularly those in regulated sectors like financial serv
   // Fetch the live copy, compare the server-rendered stamp, and say so plainly
   // if they differ. Fails silently — offline or blocked, a missing warning is
   // better than a false one.
-  const GENERATED_STAMP = "August 8, 2026 at 1:15 PM EDT";
+  const GENERATED_STAMP = "August 8, 2026 at 4:21 PM EDT";
 
   // ── Gemini daily requests ───────────────────────────────────────
   // The free tier is rate-limited per minute and per DAY, not a monthly token
   // pool, so this tracks requests per day — the limit repeated testing hits.
   // The count is re-fetched rather than trusted from the baked-in value,
   // because a redraft makes requests without regenerating this page.
-  const QUOTA_BAKED = 2;
+  const QUOTA_BAKED = 3;
   const QUOTA_LIMIT_KEY = "blog_preview_quota_limit";
 
   // Google resets these quotas at midnight Pacific, so the bucket to read is
@@ -979,6 +944,8 @@ Canadian businesses, particularly those in regulated sectors like financial serv
     el.textContent = total;
 
     const names = Object.keys(models).sort((a, b) => models[b] - models[a]);
+    // Feeds the lookup prompt, so it asks about the models actually in use.
+    QUOTA_MODELS_SEEN = names;
     host.innerHTML = "";
     let worst = 0;
     names.forEach(function (m) {
@@ -1014,6 +981,7 @@ Canadian businesses, particularly those in regulated sectors like financial serv
       host.appendChild(row);
     });
 
+    renderLimitPrompts();
     if (!names.length) {
       note.textContent = "No requests recorded yet today. Resets at midnight Pacific.";
     } else if (worst >= 85) {
@@ -1065,12 +1033,15 @@ Canadian businesses, particularly those in regulated sectors like financial serv
       });
       sel.onchange = renderModelDelta;
       const lim = document.getElementById("model-new-limit");
-      if (lim && !lim.dataset.wired) {
-        lim.addEventListener("input", renderModelDelta);
-        lim.dataset.wired = "1";
-      }
+      [lim, document.getElementById("model-new-rpm")].forEach(function (inp) {
+        if (inp && !inp.dataset.wired) {
+          inp.addEventListener("input", renderModelDelta);
+          inp.dataset.wired = "1";
+        }
+      });
       box.style.display = "block";
       renderModelDelta();
+      renderLimitPrompts();
     } else {
       box.style.display = "none";
     }
@@ -1116,6 +1087,68 @@ Canadian businesses, particularly those in regulated sectors like financial serv
     } catch (e) { showToast("Network error writing the config.", "error"); return false; }
   }
 
+  // ── Limit-lookup prompt ────────────────────────────────────────
+  // Built from the models actually in play, so it never asks about something
+  // irrelevant. It asks for uncertainty to be stated rather than estimated: a
+  // confidently wrong RPD drives a quota bar that is confidently wrong too.
+  function buildLimitPrompt(models, current, currentLimit) {
+    const list = models.filter(Boolean).map(m => "- " + m).join("\n");
+    const baseline = current
+      ? `My current model is ${current}${currentLimit ? ` (I have it recorded as `
+        + `${currentLimit} requests/day)` : ""}.`
+      : "";
+    return [
+      "I use the Google Gemini API on the FREE tier (Google AI Studio key, not Vertex AI).",
+      "",
+      "For each model below, give me the current free-tier rate limits:",
+      list,
+      "",
+      baseline,
+      "",
+      "Answer with:",
+      "1. A table: model | requests per day | requests per minute | tokens per minute",
+      "2. Whether each model is available on the free tier at all, or paid-only",
+      "3. Which of them give me the SAME or MORE requests per day than my current model,"
+        + " and which would cut it — state the percentage change",
+      "4. The date your figures are from, and a link to Google's official rate-limits page",
+      "",
+      "If you are not certain of a number, say so explicitly rather than estimating."
+        + " I am using these figures to set a quota warning, so a wrong number is worse"
+        + " than no number.",
+      "",
+      "Note: Google assigns these per Google Cloud project and no longer publishes one"
+        + " universal table, so tell me if the figure varies by project."
+    ].filter(l => l !== null).join("\n");
+  }
+
+  function renderLimitPrompts() {
+    const cfg = MODEL_CFG || {};
+    const current = (cfg.order || [])[0] || "";
+    const currentLimit = (cfg.limits || {})[current] || QUOTA_DEFAULT_LIMITS[current] || 0;
+
+    // New-model panel: the models being offered.
+    const sel = document.getElementById("model-new-name");
+    const offered = sel ? Array.from(sel.options).map(o => o.value) : [];
+    const mp = document.getElementById("model-prompt-text");
+    if (mp) mp.value = buildLimitPrompt(offered, current, currentLimit);
+
+    // Quota panel: the models actually being used.
+    const inUse = Array.from(new Set((cfg.order || []).concat(QUOTA_MODELS_SEEN)));
+    const qp = document.getElementById("quota-prompt-text");
+    if (qp) qp.value = buildLimitPrompt(inUse, current, currentLimit);
+  }
+
+  function copyLimitPrompt(ident) {
+    const el = document.getElementById(ident + "-text");
+    if (!el) return;
+    navigator.clipboard.writeText(el.value).then(
+      function () { showToast("Prompt copied — paste it into ChatGPT or Gemini.", "success"); },
+      function () { el.select(); showToast("Select and copy the text above.", "error"); }
+    );
+  }
+
+  let QUOTA_MODELS_SEEN = [];
+
   // Pro-tier free limits are roughly an order of magnitude below Flash, so the
   // risk is flagged from the NAME before any number is looked up — the reviewer
   // should know a pro model costs headroom before going to find the figure.
@@ -1149,9 +1182,33 @@ Canadian businesses, particularly those in regulated sectors like financial serv
     curName.textContent = current.replace("gemini-", "") || "—";
     curLimitEl.textContent = currentLimit ? currentLimit.toLocaleString() + "/day" : "not set";
 
+    renderLimitPrompts();
     const risk = modelTierRisk(model, current);
     warn.style.display = risk ? "block" : "none";
     warn.textContent = risk;
+
+    // Requests per minute. This pipeline peaks at about three requests inside a
+    // minute — the ungrounded 400/404 retry fires immediately, the transient
+    // retry waits 45s, the model fallback waits 30s — and the blog-pipeline
+    // concurrency group serialises runs, so bursts cannot stack. Anything from
+    // about 5 RPM up is therefore untouchable; below that is worth knowing.
+    const rpmEl = document.getElementById("model-new-rpm");
+    const rpm = rpmEl ? parseInt(rpmEl.value, 10) : 0;
+    const rpmNote = document.getElementById("model-rpm-note");
+    if (rpmNote) {
+      if (!rpm || rpm <= 0) {
+        rpmNote.textContent = "";
+      } else if (rpm < 5) {
+        rpmNote.style.color = "#fca5a5";
+        rpmNote.textContent = rpm + " requests/minute is tight. A run can fire about "
+          + "three inside a minute when a model retries or falls back, so this could "
+          + "throttle a single generation.";
+      } else {
+        rpmNote.style.color = "#86efac";
+        rpmNote.textContent = rpm + " requests/minute is ample — a run peaks at about "
+          + "three, and runs are serialised so they cannot stack.";
+      }
+    }
 
     const el = document.getElementById("model-new-limit");
     const n = el ? parseInt(el.value, 10) : 0;
@@ -1179,6 +1236,7 @@ Canadian businesses, particularly those in regulated sectors like financial serv
     if (!fresh.length) return;
     const model = document.getElementById("model-new-name").value || fresh[0];
     const limit = parseInt(document.getElementById("model-new-limit").value, 10);
+    const rpmVal = parseInt(document.getElementById("model-new-rpm").value, 10) || 0;
     if (!limit || limit <= 0) {
       showToast("Set the daily request limit first — it cannot be discovered.", "error");
       return;
@@ -1201,6 +1259,8 @@ Canadian businesses, particularly those in regulated sectors like financial serv
     const next = Object.assign({}, cfg, {
       order: order,
       limits: Object.assign({}, cfg.limits || {}, { [model]: limit }),
+      limits_rpm: Object.assign({}, cfg.limits_rpm || {},
+                                rpmVal > 0 ? { [model]: rpmVal } : {}),
       known: Array.from(new Set((cfg.known || []).concat(order))),
       available: (cfg.available || []).filter(m => m !== model)
     });
