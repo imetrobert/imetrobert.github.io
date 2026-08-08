@@ -515,6 +515,14 @@ every term to appear flagged a correct headline over a synonym: the title read
 "…$700M for SMEs" and the introduction said "small and medium businesses". One
 match is enough to prove the headline belongs to the issue.
 
+**Metonyms and figures are matched too, because one term is not a sample.** A
+headline reading "Ottawa commits $500M to AI compute access" has exactly one
+capitalised word, so "none matched" and "this one word is phrased differently"
+were the same test — and it fired on a correct issue whose Spotlight carried the
+story as "Government of Canada (ISED)". `_title_synonyms` maps `ottawa` to the
+federal-government wordings, and figures in the title (`$500M` → `500`) are
+extracted as terms so a numeric claim can carry the match on its own.
+
 ### Coverage month is a dropdown, and the year list needs extending
 
 `monthly-blog.yml` takes the coverage month as two `choice` inputs
