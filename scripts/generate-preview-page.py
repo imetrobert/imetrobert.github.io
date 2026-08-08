@@ -170,6 +170,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     # from nothing is a much bigger ask than editing. A localStorage draft
     # still wins over this — see initTake().
     generated_stamp = _generated_stamp()
+    generated_stamp_json = json.dumps(generated_stamp)
 
     desk_draft = _extract_desk_draft(staging_filename)
     desk_draft_attr = html_escape(desk_draft)
@@ -187,6 +188,13 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
+  <!-- GitHub Pages serves this with a ten-minute max-age and no way to override
+       the header, so a browser will happily show a stale approval screen. These
+       help where they are honoured; the staleness check in JS is what actually
+       catches it. -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Review: {issue_month_year} Issue (covers {coverage_month_name}) — Robert Simon</title>
   <style>
     :root {{
@@ -923,11 +931,53 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     setTimeout(() => {{
       document.getElementById("cache-hint").style.display = "inline";
     }}, 3000);
+    checkForStalePage();
     // Every full page load reflects the true current staging_filename (baked
     // in server-side at generation time) — this timestamp is how you can
     // tell whether THIS page still matches what's actually on GitHub.
     document.getElementById("page-loaded-time").textContent = new Date().toLocaleTimeString();
   }});
+
+  // Is this page the one that is actually deployed?
+  //
+  // The approval screen lives at a fixed URL and is regenerated on every run,
+  // so a cached copy shows an old issue with an old generation time and gives
+  // no sign of it. That happened: a stamp read 10:38 PM for a run that had
+  // already been superseded, and the natural conclusion was that the stamp was
+  // broken rather than the page being stale.
+  //
+  // Fetch the live copy, compare the server-rendered stamp, and say so plainly
+  // if they differ. Fails silently — offline or blocked, a missing warning is
+  // better than a false one.
+  const GENERATED_STAMP = {generated_stamp_json};
+
+  async function checkForStalePage() {{
+    try {{
+      const res = await fetch("/blog/staging/preview.html?stale=" + Date.now(),
+                              {{ cache: "no-store" }});
+      if (!res.ok) return;
+      const live = await res.text();
+      const m = live.match(/Generated ([^<]+)</);
+      if (!m || m[1].trim() === GENERATED_STAMP) return;
+
+      const bar = document.createElement("div");
+      bar.style.cssText = "position:sticky;top:0;z-index:9999;background:#b45309;" +
+        "color:#fff;padding:0.7rem 1rem;font-size:0.85rem;font-weight:600;" +
+        "display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;";
+      bar.innerHTML =
+        "<span>You are looking at a cached copy of this page. It was generated " +
+        GENERATED_STAMP + "; the current one was generated " + m[1].trim() + ".</span>";
+      const btn = document.createElement("button");
+      btn.textContent = "Load the current version";
+      btn.style.cssText = "background:#fff;color:#b45309;border:none;border-radius:6px;" +
+        "padding:0.4rem 0.9rem;font-weight:700;cursor:pointer;min-height:36px;";
+      btn.onclick = forceRefresh;
+      bar.appendChild(btn);
+      document.body.prepend(bar);
+    }} catch (e) {{
+      /* offline or blocked — stay quiet rather than warn wrongly */
+    }}
+  }}
 
   function onIframeLoad() {{
     document.getElementById("iframe-loading").classList.remove("show");

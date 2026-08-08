@@ -473,9 +473,29 @@ regardless of how accurate the post looks — a real issue cited "ML Kenya Blogs
 and "TechCraft Chronicles - Medium" for its two most specific product claims,
 and neither could be verified.
 
-Any item you can only source to one of those is DISCARDED before publication.
-Report fewer developments rather than citing a blog: a thin issue costs you one
-story, a bad citation costs the publication its credibility.
+THIS IS ENFORCED IN CODE, NOT LEFT TO JUDGMENT. Every development is checked
+against a list of known publications before publication. A citation qualifies
+only if it is one of:
+
+  1. A recognised news outlet or research body — Reuters, Bloomberg, Associated
+     Press, Globe and Mail, Financial Post, National Post, CBC, The Logic,
+     BetaKit, The Verge, TechCrunch, Ars Technica, Wired, MIT Technology
+     Review, CNBC, Business Insider, Axios, The Register, Statistics Canada,
+     McKinsey, Deloitte, KPMG, Gartner, Forrester, and the like.
+  2. A government or regulatory body — Government of Canada, ISED, OSFI,
+     Bank of Canada, the Privacy Commissioner, a provincial ministry.
+  3. The subject's OWN newsroom — an OpenAI announcement cited to the OpenAI
+     blog, a Google release cited to the Google blog.
+
+Anything else is deleted from the issue automatically. Recent runs lost stories
+to "Analytics Vidhya", "ThursdAI", "BenchLM.ai", "Signal49 Research" and
+"ML Kenya Blogs" — aggregators and newsletters whose names give nothing away.
+If the only place you can find a story is one of those, THE STORY DOES NOT GO
+IN. Find the primary announcement it was summarising, or report a different
+development.
+
+Report fewer developments rather than citing an aggregator: a thin issue costs
+you one story, a bad citation costs the publication its credibility.
 
 OUTPUT FORMAT
 Write plain text only. No markdown (no *, no **, no #). Use EXACTLY these section headers, spelled exactly like this, each on its own line, in this order:

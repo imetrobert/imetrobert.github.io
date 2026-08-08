@@ -343,6 +343,20 @@ _KNOWN_PUBLICATIONS = {
     "statistics canada", "conference board of canada", "bdc", "ised",
     "vector institute", "mila", "amii", "oecd", "world economic forum",
     "pew research", "stanford hai", "borderless ai",
+    # Canadian trade and regional press
+    "the logic", "it business", "mobilesyrup", "investment executive",
+    "advisor", "canadian lawyer", "communitech", "techvibes", "cartt",
+    "financial times canada", "canadian underwriter", "benefits canada",
+    # More international news and trade press
+    "the register", "protocol", "rest of world", "nikkei", "cnn", "sky news",
+    "le monde", "handelsblatt", "der spiegel", "the times", "sifted",
+    "tech monitor", "computerworld", "infoworld", "network world", "cio",
+    "silicon angle", "the next web", "gizmodo", "techradar", "digital trends",
+    # Regulators, central banks and standards bodies
+    "osfi", "bank of canada", "crtc", "privacy commissioner", "competition bureau",
+    "cipo", "nist", "european commission", "iso", "ieee", "cra",
+    "innovation science and economic development", "public safety canada",
+    "treasury board", "canada revenue agency", "health canada",
     # First-party newsrooms. The prompt allows official company blogs as primary
     # sources, and they are frequently the source for a rival's announcement —
     # "AWS News Blog" carrying an Anthropic release, say — so they cannot be
@@ -353,6 +367,37 @@ _KNOWN_PUBLICATIONS = {
 }
 
 
+
+
+def is_acceptable_source(source_name, subject=""):
+    """Whether a citation may carry a reported development.
+
+    Three ways to qualify, and nothing else:
+      - a publication on the known list
+      - a government or regulatory body
+      - the subject's own newsroom (an official company announcement)
+
+    This is an ALLOWLIST, and callers drop what fails it. That is a deliberate
+    reversal: for five issues the check flagged unrecognised sources and let
+    them publish, and the model kept reaching for aggregators — "ML Kenya
+    Blogs", "Signal49 Research", "BenchLM.ai", "Analytics Vidhya", "ThursdAI".
+    The names are arbitrary, so no blocklist can anticipate them; only naming
+    what IS acceptable closes the gap.
+
+    The cost is real and intended: a month with little primary reporting now
+    produces a thin issue that has to be regenerated, rather than a full one
+    resting on sources nobody can check.
+    """
+    if not source_name:
+        return False
+    if is_recognised_publication(source_name) or is_government_entity(source_name):
+        return True
+    # First-party: the citation names the organisation the item is about.
+    subject = (subject or "").strip().lower()
+    name = source_name.strip().lower()
+    if not subject:
+        return False
+    return name in subject or subject.split()[0] in name
 
 
 def is_government_entity(company):

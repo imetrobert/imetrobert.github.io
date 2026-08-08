@@ -9,6 +9,7 @@ from utils import (
     BRAND,
     build_search_url,
     is_episode_or_newsletter_item,
+    is_acceptable_source,
     is_low_quality_source,
     is_government_entity,
     is_meta_commentary,
@@ -421,23 +422,41 @@ def _close_sentence(item):
     return item
 
 
-def _drop_low_quality_sourced(items, label_key):
-    """Remove items whose only citation is a self-publishing platform.
+def _drop_low_quality_sourced(items, label_key, strict=False):
+    """Remove items whose citation cannot carry a reported claim.
 
-    Dropping rather than warning matches what the prompt already says should
-    happen to them, and matches how episode/newsletter items are handled. An
-    item with no source at all is left alone — that is a different problem and
-    the reviewer can see it.
+    Two modes, because the two sections carry different weight:
+
+    `strict=True` (developments) applies the allowlist: a citation must be a
+    known publication, a government body, or the subject's own newsroom. This
+    is the reversal — for five issues the check merely flagged unrecognised
+    sources and the model kept reaching for aggregators whose names no
+    blocklist could anticipate.
+
+    `strict=False` (spotlight) keeps the narrower blocklist. Spotlight items
+    are mostly government and institutional, where the allowlist is thinnest
+    and a false drop would empty a three-item section.
+
+    An item with no source at all is left alone in both modes — that is a
+    different problem, and a visible one.
     """
     kept = []
     for item in items:
         source = item.get('source_name', '')
+        who = item.get(label_key) or item.get('body', '')[:40]
+
         if is_low_quality_source(source):
-            who = item.get(label_key) or item.get('body', '')[:40]
             print(f"  source-quality: dropping '{who}' — cited to '{source}', "
                   f"which is not a publication (a self-publishing platform, a bare "
                   f"domain, or somebody's byline).")
             continue
+
+        if strict and source and not is_acceptable_source(source, who):
+            print(f"  source-quality: dropping '{who}' — cited to '{source}', which is "
+                  f"not a known publication, a government body, or its own newsroom. "
+                  f"Unverifiable sources cannot carry a reported development.")
+            continue
+
         kept.append(item)
     return kept
 
@@ -446,7 +465,7 @@ def _finalize_developments(items, strategy, coverage_date=None, today=None):
     items = [i for i in items if not is_meta_commentary(i.get('body', '') + ' ' + i.get('company', ''))]
     items = [i for i in items if not is_episode_or_newsletter_item(i.get('body', ''), i.get('company', ''))]
     items = [i for i in items if not is_government_entity(i.get('company', ''))]
-    items = _drop_low_quality_sourced(items, 'company')
+    items = _drop_low_quality_sourced(items, 'company', strict=True)
     items = _drop_future_dated(items, coverage_date, today)
     for item in items:
         body, ratings = _extract_dev_ratings(item.get('body', ''))
