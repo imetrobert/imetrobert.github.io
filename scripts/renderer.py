@@ -149,11 +149,24 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     # appeared nowhere in it, and another led with "new consortia" after the
     # consortium story was dropped for its source. The reader sees the title
     # first, so a dangling one reads as a broken page.
-    _body_text = " ".join(
+    # Two haystacks, because "missing" has two meanings. The reported items are
+    # what the headline is supposed to be drawn FROM; the full prose is where a
+    # reader could still find the story. Checking only the reported items cried
+    # wolf on a real issue — the headline read "Ottawa expands the AI Compute
+    # Access Fund" and the story was in the introduction and the Desk, so it
+    # was present on the page and flagged anyway.
+    _reported_text = " ".join(
         [(_d.get("company", "") + " " + _d.get("body", "")) for _d in developments]
         + [(_s.get("org", "") + " " + _s.get("body", "")) for _s in spotlight_items]
+    ).lower()
+    _body_text = " ".join(
+        [_reported_text]
         + [_a.get("body", "") for _a in actions]
         + [_st.get("body", "") for _st in adoption]
+        + [sections.get("INTRODUCTION", ""), roberts_raw]
+        + summary_points
+        + [_p.get("body", "") if isinstance(_p, dict) else str(_p) for _p in predictions]
+        + [closing_question or ""]
     ).lower()
     # Only distinctive terms: capitalised words the title leans on, minus the
     # vocabulary every issue uses. A generic word missing from the body means
@@ -167,13 +180,26 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         w.strip(",.:;'’\"").lower()
         for w in re.findall(r"\b[A-Z][A-Za-z0-9&.\-]{2,}\b", clean_title)
     }
-    _dangling = sorted(t for t in _title_terms
-                       if t and t not in _title_stop and t not in _body_text)
-    if _dangling and developments:
-        print(f"  TITLE MISMATCH: the headline names {', '.join(_dangling)}, which appears "
-              f"nowhere in the issue body. A story the headline was written for was most "
-              f"likely dropped by the date or source-quality filters above — retitle or "
-              f"regenerate rather than publish a title the page does not deliver.")
+    _terms = [t for t in _title_terms if t and t not in _title_stop]
+    # Warn only when NOTHING in the headline is anchored — not when one term is
+    # phrased differently. Requiring every term to appear cried wolf on a real
+    # issue: the headline said "…$700M for SMEs", the intro said "small and
+    # medium businesses", and a correct headline was flagged over a synonym.
+    # One match is enough to prove the headline belongs to this issue.
+    _anywhere  = [t for t in _terms if t in _body_text]
+    _reported  = [t for t in _terms if t in _reported_text]
+    if _terms and developments and not _anywhere:
+        print(f"  TITLE MISMATCH: the headline names {', '.join(sorted(_terms))}, none of "
+              f"which appears anywhere in the issue. A story the headline was written for "
+              f"was most likely dropped by the date or source-quality filters above — "
+              f"retitle or regenerate rather than publish a title the page does not deliver.")
+    elif _terms and developments and not _reported:
+        # Weaker, and a different problem: the story is on the page, but only in
+        # commentary. The headline promises reporting the issue never actually does.
+        print(f"  TITLE NOT REPORTED: the headline names {', '.join(sorted(_terms))}, which "
+              f"appears only in the introduction or commentary — no development or spotlight "
+              f"item covers it. Usually means the story it was written for was dropped above, "
+              f"leaving the headline on something the issue only mentions in passing.")
 
     # Spotlight items sometimes carry a date. The future-date filter only looks
     # forward, so an item from a PRIOR month — which the prompt forbids — passes

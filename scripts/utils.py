@@ -205,12 +205,24 @@ _LOW_QUALITY_SOURCE_MARKERS = (
 )
 
 
+# Outlets usually cited by their initials. Matched EXACTLY and kept out of
+# _KNOWN_PUBLICATIONS on purpose: that set is matched as a substring, so a
+# three-letter key there would fire inside unrelated names. "TNW" is The Next
+# Web, and a real July story was dropped because only the long form was listed.
+_KNOWN_ABBREVIATIONS = {
+    "tnw", "wsj", "nyt", "ft", "ap", "afp", "npr", "wapo", "bnn", "cp",
+    "mit tech review", "hbr", "cbc ca", "ctv news",
+}
+
+
 def is_recognised_publication(source_name):
     """True when the citation names an outlet on the known list."""
     if not source_name:
         return False
     name = re.sub(r'[^a-z0-9 ]+', ' ', source_name.lower())
     name = re.sub(r'\s+', ' ', name).strip()
+    if name in _KNOWN_ABBREVIATIONS:
+        return True
     return any(k in name or name in k for k in _KNOWN_PUBLICATIONS)
 
 
@@ -307,8 +319,19 @@ def is_low_quality_source(source_name):
         return False
     raw = source_name.strip()
 
-    if re.search(r'\.(ai|com|io|co|net|org|dev|app|xyz)\b', raw, re.IGNORECASE):
-        return True
+    # A domain that names a known outlet IS that outlet. This test used to run
+    # before any publication check, so "Reuters.com" and "BetaKit.com" were
+    # dropped as bare domains. Strip the suffix and ask first. ".ca" is in the
+    # list now too — its absence let "Fintech.ca" through on a Canadian blog,
+    # which is the single likeliest bare domain this publication will meet.
+    _domain = r'\.(?:ai|com|io|co|net|org|dev|app|xyz|ca)\b'
+    if re.search(_domain, raw, re.IGNORECASE):
+        stem = re.sub(_domain + r'.*$', '', raw, flags=re.IGNORECASE)
+        # Domains carry no spaces, so split camelCase before matching too:
+        # "TheGlobeAndMail" only reads as the Globe and Mail once it does.
+        spaced = re.sub(r'(?<=[a-z0-9])(?=[A-Z])', ' ', stem)
+        return not (is_recognised_publication(stem)
+                    or is_recognised_publication(spaced))
 
     name = re.sub(r'[^a-z0-9 ]+', ' ', raw.lower())
     if any(f' {marker} ' in f' {name} ' for marker in _LOW_QUALITY_SOURCE_MARKERS):
