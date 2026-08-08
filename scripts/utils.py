@@ -547,6 +547,10 @@ _DOC_SURFACES = (
     "support centre", "knowledge base", "documentation", "docs",
     "developer guide", "dev guide", "api reference", "release notes",
     "changelog", "microsoft learn", "faq",
+    # "Google AI for Developers" is ai.google.dev — the developer docs portal,
+    # not a newsroom. It passed every test because it carries Google's name.
+    # "<X> for Developers" is a documentation portal by convention.
+    "for developers", "ai for developers",
 )
 
 
@@ -827,7 +831,7 @@ _KNOWN_PUBLICATIONS = {
     # technology analyst firm of the same kind as Gartner and Forrester, which
     # are already listed. gHacks and "Enterprise Viewpoint" stay out — a
     # long-running blog is still a blog.
-    "insurance journal", "futurum",
+    "insurance journal", "futurum", "pymnts",
     "the register", "protocol", "rest of world", "nikkei", "cnn", "sky news",
     "le monde", "handelsblatt", "der spiegel", "the times", "sifted",
     "tech monitor", "computerworld", "infoworld", "network world", "cio",
