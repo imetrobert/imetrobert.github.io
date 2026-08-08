@@ -30,6 +30,22 @@ except ImportError:
     ZoneInfo = None
 
 
+def _quota_snapshot():
+    """Requests this pipeline has made in the current quota day.
+
+    Baked in as a fallback only — the page re-fetches the ledger on load, so a
+    page cached from an earlier run still shows a current number.
+    """
+    try:
+        import sys, os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from utils import requests_today
+        reqs, _toks = requests_today()
+        return reqs
+    except Exception:
+        return 0
+
+
 def _generated_stamp():
     """When this draft was generated, in Robert's timezone.
 
@@ -171,6 +187,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     # still wins over this — see initTake().
     generated_stamp = _generated_stamp()
     generated_stamp_json = json.dumps(generated_stamp)
+    quota_baked = _quota_snapshot()
 
     desk_draft = _extract_desk_draft(staging_filename)
     desk_draft_attr = html_escape(desk_draft)
@@ -702,6 +719,33 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
           <span class="status-value" id="page-loaded-time">—</span>
         </div>
       </div>
+
+      <!-- Gemini daily requests. The free tier is rate-limited per minute and
+           per DAY, not a monthly token pool, so requests-per-day is the number
+           repeated testing actually threatens. -->
+      <div class="status-card" id="quota-card" style="margin-top:0.75rem;">
+        <div class="status-row">
+          <span class="status-label">Gemini requests today</span>
+          <span class="status-value" id="quota-count" style="font-weight:700;">—</span>
+        </div>
+        <div id="quota-bar-wrap" style="display:none;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;margin:0.45rem 0 0.3rem;">
+          <div id="quota-bar" style="height:100%;width:0%;background:#22c55e;transition:width .3s;"></div>
+        </div>
+        <div id="quota-note" style="font-size:0.68rem;color:#94a3b8;line-height:1.45;margin-top:0.35rem;"></div>
+        <div style="display:flex;gap:0.4rem;align-items:center;margin-top:0.5rem;">
+          <label for="quota-limit" style="font-size:0.68rem;color:#94a3b8;">Daily limit</label>
+          <input id="quota-limit" type="number" min="1" placeholder="set once"
+                 style="width:5.5rem;padding:0.25rem 0.4rem;font-size:0.72rem;border-radius:5px;
+                        border:1px solid #334155;background:#0f172a;color:#e2e8f0;">
+        </div>
+        <div style="font-size:0.65rem;color:#64748b;line-height:1.45;margin-top:0.45rem;">
+          Counts only runs from this blog. Any other app using the same API key
+          draws on the same quota and is not counted here —
+          <a href="https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas"
+             target="_blank" style="color:var(--blue);">check the console</a>
+          for the authoritative number, and copy your real daily limit above.
+        </div>
+      </div>
       {regen_badge}
       <div id="lock-banner" style="display:none;">
         <div class="lock-banner">
@@ -944,6 +988,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       document.getElementById("cache-hint").style.display = "inline";
     }}, 3000);
     checkForStalePage();
+    initQuotaLimit();
+    loadQuota();
     // Every full page load reflects the true current staging_filename (baked
     // in server-side at generation time) — this timestamp is how you can
     // tell whether THIS page still matches what's actually on GitHub.
@@ -962,6 +1008,83 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   // if they differ. Fails silently — offline or blocked, a missing warning is
   // better than a false one.
   const GENERATED_STAMP = {generated_stamp_json};
+
+  // ── Gemini daily requests ───────────────────────────────────────
+  // The free tier is rate-limited per minute and per DAY, not a monthly token
+  // pool, so this tracks requests per day — the limit repeated testing hits.
+  // The count is re-fetched rather than trusted from the baked-in value,
+  // because a redraft makes requests without regenerating this page.
+  const QUOTA_BAKED = {quota_baked};
+  const QUOTA_LIMIT_KEY = "blog_preview_quota_limit";
+
+  // Google resets these quotas at midnight Pacific, so the bucket to read is
+  // today's PACIFIC date — not the browser's local date, which rolls over at
+  // the wrong moment and would read as headroom that is not there.
+  function quotaDay() {{
+    return new Date().toLocaleDateString("en-CA", {{ timeZone: "America/Los_Angeles" }});
+  }}
+
+  function renderQuota(count) {{
+    const el = document.getElementById("quota-count");
+    const note = document.getElementById("quota-note");
+    const wrap = document.getElementById("quota-bar-wrap");
+    const bar = document.getElementById("quota-bar");
+    if (!el) return;
+    const limit = parseInt(localStorage.getItem(QUOTA_LIMIT_KEY) || "", 10);
+    if (!limit || limit <= 0) {{
+      el.textContent = count;
+      el.style.color = "#e2e8f0";
+      wrap.style.display = "none";
+      note.textContent = "Set your daily limit below to see how close this is. "
+        + "It is on the Quotas page for the Generative Language API.";
+      return;
+    }}
+    const pct = Math.min(100, Math.round((count / limit) * 100));
+    el.textContent = count + " / " + limit;
+    wrap.style.display = "block";
+    bar.style.width = pct + "%";
+    // Amber at 60% leaves room to finish a session; red at 85% means stop.
+    const colour = pct >= 85 ? "#ef4444" : (pct >= 60 ? "#f59e0b" : "#22c55e");
+    bar.style.background = colour;
+    el.style.color = colour;
+    if (pct >= 85) {{
+      note.textContent = pct + "% of your daily requests used. Stop testing — a "
+        + "run can fire several requests when a model retries or falls back.";
+    }} else if (pct >= 60) {{
+      note.textContent = pct + "% used. Roughly "
+        + Math.max(0, Math.floor((limit - count) / 3)) + " more full runs at three "
+        + "requests each.";
+    }} else {{
+      note.textContent = pct + "% used, resets at midnight Pacific.";
+    }}
+  }}
+
+  async function loadQuota() {{
+    let count = QUOTA_BAKED;
+    try {{
+      const res = await fetch("/blog/staging/usage.json?v=" + Date.now(),
+                              {{ cache: "no-store" }});
+      if (res.ok) {{
+        const data = await res.json();
+        const entry = data[quotaDay()];
+        count = entry ? (entry.requests || 0) : 0;
+      }}
+    }} catch (e) {{ /* offline, or no ledger yet — fall back to the baked value */ }}
+    renderQuota(count);
+  }}
+
+  function initQuotaLimit() {{
+    const input = document.getElementById("quota-limit");
+    if (!input) return;
+    const saved = localStorage.getItem(QUOTA_LIMIT_KEY);
+    if (saved) input.value = saved;
+    input.addEventListener("input", () => {{
+      const v = parseInt(input.value, 10);
+      if (v > 0) localStorage.setItem(QUOTA_LIMIT_KEY, String(v));
+      else localStorage.removeItem(QUOTA_LIMIT_KEY);
+      loadQuota();
+    }});
+  }}
 
   async function checkForStalePage() {{
     try {{

@@ -6,7 +6,8 @@ Gemini API integration and prompt construction for the monthly blog generator.
 import time
 import requests
 from datetime import datetime, timedelta
-from utils import clean_ai_content, STOCK_VOICE_PHRASES, CANADIAN_HOUSEHOLD_BRANDS
+from utils import (clean_ai_content, STOCK_VOICE_PHRASES, CANADIAN_HOUSEHOLD_BRANDS,
+                   record_gemini_request, requests_today)
 
 
 def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
@@ -46,6 +47,18 @@ MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"
 _TRANSIENT_STATUSES = (429, 500, 502, 503, 504)
 
 _BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+
+
+def _tokens_used(response):
+    """Total tokens Gemini reports for a call, or 0 if it said nothing.
+
+    usageMetadata comes back on every successful response and was previously
+    discarded, so a run left no record of what it cost.
+    """
+    try:
+        return int(response.json().get("usageMetadata", {}).get("totalTokenCount", 0))
+    except Exception:
+        return 0
 
 
 def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
@@ -97,6 +110,10 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                           f"{model} in 45 s before falling back.")
                     time.sleep(45)
                 response = requests.post(url, json=payload, timeout=180)
+                # Counted here, not per run: this loop, the model fallback and
+                # the ungrounded retry below each fire their own request, and
+                # the daily quota counts requests.
+                record_gemini_request(model, _tokens_used(response))
                 print(f"  HTTP status: {response.status_code}")
                 if response.status_code not in _TRANSIENT_STATUSES:
                     break
@@ -110,6 +127,7 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                 print(f"  {response.status_code} on {model}. Retrying without grounding.")
                 payload_no_ground = {k: v for k, v in payload.items() if k != "tools"}
                 r2 = requests.post(url, json=payload_no_ground, timeout=180)
+                record_gemini_request(model, _tokens_used(r2))
                 if r2.status_code == 200:
                     response = r2
                 else:
@@ -139,6 +157,11 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
 
             cleaned = clean_ai_content(raw_text)
             print(f"  SUCCESS: {len(cleaned)} chars from {model}")
+            _reqs, _toks = requests_today()
+            print(f"  QUOTA: {_reqs} request(s) today from this pipeline "
+                  f"({_toks:,} tokens). Daily requests are the free-tier limit "
+                  f"repeated testing actually hits. Other apps using this API key "
+                  f"draw on the same quota and are not counted here.")
             if model != models_to_try[0]:
                 print(f"  FALLBACK MODEL: this issue came from {model}, not "
                       f"{models_to_try[0]}. The reported half survives on the "
