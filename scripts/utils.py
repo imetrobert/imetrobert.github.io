@@ -50,6 +50,21 @@ AUTHOR        = "Robert Simon"
 # ---------------------------------------------------------------------------
 USAGE_LEDGER_PATH = "blog/staging/usage.json"
 
+# Free-tier requests per day, PER MODEL — these are separate budgets, not one
+# shared pool, so 10 flash requests and 5 lite requests are 10/1500 and 5/1000
+# rather than 15 against a single number. Which also means a run that falls back
+# is not spending the leader's quota.
+#
+# Per Google's free tier as of August 2026. Quotas are assigned per Google Cloud
+# PROJECT and Google no longer publishes a universal table, so treat these as
+# defaults: the panel lets each one be overridden, and the console is
+# authoritative.
+MODEL_DAILY_LIMITS = {
+    "gemini-2.5-flash": 1500,
+    "gemini-2.5-flash-lite": 1000,
+    "gemini-2.0-flash": 1500,
+}
+
 # Google resets these quotas at midnight Pacific, so the ledger buckets by
 # Pacific date rather than UTC or Eastern — otherwise the count would roll over
 # at the wrong moment and read as headroom that is not there.

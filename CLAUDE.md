@@ -171,7 +171,14 @@ preview page shows.
 - **The page re-fetches the ledger on load** rather than trusting the value
   baked in at generation time — a redraft makes requests without regenerating
   the page.
-- **The daily limit is typed in by you, not hardcoded.** Free-tier limits vary
+- **Limits are PER MODEL and separate.** `MODEL_DAILY_LIMITS` in `utils.py`
+  carries the free-tier defaults (flash 1500, flash-lite 1000). Ten flash
+  requests and five lite requests are `10/1500` and `5/1000`, not fifteen
+  against one number — a combined bar would misreport both, and would hide that
+  a fallback run does not spend the leader's quota. The panel renders one row
+  per model used today, each with its own bar and its own editable limit.
+- **Defaults are overridable per model**, kept in `localStorage`, because Google
+  assigns quotas per Cloud PROJECT and no longer publishes a universal table. Free-tier limits vary
   by model and change over time; inventing a number would produce a confident
   percentage that is wrong. Saved in `localStorage`, and until it is set the
   panel shows the raw count and asks for it. Green under 60%, amber to 85%, red
@@ -181,6 +188,13 @@ preview page shows.
   quota, so anything else is invisible here. The authoritative view is Cloud
   Console → APIs & Services → Generative Language API → Quotas, linked from the
   panel.
+
+**What of Robert's own writing reaches Google.** Only the redraft steer box.
+`inject_take.py` runs in `approve-blog.yml` — at approval, after every Gemini
+call — so the Desk text goes straight into the published HTML and is never sent.
+The redraft guidance field IS sent with the issue on every redraft, and the free
+tier permits human review and training on submitted data, so the box carries a
+warning saying exactly that. Keep it that way if the redraft path changes.
 
 ### The approval page must never reload itself with `location.reload()`
 
