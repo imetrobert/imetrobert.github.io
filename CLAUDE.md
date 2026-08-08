@@ -152,6 +152,36 @@ other section and the preview URL survive.
   `workflow_dispatch` choice list in `redraft-section.yml` is hand-maintained —
   Actions cannot generate it. Adding a section means editing both.
 
+### Gemini quota — requests per day, on the approval page
+
+The free tier is **not a monthly token pool**. It is rate limits: requests per
+minute, tokens per minute, and requests per **day**. Repeated test runs hit the
+daily request count long before anything else, so that is the only number the
+preview page shows.
+
+- **A run is not a request.** One generation can fire several — a 503 buys the
+  same model a second attempt, a fallback tries the next model, a 400/404
+  retries without grounding. `record_gemini_request()` is called at the HTTP
+  call itself in `_call_gemini`, so redrafts and regenerations count too.
+- **The ledger is `blog/staging/usage.json`**, committed by all three workflows
+  (`git add blog/` and `git add blog/staging/`), keyed by **Pacific** date
+  because that is when Google resets the quota. Keeps 60 days.
+- **Writing it can never lose an issue**: every failure path returns quietly
+  with a NOTE in the log.
+- **The page re-fetches the ledger on load** rather than trusting the value
+  baked in at generation time — a redraft makes requests without regenerating
+  the page.
+- **The daily limit is typed in by you, not hardcoded.** Free-tier limits vary
+  by model and change over time; inventing a number would produce a confident
+  percentage that is wrong. Saved in `localStorage`, and until it is set the
+  panel shows the raw count and asks for it. Green under 60%, amber to 85%, red
+  above.
+- **It counts only this pipeline, and says so on the page.** An API key belongs
+  to one Google Cloud project and every app using that key draws on the same
+  quota, so anything else is invisible here. The authoritative view is Cloud
+  Console → APIs & Services → Generative Language API → Quotas, linked from the
+  panel.
+
 ### The approval page must never reload itself with `location.reload()`
 
 `blog/staging/preview.html` sits at a fixed URL and is **replaced on every

@@ -28,6 +28,92 @@ BRAND_TAGLINE = "The month's AI developments, and what to do about them"
 AUTHOR        = "Robert Simon"
 
 
+# ---------------------------------------------------------------------------
+# Gemini request ledger — requests per day, which is the free-tier limit this
+# pipeline can realistically hit.
+#
+# The free tier is NOT a monthly token pool. It is rate limits: requests per
+# minute, tokens per minute, and requests per DAY. Repeated test runs bump into
+# the daily request count long before anything else, so that is the only number
+# worth showing.
+#
+# A RUN IS NOT A REQUEST. One generation can fire several: a 503 buys the same
+# model a second attempt, a fallback tries the next model, and a 400/404 retries
+# without grounding. Counting runs would undercount the quota, so the ledger is
+# incremented at the HTTP call itself.
+#
+# Scope, stated plainly wherever this is displayed: this counts only requests
+# made by THIS pipeline. An API key belongs to one Google Cloud project and every
+# app using that key draws on the same quota, so anything else you run against it
+# is invisible here. The authoritative view is Cloud Console -> APIs & Services
+# -> Generative Language API -> Quotas.
+# ---------------------------------------------------------------------------
+USAGE_LEDGER_PATH = "blog/staging/usage.json"
+
+# Google resets these quotas at midnight Pacific, so the ledger buckets by
+# Pacific date rather than UTC or Eastern — otherwise the count would roll over
+# at the wrong moment and read as headroom that is not there.
+_QUOTA_TZ = "America/Los_Angeles"
+
+
+def quota_day(now=None):
+    """Today's date in the timezone Google resets daily quotas in."""
+    try:
+        from zoneinfo import ZoneInfo
+        return (now or datetime.now(ZoneInfo("UTC"))).astimezone(
+            ZoneInfo(_QUOTA_TZ)).strftime("%Y-%m-%d")
+    except Exception:
+        return (now or datetime.now()).strftime("%Y-%m-%d")
+
+
+def _read_ledger(path=None):
+    import json
+    try:
+        with open(path or USAGE_LEDGER_PATH) as fh:
+            data = json.load(fh)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def record_gemini_request(model="", tokens=0, path=None):
+    """Count one HTTP request against today's quota bucket.
+
+    Never raises: a ledger write failing must not lose a generated issue.
+    Keeps 60 days and drops the rest, so the file cannot grow without bound.
+    """
+    import json, os
+    path = path or USAGE_LEDGER_PATH
+    try:
+        day = quota_day()
+        data = _read_ledger(path)
+        entry = data.get(day) or {"requests": 0, "tokens": 0, "models": {}}
+        entry["requests"] = int(entry.get("requests", 0)) + 1
+        entry["tokens"] = int(entry.get("tokens", 0)) + int(tokens or 0)
+        if model:
+            entry.setdefault("models", {})
+            entry["models"][model] = int(entry["models"].get(model, 0)) + 1
+        data[day] = entry
+        for old in sorted(data)[:-60]:
+            data.pop(old, None)
+        directory = os.path.dirname(path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        with open(path, "w") as fh:
+            json.dump(data, fh, indent=2, sort_keys=True)
+        return entry
+    except Exception as exc:
+        print(f"  NOTE: could not update the request ledger ({exc}). "
+              f"Generation is unaffected.")
+        return None
+
+
+def requests_today(path=None):
+    """Requests this pipeline has made in the current quota day."""
+    entry = _read_ledger(path).get(quota_day()) or {}
+    return int(entry.get("requests", 0)), int(entry.get("tokens", 0))
+
+
 def clean_filename(title, max_len=70):
     """Slug for the post URL. Capped at a word boundary: topical headlines are
     longer than the old "AI Insights for August 2026" titles, and an uncapped
