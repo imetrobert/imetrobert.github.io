@@ -267,6 +267,15 @@ quota of 5-6 to fill — and it asks for one search per beat rather than one
 "AI news <month>" query, which returns roundups because roundups are what match
 it. Prohibition alone was escalated four times and never worked.
 
+**Regulators must be recognised by their full legal names.** Several were known
+only by abbreviation, so `OSFI` passed while `Office of the Superintendent of
+Financial Institutions` was flagged unrecognised — and would have been *dropped*
+from a development. That is the name a regulator publishes under, and the
+Spotlight spec now tells the model to cite these bodies directly, so
+`is_government_entity()` has to know them or the rule generates warnings on
+correct behaviour. It matches `office of the`, `superintendent of`,
+`privacy commissioner`, `commission d'`, `radio-television` and similar.
+
 **Documentation is not an announcement.** `is_documentation_source()` rejects
 help centres, docs pages, `Microsoft Learn`, release notes and API references,
 and it is checked *first* in `is_acceptable_source` — those names carry the

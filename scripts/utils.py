@@ -560,6 +560,36 @@ def is_government_entity(company):
         "g20 " in c,
         "g8 " in c,
         c in {"canada.ca", "gc.ca"},
+        # Regulators and agencies by their FULL legal names. Several were
+        # recognised only by their abbreviation, so "OSFI" passed while
+        # "Office of the Superintendent of Financial Institutions" was flagged
+        # unrecognised — and would have been DROPPED from a development. That
+        # is the name a regulator publishes under, and the Spotlight spec now
+        # tells the model to cite these bodies directly, so the classifier has
+        # to know them or the rule produces warnings on correct behaviour.
+        "office of the" in c,
+        "superintendent of" in c,
+        "privacy commissioner" in c,
+        "information commissioner" in c,
+        "auditor general" in c,
+        "ombudsman" in c,
+        "competition bureau" in c,
+        "bank of canada" in c,
+        "revenue agency" in c,
+        "statistics canada" in c,
+        "statistique canada" in c,
+        "radio-television" in c,
+        "radio television" in c,
+        "securities commission" in c,
+        "regulatory authority" in c,
+        # Quebec and other French-language bodies. "commission d'" covers the
+        # Commission d'acces a l'information, named in the Spotlight spec.
+        "commission d'" in c,
+        "commission d " in c,
+        "commission des " in c,
+        "commission de l" in c,
+        "regie " in c,
+        "régie " in c,
     ])
 
 
