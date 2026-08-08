@@ -707,7 +707,11 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         <div class="lock-banner">
           <strong>⏳ Regenerating…</strong>
           <span id="lock-banner-text">This page will reload automatically when the new version is ready. Approve and Regenerate are locked until then — the file this page knows about will be replaced.</span>
-          <button onclick="location.reload()">🔄 Reload page now</button>
+          <!-- forceRefresh, not location.reload: a regenerate replaces this
+               page, and a plain reload can still be answered from the cached
+               copy — which is how you end up staring at the previous run's
+               timestamp after a successful regenerate. -->
+          <button onclick="forceRefresh()">🔄 Reload page now</button>
         </div>
       </div>
     </div>
@@ -882,7 +886,13 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         <div class="iframe-loading-spinner"></div>
         <div class="iframe-loading-text">Loading latest version…</div>
       </div>
-      <iframe id="preview-iframe" src="" title="Blog post preview" onload="onIframeLoad()"></iframe>
+      <!-- The load handler is attached in JS, not as an onload attribute: an
+           iframe with an empty src fires load for about:blank while the page
+           is still parsing, which is before the script at the end of body
+           exists, so the attribute version threw ReferenceError on every
+           load. Harmless — the real draft load cleared the overlay — but it
+           buried genuine errors in the console. -->
+      <iframe id="preview-iframe" src="" title="Blog post preview"></iframe>
     </div>
   </div>
 
@@ -926,6 +936,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       }}
     }}
     // Set iframe src with cache-busting timestamp — fixes blank iframe on slow JS
+    document.getElementById("preview-iframe")
+            .addEventListener("load", onIframeLoad);
     setIframeSrc();
     // Show cache hint after 3 seconds in case content looks stale
     setTimeout(() => {{
@@ -959,8 +971,12 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       const live = await res.text();
       const m = live.match(/Generated ([^<]+)</);
       if (!m || m[1].trim() === GENERATED_STAMP) return;
+      // One bar only. Called once on load today, but two stacked warnings
+      // saying the same thing would read as two separate problems.
+      if (document.getElementById("stale-bar")) return;
 
       const bar = document.createElement("div");
+      bar.id = "stale-bar";
       bar.style.cssText = "position:sticky;top:0;z-index:9999;background:#b45309;" +
         "color:#fff;padding:0.7rem 1rem;font-size:0.85rem;font-weight:600;" +
         "display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;";
@@ -987,22 +1003,44 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   }}
 
   // ── Force Refresh — bypasses all browser and CDN cache ─────────
+  //
+  // This must reload THIS page, not just the iframe. It used to only re-point
+  // the iframe src, which reloads the draft but leaves the approval screen
+  // itself exactly as it was cached — including the "Generated …" stamp, which
+  // is rendered server-side into this page. So the one control whose whole job
+  // is "show me the current version" could not change the one field you would
+  // check to see whether it had worked, and neither could the stale-page bar,
+  // which calls this function.
+  //
+  // A regenerate replaces both the draft and this page, so reloading the whole
+  // thing is the correct scope in every case; a redraft leaves this page
+  // unchanged, where a full reload is merely harmless.
+  //
+  // The cache-busting query param is what makes it a real refresh:
+  // location.reload() may still be answered from the browser's copy, and
+  // GitHub Pages serves this path with a ten-minute max-age we cannot override.
+  // A URL never requested before cannot be in any cache, browser or CDN.
+  // Built from pathname, not href, so repeat presses don't stack params.
   function forceRefresh() {{
     const btn = document.getElementById("force-refresh-btn");
-    btn.classList.add("spinning");
-    btn.disabled = true;
-    document.getElementById("iframe-loading").classList.add("show");
+    if (btn) {{
+      btn.classList.add("spinning");
+      btn.disabled = true;
+    }}
     showToast("Fetching latest version, bypassing cache…", "purple");
+    flushTake();
+    location.replace(location.pathname + "?v=" + Date.now());
+  }}
 
-    const bust = Date.now() + "_" + Math.random().toString(36).slice(2);
-    setIframeSrc(bust);
-
-    // Safety timeout — re-enable button after 10s in case onload never fires
-    setTimeout(() => {{
-      btn.classList.remove("spinning");
-      btn.disabled = false;
-      document.getElementById("iframe-loading").classList.remove("show");
-    }}, 10000);
+  // Write any pending Desk text before navigating away. initTake() debounces
+  // its save by 400ms, so the last few keystrokes before a refresh would
+  // otherwise be dropped — and this section is the one thing on the page that
+  // is genuinely Robert's, not recoverable by regenerating.
+  function flushTake() {{
+    try {{
+      const el = document.getElementById("take-input");
+      if (el) localStorage.setItem(TAKE_KEY, el.value);
+    }} catch (e) {{ /* private mode or storage full — refresh anyway */ }}
   }}
 
   // ── PAT management ─────────────────────────────────────────────
@@ -1485,7 +1523,12 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
           clearInterval(pollInterval);
           pollInterval = null;
           showToast("✅ New version ready! Reloading page…", "success");
-          setTimeout(() => location.reload(), 1200);
+          // forceRefresh, not location.reload. This branch is reached because
+          // a cache-busted fetch proved a NEW page exists — reloading the
+          // same URL can still be served the old one from cache, which lands
+          // you back on the previous run's timestamp having been told the new
+          // version was ready.
+          setTimeout(forceRefresh, 1200);
         }}
       }} catch (e) {{}}
     }}, 15000);

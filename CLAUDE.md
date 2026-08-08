@@ -152,6 +152,38 @@ other section and the preview URL survive.
   `workflow_dispatch` choice list in `redraft-section.yml` is hand-maintained —
   Actions cannot generate it. Adding a section means editing both.
 
+### The approval page must never reload itself with `location.reload()`
+
+`blog/staging/preview.html` sits at a fixed URL and is **replaced on every
+run**, while GitHub Pages serves it with a ten-minute `max-age` that cannot be
+overridden from the repo. So a same-URL reload can legitimately be answered
+from cache, and the reviewer is left looking at the previous run's issue with
+the previous run's "Generated" stamp.
+
+**Every reload path in `generate-preview-page.py` goes through
+`forceRefresh()`**, which navigates to `location.pathname + "?v=" + Date.now()`
+— a URL never requested before cannot be in any cache, browser or CDN. It is
+built from `pathname`, not `href`, so repeat presses don't stack params.
+
+- The Force Refresh button used to re-point only the **iframe** `src`. That
+  reloads the draft but leaves the approval page itself — including the stamp,
+  which is rendered server-side — exactly as cached. The one control meaning
+  "show me the current version" could not change the one field you would check
+  to see whether it had worked.
+- The regenerate poller is the same trap in reverse: it proves a new page
+  exists with a cache-busted `fetch`, announces "New version ready", and then
+  must not reload in a way that can be served the old one.
+- `forceRefresh()` calls `flushTake()` first. The Desk textarea saves on a
+  400ms debounce, so the last keystrokes before a refresh would otherwise be
+  lost — and the Desk is the one section that is genuinely Robert's.
+- `checkForStalePage()` compares the baked-in stamp against a `no-store` fetch
+  of the live page and raises the amber bar. It guards on `#stale-bar` so two
+  warnings can't stack.
+- The iframe's load handler is attached in JS. As an `onload=` attribute it
+  threw `ReferenceError` on every load, because an iframe with an empty `src`
+  fires `load` for `about:blank` while the page is still parsing — before the
+  script at the end of `<body>` exists.
+
 ### Dates — nothing may be reported before it happens
 
 The scheduled run fires on the **last day of the month** (`monthly-blog.yml`
