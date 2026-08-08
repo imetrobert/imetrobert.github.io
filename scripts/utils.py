@@ -401,6 +401,73 @@ def is_low_quality_source(source_name):
 # in a row opened a Desk paragraph with one of them, which is how a signature
 # voice turns into a house style nobody chose. Defined once so the prompt can
 # ban them by name and the renderer can check whether the ban held.
+# ---------------------------------------------------------------------------
+# Household-name Canadian brands, for the Canadian Spotlight.
+#
+# The section used to fill up with AI vendors (Cohere, Ada, Coveo) and federal
+# programs. Both are credible, neither is a name a reader meets in daily life,
+# so the one section meant to feel local read like industry trade press. What
+# resonates is a bank, telecom or retailer the reader already banks with, pays
+# a bill to, or shops at, explaining how it actually uses AI.
+#
+# Defined once and used twice — interpolated into the Spotlight spec so the
+# model knows the universe, and matched by is_household_canadian_brand() so the
+# renderer can order those items first. Same single-source pattern as
+# STOCK_VOICE_PHRASES; if the two drifted, the prompt would ask for one thing
+# and the ordering would reward another.
+#
+# Ordering and reporting only. Nothing is ever dropped for failing this test,
+# which is why a loose match here is cheap.
+# ---------------------------------------------------------------------------
+CANADIAN_HOUSEHOLD_BRANDS = (
+    # Banks, insurers, money
+    "RBC", "Royal Bank of Canada", "TD Bank", "Toronto-Dominion", "Scotiabank",
+    "Bank of Nova Scotia", "BMO", "Bank of Montreal", "CIBC", "National Bank",
+    "Desjardins", "Sun Life", "Manulife", "Intact", "Canada Life",
+    "Wealthsimple", "Tangerine", "EQ Bank",
+    # Telecom and media
+    "Bell Canada", "BCE", "Rogers", "Telus", "Videotron", "Vidéotron",
+    "Koodo", "Fido", "Freedom Mobile",
+    # Retail, grocery, consumer
+    "Loblaw", "Loblaws", "Shoppers Drug Mart", "Canadian Tire", "Sobeys",
+    "Couche-Tard", "Circle K", "Lululemon", "Roots Canada", "Indigo",
+    "Dollarama", "Giant Tiger", "London Drugs", "Home Hardware", "Metro Inc",
+    # Travel, transport, energy, food, industry
+    "Air Canada", "WestJet", "Porter Airlines", "VIA Rail", "Canada Post",
+    "CN Rail", "Canadian National Railway", "Canadian Pacific", "Enbridge",
+    "Suncor", "Hydro-Québec", "Hydro-Quebec", "Tim Hortons", "Saputo",
+    "McCain", "Maple Leaf Foods", "Bombardier", "CAE", "Magna",
+    # Canadian tech with genuine public recognition
+    "Shopify", "Lightspeed", "OpenText",
+)
+
+# Word-boundary matched: "Bell Canada" must not fire inside "Campbell", and the
+# short forms are spelled out for the same reason.
+_BRAND_RE = re.compile(
+    r'\b(?:' + '|'.join(re.escape(b) for b in
+                         sorted(CANADIAN_HOUSEHOLD_BRANDS, key=len, reverse=True)) + r')\b',
+    re.IGNORECASE,
+)
+
+
+def household_canadian_brands(text):
+    """Which household-name Canadian brands this text names, in order."""
+    if not text:
+        return []
+    seen, out = set(), []
+    for m in _BRAND_RE.finditer(text):
+        key = m.group(0).lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(m.group(0))
+    return out
+
+
+def is_household_canadian_brand(text):
+    """True when the text names a brand an ordinary Canadian reader knows."""
+    return bool(household_canadian_brands(text))
+
+
 STOCK_VOICE_PHRASES = (
     "In my experience",
     "What I've seen inside large enterprises",
