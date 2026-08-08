@@ -670,6 +670,16 @@ SELECT IN THIS PRIORITY ORDER:
 2. GOVERNMENT items — these still belong HERE and never in Key Developments (routing rule below), but take AT MOST ONE slot unless there are fewer than two qualifying brand stories this month. Any announcement, funding, policy, regulation, or strategy from the Government of Canada, any provincial/territorial/municipal government, the Prime Minister or any minister, G7/G20/OECD ministerial bodies, Statistics Canada, or any Crown corporation acting in policy capacity.
 3. CANADIAN AI COMPANIES (Cohere, Ada, Coveo, D-Wave, Mila spinouts) — use these to fill remaining slots, not as the default.
 
+HOW TO SEARCH FOR THE BRAND ITEMS. This is the part that decides whether the section works, and it is the same lesson as the developments section: a priority list alone does not change what your searches return.
+
+A generic query — "Canadian AI news {month_year}", "Canada artificial intelligence {month_year}" — returns GOVERNMENT announcements, because Ottawa publishes constantly and consistently and ranks for those terms. That is why this section keeps filling with federal programs. Searching harder on the same query will not fix it.
+
+Search COMPANY BY COMPANY instead. Run a separate query for the recognisable names in each sector, for example "RBC artificial intelligence {month_year}", "Telus AI customer service", "Loblaw AI", "Air Canada AI", "Canada Post AI", "Sun Life AI claims". Work through banks, then telecoms, then retail and grocery, then travel and transport, then insurance and energy. Most will return nothing in a given month; two or three will return something real, and those are your items.
+
+IF YOU HAVE WRITTEN TWO GOVERNMENT ITEMS, STOP. Go back and run the company-by-company searches before adding a third. Three federal items is the specific failure this section is being corrected for.
+
+"MANDATORY here" in the routing rule means a government item BELONGS in this section rather than in Key Developments. It does not mean this section must be filled with government items.
+
 ORDER THE SECTION so household-name adopters appear first.
 
 Do NOT invent or stretch to satisfy the priority. If only one household-name adoption story is properly sourced this month, run one and fill the rest by priority. A padded brand item cited to a vendor blog is worse than a well-sourced government item.

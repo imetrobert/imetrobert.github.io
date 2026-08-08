@@ -167,10 +167,18 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             print(f"  SPOTLIGHT BRANDS: {len(_spot_brands)} of {len(spotlight_items)} Canadian "
                   f"items name a household brand ({', '.join(_spot_brands)}); those run first.")
         else:
+            _gov_items = sum(
+                1 for _s in spotlight_items
+                if is_government_entity((_s.get("org") or "") + " "
+                                        + (_s.get("source_name") or ""))
+            )
+            _shape = (f"all {len(spotlight_items)} are government items"
+                      if _gov_items == len(spotlight_items)
+                      else f"{_gov_items} of {len(spotlight_items)} are government items")
             print(f"  SPOTLIGHT BRANDS: none of the {len(spotlight_items)} Canadian items names "
-                  f"a household brand — the section is all government and AI-industry names, "
-                  f"which is the shape it is meant to avoid. Worth a regenerate if a bank, "
-                  f"telecom or retailer did announce something this month.")
+                  f"a household brand — {_shape}. That is the shape this section is meant to "
+                  f"avoid: a reader recognises their bank, telecom or retailer, not a funding "
+                  f"program. Worth a regenerate.")
 
     # The headline is written by the model from the stories it drafted, but the
     # date, source-quality and dedup filters run afterwards — so a dropped story

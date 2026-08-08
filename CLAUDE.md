@@ -208,6 +208,17 @@ one thing and the ordering would reward another.
   the right stories and lists them in the wrong order.
 - **`SPOTLIGHT BRANDS:` in the run log** reports how many items named a
   household brand, and says so plainly when none did.
+- **The spec tells the model HOW to search, not just what to prefer.** A priority
+  list alone did not work: the first run after it produced three government items.
+  A generic "Canadian AI news <month>" query returns federal announcements because
+  Ottawa publishes constantly and ranks for those terms, so the spec asks for a
+  separate query per company ("RBC artificial intelligence", "Telus AI customer
+  service") worked through sector by sector, and says to stop and search brands
+  after two government items. Same lesson as the developments section.
+- **"MANDATORY here" is a routing rule, not a quota.** It means a government item
+  belongs in this section rather than Key Developments — not that the section must
+  be filled with them. Spelled out in the spec because the model read it the
+  other way.
 - **Matching is word-boundary** so "Bell Canada" cannot fire inside "Campbell".
   It is used for ordering and reporting only — nothing is ever dropped for
   failing it, which is what makes a loose match acceptable here.
@@ -317,8 +328,14 @@ on bare "learn" or "support", which would fire inside real publication names.
 
 Two rules that keep the allowlist from refusing real journalism:
 
+- **`_KNOWN_PUBLICATIONS` is matched on WORD BOUNDARIES, not raw substring.**
+  `intel` (the chipmaker) was firing inside `futurum intelligence`, so any source
+  named "… Intelligence" was silently accepted as Intel's newsroom — and
+  analyst-style names ending in "Intelligence" are exactly what the allowlist
+  exists to catch. Boundaries keep `CBC News` matching `cbc`. The hazard note
+  below said "three-letter"; `intel` is five, which is how it survived.
 - **`_KNOWN_ABBREVIATIONS` is matched exactly, and must stay out of
-  `_KNOWN_PUBLICATIONS`.** That set is matched as a *substring*, so a
+  `_KNOWN_PUBLICATIONS`.** That set was matched as a *substring*, so a
   three-letter key in it would fire inside unrelated names. `TNW` (The Next
   Web) carried a real story that was dropped because only the long form was
   listed.
