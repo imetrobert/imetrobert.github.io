@@ -10,7 +10,8 @@ from html import escape as escape_html
 from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
 from utils import (BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR,
-                   is_government_entity, is_recognised_publication, uses_stock_phrase)
+                   is_government_entity, is_recognised_publication, is_newswire,
+                   uses_stock_phrase)
 from parser import (
     _resolve_item_date,
     parse_sections, parse_list_items, parse_developments, parse_spotlight_items,
@@ -141,6 +142,39 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     if len(spotlight_items) < 3:
         print(f"  NOTE: only {len(spotlight_items)} Canadian Spotlight items; the issue asks for 3.")
 
+    # The headline is written by the model from the stories it drafted, but the
+    # date, source-quality and dedup filters run afterwards — so a dropped story
+    # can leave the title promising something the page never delivers. That is
+    # not hypothetical: one issue was titled for a $700M compute commitment that
+    # appeared nowhere in it, and another led with "new consortia" after the
+    # consortium story was dropped for its source. The reader sees the title
+    # first, so a dangling one reads as a broken page.
+    _body_text = " ".join(
+        [(_d.get("company", "") + " " + _d.get("body", "")) for _d in developments]
+        + [(_s.get("org", "") + " " + _s.get("body", "")) for _s in spotlight_items]
+        + [_a.get("body", "") for _a in actions]
+        + [_st.get("body", "") for _st in adoption]
+    ).lower()
+    # Only distinctive terms: capitalised words the title leans on, minus the
+    # vocabulary every issue uses. A generic word missing from the body means
+    # nothing; "Manulife" missing means the story it named is gone.
+    _title_stop = {
+        "ai", "the", "and", "for", "with", "new", "canada", "canadian", "canadas",
+        "business", "businesses", "leaders", "month", "this", "how", "what", "why",
+        "amid", "into", "from", "as", "at", "on", "in", "of", "to", "a",
+    }
+    _title_terms = {
+        w.strip(",.:;'’\"").lower()
+        for w in re.findall(r"\b[A-Z][A-Za-z0-9&.\-]{2,}\b", clean_title)
+    }
+    _dangling = sorted(t for t in _title_terms
+                       if t and t not in _title_stop and t not in _body_text)
+    if _dangling and developments:
+        print(f"  TITLE MISMATCH: the headline names {', '.join(_dangling)}, which appears "
+              f"nowhere in the issue body. A story the headline was written for was most "
+              f"likely dropped by the date or source-quality filters above — retitle or "
+              f"regenerate rather than publish a title the page does not deliver.")
+
     # Spotlight items sometimes carry a date. The future-date filter only looks
     # forward, so an item from a PRIOR month — which the prompt forbids — passes
     # silently. Not dropped: with three items, removing one guts the section,
@@ -169,7 +203,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             _first_party = bool(_subject) and (
                 _n.lower() in _subject or _subject.split()[0] in _n.lower()
             )
-            if not (is_recognised_publication(_n) or _first_party or is_government_entity(_n)):
+            if not (is_recognised_publication(_n) or _first_party
+                    or is_government_entity(_n) or is_newswire(_n)):
                 _unverified.append(_n)
     if _sources:
         print(f"  SOURCES CITED ({len(_sources)}): {', '.join(_sources)}")
@@ -178,7 +213,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     # for three of five stories and its own subject for a fourth, so no story
     # rested on independent reporting — a fact the per-source list stated only
     # by implication.
-    _independent = _firstparty = _unknown = 0
+    _independent = _firstparty = _unknown = _wire = 0
     for _d in developments:
         _n = (_d.get("source_name") or "").strip()
         _subj = (_d.get("company") or "").lower()
@@ -186,13 +221,21 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             _unknown += 1
         elif _subj and (_n.lower() in _subj or _subj.split()[0] in _n.lower()):
             _firstparty += 1
+        # Before the publication check: a wire release is the company's own
+        # announcement carried for a fee, so counting it as independent would
+        # let a month of pure corporate PR report itself as independently
+        # sourced — exactly what this tally exists to expose.
+        elif is_newswire(_n):
+            _firstparty += 1
+            _wire += 1
         elif is_recognised_publication(_n) or is_government_entity(_n):
             _independent += 1
         else:
             _unknown += 1
     if developments:
+        _wire_note = f" ({_wire} via a press-release wire)" if _wire else ""
         print(f"  SOURCING: {len(developments)} developments — {_independent} independent, "
-              f"{_firstparty} first-party, {_unknown} unverified.")
+              f"{_firstparty} first-party{_wire_note}, {_unknown} unverified.")
         if _independent < 2:
             print(f"  WEAK SOURCING: only {_independent} development(s) rest on an independent "
                   f"publication. The month's reporting is effectively unsourced — regenerate "
