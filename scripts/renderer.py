@@ -142,6 +142,39 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     if len(spotlight_items) < 3:
         print(f"  NOTE: only {len(spotlight_items)} Canadian Spotlight items; the issue asks for 3.")
 
+    # The headline is written by the model from the stories it drafted, but the
+    # date, source-quality and dedup filters run afterwards — so a dropped story
+    # can leave the title promising something the page never delivers. That is
+    # not hypothetical: one issue was titled for a $700M compute commitment that
+    # appeared nowhere in it, and another led with "new consortia" after the
+    # consortium story was dropped for its source. The reader sees the title
+    # first, so a dangling one reads as a broken page.
+    _body_text = " ".join(
+        [(_d.get("company", "") + " " + _d.get("body", "")) for _d in developments]
+        + [(_s.get("org", "") + " " + _s.get("body", "")) for _s in spotlight_items]
+        + [_a.get("body", "") for _a in actions]
+        + [_st.get("body", "") for _st in adoption]
+    ).lower()
+    # Only distinctive terms: capitalised words the title leans on, minus the
+    # vocabulary every issue uses. A generic word missing from the body means
+    # nothing; "Manulife" missing means the story it named is gone.
+    _title_stop = {
+        "ai", "the", "and", "for", "with", "new", "canada", "canadian", "canadas",
+        "business", "businesses", "leaders", "month", "this", "how", "what", "why",
+        "amid", "into", "from", "as", "at", "on", "in", "of", "to", "a",
+    }
+    _title_terms = {
+        w.strip(",.:;'’\"").lower()
+        for w in re.findall(r"\b[A-Z][A-Za-z0-9&.\-]{2,}\b", clean_title)
+    }
+    _dangling = sorted(t for t in _title_terms
+                       if t and t not in _title_stop and t not in _body_text)
+    if _dangling and developments:
+        print(f"  TITLE MISMATCH: the headline names {', '.join(_dangling)}, which appears "
+              f"nowhere in the issue body. A story the headline was written for was most "
+              f"likely dropped by the date or source-quality filters above — retitle or "
+              f"regenerate rather than publish a title the page does not deliver.")
+
     # Spotlight items sometimes carry a date. The future-date filter only looks
     # forward, so an item from a PRIOR month — which the prompt forbids — passes
     # silently. Not dropped: with three items, removing one guts the section,
