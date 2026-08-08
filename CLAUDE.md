@@ -211,8 +211,29 @@ corporate PR report itself as independently sourced.
   month came through PR.
 - `"cnw"` is exact-match only; three letters would collide with ordinary words.
 
-`WEAK SOURCING` fires when fewer than two developments rest on an independent
-publication, and it means what it says: regenerate rather than publish.
+`WEAK SOURCING` fires when a development carries **no usable source line at
+all**, and it means what it says: regenerate, or cut those items. It does *not*
+fire on first-party citation. It used to demand two independent publications and
+call anything less "effectively unsourced", which fought the section's own
+definition — `KEY AI DEVELOPMENTS` is specified as company announcements, so
+first-party citation is its natural state, and Hugging Face disclosing a Hugging
+Face incident is the authoritative source rather than a weak one. It fired on
+accurate issues, and a warning that fires on good issues stops being read.
+
+`ALL FIRST-PARTY` is the softer replacement: it notes when nothing in the month
+was independently reported, so anything a company would have reason to spin is
+uncorroborated. A prompt for a closer read, not a blocker.
+
+**Sourcing failures concentrate in `KEY AI DEVELOPMENTS`, never in the
+Spotlight.** Across five runs the aggregators (BenchLM.ai ×3, Analytics Vidhya,
+ThursdAI ×3) all landed in the global section while the Canadian section cited
+BetaKit, Mila and the Government of Canada correctly. The model sources well
+when the beat is narrow. So the developments spec tells it **how to search**:
+a roundup is a lead to follow, not a result to discard — the old "discard it"
+rule threw away the lead along with the bad citation, leaving nothing and a
+quota of 5-6 to fill — and it asks for one search per beat rather than one
+"AI news <month>" query, which returns roundups because roundups are what match
+it. Prohibition alone was escalated four times and never worked.
 
 Two rules that keep the allowlist from refusing real journalism:
 

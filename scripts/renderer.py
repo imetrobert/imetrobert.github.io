@@ -262,10 +262,28 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         _wire_note = f" ({_wire} via a press-release wire)" if _wire else ""
         print(f"  SOURCING: {len(developments)} developments — {_independent} independent, "
               f"{_firstparty} first-party{_wire_note}, {_unknown} unverified.")
-        if _independent < 2:
-            print(f"  WEAK SOURCING: only {_independent} development(s) rest on an independent "
-                  f"publication. The month's reporting is effectively unsourced — regenerate "
-                  f"rather than publish.")
+        # This verdict used to demand two independent publications and call
+        # anything less "effectively unsourced". That fought the section's own
+        # definition: KEY AI DEVELOPMENTS is specified as company
+        # announcements, so first-party citation is its natural state, and
+        # Hugging Face disclosing a Hugging Face incident is the authoritative
+        # source rather than a weak one. It fired on accurate issues, and a
+        # warning that fires on good issues stops being read.
+        #
+        # What genuinely cannot be trusted is a development with no usable
+        # citation. The allowlist already drops one whose source fails, so this
+        # is the case where no Source line survived at all.
+        if _unknown:
+            print(f"  WEAK SOURCING: {_unknown} development(s) carry no usable source line. "
+                  f"An uncited development cannot be checked by a reader and should not "
+                  f"publish — regenerate, or cut those items.")
+        elif not _independent and _firstparty:
+            _wire_clause = " or a press-release wire" if _wire else ""
+            print(f"  ALL FIRST-PARTY: every development rests on the subject's own "
+                  f"announcement{_wire_clause}. For company news that is the authoritative "
+                  f"source, not a defect — but nothing this month was independently "
+                  f"reported, so anything a company would have reason to spin is "
+                  f"uncorroborated. Worth a read before publishing.")
     if _unverified:
         print(f"  UNRECOGNISED SOURCES ({len(_unverified)}): {', '.join(_unverified)}. "
               f"Not a known outlet, not the subject's own newsroom, not a government body. "

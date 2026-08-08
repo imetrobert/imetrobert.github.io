@@ -597,7 +597,21 @@ only if a Canadian executive would make a different decision knowing it.
 CRITICAL DATE RULE: Include ONLY events from {month_year}. Never fabricate. Never use events from prior months, and never use a date after {today_str} (see the future-date rule above).
 CRITICAL SECTION ROUTING RULE: KEY AI DEVELOPMENTS is strictly for AI company announcements — products, models, partnerships, research. It must NEVER contain items from any government entity. This includes: the Government of Canada, any provincial or municipal government, the Prime Minister, any federal minister, any G7/G20/OECD ministerial body, Statistics Canada, Bank of Canada policy announcements, or any Crown corporation acting in a regulatory/policy capacity. Any government funding, policy, regulation, or strategy announcement MUST go in CANADIAN SPOTLIGHT — never here.
 CRITICAL SOURCE RULE: Every single item MUST end with a Source line. No exceptions.
-CRITICAL SOURCE QUALITY RULE: Every source MUST be a primary source — official company announcements, government press releases, or major news publications. Newsletters, podcast episodes, Substack posts, and aggregator blogs are NEVER acceptable sources. If your search returns a newsletter item (e.g. "26: GPT-5.5..." or "Episode 14:..."), discard it and find the original primary source announcement instead.
+CRITICAL SOURCE QUALITY RULE: Every source MUST be a primary source — official company announcements, government press releases, or major news publications. Newsletters, podcast episodes, Substack posts, and aggregator blogs are NEVER acceptable sources.
+
+HOW TO SEARCH FOR THESE ITEMS. Read this before searching; it is the difference between an issue that publishes and one that gets thrown away.
+
+A roundup is a LEAD, NOT A SOURCE. If a newsletter or aggregator ("ThursdAI", "Analytics Vidhya", a weekly AI digest) surfaces a story, that is useful — it told you the event exists. Do not discard it and do not cite it. Follow it through: find the announcement or the article it was summarising, and cite THAT. Every story in a roundup came from somewhere, and that somewhere is your source.
+
+Search per beat, not per month. One search for "AI news {month_year}" returns roundups, because roundups are what match that query — which is exactly how the last four issues ended up citing aggregators. Instead run a separate search for each kind of story you need, for example:
+  - model and product releases by a named lab (OpenAI, Anthropic, Google, Meta, Mistral, Cohere)
+  - enterprise deals, partnerships and platform launches
+  - AI regulation, standards and court decisions
+  - security incidents, breaches and model failures
+  - funding rounds, compute and data-centre investment
+Aim for 5-6 items spanning DIFFERENT beats. Five model releases is a worse issue than one release, one deal, one regulation, one incident and one investment — and searching beat by beat is what surfaces the outlet that actually broke each story.
+
+Name the outlet, not the aggregator that repeated it. If you cannot say which publication reported a story, or which company announced it, you do not have the source yet — keep looking or drop the item.
 CRITICAL DEDUPLICATION RULE: Treat KEY AI DEVELOPMENTS and CANADIAN SPOTLIGHT as one combined list. Every individual news event, funding program, company announcement, or policy decision may appear ONCE across both sections combined — never twice. Same program = same event = one section only. If the AI Compute Access Fund, RAII, or any government initiative appears in KEY AI DEVELOPMENTS, it must NOT appear in CANADIAN SPOTLIGHT under any name, wording, or angle. No exceptions.
 
 THIS SECTION HAS TWO TIERS. The FIRST THREE items are the major stories and carry
