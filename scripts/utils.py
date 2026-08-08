@@ -59,11 +59,128 @@ USAGE_LEDGER_PATH = "blog/staging/usage.json"
 # PROJECT and Google no longer publishes a universal table, so treat these as
 # defaults: the panel lets each one be overridden, and the console is
 # authoritative.
+# Model choice and limits live in a FILE, not in code, so a new Gemini model
+# can be adopted from the preview page without an edit here. The constants
+# below are only the fallback for a repo that has no config yet.
+#
+# What can and cannot be discovered, because the difference drives the design:
+#   - The model LIST can be. GET /v1beta/models?key=... returns everything the
+#     key can call, so a newly launched model shows up on the next run.
+#   - The rate LIMITS cannot. That response carries name, displayName and token
+#     limits, but no RPD/RPM/TPM and no free-tier flag, and no other Google API
+#     exposes them. A new model's daily limit has to be typed in once.
+#   - Whether a new model is BETTER cannot be either. flash-lite proved that:
+#     it was available and produced a materially worse issue. So a new model is
+#     surfaced for a decision, never switched to automatically.
+MODEL_CONFIG_PATH = "blog/model-config.json"
+
 MODEL_DAILY_LIMITS = {
     "gemini-2.5-flash": 1500,
     "gemini-2.5-flash-lite": 1000,
     "gemini-2.0-flash": 1500,
 }
+
+# Fallback order when there is no config file. Flash leads because the issue is
+# half judgment now and the lighter models flatten it into restated news.
+DEFAULT_MODEL_ORDER = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
+
+
+def load_model_config(path=None):
+    """Model order, per-model daily limits, and models already seen.
+
+    Never raises and never returns empty: a missing, unreadable or malformed
+    config falls back to the constants above, so a bad edit cannot stop the
+    monthly issue from generating.
+    """
+    import json
+    cfg = {
+        "order": list(DEFAULT_MODEL_ORDER),
+        "limits": dict(MODEL_DAILY_LIMITS),
+        "known": list(DEFAULT_MODEL_ORDER),
+        "dismissed": [],
+    }
+    try:
+        with open(path or MODEL_CONFIG_PATH) as fh:
+            data = json.load(fh)
+        if isinstance(data.get("order"), list) and data["order"]:
+            cfg["order"] = [str(m) for m in data["order"] if m]
+        if isinstance(data.get("limits"), dict):
+            cfg["limits"].update({str(k): int(v) for k, v in data["limits"].items()
+                                  if str(v).isdigit()})
+        for key in ("known", "dismissed"):
+            if isinstance(data.get(key), list):
+                cfg[key] = [str(m) for m in data[key] if m]
+    except FileNotFoundError:
+        pass
+    except Exception as exc:
+        print(f"  NOTE: {path or MODEL_CONFIG_PATH} could not be read ({exc}); "
+              f"using built-in model defaults.")
+    return cfg
+
+
+def save_model_config(cfg, path=None):
+    """Write the config back. Returns True on success, never raises."""
+    import json, os
+    path = path or MODEL_CONFIG_PATH
+    try:
+        directory = os.path.dirname(path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        with open(path, "w") as fh:
+            json.dump(cfg, fh, indent=2, sort_keys=True)
+        return True
+    except Exception as exc:
+        print(f"  NOTE: could not write {path} ({exc}).")
+        return False
+
+
+def discover_models(api_key, timeout=30):
+    """Models this API key can call, newest-looking first.
+
+    Returns [] on any failure — discovery is a convenience, and it must never
+    be able to stop an issue generating.
+    """
+    if not api_key:
+        return []
+    try:
+        r = requests.get(
+            "https://generativelanguage.googleapis.com/v1beta/models",
+            params={"key": api_key, "pageSize": 200}, timeout=timeout)
+        if r.status_code != 200:
+            print(f"  NOTE: model discovery returned {r.status_code}; skipping.")
+            return []
+        out = []
+        for m in r.json().get("models", []):
+            name = (m.get("name") or "").replace("models/", "")
+            methods = m.get("supportedGenerationMethods") or []
+            # Only models this pipeline could actually use for an issue.
+            if name and "generateContent" in methods:
+                out.append(name)
+        return sorted(out)
+    except Exception as exc:
+        print(f"  NOTE: model discovery failed ({exc}); skipping.")
+        return []
+
+
+def new_models_available(api_key, path=None):
+    """Models the key can call that the config has never seen or dismissed.
+
+    Deliberately excludes preview/experimental names: those churn weekly and
+    would turn the prompt on the approval page into noise.
+    """
+    cfg = load_model_config(path)
+    seen = set(cfg["known"]) | set(cfg["dismissed"]) | set(cfg["order"])
+    fresh = []
+    for name in discover_models(api_key):
+        if name in seen:
+            continue
+        low = name.lower()
+        if any(t in low for t in ("-exp", "experimental", "-preview", "-tuning",
+                                  "embedding", "aqa", "imagen", "veo", "tts",
+                                  "-vision", "learnlm")):
+            continue
+        fresh.append(name)
+    return fresh, cfg
 
 # Google resets these quotas at midnight Pacific, so the ledger buckets by
 # Pacific date rather than UTC or Eastern — otherwise the count would roll over

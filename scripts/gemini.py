@@ -7,7 +7,8 @@ import time
 import requests
 from datetime import datetime, timedelta
 from utils import (clean_ai_content, STOCK_VOICE_PHRASES, CANADIAN_HOUSEHOLD_BRANDS,
-                   record_gemini_request, requests_today)
+                   record_gemini_request, requests_today, load_model_config,
+                   save_model_config, new_models_available)
 
 
 def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
@@ -31,8 +32,32 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
     # to fit (the Desk essay alone is ~450 words). At 4000 the response
     # truncated mid-section, and a truncated tail is silent: the parser just
     # renders fewer sections. Headroom is cheap; a missing "Looking Ahead" is not.
-    return _call_gemini(api_key, prompt, max_output_tokens=8192,
-                        temperature=0.55, use_search=True, min_chars=200)
+    result = _call_gemini(api_key, prompt, max_output_tokens=8192,
+                          temperature=0.55, use_search=True, min_chars=200)
+    _report_new_models(api_key)
+    return result
+
+
+def _report_new_models(api_key):
+    """Note any model this key gained that the config has not seen.
+
+    Recorded, never adopted. Availability is not quality — flash-lite was
+    available and produced a materially worse issue — so a new model is
+    surfaced on the approval page for a decision. Failures are silent by
+    design: this runs after the issue is already generated.
+    """
+    try:
+        fresh, cfg = new_models_available(api_key)
+        if not fresh:
+            return
+        print(f"  NEW GEMINI MODEL(S): {', '.join(fresh)}. Not adopted — pick one "
+              f"on the approval page if you want it, and set its daily request "
+              f"limit there. Google publishes no API for rate limits, so that "
+              f"number cannot be discovered.")
+        cfg["available"] = fresh
+        save_model_config(cfg)
+    except Exception:
+        pass
 
 
 # Flash first, lite as the fallback. The issue is now half original judgment —
@@ -40,6 +65,9 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
 # reliably produces the reported half but flattens the analysis into restated
 # news. Quality of judgment is the product now, so the stronger model leads and
 # lite only catches a rate-limited run.
+# Fallback only. The live order comes from blog/model-config.json via
+# load_model_config(), so adopting a newly launched model is a preview-page
+# decision rather than a code edit. See utils.MODEL_CONFIG_PATH.
 MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
 
 # Busy, not broken. These buy the same model a second attempt before the run
@@ -86,7 +114,10 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
     if use_search:
         payload["tools"] = [{"google_search": {}}]
 
-    models_to_try = MODELS_TO_TRY
+    models_to_try = load_model_config().get("order") or MODELS_TO_TRY
+    if models_to_try[0] != MODELS_TO_TRY[0]:
+        print(f"  MODEL ORDER: leading with {models_to_try[0]} (set from the "
+              f"preview page, not the built-in default).")
 
     for attempt, model in enumerate(models_to_try):
         if attempt > 0:
