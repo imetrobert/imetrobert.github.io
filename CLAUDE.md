@@ -456,6 +456,31 @@ Two rules that keep the allowlist from refusing real journalism:
   `.ca` belongs in that TLD list — it is the likeliest bare domain a Canadian
   publication will meet, and it was missing.
 
+### The headline must never be prompt text
+
+A run published `Find a significant Canadian AI-related event from July 2026
+that can be stated as a specific claim` as its **H1, page title, og:title and
+URL slug**. The model echoed roughly a hundred lines of instructions before
+writing `INTRODUCTION`; it never wrote a standalone `HEADLINE` line, so
+`parse_sections` fell through to its **unanchored** search, matched the word
+inside the echoed text, and made 6,340 characters the HEADLINE section.
+`_clean_headline` takes the first line of that section, and the instruction it
+found passed every existing check — right length, four real words, not a
+generic opener.
+
+Guarded at both ends, and neither guard alone is enough:
+
+1. **Size.** A HEADLINE section over 400 characters is a parse failure, not a
+   headline. It is rejected before `_clean_headline` sees it.
+2. **Shape.** `_INSTRUCTION_OPENERS` rejects imperative openers (`find`,
+   `write`, `select`, `include`, `ensure`, `do not`, …) and
+   `_INSTRUCTION_PHRASES` rejects instruction wording. A news headline is
+   declarative; an imperative one came from the prompt.
+
+Both print `PROMPT ECHO:` and fall back to the month title. Rule 0 in the
+prompt already bans reusing its wording — this is the parser guard for when
+that does not hold, same as the date and duplicate-issue rules.
+
 ### The headline is written before the filters run
 
 `HEADLINE` comes from the model, but the date, source-quality and dedup filters

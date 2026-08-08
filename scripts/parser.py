@@ -1016,6 +1016,21 @@ _GENERIC_HEADLINES = (
 )
 
 
+# Imperative openers. A headline states what happened; an instruction tells the
+# model what to do. Anything starting this way came from the prompt, not the news.
+_INSTRUCTION_OPENERS = (
+    "find ", "write ", "select ", "include ", "identify ", "ensure ", "use ",
+    "list ", "choose ", "report ", "pick ", "describe ", "provide ", "state ",
+    "give ", "do not ", "avoid ", "make sure", "explain ", "summarise ",
+    "summarize ", "generate ", "output ", "return ", "format ", "follow ",
+)
+
+_INSTRUCTION_PHRASES = (
+    "that can be stated", "one sentence", "exactly 3", "exactly three",
+    "max 25 words", "your output", "the following format", "do not use",
+)
+
+
 def _clean_headline(raw):
     """Accept a model-written headline only if it actually says something.
 
@@ -1037,6 +1052,21 @@ def _clean_headline(raw):
     low = line.lower()
     if any(low.startswith(g) for g in _GENERIC_HEADLINES):
         return None
+    # Instruction-shaped text is not a headline. A run published
+    # "Find a significant Canadian AI-related event from July 2026 that can be
+    # stated as a specific claim" as its H1, page title, og:title and URL slug:
+    # the model echoed the prompt instead of answering it, and that line passed
+    # every check above — right length, four real words, not a generic opener.
+    # News headlines are declarative; an imperative opener means prompt echo.
+    if any(low.startswith(v) for v in _INSTRUCTION_OPENERS):
+        print(f"  PROMPT ECHO: headline reads as an instruction "
+              f"(\"{line[:70]}\"). Rejected — the model echoed the prompt "
+              f"rather than writing a headline.")
+        return None
+    if any(p in low for p in _INSTRUCTION_PHRASES):
+        print(f"  PROMPT ECHO: headline contains instruction phrasing "
+              f"(\"{line[:70]}\"). Rejected.")
+        return None
     # must contain a real word beyond the boilerplate, not just "AI" + a month
     if len(re.findall(r'[A-Za-z]{4,}', line)) < 4:
         return None
@@ -1056,7 +1086,19 @@ def extract_title_and_excerpt(content, issue_month_year, coverage_month_name=Non
 
     sections = parse_sections(content)
 
-    headline = _clean_headline(sections.get("HEADLINE", ""))
+    raw_headline = sections.get("HEADLINE", "")
+    # A headline is one short line. When the model never writes a standalone
+    # HEADLINE line, parse_sections falls back to an UNANCHORED search and can
+    # match the word inside echoed prompt text — one run turned 6,340 characters
+    # of instructions into the "headline" section. Anything this size is a parse
+    # failure, not a headline, and must not reach the title.
+    if len(raw_headline) > 400:
+        print(f"  PROMPT ECHO: the HEADLINE section is {len(raw_headline)} characters. "
+              f"The model did not write a headline line, so the parser matched the "
+              f"word inside echoed instructions. Falling back to the month title — "
+              f"regenerate rather than publish this.")
+        raw_headline = ""
+    headline = _clean_headline(raw_headline)
     if headline:
         title = headline
     else:
