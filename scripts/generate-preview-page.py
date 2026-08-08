@@ -30,6 +30,49 @@ except ImportError:
     ZoneInfo = None
 
 
+_QUOTA_HELP_URL = ("https://console.cloud.google.com/apis/api/"
+                   "generativelanguage.googleapis.com/quotas")
+
+
+def _quota_help_html(dark=False):
+    """Step-by-step for finding your own daily request limit.
+
+    Written once and used in both places that ask for the number. No API
+    exposes free-tier rate limits, so a reviewer who is told only "check your
+    console" still has to work out where — and quotas are assigned per Google
+    Cloud PROJECT, which is the step people miss.
+    """
+    fg = "#fde68a" if dark else "var(--blue)"
+    muted = "opacity:0.85;" if dark else "color:#64748b;"
+    return f"""
+          <details style="margin-top:0.4rem;">
+            <summary style="cursor:pointer;font-size:0.66rem;{muted}">
+              Where do I find this number?
+            </summary>
+            <ol style="font-size:0.64rem;{muted}line-height:1.55;margin:0.4rem 0 0;padding-left:1.1rem;">
+              <li>Open the
+                <a href="{_QUOTA_HELP_URL}" target="_blank" style="color:{fg};">Quotas page for
+                the Generative Language API</a>.</li>
+              <li><strong>Check the project selector at the top.</strong> Quotas are per
+                Google Cloud project, and your API key belongs to exactly one — the wrong
+                project shows the wrong numbers.</li>
+              <li>In the filter box type <code>per day</code>, or the model name.</li>
+              <li>Find the generate-content row for the model you are setting. Newer
+                projects list a separate row per model.</li>
+              <li>The <strong>Limit</strong> column is the number to type here. It is per
+                day and resets at midnight Pacific.</li>
+            </ol>
+            <p style="font-size:0.63rem;{muted}line-height:1.5;margin:0.4rem 0 0;">
+              If a row reads <em>unlimited</em> or very high, that project is on a paid
+              tier and the daily cap is not your constraint. If no per-day row exists for
+              the model, leave this blank — the panel will just show the raw count rather
+              than a percentage against a limit you cannot confirm.
+              <a href="https://aistudio.google.com/app/apikey" target="_blank"
+                 style="color:{fg};">AI Studio</a> shows which key maps to which project.
+            </p>
+          </details>"""
+
+
 def _model_daily_limits():
     """Free-tier requests per day, per model. Defaults only — the panel lets
     each be overridden, since quotas are assigned per Google Cloud project."""
@@ -201,6 +244,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     generated_stamp_json = json.dumps(generated_stamp)
     quota_baked = _quota_snapshot()
     quota_limits_json = json.dumps(_model_daily_limits())
+    quota_help_light = _quota_help_html(dark=False)
+    quota_help_dark = _quota_help_html(dark=True)
 
     desk_draft = _extract_desk_draft(staging_filename)
     desk_draft_attr = html_escape(desk_draft)
@@ -769,9 +814,10 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
           </div>
           <div style="font-size:0.64rem;opacity:0.85;margin-bottom:0.5rem;">
             Google publishes no API for rate limits, so this number cannot be
-            discovered — take it from your console. Nothing switches until you
-            press the button, and it applies from the next run.
+            discovered. Nothing switches until you press the button, and it
+            applies from the next run.
           </div>
+          {quota_help_dark}
           <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
             <button class="btn btn-secondary" id="model-adopt" style="flex:1;min-width:8rem;"
                     onclick="adoptNewModel()">Lead with it</button>
@@ -782,11 +828,10 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         <div id="model-status" style="font-size:0.66rem;color:#94a3b8;margin-top:0.4rem;"></div>
         <div style="font-size:0.65rem;color:#64748b;line-height:1.45;margin-top:0.45rem;">
           Counts only runs from this blog. Any other app using the same API key
-          draws on the same quota and is not counted here —
-          <a href="https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas"
-             target="_blank" style="color:var(--blue);">check the console</a>
-          for the authoritative number, and copy your real daily limit above.
+          draws on the same quota and is not counted here — the console has the
+          authoritative number.
         </div>
+        {quota_help_light}
       </div>
       {regen_badge}
       <div id="lock-banner" style="display:none;">

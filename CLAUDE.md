@@ -169,7 +169,10 @@ What can and cannot be discovered drives the whole design:
 - **Rate limits cannot.** That response carries names and token limits but no
   RPD/RPM/TPM and no free-tier flag, and no other Google API exposes them. So
   the page *asks* for the new model's daily limit and refuses to adopt without
-  one. Do not invent a default for an unknown model.
+  one. Do not invent a default for an unknown model. `_quota_help_html()` renders
+  the how-to-find-it steps, written once and used beside **both** limit inputs so
+  the two cannot drift — and it leads with the project selector, because quotas
+  are per Cloud project and that is the step people miss.
 - **Whether a new model is better cannot be either.** flash-lite was available
   and produced a materially worse issue. So a new model is **offered, never
   adopted automatically**, and adopting it pushes the old order down into the
