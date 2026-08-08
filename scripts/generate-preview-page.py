@@ -30,59 +30,33 @@ except ImportError:
     ZoneInfo = None
 
 
-_QUOTA_HELP_URL = ("https://console.cloud.google.com/apis/api/"
-                   "generativelanguage.googleapis.com/quotas")
-# The published free-tier table. For a model the project has never called there
-# is usually no console quota row yet, so this is the only place the number
-# exists before adoption — which is exactly when the decision is made.
-_RATE_LIMIT_DOC = "https://ai.google.dev/gemini-api/docs/rate-limits"
+def _limit_prompt_block(ident, dark=False):
+    """A prompt to paste into ChatGPT or Gemini to look the limits up.
 
-
-def _quota_help_html(dark=False):
-    """Step-by-step for finding your own daily request limit.
-
-    Written once and used in both places that ask for the number. No API
-    exposes free-tier rate limits, so a reviewer who is told only "check your
-    console" still has to work out where — and quotas are assigned per Google
-    Cloud PROJECT, which is the step people miss.
+    Replaces the step-by-step console instructions that used to sit here.
+    Those told the reviewer where to click; this hands them something that
+    answers the question directly, names the exact models in play, and asks
+    for uncertainty to be stated rather than guessed — which matters, because
+    a confidently wrong RPD figure drives a quota bar that is also wrong.
     """
-    fg = "#fde68a" if dark else "var(--blue)"
     muted = "opacity:0.85;" if dark else "color:#64748b;"
+    bg    = "#451a03" if dark else "#0f172a"
+    bd    = "#a16207" if dark else "#334155"
+    fg    = "#fde68a" if dark else "#e2e8f0"
     return f"""
           <details style="margin-top:0.4rem;">
             <summary style="cursor:pointer;font-size:0.66rem;{muted}">
-              Where do I find this number?
+              Get a prompt to look these limits up
             </summary>
-            <ol style="font-size:0.64rem;{muted}line-height:1.55;margin:0.4rem 0 0;padding-left:1.1rem;">
-              <li><strong>For a model you have never called</strong>, start with Google's
-                <a href="{_RATE_LIMIT_DOC}" target="_blank" style="color:{fg};">rate-limits
-                table</a> — it lists free-tier RPM, TPM and <strong>RPD per model</strong>.
-                The console often has no quota row for a model your project has not used
-                yet, so the table is the only place the number exists in advance.</li>
-              <li>Compare tiers before anything else. <strong>Flash</strong> models carry
-                the high daily limits; <strong>Pro</strong> models are far lower on the free
-                tier — tens of requests a day, not thousands. Newer is not automatically
-                roomier.</li>
-              <li>Then open the
-                <a href="{_QUOTA_HELP_URL}" target="_blank" style="color:{fg};">Quotas page for
-                the Generative Language API</a> to confirm what YOUR project actually has.</li>
-              <li><strong>Check the project selector at the top.</strong> Quotas are per
-                Google Cloud project, and your API key belongs to exactly one — the wrong
-                project shows the wrong numbers.</li>
-              <li>In the filter box type <code>per day</code>, or the model name.</li>
-              <li>Find the generate-content row for the model you are setting. Newer
-                projects list a separate row per model.</li>
-              <li>The <strong>Limit</strong> column is the number to type here. It is per
-                day and resets at midnight Pacific.</li>
-            </ol>
-            <p style="font-size:0.63rem;{muted}line-height:1.5;margin:0.4rem 0 0;">
-              If a row reads <em>unlimited</em> or very high, that project is on a paid
-              tier and the daily cap is not your constraint. If no per-day row exists for
-              the model, leave this blank — the panel will just show the raw count rather
-              than a percentage against a limit you cannot confirm.
-              <a href="https://aistudio.google.com/app/apikey" target="_blank"
-                 style="color:{fg};">AI Studio</a> shows which key maps to which project.
+            <p style="font-size:0.63rem;{muted}line-height:1.5;margin:0.4rem 0 0.3rem;">
+              Paste this into ChatGPT or the Gemini app, then type the numbers above.
             </p>
+            <textarea id="{ident}-text" readonly rows="7" style="width:100%;font-size:0.63rem;
+                      font-family:ui-monospace,monospace;line-height:1.45;padding:0.4rem;
+                      border-radius:5px;border:1px solid {bd};background:{bg};color:{fg};
+                      resize:vertical;"></textarea>
+            <button class="btn btn-secondary" id="{ident}-copy" style="width:100%;margin-top:0.35rem;"
+                    onclick="copyLimitPrompt('{ident}')">Copy prompt</button>
           </details>"""
 
 
@@ -257,8 +231,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     generated_stamp_json = json.dumps(generated_stamp)
     quota_baked = _quota_snapshot()
     quota_limits_json = json.dumps(_model_daily_limits())
-    quota_help_light = _quota_help_html(dark=False)
-    quota_help_dark = _quota_help_html(dark=True)
+    quota_help_light = _limit_prompt_block("quota-prompt", dark=False)
+    quota_help_dark = _limit_prompt_block("model-prompt", dark=True)
 
     desk_draft = _extract_desk_draft(staging_filename)
     desk_draft_attr = html_escape(desk_draft)
@@ -836,11 +810,18 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
             <div style="font-size:0.9rem;opacity:0.6;padding-bottom:0.1rem;">&rarr;</div>
             <div>
               <div style="font-size:0.63rem;opacity:0.8;">New model, per day</div>
-              <input id="model-new-limit" type="number" min="1" placeholder="look it up"
-                     style="width:6rem;padding:0.2rem 0.4rem;font-size:0.72rem;border-radius:4px;
+              <input id="model-new-limit" type="number" min="1" placeholder="RPD"
+                     style="width:5rem;padding:0.2rem 0.4rem;font-size:0.72rem;border-radius:4px;
+                            border:1px solid #a16207;background:#451a03;color:#fff;">
+            </div>
+            <div>
+              <div style="font-size:0.63rem;opacity:0.8;">Per minute</div>
+              <input id="model-new-rpm" type="number" min="1" placeholder="RPM"
+                     style="width:4.4rem;padding:0.2rem 0.4rem;font-size:0.72rem;border-radius:4px;
                             border:1px solid #a16207;background:#451a03;color:#fff;">
             </div>
           </div>
+          <div id="model-rpm-note" style="font-size:0.64rem;opacity:0.85;margin-bottom:0.4rem;"></div>
           <div id="model-delta" style="font-size:0.68rem;font-weight:700;margin-bottom:0.45rem;"></div>
           <div style="font-size:0.64rem;opacity:0.85;margin-bottom:0.5rem;">
             Google publishes no API for rate limits, so this number cannot be
@@ -1177,6 +1158,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     el.textContent = total;
 
     const names = Object.keys(models).sort((a, b) => models[b] - models[a]);
+    // Feeds the lookup prompt, so it asks about the models actually in use.
+    QUOTA_MODELS_SEEN = names;
     host.innerHTML = "";
     let worst = 0;
     names.forEach(function (m) {{
@@ -1212,6 +1195,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       host.appendChild(row);
     }});
 
+    renderLimitPrompts();
     if (!names.length) {{
       note.textContent = "No requests recorded yet today. Resets at midnight Pacific.";
     }} else if (worst >= 85) {{
@@ -1263,12 +1247,15 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       }});
       sel.onchange = renderModelDelta;
       const lim = document.getElementById("model-new-limit");
-      if (lim && !lim.dataset.wired) {{
-        lim.addEventListener("input", renderModelDelta);
-        lim.dataset.wired = "1";
-      }}
+      [lim, document.getElementById("model-new-rpm")].forEach(function (inp) {{
+        if (inp && !inp.dataset.wired) {{
+          inp.addEventListener("input", renderModelDelta);
+          inp.dataset.wired = "1";
+        }}
+      }});
       box.style.display = "block";
       renderModelDelta();
+      renderLimitPrompts();
     }} else {{
       box.style.display = "none";
     }}
@@ -1314,6 +1301,68 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }} catch (e) {{ showToast("Network error writing the config.", "error"); return false; }}
   }}
 
+  // ── Limit-lookup prompt ────────────────────────────────────────
+  // Built from the models actually in play, so it never asks about something
+  // irrelevant. It asks for uncertainty to be stated rather than estimated: a
+  // confidently wrong RPD drives a quota bar that is confidently wrong too.
+  function buildLimitPrompt(models, current, currentLimit) {{
+    const list = models.filter(Boolean).map(m => "- " + m).join("\\n");
+    const baseline = current
+      ? `My current model is ${{current}}${{currentLimit ? ` (I have it recorded as `
+        + `${{currentLimit}} requests/day)` : ""}}.`
+      : "";
+    return [
+      "I use the Google Gemini API on the FREE tier (Google AI Studio key, not Vertex AI).",
+      "",
+      "For each model below, give me the current free-tier rate limits:",
+      list,
+      "",
+      baseline,
+      "",
+      "Answer with:",
+      "1. A table: model | requests per day | requests per minute | tokens per minute",
+      "2. Whether each model is available on the free tier at all, or paid-only",
+      "3. Which of them give me the SAME or MORE requests per day than my current model,"
+        + " and which would cut it — state the percentage change",
+      "4. The date your figures are from, and a link to Google's official rate-limits page",
+      "",
+      "If you are not certain of a number, say so explicitly rather than estimating."
+        + " I am using these figures to set a quota warning, so a wrong number is worse"
+        + " than no number.",
+      "",
+      "Note: Google assigns these per Google Cloud project and no longer publishes one"
+        + " universal table, so tell me if the figure varies by project."
+    ].filter(l => l !== null).join("\\n");
+  }}
+
+  function renderLimitPrompts() {{
+    const cfg = MODEL_CFG || {{}};
+    const current = (cfg.order || [])[0] || "";
+    const currentLimit = (cfg.limits || {{}})[current] || QUOTA_DEFAULT_LIMITS[current] || 0;
+
+    // New-model panel: the models being offered.
+    const sel = document.getElementById("model-new-name");
+    const offered = sel ? Array.from(sel.options).map(o => o.value) : [];
+    const mp = document.getElementById("model-prompt-text");
+    if (mp) mp.value = buildLimitPrompt(offered, current, currentLimit);
+
+    // Quota panel: the models actually being used.
+    const inUse = Array.from(new Set((cfg.order || []).concat(QUOTA_MODELS_SEEN)));
+    const qp = document.getElementById("quota-prompt-text");
+    if (qp) qp.value = buildLimitPrompt(inUse, current, currentLimit);
+  }}
+
+  function copyLimitPrompt(ident) {{
+    const el = document.getElementById(ident + "-text");
+    if (!el) return;
+    navigator.clipboard.writeText(el.value).then(
+      function () {{ showToast("Prompt copied — paste it into ChatGPT or Gemini.", "success"); }},
+      function () {{ el.select(); showToast("Select and copy the text above.", "error"); }}
+    );
+  }}
+
+  let QUOTA_MODELS_SEEN = [];
+
   // Pro-tier free limits are roughly an order of magnitude below Flash, so the
   // risk is flagged from the NAME before any number is looked up — the reviewer
   // should know a pro model costs headroom before going to find the figure.
@@ -1347,9 +1396,33 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     curName.textContent = current.replace("gemini-", "") || "—";
     curLimitEl.textContent = currentLimit ? currentLimit.toLocaleString() + "/day" : "not set";
 
+    renderLimitPrompts();
     const risk = modelTierRisk(model, current);
     warn.style.display = risk ? "block" : "none";
     warn.textContent = risk;
+
+    // Requests per minute. This pipeline peaks at about three requests inside a
+    // minute — the ungrounded 400/404 retry fires immediately, the transient
+    // retry waits 45s, the model fallback waits 30s — and the blog-pipeline
+    // concurrency group serialises runs, so bursts cannot stack. Anything from
+    // about 5 RPM up is therefore untouchable; below that is worth knowing.
+    const rpmEl = document.getElementById("model-new-rpm");
+    const rpm = rpmEl ? parseInt(rpmEl.value, 10) : 0;
+    const rpmNote = document.getElementById("model-rpm-note");
+    if (rpmNote) {{
+      if (!rpm || rpm <= 0) {{
+        rpmNote.textContent = "";
+      }} else if (rpm < 5) {{
+        rpmNote.style.color = "#fca5a5";
+        rpmNote.textContent = rpm + " requests/minute is tight. A run can fire about "
+          + "three inside a minute when a model retries or falls back, so this could "
+          + "throttle a single generation.";
+      }} else {{
+        rpmNote.style.color = "#86efac";
+        rpmNote.textContent = rpm + " requests/minute is ample — a run peaks at about "
+          + "three, and runs are serialised so they cannot stack.";
+      }}
+    }}
 
     const el = document.getElementById("model-new-limit");
     const n = el ? parseInt(el.value, 10) : 0;
@@ -1377,6 +1450,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     if (!fresh.length) return;
     const model = document.getElementById("model-new-name").value || fresh[0];
     const limit = parseInt(document.getElementById("model-new-limit").value, 10);
+    const rpmVal = parseInt(document.getElementById("model-new-rpm").value, 10) || 0;
     if (!limit || limit <= 0) {{
       showToast("Set the daily request limit first — it cannot be discovered.", "error");
       return;
@@ -1399,6 +1473,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     const next = Object.assign({{}}, cfg, {{
       order: order,
       limits: Object.assign({{}}, cfg.limits || {{}}, {{ [model]: limit }}),
+      limits_rpm: Object.assign({{}}, cfg.limits_rpm || {{}},
+                                rpmVal > 0 ? {{ [model]: rpmVal }} : {{}}),
       known: Array.from(new Set((cfg.known || []).concat(order))),
       available: (cfg.available || []).filter(m => m !== model)
     }});
