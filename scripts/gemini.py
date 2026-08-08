@@ -200,6 +200,18 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                       f"Desk, the predictions — flattens into restated news. "
                       f"Read those sections closely, and prefer regenerating "
                       f"once the leader is available again.")
+            # Tier of the model ACTUALLY USED, independent of whether it was a
+            # fallback. The warning above assumed the configured leader is always
+            # the strong model — but a lite model can now be adopted as the
+            # leader from the approval page, and that silenced the one signal
+            # saying to read the judgment sections closely, precisely when it
+            # matters most.
+            if "lite" in model.lower():
+                print(f"  LITE MODEL: {model} is a lite-tier model. The reported "
+                      f"half of an issue holds up on lite; the judgment half — "
+                      f"strategic reads, the Desk, the predictions — flattens into "
+                      f"restated news. Read those sections closely. This fires "
+                      f"whether lite is the configured leader or a fallback.")
             return {"content": cleaned, "model": model}
 
         except requests.exceptions.Timeout:
