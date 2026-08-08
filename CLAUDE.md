@@ -184,6 +184,37 @@ built from `pathname`, not `href`, so repeat presses don't stack params.
   fires `load` for `about:blank` while the page is still parsing — before the
   script at the end of `<body>` exists.
 
+### Canadian Spotlight leads with brands the reader knows
+
+The section kept filling with federal programs and AI vendors (Cohere, Ada,
+Coveo, Mila). Both are credible; neither is a name a reader meets in daily life,
+so the one section meant to feel local read like industry trade press.
+
+`CANADIAN_HOUSEHOLD_BRANDS` in `utils.py` is the single source — banks,
+telecoms, retailers, airlines, energy, food. It is used **twice**: interpolated
+into the Spotlight spec so the model knows the universe, and matched by
+`is_household_canadian_brand()` so `renderer.py` orders those items first. Same
+pattern as `STOCK_VOICE_PHRASES`; if the two drifted, the prompt would ask for
+one thing and the ordering would reward another.
+
+- **The spec selects in priority order**: household-name adopters first (aim for
+  2 of 3), government second (still routed here, but at most one slot unless
+  brand stories are short), Canadian AI vendors last.
+- **What earns a slot is a described deployment**, not an investment. "Bank X
+  launched an assistant handling Y% of service conversations" qualifies; "Bank X
+  is investing in AI" is the filler this is meant to replace.
+- **The renderer sorts brands first anyway.** `sort()` is stable, so within each
+  group the model's own ordering survives. This covers the case where it finds
+  the right stories and lists them in the wrong order.
+- **`SPOTLIGHT BRANDS:` in the run log** reports how many items named a
+  household brand, and says so plainly when none did.
+- **Matching is word-boundary** so "Bell Canada" cannot fire inside "Campbell".
+  It is used for ordering and reporting only — nothing is ever dropped for
+  failing it, which is what makes a loose match acceptable here.
+- **Nothing is padded to hit the quota.** The spec says so explicitly: a brand
+  item cited to a vendor blog is worse than a well-sourced government item, and
+  the sourcing allowlist applies to this section unchanged.
+
 ### Sources — an allowlist, and the wire distinction
 
 `is_acceptable_source()` in `utils.py` is an **allowlist**: a development is

@@ -6,7 +6,7 @@ Gemini API integration and prompt construction for the monthly blog generator.
 import time
 import requests
 from datetime import datetime, timedelta
-from utils import clean_ai_content, STOCK_VOICE_PHRASES
+from utils import clean_ai_content, STOCK_VOICE_PHRASES, CANADIAN_HOUSEHOLD_BRANDS
 
 
 def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
@@ -438,6 +438,17 @@ Write one or two sentences maximum, ending in a question mark."""
 
 def _shared_rules_block(month_year, prev_month, is_backfill=False, today=None):
     today_str = (today or datetime.now()).strftime('%B %d, %Y')
+    # Drawn from the one list in utils.py rather than retyped here, so the
+    # names the prompt asks for and the names the renderer orders by cannot
+    # drift apart. A sample, not the whole set — the point is to establish the
+    # KIND of company, and the full list would read as a checklist to fill.
+    brand_examples = ", ".join([
+        "RBC", "TD Bank", "Scotiabank", "BMO", "CIBC", "Desjardins",
+        "Bell Canada", "Rogers", "Telus", "Loblaw", "Canadian Tire",
+        "Shoppers Drug Mart", "Sobeys", "Couche-Tard", "Air Canada", "WestJet",
+        "Canada Post", "Tim Hortons", "Sun Life", "Manulife", "Enbridge",
+        "Hydro-Québec", "CN Rail", "Lululemon", "Dollarama",
+    ])
     return f"""{_EDITORIAL_PREAMBLE}
 
 WRITING RULES — follow these exactly:
@@ -652,9 +663,16 @@ Rules:
 - UNIQUENESS RULE: Every item must cover a distinct news event or announcement.
 
 CANADIAN SPOTLIGHT (MINIMUM 3 items — hard requirement):
-SECTION ROUTING RULE FOR SPOTLIGHT: This section receives TWO types of content:
-1. GOVERNMENT items (MANDATORY here, never in Key Developments): Any announcement, funding, policy, regulation, or strategy from the Government of Canada, any provincial/territorial/municipal government, the Prime Minister or any minister, G7/G20/OECD ministerial bodies, Statistics Canada, or any Crown corporation acting in policy capacity.
-2. CANADIAN PRIVATE SECTOR items (optional, if not already in Key Developments): Canadian AI companies making news (Cohere, Ada, Coveo, D-Wave, Mila spinouts, etc.)
+WHO THIS SECTION IS FOR. The reader is a Canadian executive. This is the one section that should feel like their own market, so it leads with companies they already deal with — the bank they bank with, the carrier they pay a bill to, the retailer they shop at — explaining how those companies actually use AI. A federal program and an AI vendor are both credible and neither is a name the reader meets in daily life.
+
+SELECT IN THIS PRIORITY ORDER:
+1. HOUSEHOLD-NAME CANADIAN COMPANIES ADOPTING AI — first choice, and aim for at least 2 of the 3 items whenever such stories exist. Banks, insurers, telecoms, retailers, grocers, airlines, railways, energy and food companies. For example: {brand_examples}. What earns the slot is a company the reader recognises describing a REAL DEPLOYMENT — what it does, where it runs, who it serves. "Bank X launched an AI assistant handling Y% of service conversations" is the shape. "Bank X is investing in AI" is not: an investment or a partnership announcement with no described use is exactly the filler this section is meant to avoid.
+2. GOVERNMENT items — these still belong HERE and never in Key Developments (routing rule below), but take AT MOST ONE slot unless there are fewer than two qualifying brand stories this month. Any announcement, funding, policy, regulation, or strategy from the Government of Canada, any provincial/territorial/municipal government, the Prime Minister or any minister, G7/G20/OECD ministerial bodies, Statistics Canada, or any Crown corporation acting in policy capacity.
+3. CANADIAN AI COMPANIES (Cohere, Ada, Coveo, D-Wave, Mila spinouts) — use these to fill remaining slots, not as the default.
+
+ORDER THE SECTION so household-name adopters appear first.
+
+Do NOT invent or stretch to satisfy the priority. If only one household-name adoption story is properly sourced this month, run one and fill the rest by priority. A padded brand item cited to a vendor blog is worse than a well-sourced government item.
 
 CRITICAL SOURCE RULE: Every single Canadian Spotlight item MUST end with a Source line using a PRIMARY source only.
 CRITICAL GOVERNMENT-SOURCE RULE: When the item is a government, regulator or Crown-agency action — ISED, the AI Compute Access Fund, OSFI, the Privacy Commissioner, Quebec's Commission d'acces a l'information, a provincial ministry — cite THAT BODY'S OWN page or release. Those bodies publish everything they announce. A run cited an ISED funding program to a business-services blog and Quebec Law 25 guidance to a marketing site, when both were announced by the bodies themselves. A consultancy or vendor blog writing about a government program is not the source for it.

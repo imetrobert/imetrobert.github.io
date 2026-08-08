@@ -11,7 +11,8 @@ from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
 from utils import (BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR,
                    is_government_entity, is_recognised_publication, is_newswire,
-                   is_first_party_newsroom, uses_stock_phrase)
+                   is_first_party_newsroom, uses_stock_phrase,
+                   household_canadian_brands, is_household_canadian_brand)
 from parser import (
     _resolve_item_date,
     parse_sections, parse_list_items, parse_developments, parse_spotlight_items,
@@ -103,6 +104,17 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     )
     spotlight_items = parse_spotlight_items(canadian_spot)
     spotlight_items = deduplicate_spotlight_against_developments(spotlight_items, developments)
+    # Household-name Canadian brands first. This is the one section meant to
+    # feel like the reader's own market, and it had been filling with federal
+    # programs and AI vendors — credible, but not names anyone meets in daily
+    # life. The spec asks for this ordering; enforcing it here costs nothing
+    # and covers the case where the model finds the right stories and lists
+    # them in the wrong order. sort() is stable, so within each group the
+    # model's own sense of importance survives.
+    spotlight_items.sort(
+        key=lambda _s: 0 if is_household_canadian_brand(
+            (_s.get("org") or "") + " " + (_s.get("body") or "")) else 1
+    )
     actions         = parse_actions(sections.get("STRATEGIC ACTIONS FOR THIS MONTH", ""))
     adoption        = parse_adoption_stats(adoption_raw)
     summary_points  = parse_list_items(sections.get("EXECUTIVE SUMMARY", ""), min_length=25)[:3]
@@ -141,6 +153,24 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
 
     if len(spotlight_items) < 3:
         print(f"  NOTE: only {len(spotlight_items)} Canadian Spotlight items; the issue asks for 3.")
+
+    # Whether the Spotlight actually landed on names a reader recognises. The
+    # section can be perfectly sourced and still be three federal programs, and
+    # nothing in the log would have said so.
+    _spot_brands = []
+    for _s in spotlight_items:
+        _found = household_canadian_brands((_s.get("org") or "") + " " + (_s.get("body") or ""))
+        if _found:
+            _spot_brands.append(_found[0])
+    if spotlight_items:
+        if _spot_brands:
+            print(f"  SPOTLIGHT BRANDS: {len(_spot_brands)} of {len(spotlight_items)} Canadian "
+                  f"items name a household brand ({', '.join(_spot_brands)}); those run first.")
+        else:
+            print(f"  SPOTLIGHT BRANDS: none of the {len(spotlight_items)} Canadian items names "
+                  f"a household brand — the section is all government and AI-industry names, "
+                  f"which is the shape it is meant to avoid. Worth a regenerate if a bank, "
+                  f"telecom or retailer did announce something this month.")
 
     # The headline is written by the model from the stories it drafted, but the
     # date, source-quality and dedup filters run afterwards — so a dropped story
