@@ -214,6 +214,34 @@ corporate PR report itself as independently sourced.
 `WEAK SOURCING` fires when fewer than two developments rest on an independent
 publication, and it means what it says: regenerate rather than publish.
 
+### Coverage month is a dropdown, and the year list needs extending
+
+`monthly-blog.yml` takes the coverage month as two `choice` inputs
+(`coverage_month` + `coverage_year`) rather than a free-text "June 2026".
+Actions has **no date input type** — `string`, `choice`, `boolean` and
+`environment` are the only ones, and GitHub renders the form — so a calendar
+picker is not available, but a dropdown removes the typo.
+
+That is worth more than tidiness. `generate-blog.py` parses the value with
+`strptime("%B %Y")`, so `Jul 2026` or `July, 2026` raised `ValueError` and the
+run silently covered the **current** month behind a single `WARNING` line,
+while `July 2062` parsed cleanly and would have generated a nonsense issue.
+
+- `'(normal run)'` and `'(current year)'` are the sentinels. A `choice` input
+  always sends a value, so "blank means normal" needed an explicit option.
+- Inputs are read via `env:` rather than interpolated into the shell, so a
+  value arrives as data, not as code.
+- A year chosen without a month prints a NOTE and is ignored — a half-finished
+  override should not quietly run the current month.
+- **The year list is hand-maintained** (`2026`–`2030`), like the
+  `workflow_dispatch` choice list in `redraft-section.yml`. Actions cannot
+  generate options. Extend it before 2031.
+- Scheduled runs pass no inputs at all, so the `-n "$IN_MONTH"` guard is what
+  keeps the cron path on the current month. Don't drop it.
+- `regenerate-blog.yml` deliberately keeps `coverage_month` as a **string**: it
+  is dispatched by the preview page's Regenerate button, which sends a composed
+  `"July 2026"` through the API. Converting it would break that call.
+
 ### The fallback model degrades judgment, not facts
 
 `MODELS_TO_TRY` leads with `gemini-2.5-flash`; the fallbacks reliably produce
