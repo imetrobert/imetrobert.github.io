@@ -32,6 +32,10 @@ except ImportError:
 
 _QUOTA_HELP_URL = ("https://console.cloud.google.com/apis/api/"
                    "generativelanguage.googleapis.com/quotas")
+# The published free-tier table. For a model the project has never called there
+# is usually no console quota row yet, so this is the only place the number
+# exists before adoption — which is exactly when the decision is made.
+_RATE_LIMIT_DOC = "https://ai.google.dev/gemini-api/docs/rate-limits"
 
 
 def _quota_help_html(dark=False):
@@ -50,9 +54,18 @@ def _quota_help_html(dark=False):
               Where do I find this number?
             </summary>
             <ol style="font-size:0.64rem;{muted}line-height:1.55;margin:0.4rem 0 0;padding-left:1.1rem;">
-              <li>Open the
+              <li><strong>For a model you have never called</strong>, start with Google's
+                <a href="{_RATE_LIMIT_DOC}" target="_blank" style="color:{fg};">rate-limits
+                table</a> — it lists free-tier RPM, TPM and <strong>RPD per model</strong>.
+                The console often has no quota row for a model your project has not used
+                yet, so the table is the only place the number exists in advance.</li>
+              <li>Compare tiers before anything else. <strong>Flash</strong> models carry
+                the high daily limits; <strong>Pro</strong> models are far lower on the free
+                tier — tens of requests a day, not thousands. Newer is not automatically
+                roomier.</li>
+              <li>Then open the
                 <a href="{_QUOTA_HELP_URL}" target="_blank" style="color:{fg};">Quotas page for
-                the Generative Language API</a>.</li>
+                the Generative Language API</a> to confirm what YOUR project actually has.</li>
               <li><strong>Check the project selector at the top.</strong> Quotas are per
                 Google Cloud project, and your API key belongs to exactly one — the wrong
                 project shows the wrong numbers.</li>
@@ -805,13 +818,30 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         <div id="model-new" style="display:none;margin-top:0.6rem;padding:0.6rem;
              border-radius:6px;background:#78350f;color:#fff;font-size:0.72rem;line-height:1.5;">
           <div style="font-weight:700;margin-bottom:0.35rem;">New Gemini model available</div>
-          <div id="model-new-name" style="font-family:monospace;font-size:0.72rem;margin-bottom:0.45rem;"></div>
-          <div style="display:flex;gap:0.4rem;align-items:center;margin-bottom:0.45rem;flex-wrap:wrap;">
-            <label style="font-size:0.68rem;">Daily request limit</label>
-            <input id="model-new-limit" type="number" min="1" placeholder="e.g. 1500"
-                   style="width:5.5rem;padding:0.2rem 0.4rem;font-size:0.7rem;border-radius:4px;
-                          border:1px solid #a16207;background:#451a03;color:#fff;">
+          <select id="model-new-name" style="width:100%;font-family:monospace;font-size:0.72rem;
+                  margin-bottom:0.45rem;padding:0.25rem;border-radius:4px;border:1px solid #a16207;
+                  background:#451a03;color:#fff;"></select>
+          <!-- The decision that matters is not "is it newer" but "does it cost
+               me headroom". Pro-tier free limits are in the tens per day against
+               Flash's thousands, so adopting one silently would remove ~95% of
+               the daily budget. The current limit is shown beside the new one so
+               the comparison is unavoidable. -->
+          <div id="model-tier-warn" style="display:none;font-size:0.66rem;background:#7f1d1d;
+               border-radius:4px;padding:0.4rem 0.5rem;margin-bottom:0.45rem;"></div>
+          <div style="display:flex;gap:0.5rem;align-items:flex-end;margin-bottom:0.4rem;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:0.63rem;opacity:0.8;">Today (<span id="model-cur-name">—</span>)</div>
+              <div id="model-cur-limit" style="font-size:0.82rem;font-weight:700;">—</div>
+            </div>
+            <div style="font-size:0.9rem;opacity:0.6;padding-bottom:0.1rem;">&rarr;</div>
+            <div>
+              <div style="font-size:0.63rem;opacity:0.8;">New model, per day</div>
+              <input id="model-new-limit" type="number" min="1" placeholder="look it up"
+                     style="width:6rem;padding:0.2rem 0.4rem;font-size:0.72rem;border-radius:4px;
+                            border:1px solid #a16207;background:#451a03;color:#fff;">
+            </div>
           </div>
+          <div id="model-delta" style="font-size:0.68rem;font-weight:700;margin-bottom:0.45rem;"></div>
           <div style="font-size:0.64rem;opacity:0.85;margin-bottom:0.5rem;">
             Google publishes no API for rate limits, so this number cannot be
             discovered. Nothing switches until you press the button, and it
@@ -1221,8 +1251,24 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
     const box = document.getElementById("model-new");
     if (fresh.length) {{
-      document.getElementById("model-new-name").textContent = fresh.join(", ");
+      // A dropdown, not a label: the discovery call can return several newer
+      // models at once, and "Lead with it" silently taking the first would
+      // adopt something the reviewer never chose.
+      const sel = document.getElementById("model-new-name");
+      sel.innerHTML = "";
+      fresh.forEach(function (m) {{
+        const o = document.createElement("option");
+        o.value = m; o.textContent = m;
+        sel.appendChild(o);
+      }});
+      sel.onchange = renderModelDelta;
+      const lim = document.getElementById("model-new-limit");
+      if (lim && !lim.dataset.wired) {{
+        lim.addEventListener("input", renderModelDelta);
+        lim.dataset.wired = "1";
+      }}
       box.style.display = "block";
+      renderModelDelta();
     }} else {{
       box.style.display = "none";
     }}
@@ -1268,15 +1314,82 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }} catch (e) {{ showToast("Network error writing the config.", "error"); return false; }}
   }}
 
+  // Pro-tier free limits are roughly an order of magnitude below Flash, so the
+  // risk is flagged from the NAME before any number is looked up — the reviewer
+  // should know a pro model costs headroom before going to find the figure.
+  function modelTierRisk(model, currentModel) {{
+    const isPro = /(^|-)pro(-|$)/.test(model);
+    const curIsPro = /(^|-)pro(-|$)/.test(currentModel || "");
+    if (isPro && !curIsPro) {{
+      return "Pro-tier model. On the free tier Pro daily limits are typically tens "
+        + "of requests against thousands for Flash — expect a large drop in headroom. "
+        + "Confirm the number before adopting.";
+    }}
+    if (/lite/.test(model) && !/lite/.test(currentModel || "")) {{
+      return "Lite model. Lite usually carries a lower daily limit than full Flash, "
+        + "and produced a materially weaker issue the one time this pipeline fell "
+        + "back to it.";
+    }}
+    return "";
+  }}
+
+  function renderModelDelta() {{
+    const cfg = MODEL_CFG || {{}};
+    const current = (cfg.order || [])[0] || "";
+    const currentLimit = (cfg.limits || {{}})[current] || QUOTA_DEFAULT_LIMITS[current] || 0;
+    const sel = document.getElementById("model-new-name");
+    const model = sel ? sel.value : "";
+    const curName = document.getElementById("model-cur-name");
+    const curLimitEl = document.getElementById("model-cur-limit");
+    const delta = document.getElementById("model-delta");
+    const warn = document.getElementById("model-tier-warn");
+    if (!curName || !delta || !warn) return;
+    curName.textContent = current.replace("gemini-", "") || "—";
+    curLimitEl.textContent = currentLimit ? currentLimit.toLocaleString() + "/day" : "not set";
+
+    const risk = modelTierRisk(model, current);
+    warn.style.display = risk ? "block" : "none";
+    warn.textContent = risk;
+
+    const el = document.getElementById("model-new-limit");
+    const n = el ? parseInt(el.value, 10) : 0;
+    if (!n || n <= 0 || !currentLimit) {{ delta.textContent = ""; return; }}
+    const pct = Math.round(((n - currentLimit) / currentLimit) * 100);
+    if (pct >= 0) {{
+      delta.style.color = "#86efac";
+      delta.textContent = (pct === 0 ? "Same headroom" : "+" + pct + "% headroom")
+        + " — " + n.toLocaleString() + " requests/day.";
+    }} else if (pct > -50) {{
+      delta.style.color = "#fcd34d";
+      delta.textContent = pct + "% headroom — " + n.toLocaleString() + "/day instead of "
+        + currentLimit.toLocaleString() + ".";
+    }} else {{
+      delta.style.color = "#fca5a5";
+      delta.textContent = pct + "% headroom. " + n.toLocaleString() + "/day instead of "
+        + currentLimit.toLocaleString() + " — a severe cut. Adopt only if the model is "
+        + "worth losing that much testing room.";
+    }}
+  }}
+
   async function adoptNewModel() {{
     const cfg = MODEL_CFG || {{}};
     const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
     if (!fresh.length) return;
-    const model = fresh[0];
+    const model = document.getElementById("model-new-name").value || fresh[0];
     const limit = parseInt(document.getElementById("model-new-limit").value, 10);
     if (!limit || limit <= 0) {{
       showToast("Set the daily request limit first — it cannot be discovered.", "error");
       return;
+    }}
+    // A severe cut is an informed decision, not a blocked one — but it has to be
+    // an explicit click, because losing most of the daily budget is not
+    // recoverable until midnight Pacific.
+    const cur0 = (cfg.order || [])[0] || "";
+    const curLim = (cfg.limits || {{}})[cur0] || QUOTA_DEFAULT_LIMITS[cur0] || 0;
+    if (curLim && limit < curLim * 0.5) {{
+      const drop = Math.abs(Math.round(((limit - curLim) / curLim) * 100));
+      if (!confirm(model + " would cut your daily requests by " + drop + "% ("
+                   + limit + "/day instead of " + curLim + "). Adopt anyway?")) return;
     }}
     const btn = document.getElementById("model-adopt");
     btn.disabled = true;

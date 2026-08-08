@@ -181,9 +181,36 @@ What can and cannot be discovered drives the whole design:
 
 Other things that matter:
 
-- **Preview and experimental names are filtered out** of the offer
-  (`-exp`, `-preview`, `embedding`, `imagen`, `veo`, `tts`, …). They churn
-  weekly and would turn the prompt into noise.
+- **The offer is filtered hard, and only ever shows models NEWER than the
+  current leader.** A first run listed seventeen "new" models: image
+  generators, the Gemma family, `-latest` aliases, `-001` version pins, and
+  `2.0-flash-lite`, which is *older* than what we lead with. An offer that long
+  is noise, and noise gets dismissed unread. `is_text_generation_model()` plus a
+  version comparison cut that to four. `_MODEL_EXCLUDE_TOKENS` is a token
+  denylist rather than a name list, so a future `gemini-4.2-flash-image` is
+  filtered by `-image` with no edit.
+- **`-latest` aliases are excluded deliberately.** `gemini-flash-latest` would
+  track the newest flash automatically — which sounds like the longevity goal,
+  but it would change the model under a published issue with no decision point,
+  and the whole reason a new model is offered rather than adopted is that
+  availability is not quality.
+- **The question is not "is it newer" but "does it cost headroom".** Free-tier
+  Pro limits are tens of requests a day against Flash's thousands, so adopting
+  a Pro model would remove most of the daily budget. The panel shows the
+  CURRENT model's limit beside the new one, computes the delta live as the
+  number is typed (green for a gain, amber under 50% loss, red beyond), and
+  `modelTierRisk()` warns from the model NAME before any lookup — pro and lite
+  each get a specific caution. A cut of more than half needs an explicit
+  `confirm()`; it is an informed decision, not a blocked one, because the
+  budget does not recover until midnight Pacific.
+- **The help block leads with the rate-limits doc, not the console.** For a
+  model the project has never called there is usually no console quota row yet,
+  so `_RATE_LIMIT_DOC` is the only place the number exists *before* adoption —
+  which is exactly when the decision is made. The console step follows, to
+  confirm what the project actually has.
+- **The offer is a dropdown, not a label.** Discovery can return several newer
+  models at once, and a single "Lead with it" button taking the first would
+  adopt something never chosen.
 - **Discovery runs after the issue is generated and fails silently.** It is a
   convenience; it must never be able to stop a run.
 - **A malformed config falls back to the constants** rather than raising —

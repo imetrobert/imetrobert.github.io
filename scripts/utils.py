@@ -162,6 +162,48 @@ def discover_models(api_key, timeout=30):
         return []
 
 
+_MODEL_VERSION_RE = re.compile(r"^gemini-(\d+(?:\.\d+)?)")
+
+# Families and variants this pipeline can never use for an issue. Kept as a
+# denylist of TOKENS rather than names, so a future "gemini-4.2-flash-image"
+# is filtered by "-image" without anyone updating a list.
+_MODEL_EXCLUDE_TOKENS = (
+    "-exp", "experimental", "-preview", "-tuning", "embedding", "aqa",
+    "imagen", "veo", "tts", "-vision", "learnlm", "-image", "-audio",
+    "-native-audio", "-thinking", "-8b",
+)
+
+
+def _model_version(name):
+    """The version number in a model id, or 0.0 if it has none."""
+    m = _MODEL_VERSION_RE.match((name or "").lower())
+    try:
+        return float(m.group(1)) if m else 0.0
+    except ValueError:
+        return 0.0
+
+
+def is_text_generation_model(name):
+    """True for a Gemini model that could actually write an issue.
+
+    Excludes the Gemma family (different models entirely), image/audio/embedding
+    variants, `-latest` aliases and `-001` version pins. Aliases are excluded
+    deliberately: `gemini-flash-latest` would silently change the model under a
+    published issue, and the whole reason a new model is offered rather than
+    adopted is that availability is not quality.
+    """
+    low = (name or "").lower()
+    if not low.startswith("gemini-"):
+        return False
+    if any(t in low for t in _MODEL_EXCLUDE_TOKENS):
+        return False
+    if low.endswith("-latest"):
+        return False
+    if re.search(r"-\d{3}$", low):
+        return False
+    return _model_version(low) > 0.0
+
+
 def new_models_available(api_key, path=None):
     """Models the key can call that the config has never seen or dismissed.
 
@@ -170,17 +212,20 @@ def new_models_available(api_key, path=None):
     """
     cfg = load_model_config(path)
     seen = set(cfg["known"]) | set(cfg["dismissed"]) | set(cfg["order"])
+    leader_version = _model_version(cfg["order"][0]) if cfg["order"] else 0.0
     fresh = []
     for name in discover_models(api_key):
-        if name in seen:
+        if name in seen or not is_text_generation_model(name):
             continue
-        low = name.lower()
-        if any(t in low for t in ("-exp", "experimental", "-preview", "-tuning",
-                                  "embedding", "aqa", "imagen", "veo", "tts",
-                                  "-vision", "learnlm")):
+        # Only models NEWER than what we already lead with. A first run listed
+        # seventeen "new" models — image generators, Gemma, -latest aliases,
+        # version pins, and 2.0-flash-lite, which is older than the leader. An
+        # offer that long is noise, and noise gets dismissed without reading.
+        if _model_version(name) <= leader_version:
             continue
         fresh.append(name)
-    return fresh, cfg
+    fresh.sort(key=lambda n: (-_model_version(n), n))
+    return fresh[:5], cfg
 
 # Google resets these quotas at midnight Pacific, so the ledger buckets by
 # Pacific date rather than UTC or Eastern — otherwise the count would roll over
@@ -777,6 +822,12 @@ _KNOWN_PUBLICATIONS = {
     "advisor", "canadian lawyer", "communitech", "techvibes", "cartt",
     "financial times canada", "canadian underwriter", "benefits canada",
     # More international news and trade press
+    # Trade press that carried real July stories and was refused: Insurance
+    # Journal is an established insurance trade publication, and Futurum is a
+    # technology analyst firm of the same kind as Gartner and Forrester, which
+    # are already listed. gHacks and "Enterprise Viewpoint" stay out — a
+    # long-running blog is still a blog.
+    "insurance journal", "futurum",
     "the register", "protocol", "rest of world", "nikkei", "cnn", "sky news",
     "le monde", "handelsblatt", "der spiegel", "the times", "sifted",
     "tech monitor", "computerworld", "infoworld", "network world", "cio",
