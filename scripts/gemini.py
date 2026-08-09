@@ -150,7 +150,27 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                     break
 
             if response.status_code == 429:
-                print("  Rate limited. Trying next model after wait.")
+                # A 429 on the CONFIGURED LEADER, on a day with barely any
+                # requests, is almost never rate limiting. It usually means the
+                # model has no free-tier quota on this Cloud project at all —
+                # ListModels reports what the key can SEE, not what it may call,
+                # so a model can be adopted from the approval page and then 429
+                # on every single request. Left unsaid, the pipeline silently
+                # spends two requests and ~75s of waiting on it every run.
+                if attempt == 0:
+                    _reqs, _ = requests_today()
+                    _lim = load_model_config().get("limits", {}).get(model)
+                    _ctx = (f"{_reqs} request(s) recorded today against a limit of "
+                            f"{_lim}" if _lim else f"{_reqs} request(s) recorded today")
+                    print(f"  LEADER UNUSABLE: {model} returned 429 on both attempts "
+                          f"with {_ctx}. That is very unlikely to be rate limiting — a "
+                          f"429 on a model you have barely called usually means it has "
+                          f"NO free-tier quota on your Cloud project. Being listed by "
+                          f"the API does not mean you can call it. Revert the leader on "
+                          f"the approval page, or every run will keep spending two "
+                          f"requests and about 75 seconds here before falling back.")
+                else:
+                    print("  Rate limited. Trying next model after wait.")
                 continue
             if response.status_code == 403:
                 raise Exception("API key rejected (403). Check your GEMINI_API_KEY secret.")

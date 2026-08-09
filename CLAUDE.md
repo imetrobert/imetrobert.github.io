@@ -229,6 +229,13 @@ Other things that matter:
 - **The offer is a dropdown, not a label.** Discovery can return several newer
   models at once, and a single "Lead with it" button taking the first would
   adopt something never chosen.
+- **A listed model is not necessarily a callable one.** `ListModels` reports
+  what the key can SEE, not what it may call. `gemini-3.1-flash-lite` was
+  offered, adopted, and then returned 429 on every request — no free-tier quota
+  on that project. A 429 on the CONFIGURED LEADER early in the day is almost
+  never rate limiting, so it prints `LEADER UNUSABLE` naming the request count
+  and telling the reviewer to revert; without it the pipeline quietly spends two
+  requests and ~75s on an unusable model on every single run.
 - **Discovery runs after the issue is generated and fails silently.** It is a
   convenience; it must never be able to stop a run.
 - **A malformed config falls back to the constants** rather than raising —
