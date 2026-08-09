@@ -789,6 +789,11 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
           <span class="status-value" id="model-leader" style="font-family:monospace;font-size:0.7rem;">—</span>
         </div>
         <div id="model-fallbacks" style="font-size:0.66rem;color:#64748b;margin-top:0.25rem;"></div>
+        <!-- Promote any model in the chain to leader. Adoption used to be
+             one-way: once a model led, nothing in the UI could put it back,
+             and a leader with no free-tier quota left the pipeline burning two
+             requests and 75s on every run with no way out but editing JSON. -->
+        <div id="model-chain" style="margin-top:0.5rem;"></div>
         <div id="model-new" style="display:none;margin-top:0.6rem;padding:0.6rem;
              border-radius:6px;background:#78350f;color:#fff;font-size:0.72rem;line-height:1.5;">
           <div style="font-weight:700;margin-bottom:0.35rem;">New Gemini model available</div>
@@ -833,7 +838,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
             <button class="btn btn-secondary" id="model-adopt" style="flex:1;min-width:8rem;"
                     onclick="adoptNewModel()">Lead with it</button>
             <button class="btn btn-secondary" id="model-dismiss" style="flex:1;min-width:6rem;"
-                    onclick="dismissNewModel()">Not now</button>
+                    onclick="dismissNewModel()">Hide this one</button>
           </div>
         </div>
         <div id="model-status" style="font-size:0.66rem;color:#94a3b8;margin-top:0.4rem;"></div>
@@ -1232,6 +1237,29 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       ? "falls back to " + order.slice(1).map(m => m.replace("gemini-", "")).join(", ")
       : "no fallback configured";
 
+    // The chain, with a way back. Anything below the leader can be promoted.
+    const chain = document.getElementById("model-chain");
+    if (chain) {{
+      chain.innerHTML = "";
+      order.slice(1).forEach(function (m) {{
+        if (m === "(built-in default)") return;
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;justify-content:space-between;align-items:center;"
+          + "gap:0.5rem;font-size:0.66rem;color:#94a3b8;padding:0.15rem 0;";
+        const name = document.createElement("span");
+        name.style.fontFamily = "ui-monospace,monospace";
+        name.textContent = m.replace("gemini-", "");
+        const btn = document.createElement("button");
+        btn.className = "btn btn-secondary";
+        btn.style.cssText = "padding:0.1rem 0.5rem;font-size:0.62rem;min-height:0;";
+        btn.textContent = "Lead";
+        btn.title = "Make " + m + " the leading model";
+        btn.onclick = function () {{ promoteModel(m, btn); }};
+        row.appendChild(name); row.appendChild(btn);
+        chain.appendChild(row);
+      }});
+    }}
+
     const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
     const box = document.getElementById("model-new");
     if (fresh.length) {{
@@ -1489,22 +1517,46 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }}
   }}
 
+  // Promote an existing fallback to leader. This is the way back from an
+  // adoption that did not work out — a model with no free-tier quota 429s on
+  // every request, and before this the only remedy was editing the config file
+  // by hand.
+  async function promoteModel(model, btn) {{
+    const cfg = MODEL_CFG || {{}};
+    const order = [model].concat((cfg.order || []).filter(m => m !== model));
+    btn.disabled = true;
+    const next = Object.assign({{}}, cfg, {{ order: order }});
+    const ok = await writeModelConfig(next, `Lead with ${{model}} (set from the approval page)`);
+    btn.disabled = false;
+    if (ok) {{
+      MODEL_CFG = next;
+      showToast(`${{model}} will lead from the next run.`, "success");
+      document.getElementById("model-status").textContent =
+        "Saved. Takes effect on the next generation.";
+      loadModelConfig();
+    }}
+  }}
+
   async function dismissNewModel() {{
     const cfg = MODEL_CFG || {{}};
     const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
     if (!fresh.length) return;
+    // Only the SELECTED model. This used to dismiss every offered model at
+    // once, permanently — three models disappeared from one press of a button
+    // labelled "Not now".
+    const model = document.getElementById("model-new-name").value || fresh[0];
     const btn = document.getElementById("model-dismiss");
     btn.disabled = true;
     const next = Object.assign({{}}, cfg, {{
-      dismissed: Array.from(new Set((cfg.dismissed || []).concat(fresh))),
-      known: Array.from(new Set((cfg.known || []).concat(fresh))),
-      available: []
+      dismissed: Array.from(new Set((cfg.dismissed || []).concat([model]))),
+      known: Array.from(new Set((cfg.known || []).concat([model]))),
+      available: (cfg.available || []).filter(m => m !== model)
     }});
     const ok = await writeModelConfig(next, "Dismiss new Gemini model(s) (from the approval page)");
     btn.disabled = false;
     if (ok) {{
       MODEL_CFG = next;
-      showToast("Dismissed. It will not be offered again.", "purple");
+      showToast(model + " dismissed — it will not be offered again.", "purple");
       loadModelConfig();
     }}
   }}
