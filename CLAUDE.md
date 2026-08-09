@@ -226,6 +226,14 @@ Other things that matter:
   so `_RATE_LIMIT_DOC` is the only place the number exists *before* adoption —
   which is exactly when the decision is made. The console step follows, to
   confirm what the project actually has.
+- **Adoption must be reversible.** The chain is listed under the leader with a
+  `Lead` button on each fallback, so any model can be promoted back. Adoption
+  was one-way at first, and a leader with no free-tier quota then left the
+  pipeline burning two requests and 75s per run with no remedy in the UI at all
+  — the only way out was hand-editing `blog/model-config.json`.
+- **Dismiss applies to the SELECTED model only.** It used to dismiss every
+  offered model at once and permanently; three models vanished from one press of
+  a button labelled "Not now". It now reads "Hide this one".
 - **The offer is a dropdown, not a label.** Discovery can return several newer
   models at once, and a single "Lead with it" button taking the first would
   adopt something never chosen.
