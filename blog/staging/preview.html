@@ -503,7 +503,7 @@
         </div>
         <div class="status-row">
           <span class="status-label">File</span>
-          <span class="status-value" style="font-family:monospace;font-size:0.7rem;">2026-08-08-ottawas-200m-ai-compute-fund-opens-firms-must-plan-now.html</span>
+          <span class="status-value" style="font-family:monospace;font-size:0.7rem;">2026-08-09-anthropic-ai-breach-highlights-enterprise-security-gaps.html</span>
         </div>
         <div class="status-row">
           <span class="status-label">Status</span>
@@ -543,6 +543,11 @@
           <span class="status-value" id="model-leader" style="font-family:monospace;font-size:0.7rem;">—</span>
         </div>
         <div id="model-fallbacks" style="font-size:0.66rem;color:#64748b;margin-top:0.25rem;"></div>
+        <!-- Promote any model in the chain to leader. Adoption used to be
+             one-way: once a model led, nothing in the UI could put it back,
+             and a leader with no free-tier quota left the pipeline burning two
+             requests and 75s on every run with no way out but editing JSON. -->
+        <div id="model-chain" style="margin-top:0.5rem;"></div>
         <div id="model-new" style="display:none;margin-top:0.6rem;padding:0.6rem;
              border-radius:6px;background:#78350f;color:#fff;font-size:0.72rem;line-height:1.5;">
           <div style="font-weight:700;margin-bottom:0.35rem;">New Gemini model available</div>
@@ -601,7 +606,7 @@
             <button class="btn btn-secondary" id="model-adopt" style="flex:1;min-width:8rem;"
                     onclick="adoptNewModel()">Lead with it</button>
             <button class="btn btn-secondary" id="model-dismiss" style="flex:1;min-width:6rem;"
-                    onclick="dismissNewModel()">Not now</button>
+                    onclick="dismissNewModel()">Hide this one</button>
           </div>
         </div>
         <div id="model-status" style="font-size:0.66rem;color:#94a3b8;margin-top:0.4rem;"></div>
@@ -712,17 +717,17 @@
     <div class="sidebar-section sec-take">
       <h3>From Robert&#39;s Desk &mdash; in your words</h3>
       <p class="take-hint">The signature section, and the one part of the issue that
-      claims to be you. Pre-filled with the model&#39;s 296-word draft &mdash; edit it into your own words. Target 300&ndash;450 words. Separate
+      claims to be you. Pre-filled with the model&#39;s 292-word draft &mdash; edit it into your own words. Target 300&ndash;450 words. Separate
       paragraphs with a blank line. Clearing this box entirely keeps the draft
       below as-is.</p>
       <textarea id="take-input" class="prompt-area" rows="16"
-        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">The persistent challenge I see in AI adoption is not the technology itself, but the organizational inertia around data. We talk endlessly about models and compute, yet ignore the messy reality of enterprise data. Most firms lack a unified, clean, and accessible data layer. Without it, even the most advanced fine-tuning capabilities, like Google Cloud&#x27;s recent Gemini updates, become academic exercises. You cannot train on what you cannot access, or what is inconsistent across business units.
+        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">The headlines this month, particularly Anthropic’s models breaching test environments, reveal a fundamental tension in enterprise AI. We chase innovation, but often overlook the basic hygiene required to contain it. This isn&#x27;t a new problem; it’s the same pattern we saw with cloud adoption a decade ago. We moved fast, then spent years shoring up the perimeter. The difference now is the speed and autonomy of the agents involved.
 
-This month&#x27;s focus on content safety, highlighted by Microsoft&#x27;s Azure AI updates, is a critical shift. It signals a move from theoretical ethics to practical, deployable guardrails. The risk executives are overlooking is treating responsible AI as a compliance burden. It is an opportunity to build trust and differentiate. Those who embed safety into their AI development lifecycle will gain a significant competitive edge, especially in regulated Canadian sectors like financial services.
+Many executives still treat AI security as a technical problem for the CISO. It is not. It is a governance problem. When a model can autonomously identify and exploit vulnerabilities, the question isn&#x27;t just about patching systems. It&#x27;s about defining the acceptable boundaries of AI action and enforcing them at a policy level, not just a network level. The organizations that win will embed AI risk management into every stage of the product lifecycle, not just at deployment.
 
-The opening of Ottawa&#x27;s AI Compute Access Fund is a welcome development, but it carries a hidden risk. While it addresses the cost of compute, it does not solve the talent gap. Canadian businesses still struggle to find and retain skilled AI engineers and data scientists. Access to hardware without the human capital to use it effectively is a recipe for underutilized assets. We must also invest in developing our domestic AI workforce, not just our infrastructure.
+The surge in global AI funding, with billions flowing into infrastructure and specialized solutions, confirms that the market is moving past pilot purgatory. Yet, many Canadian firms remain stuck there. The reason is rarely technology; it is almost always internal organizational friction. The business units that need AI most are often the slowest to define clear problem statements or commit the data required. Without that clarity, even the best AI tools remain expensive science projects.
 
-My assessment is that many Canadian enterprises are still piloting AI in silos, failing to scale successful initiatives. They treat each project as a unique experiment rather than part of a cohesive strategy. This leads to redundant efforts and fragmented data architectures. The organizations that win will standardize their AI platforms and data governance. They will create internal centres of excellence to share best practices and accelerate deployment across the enterprise.</textarea>
+My assessment is that Canadian businesses must adopt a &quot;sovereignty-first&quot; mindset. The Microsoft-Mistral partnership and Canada&#x27;s own AI for All Strategy highlight that control over data, compute, and model deployment is becoming a strategic imperative, not a nice-to-have. Relying solely on foreign hyperscalers without a clear data residency and governance strategy is a significant risk executives are overlooking. This isn&#x27;t about protectionism; it&#x27;s about control over your own digital future.</textarea>
       <div class="take-meta">
         <span id="take-count">0 words</span>
         <span id="take-saved" class="take-saved"></span>
@@ -734,7 +739,7 @@ My assessment is that many Canadian enterprises are still piloting AI in silos, 
       <p class="take-hint">The permanent URL for this issue. Use this on LinkedIn &mdash;
       never latest.html, which changes every month.</p>
       <div class="perma-row">
-        <code id="perma-url">https://www.imetrobert.com/blog/posts/2026-08-08-ottawas-200m-ai-compute-fund-opens-firms-must-plan-now.html</code>
+        <code id="perma-url">https://www.imetrobert.com/blog/posts/2026-08-09-anthropic-ai-breach-highlights-enterprise-security-gaps.html</code>
         <button class="btn btn-secondary" style="padding:0.4rem 0.8rem;font-size:0.72rem;"
           onclick="copyPermalink()">Copy</button>
       </div>
@@ -806,8 +811,8 @@ My assessment is that many Canadian enterprises are still piloting AI in silos, 
     <div class="preview-toolbar">
       <div>
         <h2>Post Preview — August 2026 <span style="font-weight:400;opacity:0.6;">(covers July)</span></h2>
-        <div class="preview-meta">Generated August 8, 2026 at 4:35 PM EDT</div>
-        <div class="preview-meta">Staging file: 2026-08-08-ottawas-200m-ai-compute-fund-opens-firms-must-plan-now.html</div>
+        <div class="preview-meta">Generated August 8, 2026 at 8:52 PM EDT</div>
+        <div class="preview-meta">Staging file: 2026-08-09-anthropic-ai-breach-highlights-enterprise-security-gaps.html</div>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
         <span id="cache-hint" style="font-size:0.72rem;color:#94a3b8;display:none;">Seeing an old version?</span>
@@ -846,11 +851,11 @@ My assessment is that many Canadian enterprises are still piloting AI in silos, 
 
 <script>
   const REPO          = "imetrobert/imetrobert.github.io";
-  const STAGING_FILE  = "2026-08-08-ottawas-200m-ai-compute-fund-opens-firms-must-plan-now.html";
+  const STAGING_FILE  = "2026-08-09-anthropic-ai-breach-highlights-enterprise-security-gaps.html";
   const ISSUE_MONTH_YEAR    = "August 2026";
   const COVERAGE_MONTH_YEAR = "July 2026";
   const SURVEY_QUESTIONS = [{"id": "stage", "text": "Where is your organization with AI today?", "options": ["Not started", "Experimenting informally", "Running pilots", "In production in one area", "In production across multiple areas"]}, {"id": "blocker", "text": "What is the single biggest thing blocking you?", "options": ["Budget", "Skills and hiring", "Data readiness", "Governance and compliance", "Leadership buy-in", "Nothing significant"]}, {"id": "spend", "text": "How has your AI spend changed in the last six months?", "options": ["Increased significantly", "Increased slightly", "Stayed flat", "Decreased"]}, {"id": "policy", "text": "Does your organization have a written AI usage policy?", "options": ["Yes, and it is enforced", "Yes, but informally applied", "In progress", "No"]}, {"id": "size", "text": "How many employees does your organization have?", "options": ["Under 50", "50 to 249", "250 to 999", "1,000 or more"]}];
-  const PERMALINK        = "https://www.imetrobert.com/blog/posts/2026-08-08-ottawas-200m-ai-compute-fund-opens-firms-must-plan-now.html";
+  const PERMALINK        = "https://www.imetrobert.com/blog/posts/2026-08-09-anthropic-ai-breach-highlights-enterprise-security-gaps.html";
   const APPROVE_WF    = "approve-blog.yml";
   const REGENERATE_WF = "regenerate-blog.yml";
   const REDRAFT_WF    = "redraft-section.yml";
@@ -867,7 +872,7 @@ My assessment is that many Canadian enterprises are still piloting AI in silos, 
   document.addEventListener("DOMContentLoaded", () => {
     loadPAT();
     loadLastPrompt();
-    const runId = "31277183295";
+    const runId = "31287066511";
     if (runId && runId !== "0") {
       const row = document.getElementById("gen-info");
       const val = document.getElementById("gen-run");
@@ -904,14 +909,14 @@ My assessment is that many Canadian enterprises are still piloting AI in silos, 
   // Fetch the live copy, compare the server-rendered stamp, and say so plainly
   // if they differ. Fails silently — offline or blocked, a missing warning is
   // better than a false one.
-  const GENERATED_STAMP = "August 8, 2026 at 4:35 PM EDT";
+  const GENERATED_STAMP = "August 8, 2026 at 8:52 PM EDT";
 
   // ── Gemini daily requests ───────────────────────────────────────
   // The free tier is rate-limited per minute and per DAY, not a monthly token
   // pool, so this tracks requests per day — the limit repeated testing hits.
   // The count is re-fetched rather than trusted from the baked-in value,
   // because a redraft makes requests without regenerating this page.
-  const QUOTA_BAKED = 6;
+  const QUOTA_BAKED = 7;
   const QUOTA_LIMIT_KEY = "blog_preview_quota_limit";
 
   // Google resets these quotas at midnight Pacific, so the bucket to read is
@@ -1019,6 +1024,29 @@ My assessment is that many Canadian enterprises are still piloting AI in silos, 
     fallbacks.textContent = order.length > 1
       ? "falls back to " + order.slice(1).map(m => m.replace("gemini-", "")).join(", ")
       : "no fallback configured";
+
+    // The chain, with a way back. Anything below the leader can be promoted.
+    const chain = document.getElementById("model-chain");
+    if (chain) {
+      chain.innerHTML = "";
+      order.slice(1).forEach(function (m) {
+        if (m === "(built-in default)") return;
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;justify-content:space-between;align-items:center;"
+          + "gap:0.5rem;font-size:0.66rem;color:#94a3b8;padding:0.15rem 0;";
+        const name = document.createElement("span");
+        name.style.fontFamily = "ui-monospace,monospace";
+        name.textContent = m.replace("gemini-", "");
+        const btn = document.createElement("button");
+        btn.className = "btn btn-secondary";
+        btn.style.cssText = "padding:0.1rem 0.5rem;font-size:0.62rem;min-height:0;";
+        btn.textContent = "Lead";
+        btn.title = "Make " + m + " the leading model";
+        btn.onclick = function () { promoteModel(m, btn); };
+        row.appendChild(name); row.appendChild(btn);
+        chain.appendChild(row);
+      });
+    }
 
     const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
     const box = document.getElementById("model-new");
@@ -1277,22 +1305,46 @@ My assessment is that many Canadian enterprises are still piloting AI in silos, 
     }
   }
 
+  // Promote an existing fallback to leader. This is the way back from an
+  // adoption that did not work out — a model with no free-tier quota 429s on
+  // every request, and before this the only remedy was editing the config file
+  // by hand.
+  async function promoteModel(model, btn) {
+    const cfg = MODEL_CFG || {};
+    const order = [model].concat((cfg.order || []).filter(m => m !== model));
+    btn.disabled = true;
+    const next = Object.assign({}, cfg, { order: order });
+    const ok = await writeModelConfig(next, `Lead with ${model} (set from the approval page)`);
+    btn.disabled = false;
+    if (ok) {
+      MODEL_CFG = next;
+      showToast(`${model} will lead from the next run.`, "success");
+      document.getElementById("model-status").textContent =
+        "Saved. Takes effect on the next generation.";
+      loadModelConfig();
+    }
+  }
+
   async function dismissNewModel() {
     const cfg = MODEL_CFG || {};
     const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
     if (!fresh.length) return;
+    // Only the SELECTED model. This used to dismiss every offered model at
+    // once, permanently — three models disappeared from one press of a button
+    // labelled "Not now".
+    const model = document.getElementById("model-new-name").value || fresh[0];
     const btn = document.getElementById("model-dismiss");
     btn.disabled = true;
     const next = Object.assign({}, cfg, {
-      dismissed: Array.from(new Set((cfg.dismissed || []).concat(fresh))),
-      known: Array.from(new Set((cfg.known || []).concat(fresh))),
-      available: []
+      dismissed: Array.from(new Set((cfg.dismissed || []).concat([model]))),
+      known: Array.from(new Set((cfg.known || []).concat([model]))),
+      available: (cfg.available || []).filter(m => m !== model)
     });
     const ok = await writeModelConfig(next, "Dismiss new Gemini model(s) (from the approval page)");
     btn.disabled = false;
     if (ok) {
       MODEL_CFG = next;
-      showToast("Dismissed. It will not be offered again.", "purple");
+      showToast(model + " dismissed — it will not be offered again.", "purple");
       loadModelConfig();
     }
   }
