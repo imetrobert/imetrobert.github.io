@@ -6,12 +6,19 @@
   <atom:link href="https://www.imetrobert.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
   <description>Monthly AI insights for Canadian business leaders. Expert analysis of AI breakthroughs, Canadian AI adoption data, and practical implementation strategies from Montreal-based AI Thought Leader Robert Simon.</description>
   <language>en-ca</language>
-  <lastBuildDate>Fri, 07 Aug 2026 00:00:00 GMT</lastBuildDate>
+  <lastBuildDate>Wed, 02 Sep 2026 00:00:00 GMT</lastBuildDate>
   <image>
     <url>https://www.imetrobert.com/blog/og-blog.jpg</url>
     <title>Practical AI for Canadian Business &#8212; Robert Simon</title>
     <link>https://www.imetrobert.com/blog/</link>
   </image>
+    <item>
+      <title>OpenAI's Advertising Business Hits $1B Run Rate, Reshaping Enterprise AI Strategy</title>
+      <link>https://www.imetrobert.com/blog/posts/2026-08-31-openais-advertising-business-hits-1b-run-rate-reshaping-enterprise-ai.html</link>
+      <guid isPermaLink="true">https://www.imetrobert.com/blog/posts/2026-08-31-openais-advertising-business-hits-1b-run-rate-reshaping-enterprise-ai.html</guid>
+      <pubDate>Mon, 31 Aug 2026 00:00:00 GMT</pubDate>
+      <description>OpenAI's advertising business reached a $1 billion annualized revenue run rate this month. This milestone signals a maturing AI market and new commercial models for Canadian enterprises. This briefing</description>
+    </item>
     <item>
       <title>AI Insights for August 2026</title>
       <link>https://www.imetrobert.com/blog/posts/2026-07-31-ai-insights-for-august-2026.html</link>
