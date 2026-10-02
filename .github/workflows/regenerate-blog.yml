@@ -81,18 +81,21 @@ jobs:
         id: generate
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}/scripts
         run: |
-          cd scripts
-          python3 generate-blog.py \
+          # Marker used by the verify step to find only files created by THIS run.
+          touch "$RUNNER_TEMP/generation-marker"
+          sleep 1
+          # Run from the repo root (NOT from scripts/) so output lands in blog/staging/
+          python3 scripts/generate-blog.py \
             --topic "${{ github.event.inputs.prompt }}" \
             --output staging \
             --coverage-month "${{ steps.coverage.outputs.coverage_month }}"
-          cd ..
 
       - name: Verify new staging file was created
         id: verify
         run: |
-          NEW_FILE=$(ls -t blog/staging/*.html 2>/dev/null | grep -v preview | grep -v '\.bak' | head -1)
+          NEW_FILE=$(find blog/staging -maxdepth 1 -name "*.html" -newer "$RUNNER_TEMP/generation-marker" 2>/dev/null | grep -v preview | head -1)
           if [ -z "$NEW_FILE" ]; then
             echo "ERROR: No new staging file was generated."
             if [ -n "${{ github.event.inputs.staging_filename }}" ]; then
@@ -124,14 +127,15 @@ jobs:
           fi
 
       - name: Regenerate preview page
+        env:
+          PYTHONPATH: ${{ github.workspace }}/scripts
         run: |
-          cd scripts
-          python3 generate-preview-page.py \
+          # Run from the repo root so preview.html is written to blog/staging/
+          python3 scripts/generate-preview-page.py \
             --filename "${{ steps.verify.outputs.staging_filename }}" \
             --month "${{ steps.coverage.outputs.coverage_month }}" \
             --run-id "${{ github.run_id }}" \
             --regenerated
-          cd ..
 
       - name: Configure Git
         run: |
