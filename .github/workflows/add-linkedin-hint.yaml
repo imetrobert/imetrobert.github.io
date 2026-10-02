@@ -1,0 +1,55 @@
+name: Add LinkedIn Hint to Published Posts (Run Once)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
+jobs:
+  add-hint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Add hint to published posts
+        run: python3 scripts/add_linkedin_hint.py 2>&1 | tee /tmp/hint_output.txt
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Post Fixer Bot"
+
+      - name: Commit and push
+        run: |
+          git add blog/posts/
+          if git diff --staged --quiet; then
+            echo "No changes - posts already have the hint."
+          else
+            CHANGED=$(git diff --staged --name-only | wc -l)
+            git commit -m "Add LinkedIn in-app browser hint to published posts ($CHANGED files)"
+            git push
+            echo "Pushed hint to $CHANGED posts."
+          fi
+
+      - name: Summary
+        run: |
+          echo "## LinkedIn hint added" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/hint_output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "Idempotent: safe to run again." >> $GITHUB_STEP_SUMMARY
