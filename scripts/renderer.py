@@ -9,6 +9,7 @@ from datetime import datetime
 from html import escape as escape_html
 from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
+from linkedin_hint import LINKEDIN_HINT
 from utils import (BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR,
                    is_government_entity, is_recognised_publication, is_newswire,
                    is_first_party_newsroom, uses_stock_phrase,
@@ -965,6 +966,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     </style>
 </head>
 <body>
+{LINKEDIN_HINT}
     <!-- Icon sprite. Reference a symbol by id from an svg.icon element.
          Markers here are geometric on purpose: the brand's maple leaf is
          illegible below ~32px, so it stays in the logo and does not get
