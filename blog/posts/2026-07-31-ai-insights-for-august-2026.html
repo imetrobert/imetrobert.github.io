@@ -214,36 +214,7 @@
         .canada-section { background: linear-gradient(135deg, #fff5f5 0%, #fffbfb 100%); border: 1px solid #fecaca; border-radius: 16px; padding: 1.75rem; }
         .canada-header { margin-bottom: 0.75rem; }
         .canada-label { display: inline-flex; align-items: center; gap: 0.35rem; background: var(--canada-red); color: var(--white); font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.7rem; border-radius: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
-        /* Inline SVG icons, sprite defined at the top of <body>
-    <style>
-        #li-hint { display: none; position: relative; text-align: center; background: #eff6ff; border-bottom: 1px solid #bfdbfe; color: #1e3a8a; font: 500 13px/1.45 Inter, -apple-system, system-ui, sans-serif; padding: 10px 44px 10px 16px; }
-        #li-hint.show { display: block; }
-        #li-hint-close { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: #1e3a8a; font-size: 22px; line-height: 1; padding: 6px 12px; cursor: pointer; }
-    </style>
-    <div id="li-hint" role="note"><span id="li-hint-text"></span><button type="button" id="li-hint-close" aria-label="Dismiss tip">&times;</button></div>
-    <script>
-    (function () {
-        try {
-            var ua = navigator.userAgent || '';
-            if (!/LinkedInApp/i.test(ua)) return;
-            var el = document.getElementById('li-hint');
-            if (!el) return;
-            try { if (sessionStorage.getItem('li-hint-closed')) return; } catch (e) {}
-            var ios = /iPhone|iPad|iPod/i.test(ua);
-            document.getElementById('li-hint-text').textContent =
-                'Tip: for the best reading experience, tap the \u2022\u2022\u2022 menu and choose \u201c' +
-                (ios ? 'Open in Safari' : 'Open in browser') +
-                '\u201d. Source links will then open in a new tab.';
-            el.className = 'show';
-            document.getElementById('li-hint-close').addEventListener('click', function () {
-                el.className = '';
-                try { sessionStorage.setItem('li-hint-closed', '1'); } catch (e) {}
-            });
-            if (typeof gtag === 'function') { gtag('event', 'linkedin_inapp_hint_shown'); }
-        } catch (e) {}
-    })();
-    </script>
-. Stroked in
+        /* Inline SVG icons, sprite defined at the top of <body>. Stroked in
            currentColor and sized in em so each icon matches its adjacent text. */
         .icon { width: 1.05em; height: 1.05em; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.14em; }
         .icon-solid { fill: currentColor; stroke: none; }
@@ -308,6 +279,35 @@
     </style>
 </head>
 <body>
+    <style>
+        #li-hint { display: none; position: relative; text-align: center; background: #eff6ff; border-bottom: 1px solid #bfdbfe; color: #1e3a8a; font: 500 13px/1.45 Inter, -apple-system, system-ui, sans-serif; padding: 10px 44px 10px 16px; }
+        #li-hint.show { display: block; }
+        #li-hint-close { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: #1e3a8a; font-size: 22px; line-height: 1; padding: 6px 12px; cursor: pointer; }
+    </style>
+    <div id="li-hint" role="note"><span id="li-hint-text"></span><button type="button" id="li-hint-close" aria-label="Dismiss tip">&times;</button></div>
+    <script>
+    (function () {
+        try {
+            var ua = navigator.userAgent || '';
+            if (!/LinkedInApp/i.test(ua)) return;
+            var el = document.getElementById('li-hint');
+            if (!el) return;
+            try { if (sessionStorage.getItem('li-hint-closed')) return; } catch (e) {}
+            var ios = /iPhone|iPad|iPod/i.test(ua);
+            document.getElementById('li-hint-text').textContent =
+                'Tip: for the best reading experience, tap the \u2022\u2022\u2022 menu and choose \u201c' +
+                (ios ? 'Open in Safari' : 'Open in browser') +
+                '\u201d. Source links will then open in a new tab.';
+            el.className = 'show';
+            document.getElementById('li-hint-close').addEventListener('click', function () {
+                el.className = '';
+                try { sessionStorage.setItem('li-hint-closed', '1'); } catch (e) {}
+            });
+            if (typeof gtag === 'function') { gtag('event', 'linkedin_inapp_hint_shown'); }
+        } catch (e) {}
+    })();
+    </script>
+
     <!-- Icon sprite. Reference a symbol by id from an svg.icon element.
          Markers here are geometric on purpose: the brand's maple leaf is
          illegible below ~32px, so it stays in the logo and does not get
