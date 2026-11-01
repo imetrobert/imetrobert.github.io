@@ -32,8 +32,14 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
     # to fit (the Desk essay alone is ~450 words). At 4000 the response
     # truncated mid-section, and a truncated tail is silent: the parser just
     # renders fewer sections. Headroom is cheap; a missing "Looking Ahead" is not.
+    # require_grounding: the reported half of the issue (named releases, dates,
+    # figures) is only trustworthy if it came from live search results. Without
+    # search the model writes from training data and presents last year's
+    # releases as this month's news. That happened once and went out under the
+    # issue's name, so an ungrounded answer is now a failed run, not a draft.
     result = _call_gemini(api_key, prompt, max_output_tokens=8192,
-                          temperature=0.55, use_search=True, min_chars=200)
+                          temperature=0.55, use_search=True, min_chars=200,
+                          require_grounding=True)
     _report_new_models(api_key)
     return result
 
@@ -90,7 +96,8 @@ def _tokens_used(response):
 
 
 def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
-                 use_search=True, min_chars=200, reject_truncated=False):
+                 use_search=True, min_chars=200, reject_truncated=False,
+                 require_grounding=False):
     """Post a prompt, walking the model fallback list. Returns {content, model}.
 
     Shared by the monthly generation and the single-section redraft so both get
@@ -175,6 +182,13 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
             if response.status_code == 403:
                 raise Exception("API key rejected (403). Check your GEMINI_API_KEY secret.")
             if response.status_code in (404, 400):
+                if require_grounding:
+                    # The retry below would produce an answer written without
+                    # search and hand it back as if nothing happened.
+                    print(f"  {response.status_code} on {model}. NOT retrying without "
+                          f"grounding: this issue must be built from live search "
+                          f"results. Trying the next model instead.")
+                    continue
                 print(f"  {response.status_code} on {model}. Retrying without grounding.")
                 payload_no_ground = {k: v for k, v in payload.items() if k != "tools"}
                 r2 = requests.post(url, json=payload_no_ground, timeout=180)
@@ -198,6 +212,26 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
             print(f"  Finish reason: {finish_reason}")
             if finish_reason in ('SAFETY', 'RECITATION'):
                 continue
+
+            if require_grounding:
+                _gm = candidate.get('groundingMetadata') or {}
+                _queries = len(_gm.get('webSearchQueries') or [])
+                _sources = len(_gm.get('groundingChunks') or [])
+                # Any of these shows search ran; Google only attaches the block
+                # when it did, so a differently shaped one on a newer model
+                # must not read as "ungrounded".
+                _searched = (_queries or _sources or _gm.get('searchEntryPoint')
+                             or _gm.get('groundingSupports'))
+                if not _searched:
+                    # A 200 with the search tool attached is not proof it was
+                    # used: the model may simply answer from memory.
+                    print(f"  UNGROUNDED: {model} answered without using Google Search "
+                          f"(no search queries, no sources). Discarding it: written "
+                          f"from training data, it would present old releases as "
+                          f"this month's news.")
+                    continue
+                print(f"  Grounded: {_queries} search quer{'y' if _queries == 1 else 'ies'}, "
+                      f"{_sources} source(s).")
 
             # Thinking models spend part of maxOutputTokens on reasoning before
             # they write the answer. Logged so a cut-off answer is explainable.
@@ -261,6 +295,13 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
             print(f"  Error on {model}: {e}")
             continue
 
+    if require_grounding:
+        raise Exception(
+            "All Gemini models failed to produce a search-grounded issue. Nothing was "
+            "staged, on purpose: an issue written without live search presents old "
+            "releases as this month's news. Re-run the monthly workflow later; if it "
+            "keeps happening, check the log lines above for 429, 400 and UNGROUNDED."
+        )
     raise Exception("All Gemini models failed.")
 
 
