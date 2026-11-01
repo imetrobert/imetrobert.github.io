@@ -1,0 +1,70 @@
+name: Rebuild Blog Index (Run Once)
+
+# Rebuilds blog/index.html, feed.xml and llms.txt from the published posts, using
+# the same code the approve workflow runs at publish time. Safe to run any time:
+# if nothing changes, nothing is committed.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+          pip install beautifulsoup4 lxml
+
+      - name: Rebuild blog index
+        run: |
+          python3 -c "
+          import sys, os
+          sys.path.insert(0, os.path.join(os.getcwd(), 'scripts'))
+          from blog_index import update_blog_index
+          posts = update_blog_index()
+          print(f'Blog index rebuilt with {len(posts)} issues')
+          " 2>&1 | tee /tmp/index_output.txt
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Blog Publisher"
+
+      - name: Commit and push
+        run: |
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes - the index is already up to date."
+          else
+            git commit -m "Rebuild blog index: uniform issue titles, no missing months"
+            git push
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Blog index rebuilt" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/index_output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "A WARNING line above means an issue month is missing from the published posts." >> $GITHUB_STEP_SUMMARY
