@@ -717,11 +717,17 @@
     <div class="sidebar-section sec-take">
       <h3>From Robert&#39;s Desk &mdash; in your words</h3>
       <p class="take-hint">The signature section, and the one part of the issue that
-      claims to be you. The model left this section empty. Whatever you type here is what publishes. Target 300&ndash;450 words. Separate
+      claims to be you. Pre-filled with the model&#39;s 389-word draft &mdash; edit it into your own words. Target 300&ndash;450 words. Separate
       paragraphs with a blank line. Clearing this box entirely keeps the draft
       below as-is.</p>
       <textarea id="take-input" class="prompt-area" rows="16"
-        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?"></textarea>
+        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">The surge in AI agents like Meta&#x27;s Muse and OpenAI&#x27;s Dots, while still nascent, is the quiet revolution that will redefine customer and employee interactions. We&#x27;re not talking about chatbots that parrot FAQs anymore; these are sophisticated agents capable of complex task execution, learning user preferences, and proactively offering assistance. The government&#x27;s investment in Cohere signals a national effort to control our digital destiny, but the real impact on Canadian businesses will be felt at the front lines where these agents begin to mediate human-to-human or human-to-system processes.
+
+What executives are consistently missing is the fundamental shift in how work will be done. They still think of AI as a tool to automate existing tasks. This is a grave miscalculation. The real power of agents lies in their ability to augment human capabilities, creating entirely new workflows and service models. This isn&#x27;t about efficiency gains on legacy processes; it&#x27;s about enabling a level of personalized, proactive engagement that was previously impossible at scale. The risk executives are overlooking is the potential for internal friction when human roles are redefined, and the external competitive disadvantage when rivals embrace this shift faster.
+
+I’ve seen this pattern play out countless times with enterprise software rollouts: a gap between the pilot and scaled deployment. The technology works in a controlled environment, but the real challenge emerges when you try to integrate it into messy, human-driven operational realities. With AI agents, this gap will be even wider. Defining the boundaries between agent authority and human oversight, ensuring data privacy and security when agents are constantly interacting with sensitive information, and training employees to collaborate with these new digital colleagues — these are not minor adjustments. They are foundational to successful adoption, and most organizations are woefully unprepared.
+
+The organizations that win will be those that start thinking about agent integration now. This means experimenting with early agent deployments, not just for customer service but for internal processes. It means developing clear policies around agent behaviour, data access, and human escalation paths. It means training your teams not just on how to use AI, but on how to work alongside it effectively. Waiting for perfect, fully-baked solutions is a guaranteed way to fall behind. The six-month horizon is about building the foundational understanding and infrastructure to leverage these agents, not about deploying them at scale.</textarea>
       <div class="take-meta">
         <span id="take-count">0 words</span>
         <span id="take-saved" class="take-saved"></span>
@@ -805,7 +811,7 @@
     <div class="preview-toolbar">
       <div>
         <h2>Post Preview — December 2026 <span style="font-weight:400;opacity:0.6;">(covers November)</span></h2>
-        <div class="preview-meta">Generated November 1, 2026 at 4:11 PM EST</div>
+        <div class="preview-meta">Generated November 1, 2026 at 4:19 PM EST</div>
         <div class="preview-meta">Staging file: 2026-11-01-canada-invests-16b-in-cohere-a-push-for-ai-sovereignty.html</div>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
@@ -866,7 +872,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     loadPAT();
     loadLastPrompt();
-    const runId = "41350530956";
+    const runId = "41351428735";
     if (runId && runId !== "0") {
       const row = document.getElementById("gen-info");
       const val = document.getElementById("gen-run");
@@ -903,14 +909,14 @@
   // Fetch the live copy, compare the server-rendered stamp, and say so plainly
   // if they differ. Fails silently — offline or blocked, a missing warning is
   // better than a false one.
-  const GENERATED_STAMP = "November 1, 2026 at 4:11 PM EST";
+  const GENERATED_STAMP = "November 1, 2026 at 4:19 PM EST";
 
   // ── Gemini daily requests ───────────────────────────────────────
   // The free tier is rate-limited per minute and per DAY, not a monthly token
   // pool, so this tracks requests per day — the limit repeated testing hits.
   // The count is re-fetched rather than trusted from the baked-in value,
   // because a redraft makes requests without regenerating this page.
-  const QUOTA_BAKED = 9;
+  const QUOTA_BAKED = 10;
   const QUOTA_LIMIT_KEY = "blog_preview_quota_limit";
 
   // Google resets these quotas at midnight Pacific, so the bucket to read is
