@@ -64,6 +64,11 @@ EXCLUDE_STUBS = {
 }
 
 
+_MONTHS = ["January", "February", "March", "April", "May", "June", "July",
+           "August", "September", "October", "November", "December"]
+_MONTH_YEAR_RE = r"(" + "|".join(_MONTHS) + r")\s+(\d{4})"
+
+
 def extract_post_info(html_file):
     if not os.path.exists(html_file) or os.path.getsize(html_file) == 0:
         return None
@@ -103,7 +108,34 @@ def extract_post_info(html_file):
     if not excerpt:
         excerpt = "Read the latest AI insights for Canadian business leaders."
 
-    return {"title": title, "date": date_text, "excerpt": excerpt, "filename": os.path.basename(html_file)}
+    # ---- Which ISSUE is this, and what period does it cover? ------------------
+    # An issue is named for the month it is published in and covers the month
+    # before ("AI Insights for June 2026", covering May 2026). The post's own
+    # issue badge ("Issue #10 • June 2026 — Covering May") is the source of truth;
+    # older posts have no badge but carry the same name in their <h1>.
+    issue_ym = None
+    badge = soup.find(class_="issue-badge")
+    if badge:
+        m = re.search(_MONTH_YEAR_RE, badge.get_text(" ", strip=True))
+        if m:
+            issue_ym = (int(m.group(2)), _MONTHS.index(m.group(1)) + 1)
+    if issue_ym is None:
+        m = re.match(r"AI Insights for " + _MONTH_YEAR_RE, title)
+        if m:
+            issue_ym = (int(m.group(2)), _MONTHS.index(m.group(1)) + 1)
+
+    issue_label = covering_label = issue_date = None
+    if issue_ym:
+        y, mo = issue_ym
+        issue_label    = f"AI Insights for {_MONTHS[mo - 1]} {y}"
+        cy, cmo        = (y, mo - 1) if mo > 1 else (y - 1, 12)
+        covering_label = f"{_MONTHS[cmo - 1]} {cy}"
+        issue_date     = f"{_MONTHS[mo - 1]} 1, {y}"   # issues are dated the 1st
+
+    return {"title": title, "date": date_text, "excerpt": excerpt,
+            "filename": os.path.basename(html_file),
+            "issue_ym": issue_ym, "issue_label": issue_label,
+            "covering_label": covering_label, "issue_date": issue_date}
 
 
 def create_blog_index_html(posts):
@@ -139,12 +171,22 @@ def create_blog_index_html(posts):
             # buttons at all.
             post_url = _permalink(post)
             li_href, mail_href = _share_hrefs(post_url, post['title'])
-            safe_title = escape_html(post['title'], quote=True)
+            # Every previous issue reads the same way: "AI Insights for <issue
+            # month>" (covering <previous month>), dated the 1st of the issue
+            # month. The real headline is still what gets shared (li_href /
+            # mail_href above). A post with no recognisable issue month falls
+            # back to its own title and date.
+            row_title  = post.get('issue_label') or post['title']
+            row_date   = post.get('issue_date') or post['date']
+            safe_title = escape_html(row_title, quote=True)
+            covering   = (f' <span class="older-post-covering">(covering '
+                          f'{escape_html(post["covering_label"])})</span>'
+                          if post.get('covering_label') else '')
             older_html += f'''
                 <div class="older-post-item">
                     <a href="/blog/posts/{post['filename']}" class="older-post-link">
-                        <div class="older-post-title">{post['title']}</div>
-                        <div class="older-post-date">{post['date']}</div>
+                        <div class="older-post-title">{escape_html(row_title, quote=False)}{covering}</div>
+                        <div class="older-post-date">{row_date}</div>
                     </a>
                     <div class="older-post-share">
                         <a class="mini-btn" href="{li_href}" target="_blank" rel="noopener noreferrer"
@@ -271,6 +313,7 @@ def create_blog_index_html(posts):
         .older-post-item:hover {{ border-color: #2563eb; box-shadow: 0 4px 12px rgb(37 99 235 / 0.08); }}
         .older-post-link {{ display: block; padding: 1rem 1.25rem; text-decoration: none; color: inherit; }}
         .older-post-title {{ font-size: 0.95rem; font-weight: 600; color: #2563eb; margin-bottom: 0.25rem; }}
+        .older-post-covering {{ font-weight: 400; color: #64748b; }}
         .older-post-date {{ font-size: 0.78rem; color: #94a3b8; }}
         .no-posts-message {{ text-align: center; padding: 2rem; color: #94a3b8; }}
         .blog-tagline {{ font-size: 0.95rem; opacity: 0.85; margin-top: 0.5rem; }}
@@ -598,16 +641,35 @@ def update_blog_index():
     if not posts:
         return []
 
+    # One entry per ISSUE. The key is the issue month, NOT the calendar month of
+    # the date a post carries: runs happen on or just before the 1st, so two
+    # different issues routinely share a calendar month (the July 3 and July 31
+    # posts, the October 2 and October 31 ones) and the old key silently dropped
+    # one of each pair. Posts with no recognisable issue month keep the old key.
     seen, deduped = set(), []
     for post in posts:
-        try:
-            d   = datetime.strptime(post['date'], "%B %d, %Y")
-            key = d.strftime("%Y-%m")
-        except Exception:
-            key = post['date']
+        if post.get('issue_ym'):
+            key = post['issue_ym']
+        else:
+            try:
+                key = datetime.strptime(post['date'], "%B %d, %Y").strftime("%Y-%m")
+            except Exception:
+                key = post['date']
         if key not in seen:
             deduped.append(post)
             seen.add(key)
+
+    # Newest issue first, by issue month (stable: ties keep their order, so the
+    # latest.html alias stays ahead of its own dated copy).
+    deduped.sort(key=lambda p: p.get('issue_ym') or (0, 0), reverse=True)
+
+    # Make a missing month loud in the workflow log instead of silent on the site.
+    months = sorted(p['issue_ym'] for p in deduped if p.get('issue_ym'))
+    for (y1, m1), (y2, m2) in zip(months, months[1:]):
+        gap = (y2 * 12 + m2) - (y1 * 12 + m1) - 1
+        if gap > 0:
+            print(f"WARNING: {gap} issue month(s) missing between "
+                  f"{_MONTHS[m1 - 1]} {y1} and {_MONTHS[m2 - 1]} {y2}")
 
     idx_html = create_blog_index_html(deduped)
     if idx_html:
