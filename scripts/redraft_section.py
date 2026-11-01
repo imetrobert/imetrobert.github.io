@@ -45,6 +45,27 @@ from renderer import (
 )
 
 
+# The Desk used to accept any text of 120+ characters, which let a model's
+# reasoning notes (a "constraint checklist") through as the section. The Desk is
+# specified at 300-450 words of first-person prose, so anything short, cut off
+# mid-sentence, or shaped like a checklist is a failed redraft, not a draft.
+_DESK_JUNK = (
+    "no invented specifics", "opinionated language used",
+    "constraint checklist", "confidence score",
+)
+
+
+def parse_desk(text):
+    t = (text or "").strip()
+    if any(marker in t.lower() for marker in _DESK_JUNK):
+        return None
+    if len(t.split()) < 200:
+        return None
+    if t[-1] not in '.!?"\u201d\u2019)':
+        return None
+    return t
+
+
 # Which block in the rendered page each section owns, and how to turn the
 # model's plain text back into that block. Parsing returns None (or empty) when
 # the redraft does not satisfy the section's format — that is a hard failure
@@ -53,7 +74,7 @@ from renderer import (
 SECTION_BLOCKS = {
     "FROM ROBERTS DESK": {
         "block_class": "desk-section",
-        "parse":       lambda t: t if len(t.strip()) >= 120 else None,
+        "parse":       parse_desk,
         "render":      lambda v: _build_roberts_desk(v),
     },
     "EXECUTIVE SUMMARY": {

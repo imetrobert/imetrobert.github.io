@@ -90,7 +90,7 @@ def _tokens_used(response):
 
 
 def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
-                 use_search=True, min_chars=200):
+                 use_search=True, min_chars=200, reject_truncated=False):
     """Post a prompt, walking the model fallback list. Returns {content, model}.
 
     Shared by the monthly generation and the single-section redraft so both get
@@ -199,8 +199,26 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
             if finish_reason in ('SAFETY', 'RECITATION'):
                 continue
 
+            # Thinking models spend part of maxOutputTokens on reasoning before
+            # they write the answer. Logged so a cut-off answer is explainable.
+            _thoughts = (data.get('usageMetadata') or {}).get('thoughtsTokenCount')
+            if _thoughts:
+                print(f"  Thinking used {_thoughts} tokens of the "
+                      f"{max_output_tokens}-token output budget.")
+            if finish_reason == 'MAX_TOKENS' and reject_truncated:
+                # A single-section redraft is all-or-nothing: a cut-off answer
+                # is worse than none, because it can be reasoning notes or half
+                # a paragraph. Discard it and let the next model try.
+                print(f"  {model} ran out of output tokens before finishing. "
+                      f"Discarding the cut-off text.")
+                continue
+
             parts    = candidate.get('content', {}).get('parts', [])
-            raw_text = ' '.join(p.get('text', '') for p in parts if p.get('text')).strip()
+            # Skip "thought" parts: they are the model's reasoning notes, never
+            # part of the answer, and joining them in put a constraint checklist
+            # on the page in place of a redrafted section.
+            raw_text = ' '.join(p.get('text', '') for p in parts
+                                if p.get('text') and not p.get('thought')).strip()
 
             if len(raw_text) < min_chars:
                 print(f"  Only {len(raw_text)} chars, below the {min_chars} minimum.")
@@ -328,11 +346,13 @@ Plain text only — no *, no **, no #.
 
     result = _call_gemini(
         api_key, prompt,
-        max_output_tokens=2048,
+        max_output_tokens=8192,   # was 2048: a thinking model could spend the
+                                  # whole budget reasoning and never answer
         temperature=0.8,          # higher than the monthly run: the point of a
                                   # redraft is to land somewhere different
         use_search=False,
         min_chars=40,
+        reject_truncated=True,
     )
     return _strip_section_header(result["content"], section), result["model"]
 
