@@ -717,15 +717,15 @@
     <div class="sidebar-section sec-take">
       <h3>From Robert&#39;s Desk &mdash; in your words</h3>
       <p class="take-hint">The signature section, and the one part of the issue that
-      claims to be you. Pre-filled with the model&#39;s 294-word draft &mdash; edit it into your own words. Target 300&ndash;450 words. Separate
+      claims to be you. Pre-filled with the model&#39;s 423-word draft &mdash; edit it into your own words. Target 300&ndash;450 words. Separate
       paragraphs with a blank line. Clearing this box entirely keeps the draft
       below as-is.</p>
       <textarea id="take-input" class="prompt-area" rows="16"
-        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">This month, the talk is all about cost and control. OpenAI&#x27;s price cuts on GPT-6.1 Terra are not a minor adjustment; they fundamentally change the economic calculus for enterprise automation. For years, we have seen pilots stall because the unit economics of scaling AI were prohibitive. Now, the cost of processing vast volumes of data for tasks like document intake or claims processing has dropped significantly. This removes a major barrier to moving from proof-of-concept to full deployment, particularly in sectors like financial services and insurance that deal with immense data flows.
+        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">The arrival of Google&#x27;s Gemini agent marks a turning point that many executives are still underestimating. This isn&#x27;t merely about embedding AI into internal workflows; it’s about introducing a new class of digital actor, one with its own identity and permissions, capable of autonomous action across your digital landscape and beyond. The fundamental shift is not just the technology itself, but the nature of interaction we now need to manage. For decades, we have focused on building firewalls and access controls for humans interacting with systems, and for systems interacting with other systems via APIs. The autonomous agent changes this equation entirely, demanding a re-evaluation of every digital touchpoint.
 
-The other side of this coin is control, and Canada is making a clear statement. The government&#x27;s substantial investment in Cohere, a Canadian sovereign AI provider, is not just about funding innovation. It is a strategic move to ensure that sensitive Canadian data, especially in regulated industries, can be processed by AI systems controlled within our borders. This directly addresses concerns about data residency and national security, which the new National Security Strategy highlighted as critical. Companies must now weigh the cost benefits of global providers against the strategic advantages of sovereign AI.
+What executives consistently misunderstand is that this isn&#x27;t solely an internal IT challenge. While the immediate focus is naturally on securing internal agent deployments, as Microsoft&#x27;s expanded identity controls propose, the real exposure arises when these autonomous entities, whether internal or external, start interacting with your public-facing digital properties. Your website, your customer support portals, your APIs – these are no longer just points of interaction for human customers or known business partners. They are now targets for persistent, autonomous AI agents operating on behalf of individuals, competitors, or even malicious actors. The existing security apparatus, designed primarily for human-bot distinction, is profoundly inadequate for the nuanced, identity-driven interactions of agents. Every large-scale digital transformation I have observed over the past two decades has underestimated the external surface area of change, assuming existing perimeter defenses would hold. With agents, that assumption is a critical vulnerability that will become painfully apparent.
 
-What I observe repeatedly is that organizations struggle to connect these macro trends to concrete internal actions. The procurement teams focus on price, while legal and risk departments focus on compliance, and often these conversations remain siloed. The real challenge is integrating these perspectives to make informed decisions about AI deployment. Building an AI strategy is not about buying the latest model; it is about understanding where your data lives, who has access to it, and what the true cost of a breach or compliance failure would be. This requires a level of cross-functional alignment that most organizations find difficult to achieve, even after years of digital transformation efforts.</textarea>
+My assessment is that Canadian businesses are overlooking a critical failure mode: the erosion of trust, data integrity, and competitive advantage through unmanaged agent interactions. The National Security Strategy rightly flags frontier AI as a threat, but the risk isn&#x27;t confined to nation-state actors; it&#x27;s the cumulative, unmonitored agent activity across your entire digital footprint. The organizations that win in this new environment will be those that move beyond reactive security patching and implement a comprehensive &#x27;agent interaction strategy.&#x27; This means reviewing your entire digital perimeter – every public API, every web form, every customer portal – through the lens of how agents will interact with it, not just humans. You need to identify what agents can access, what data they can infer, and how you will authenticate and authorize them, not just as generic bots, but as entities with specific roles and identities. This is a profound shift from traditional cybersecurity, demanding a proactive re-engineering of how you engage with the digital world.</textarea>
       <div class="take-meta">
         <span id="take-count">0 words</span>
         <span id="take-saved" class="take-saved"></span>
@@ -809,7 +809,7 @@ What I observe repeatedly is that organizations struggle to connect these macro 
     <div class="preview-toolbar">
       <div>
         <h2>Post Preview — November 2026 <span style="font-weight:400;opacity:0.6;">(covers October)</span></h2>
-        <div class="preview-meta">Generated November 1, 2026 at 4:38 PM EST</div>
+        <div class="preview-meta">Generated November 1, 2026 at 4:43 PM EST</div>
         <div class="preview-meta">Staging file: 2026-11-01-openai-cuts-enterprise-ai-costs-by-half-canada-commits-16b-to-cohere.html</div>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
@@ -870,7 +870,7 @@ What I observe repeatedly is that organizations struggle to connect these macro 
   document.addEventListener("DOMContentLoaded", () => {
     loadPAT();
     loadLastPrompt();
-    const runId = "41352835376";
+    const runId = "41353451193";
     if (runId && runId !== "0") {
       const row = document.getElementById("gen-info");
       const val = document.getElementById("gen-run");
@@ -907,14 +907,14 @@ What I observe repeatedly is that organizations struggle to connect these macro 
   // Fetch the live copy, compare the server-rendered stamp, and say so plainly
   // if they differ. Fails silently — offline or blocked, a missing warning is
   // better than a false one.
-  const GENERATED_STAMP = "November 1, 2026 at 4:38 PM EST";
+  const GENERATED_STAMP = "November 1, 2026 at 4:43 PM EST";
 
   // ── Gemini daily requests ───────────────────────────────────────
   // The free tier is rate-limited per minute and per DAY, not a monthly token
   // pool, so this tracks requests per day — the limit repeated testing hits.
   // The count is re-fetched rather than trusted from the baked-in value,
   // because a redraft makes requests without regenerating this page.
-  const QUOTA_BAKED = 21;
+  const QUOTA_BAKED = 22;
   const QUOTA_LIMIT_KEY = "blog_preview_quota_limit";
 
   // Google resets these quotas at midnight Pacific, so the bucket to read is

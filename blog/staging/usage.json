@@ -40,11 +40,11 @@
   },
   "2026-11-01": {
     "models": {
-      "gemini-2.5-flash": 5,
+      "gemini-2.5-flash": 6,
       "gemini-2.5-flash-lite": 6,
       "gemini-3.8-flash": 10
     },
-    "requests": 21,
-    "tokens": 190991
+    "requests": 22,
+    "tokens": 198058
   }
 }
