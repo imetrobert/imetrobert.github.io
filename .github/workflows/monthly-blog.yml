@@ -109,6 +109,14 @@ jobs:
             echo "'(normal run)', so the year is ignored and this run covers"
             echo "$MONTH_YEAR. Pick a month too if you meant to override."
           fi
+          # A normal run ON THE 1ST is a late or manual run for the month that
+          # just ended, so it covers the PREVIOUS month. Issues go out on or just
+          # before the 1st and cover the month before; without this, a run on
+          # Nov 1 covered November and produced "Issue #16, December 2026".
+          if [ "$CURRENT_DAY" = "1" ] && { [ -z "$IN_MONTH" ] || [ "$IN_MONTH" = "(normal run)" ]; }; then
+            MONTH_YEAR=$(date -d "$(date +%Y-%m-01) -1 month" +"%B %Y")
+            echo "Run on the 1st - covering the month that just ended: $MONTH_YEAR"
+          fi
           CURRENT_DATE=$(date +"%Y-%m-%d")
           NEXT_MONTH=$((CURRENT_MONTH + 1))
           NEXT_YEAR=$CURRENT_YEAR
