@@ -805,6 +805,12 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
                Flash's thousands, so adopting one silently would remove ~95% of
                the daily budget. The current limit is shown beside the new one so
                the comparison is unavoidable. -->
+          <div style="font-size:0.66rem;background:#1e293b;border-radius:4px;padding:0.4rem 0.5rem;margin-bottom:0.45rem;">
+            Leading is locked to <strong>gemini-2.5-flash</strong>. A newer model
+            failed in production on Nov 1, 2026, so new models can be hidden here
+            but not adopted.
+          </div>
+          <div style="display:none;">
           <div id="model-tier-warn" style="display:none;font-size:0.66rem;background:#7f1d1d;
                border-radius:4px;padding:0.4rem 0.5rem;margin-bottom:0.45rem;"></div>
           <div style="display:flex;gap:0.5rem;align-items:flex-end;margin-bottom:0.4rem;flex-wrap:wrap;">
@@ -834,9 +840,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
             applies from the next run.
           </div>
           {quota_help_dark}
+          </div>
           <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
-            <button class="btn btn-secondary" id="model-adopt" style="flex:1;min-width:8rem;"
-                    onclick="adoptNewModel()">Lead with it</button>
             <button class="btn btn-secondary" id="model-dismiss" style="flex:1;min-width:6rem;"
                     onclick="dismissNewModel()">Hide this one</button>
           </div>
@@ -912,9 +917,11 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       <textarea id="redraft-guidance" class="prompt-area" rows="4"
         placeholder="What should change? e.g. 'Focus the Desk on why cheap compute will not fix the governance queue.' Leave blank to just ask for a different angle."></textarea>
       <p class="prompt-hint">
-        Runs without web search, so a redraft can sharpen the argument but cannot
-        introduce an event or statistic that was never sourced. If the result does
-        not fit the section&#39;s format, nothing is changed.
+        When you write a direction here, the redraft searches the web first and
+        can use what it finds, naming the source in the text. Check any new fact
+        before you approve. With the box blank it does not search and only
+        sharpens what is already in the issue. If search is unavailable or the
+        result does not fit the section&#39;s format, nothing is changed.
       </p>
       <!-- The one place the reviewer's OWN words leave the machine. The Desk
            textarea does not: inject_take.py runs in approve-blog.yml, after
@@ -1218,6 +1225,11 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   // here with the same PAT that dispatches workflows, which is what makes
   // adopting a new model a UI action rather than a code change.
   const MODEL_CONFIG_PATH = "blog/model-config.json";
+  // Leading is locked to one model. A newer one led on 2026-11-01, failed, and
+  // took the monthly issue down with it. gemini.py enforces the same lock, so
+  // this is the visible half: the page no longer offers what the pipeline would
+  // ignore anyway.
+  const LEADER_LOCK = "gemini-2.5-flash";
   let MODEL_CFG = null;
 
   async function loadModelConfig() {{
@@ -1249,6 +1261,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         const name = document.createElement("span");
         name.style.fontFamily = "ui-monospace,monospace";
         name.textContent = m.replace("gemini-", "");
+        if (m !== LEADER_LOCK) {{ row.appendChild(name); chain.appendChild(row); return; }}
         const btn = document.createElement("button");
         btn.className = "btn btn-secondary";
         btn.style.cssText = "padding:0.1rem 0.5rem;font-size:0.62rem;min-height:0;";
@@ -1473,6 +1486,8 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   }}
 
   async function adoptNewModel() {{
+    showToast("Leading is locked to " + LEADER_LOCK + ". A new model can be hidden here, not adopted.", "error");
+    return;
     const cfg = MODEL_CFG || {{}};
     const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
     if (!fresh.length) return;
@@ -1522,6 +1537,10 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   // every request, and before this the only remedy was editing the config file
   // by hand.
   async function promoteModel(model, btn) {{
+    if (model !== LEADER_LOCK) {{
+      showToast("Leading is locked to " + LEADER_LOCK + ".", "error");
+      return;
+    }}
     const cfg = MODEL_CFG || {{}};
     const order = [model].concat((cfg.order || []).filter(m => m !== model));
     btn.disabled = true;

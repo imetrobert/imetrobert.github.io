@@ -121,7 +121,17 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
     if use_search:
         payload["tools"] = [{"google_search": {}}]
 
-    models_to_try = load_model_config().get("order") or MODELS_TO_TRY
+    # The leader is LOCKED to gemini-2.5-flash, whatever blog/model-config.json
+    # says. On 2026-11-01 a newer model led, failed, and the issue that should
+    # have been built from live search was written without it. Only models this
+    # pipeline has actually run on (MODELS_TO_TRY) may follow, in the order the
+    # config gives them; anything newer is ignored here even if it is listed.
+    _configured = load_model_config().get("order") or MODELS_TO_TRY
+    models_to_try = [MODELS_TO_TRY[0]] + [
+        m for m in _configured if m in MODELS_TO_TRY and m != MODELS_TO_TRY[0]
+    ]
+    if len(models_to_try) == 1:
+        models_to_try += MODELS_TO_TRY[1:]
     if models_to_try[0] != MODELS_TO_TRY[0]:
         print(f"  MODEL ORDER: leading with {models_to_try[0]} (set from the "
               f"preview page, not the built-in default).")
@@ -213,10 +223,12 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
             if finish_reason in ('SAFETY', 'RECITATION'):
                 continue
 
+            _src_list = []
             if require_grounding:
                 _gm = candidate.get('groundingMetadata') or {}
                 _queries = len(_gm.get('webSearchQueries') or [])
-                _sources = len(_gm.get('groundingChunks') or [])
+                _chunks  = _gm.get('groundingChunks') or []
+                _sources = len(_chunks)
                 # Any of these shows search ran; Google only attaches the block
                 # when it did, so a differently shaped one on a newer model
                 # must not read as "ungrounded".
@@ -232,6 +244,11 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                     continue
                 print(f"  Grounded: {_queries} search quer{'y' if _queries == 1 else 'ies'}, "
                       f"{_sources} source(s).")
+                for _c in _chunks:
+                    _w = _c.get('web') or {}
+                    _name = _w.get('title') or _w.get('uri')
+                    if _name and _name not in _src_list:
+                        _src_list.append(_name)
 
             # Thinking models spend part of maxOutputTokens on reasoning before
             # they write the answer. Logged so a cut-off answer is explainable.
@@ -284,7 +301,7 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                       f"strategic reads, the Desk, the predictions — flattens into "
                       f"restated news. Read those sections closely. This fires "
                       f"whether lite is the configured leader or a fallback.")
-            return {"content": cleaned, "model": model}
+            return {"content": cleaned, "model": model, "sources": _src_list}
 
         except requests.exceptions.Timeout:
             print(f"  Timeout on {model}.")
@@ -297,10 +314,10 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
 
     if require_grounding:
         raise Exception(
-            "All Gemini models failed to produce a search-grounded issue. Nothing was "
-            "staged, on purpose: an issue written without live search presents old "
-            "releases as this month's news. Re-run the monthly workflow later; if it "
-            "keeps happening, check the log lines above for 429, 400 and UNGROUNDED."
+            "All Gemini models failed to produce a search-grounded answer. Nothing was "
+            "staged or changed, on purpose: text written without live search presents "
+            "old releases as current news. Try again later; if it keeps happening, "
+            "check the log lines above for 429, 400 and UNGROUNDED."
         )
     raise Exception("All Gemini models failed.")
 
@@ -333,10 +350,12 @@ REDRAFTABLE_SECTIONS = {
 def generate_section_redraft(api_key, section, issue_text, guidance="", month_year=None):
     """Rewrite ONE section, returning just that section's plain text.
 
-    Deliberately ungrounded: no google_search tool. The section is written from
-    the issue as it already stands, so a redraft can sharpen the argument but
-    cannot introduce a new event, statistic or company that never went through
-    the sourcing rules the reported sections are held to.
+    With a direction from Robert the call is SEARCH-GROUNDED: he may point at a
+    topic the issue does not cover, and the section is then built on live search
+    results (and fails rather than falling back to memory). With the box left
+    blank it stays ungrounded: written from the issue as it already stands, it
+    can sharpen the argument but cannot introduce a new event, statistic or
+    company that never went through the sourcing rules.
 
     Returns the section body WITHOUT its header line — the same shape
     parse_sections() would have handed the renderer.
@@ -346,25 +365,44 @@ def generate_section_redraft(api_key, section, issue_text, guidance="", month_ye
 
     spec = REDRAFTABLE_SECTIONS[section]["spec"]()
     month_line = f"This is the {month_year} issue.\n" if month_year else ""
+    grounded = bool(guidance and guidance.strip())
     guidance_block = ""
-    if guidance and guidance.strip():
+    research_block = ""
+    if grounded:
         guidance_block = (
             "\nROBERT'S DIRECTION FOR THIS REDRAFT — this is the reason you are\n"
             "being asked to rewrite the section, and it takes precedence over your\n"
-            "own choice of angle. It does NOT relax any rule in the specification\n"
-            "above: length, format, and the constraint against invented specifics\n"
-            "all still apply.\n\n"
+            "own choice of angle. Length, format and voice rules in the\n"
+            "specification still apply; the RESEARCH RULES below say what changes\n"
+            "about facts.\n\n"
             f"{guidance.strip()}\n"
         )
+        research_block = f"""
+RESEARCH RULES — these apply because Robert gave a direction, and they override the specification wherever the two conflict on facts:
+1. Before writing, use Google Search to find current, real information on what Robert's direction asks about. Build the section on what the search returns, not on memory.
+2. You MAY now state specific public facts: named organizations, products, laws, figures, dates. But ONLY facts that appear in your search results or in the issue above. Say where each one comes from inside the sentence (for example "according to ..."). This replaces the specification's limit on specific items and its ban on dated events, for public facts only.
+3. Today is {datetime.now().strftime("%B %d, %Y")}. Treat events from the last 60 days as current. Anything older is background: say when it happened. Never present a release, law, bill or figure from your training data as current. If a claim is not supported by your search results, leave it out.
+4. If the search finds nothing reliable on the topic, argue from patterns and make no factual claim you could not confirm. Do not fill the gap from memory.
+5. Nothing changes about Robert himself: never invent a personal anecdote, meeting, client, colleague, project, internal metric or employer. His experience appears only as patterns broadly true of large enterprises.
+6. Every other rule in the specification stays: length, format, voice, no source lines or links inside the text, plain text only.
+"""
+    source_line = (
+        "THE ISSUE AS IT CURRENTLY STANDS — context, so the section you write fits\n"
+        "with the rest. Robert's direction below may point at a topic this issue does\n"
+        "not cover. If it does, research that topic (see RESEARCH RULES) rather than\n"
+        "working from this text alone."
+        if grounded else
+        "THE ISSUE AS IT CURRENTLY STANDS — this is your source material. Do not introduce\n"
+        "any event, company, statistic or date that does not already appear here. You are\n"
+        "sharpening judgment, not reporting news."
+    )
 
     prompt = f"""You are rewriting ONE section of Robert Simon's monthly newsletter, Practical AI for Canadian Business. Robert is an independent AI thought leader in Montreal. His voice is direct, opinionated and grounded in business outcomes. He does not hedge.
 
 {month_line}
 {_EDITORIAL_PREAMBLE}
 
-THE ISSUE AS IT CURRENTLY STANDS — this is your source material. Do not introduce
-any event, company, statistic or date that does not already appear here. You are
-sharpening judgment, not reporting news.
+{source_line}
 
 <issue>
 {issue_text.strip()}
@@ -374,7 +412,7 @@ YOUR TASK
 Rewrite the section specified below. It must be materially different from the
 version currently in the issue — a new angle or a sharper argument, not a
 paraphrase. Everything else in the issue stays as it is.
-{guidance_block}
+{guidance_block}{research_block}
 SPECIFICATION FOR THE SECTION YOU ARE WRITING:
 
 {spec}
@@ -389,12 +427,18 @@ Plain text only — no *, no **, no #.
         api_key, prompt,
         max_output_tokens=8192,   # was 2048: a thinking model could spend the
                                   # whole budget reasoning and never answer
-        temperature=0.8,          # higher than the monthly run: the point of a
-                                  # redraft is to land somewhere different
-        use_search=False,
+        temperature=0.6 if grounded else 0.8,   # an ungrounded redraft should
+                                  # land somewhere different; a grounded one is
+                                  # reporting facts, so it runs cooler
+        use_search=grounded,
         min_chars=40,
         reject_truncated=True,
+        require_grounding=grounded,
     )
+    if grounded:
+        _names = result.get("sources") or []
+        print(f"  Web sources behind this redraft ({len(_names)}): "
+              + (", ".join(_names[:10]) if _names else "none reported"))
     return _strip_section_header(result["content"], section), result["model"]
 
 

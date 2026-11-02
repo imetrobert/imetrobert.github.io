@@ -18,6 +18,16 @@ EXCLUDE = {
     "2026-05-30-ai-insights-for-may-2026.html",
 }
 
+def is_redirect_stub(filename):
+    """Noindex meta-refresh pages are excluded by what they are, not by a list."""
+    try:
+        with open(os.path.join(POSTS_DIR, filename), encoding="utf-8", errors="ignore") as f:
+            head = f.read(4000).lower()
+    except OSError:
+        return False
+    return 'http-equiv="refresh"' in head and "noindex" in head
+
+
 def iso_date(filename):
     m = re.match(r"(\d{4}-\d{2}-\d{2})", filename)
     return (m.group(1) + "T00:00:00+00:00") if m else datetime.now().strftime("%Y-%m-%dT00:00:00+00:00")
@@ -25,7 +35,8 @@ def iso_date(filename):
 posts = sorted(
     [f for f in os.listdir(POSTS_DIR)
      if f.endswith(".html") and f not in EXCLUDE
-     and not f.startswith("{") and "{" not in f],
+     and not f.startswith("{") and "{" not in f
+     and not is_redirect_stub(f)],
     reverse=True
 )
 

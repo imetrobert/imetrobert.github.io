@@ -64,6 +64,21 @@ EXCLUDE_STUBS = {
 }
 
 
+def _is_redirect_stub(path):
+    """A noindex meta-refresh page left behind when a post is replaced.
+
+    Excluded by what the file IS, not by a hand-kept list: the list went stale
+    the first time a post was swapped by hand, and the stub then showed up in the
+    archive and the sitemap as an issue with no title.
+    """
+    try:
+        with open(path, encoding="utf-8", errors="ignore") as f:
+            head = f.read(4000).lower()
+    except OSError:
+        return False
+    return 'http-equiv="refresh"' in head and "noindex" in head
+
+
 _MONTHS = ["January", "February", "March", "April", "May", "June", "July",
            "August", "September", "October", "November", "December"]
 _MONTH_YEAR_RE = r"(" + "|".join(_MONTHS) + r")\s+(\d{4})"
@@ -613,7 +628,8 @@ def update_blog_index():
                     [f for f in os.listdir(posts_dir)
                      if f.endswith(".html") and f not in ("latest.html", "index.html")
                      and not f.startswith("{") and "{" not in f
-                     and f not in EXCLUDE_STUBS],
+                     and f not in EXCLUDE_STUBS
+                     and not _is_redirect_stub(os.path.join(posts_dir, f))],
                     reverse=True
                 )
                 if html_files_check:
@@ -629,6 +645,7 @@ def update_blog_index():
         if f.endswith(".html") and f not in ("latest.html", "index.html")
         and not f.startswith("{") and '{' not in f
         and f not in EXCLUDE_STUBS
+        and not _is_redirect_stub(os.path.join(posts_dir, f))
     ]
     for fname in sorted(html_files, reverse=True):
         try:
