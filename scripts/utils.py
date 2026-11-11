@@ -98,6 +98,14 @@ def load_model_config(path=None):
         "limits": dict(MODEL_DAILY_LIMITS),
         "known": list(DEFAULT_MODEL_ORDER),
         "dismissed": [],
+        # Written by scripts/model_scout.py. A model is only ever LED with once
+        # the scout has proven it (callable on the free tier, search-grounded,
+        # and able to write a complete issue). See resolve_model_order().
+        "qualified": {},
+        "rejected": {},
+        "mode": "auto",       # "auto" = best proven model leads; "pinned" = `pinned` leads
+        "pinned": "",
+        "scout": {},
     }
     try:
         with open(path or MODEL_CONFIG_PATH) as fh:
@@ -110,6 +118,13 @@ def load_model_config(path=None):
         for key in ("known", "dismissed"):
             if isinstance(data.get(key), list):
                 cfg[key] = [str(m) for m in data[key] if m]
+        for key in ("qualified", "rejected", "scout"):
+            if isinstance(data.get(key), dict):
+                cfg[key] = data[key]
+        if data.get("mode") in ("auto", "pinned"):
+            cfg["mode"] = data["mode"]
+        if isinstance(data.get("pinned"), str):
+            cfg["pinned"] = data["pinned"]
     except FileNotFoundError:
         pass
     except Exception as exc:
@@ -132,6 +147,43 @@ def save_model_config(cfg, path=None):
     except Exception as exc:
         print(f"  NOTE: could not write {path} ({exc}).")
         return False
+
+
+def version_tuple(name):
+    """(major, minor) from a model id, e.g. gemini-3.10-flash -> (3, 10).
+
+    _model_version() returns a float, which orders 3.10 below 3.9. This does not.
+    """
+    m = re.match(r"^gemini-(\d+)(?:\.(\d+))?", (name or "").lower())
+    if not m:
+        return (0, 0)
+    return (int(m.group(1)), int(m.group(2) or 0))
+
+
+def model_rank_key(name):
+    """Sort key, best first: newest version, then full flash before lite."""
+    major, minor = version_tuple(name)
+    return (-major, -minor, 1 if "lite" in (name or "").lower() else 0, name)
+
+
+def resolve_model_order(cfg=None):
+    """The order the pipeline will try models in, best first.
+
+    Only PROVEN models can appear: the built-in baseline (models this pipeline
+    has run on) plus whatever model_scout.py has qualified. A model that is merely
+    listed by the API never leads: gemini-3.8-flash did, failed, and took a
+    monthly run with it. The baseline always stays at the tail as the safety net.
+    A pinned model (set on the preview page) goes first if it is proven.
+    """
+    cfg = cfg or load_model_config()
+    proven = set(DEFAULT_MODEL_ORDER) | set((cfg.get("qualified") or {}).keys())
+    ranked = sorted(proven, key=model_rank_key)
+    order = []
+    pinned = cfg.get("pinned") if cfg.get("mode") == "pinned" else ""
+    if pinned and pinned in proven:
+        order.append(pinned)
+    order += [m for m in ranked if m not in order]
+    return order
 
 
 def discover_models(api_key, timeout=30):

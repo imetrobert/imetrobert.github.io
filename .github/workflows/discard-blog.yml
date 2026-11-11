@@ -65,7 +65,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Discard staged draft: ${{ github.event.inputs.staging_filename }}"
-            git push
+            bash scripts/git_push_retry.sh
             echo "Discarded and pushed"
           fi
 

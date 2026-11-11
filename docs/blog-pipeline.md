@@ -114,6 +114,18 @@ other section and the preview URL survive.
 
 ### Adopting a new Gemini model without a code change
 
+> **Superseded 2026-11-11 by the model scout.** Models are no longer adopted by hand. The leader
+> lock to `gemini-2.5-flash` is gone; instead `utils.resolve_model_order()` only ever leads with a
+> PROVEN model: the baseline plus models `scripts/model_scout.py` has qualified (probe: callable
+> on the free tier and search-grounded; trial: a full issue passes a completeness gate). Weekly
+> `model-scout.yml` also re-tests the leader and demotes it if it stops working; rejected models
+> are retried after 14 days (probe failures) or 30 days (poor issue). Models under 200 daily
+> requests (e.g. `gemini-3.8-flash`: 20) and Lite/Pro models never lead. The preview page shows
+> scout status and offers Pin / Back to Auto / "Test for new models now". Tests:
+> `python3 scripts/test_model_scout.py` (offline). The text below is the older design and
+> background; the discovery/limit-prompt UI it describes is dormant because `available` stays empty.
+
+
 `blog/model-config.json` holds the model order and per-model daily limits.
 `gemini.py` reads it via `load_model_config()`; `MODELS_TO_TRY` and
 `MODEL_DAILY_LIMITS` are only the fallback for a repo with no config yet. The
@@ -286,6 +298,25 @@ built from `pathname`, not `href`, so repeat presses don't stack params.
   threw `ReferenceError` on every load, because an iframe with an empty `src`
   fires `load` for `about:blank` while the page is still parsing — before the
   script at the end of `<body>` exists.
+
+### Preview page tracks the real GitHub run (regenerate and redraft)
+
+Added 2026-11-11. Completion used to be guessed by searching the live page for the text
+"Regenerated with custom prompt", which a redraft never writes (so redrafts hung or reloaded
+onto old content) and which could not see a failed run.
+
+- Every `preview.html` carries `<meta name="preview-run" content="<run id>">`. A job is DONE
+  when the live page's run id differs from the one live at dispatch time; it FAILED when the
+  GitHub run ends in anything but success (read through the Actions API with the dispatch
+  token; the failing step name is shown).
+- The pending job lives in `localStorage` (`blog_pending_job`), so closing or reloading the
+  page resumes the watch (`resumeJob()`); a page that is already the new result clears it.
+- Our run is the first run of that workflow not in the `known` id list captured before
+  dispatch (no dependence on clock agreement between browser and GitHub).
+- All blog workflows push through `scripts/git_push_retry.sh` (rebase and retry), because
+  `keepalive.yml` and other pushes are outside the `blog-pipeline` concurrency group.
+- JS tests: the job logic is plain JS in the f-string; after editing run `node --check` on the
+  extracted `<script>`.
 
 ### Canadian Spotlight leads with brands the reader knows
 

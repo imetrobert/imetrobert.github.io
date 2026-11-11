@@ -150,7 +150,7 @@ jobs:
             echo "No changes"
           else
             git commit -m "Staging: Regenerated with custom prompt — $(date +%Y-%m-%d)"
-            git push
+            bash scripts/git_push_retry.sh
             echo "Pushed regenerated post"
           fi
 

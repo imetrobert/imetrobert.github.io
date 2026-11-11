@@ -8,7 +8,8 @@ import requests
 from datetime import datetime, timedelta
 from utils import (clean_ai_content, STOCK_VOICE_PHRASES, CANADIAN_HOUSEHOLD_BRANDS,
                    record_gemini_request, requests_today, load_model_config,
-                   save_model_config, new_models_available)
+                   save_model_config, new_models_available,
+                   resolve_model_order)
 
 
 def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
@@ -40,30 +41,7 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
     result = _call_gemini(api_key, prompt, max_output_tokens=8192,
                           temperature=0.55, use_search=True, min_chars=200,
                           require_grounding=True)
-    _report_new_models(api_key)
     return result
-
-
-def _report_new_models(api_key):
-    """Note any model this key gained that the config has not seen.
-
-    Recorded, never adopted. Availability is not quality — flash-lite was
-    available and produced a materially worse issue — so a new model is
-    surfaced on the approval page for a decision. Failures are silent by
-    design: this runs after the issue is already generated.
-    """
-    try:
-        fresh, cfg = new_models_available(api_key)
-        if not fresh:
-            return
-        print(f"  NEW GEMINI MODEL(S): {', '.join(fresh)}. Not adopted — pick one "
-              f"on the approval page if you want it, and set its daily request "
-              f"limit there. Google publishes no API for rate limits, so that "
-              f"number cannot be discovered.")
-        cfg["available"] = fresh
-        save_model_config(cfg)
-    except Exception:
-        pass
 
 
 # Flash first, lite as the fallback. The issue is now half original judgment —
@@ -97,7 +75,7 @@ def _tokens_used(response):
 
 def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                  use_search=True, min_chars=200, reject_truncated=False,
-                 require_grounding=False):
+                 require_grounding=False, models=None):
     """Post a prompt, walking the model fallback list. Returns {content, model}.
 
     Shared by the monthly generation and the single-section redraft so both get
@@ -121,20 +99,21 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
     if use_search:
         payload["tools"] = [{"google_search": {}}]
 
-    # The leader is LOCKED to gemini-2.5-flash, whatever blog/model-config.json
-    # says. On 2026-11-01 a newer model led, failed, and the issue that should
-    # have been built from live search was written without it. Only models this
-    # pipeline has actually run on (MODELS_TO_TRY) may follow, in the order the
-    # config gives them; anything newer is ignored here even if it is listed.
-    _configured = load_model_config().get("order") or MODELS_TO_TRY
-    models_to_try = [MODELS_TO_TRY[0]] + [
-        m for m in _configured if m in MODELS_TO_TRY and m != MODELS_TO_TRY[0]
-    ]
-    if len(models_to_try) == 1:
-        models_to_try += MODELS_TO_TRY[1:]
-    if models_to_try[0] != MODELS_TO_TRY[0]:
-        print(f"  MODEL ORDER: leading with {models_to_try[0]} (set from the "
-              f"preview page, not the built-in default).")
+    # Which models, in what order. `models` is an explicit list (used by
+    # model_scout.py to test ONE model). Otherwise the order comes from
+    # utils.resolve_model_order(): only PROVEN models can appear (the built-in
+    # baseline plus whatever the scout has qualified: callable on the free tier,
+    # search-grounded, able to write a whole issue). On 2026-11-01 an unproven
+    # model led, failed, and the issue was written without live search; a model
+    # that is merely listed by the API can no longer lead. The baseline always
+    # stays at the tail as the safety net.
+    if models:
+        models_to_try = list(models)
+    else:
+        models_to_try = resolve_model_order()
+        if models_to_try[0] != MODELS_TO_TRY[0]:
+            print(f"  MODEL ORDER: leading with {models_to_try[0]} (best proven "
+                  f"model, or the one pinned on the preview page).")
 
     for attempt, model in enumerate(models_to_try):
         if attempt > 0:
@@ -183,9 +162,9 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                           f"with {_ctx}. That is very unlikely to be rate limiting — a "
                           f"429 on a model you have barely called usually means it has "
                           f"NO free-tier quota on your Cloud project. Being listed by "
-                          f"the API does not mean you can call it. Revert the leader on "
-                          f"the approval page, or every run will keep spending two "
-                          f"requests and about 75 seconds here before falling back.")
+                          f"the API does not mean you can call it. The weekly model scout "
+                          f"re-tests the leader and demotes it; pin another model on "
+                          f"the approval page if you do not want to wait for it.")
                 else:
                     print("  Rate limited. Trying next model after wait.")
                 continue
