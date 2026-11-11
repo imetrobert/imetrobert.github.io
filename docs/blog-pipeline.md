@@ -287,6 +287,25 @@ built from `pathname`, not `href`, so repeat presses don't stack params.
   fires `load` for `about:blank` while the page is still parsing — before the
   script at the end of `<body>` exists.
 
+### Preview page tracks the real GitHub run (regenerate and redraft)
+
+Added 2026-11-11. Completion used to be guessed by searching the live page for the text
+"Regenerated with custom prompt", which a redraft never writes (so redrafts hung or reloaded
+onto old content) and which could not see a failed run.
+
+- Every `preview.html` carries `<meta name="preview-run" content="<run id>">`. A job is DONE
+  when the live page's run id differs from the one live at dispatch time; it FAILED when the
+  GitHub run ends in anything but success (read through the Actions API with the dispatch
+  token; the failing step name is shown).
+- The pending job lives in `localStorage` (`blog_pending_job`), so closing or reloading the
+  page resumes the watch (`resumeJob()`); a page that is already the new result clears it.
+- Our run is the first run of that workflow not in the `known` id list captured before
+  dispatch (no dependence on clock agreement between browser and GitHub).
+- All blog workflows push through `scripts/git_push_retry.sh` (rebase and retry), because
+  `keepalive.yml` and other pushes are outside the `blog-pipeline` concurrency group.
+- JS tests: the job logic is plain JS in the f-string; after editing run `node --check` on the
+  extracted `<script>`.
+
 ### Canadian Spotlight leads with brands the reader knows
 
 The section kept filling with federal programs and AI vendors (Cohere, Ada,

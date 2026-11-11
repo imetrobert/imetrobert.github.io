@@ -119,7 +119,7 @@ jobs:
             echo "No changes"
           else
             git commit -m "Staging: redrafted '$SECTION' — $(date +%Y-%m-%d)"
-            git push
+            bash scripts/git_push_retry.sh
           fi
 
       - name: Summary

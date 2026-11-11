@@ -228,7 +228,7 @@ jobs:
             else
               git commit -m "Staging: ${{ needs.check-last-day.outputs.month_year }} post ready for review"
             fi
-            git push
+            bash scripts/git_push_retry.sh
             echo "Committed and pushed"
           fi
 
@@ -281,7 +281,7 @@ jobs:
             echo "Nothing to commit"
           else
             git commit -m "Note: monthly generation failed on $FAIL_DATE — see run ${{ github.run_id }}"
-            git push
+            bash scripts/git_push_retry.sh
             echo "Committed failure notice"
           fi
 

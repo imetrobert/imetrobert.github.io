@@ -248,6 +248,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="preview-run" content="{run_id}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <!-- GitHub Pages serves this with a ten-minute max-age and no way to override
@@ -1109,6 +1110,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       document.getElementById("cache-hint").style.display = "inline";
     }}, 3000);
     checkForStalePage();
+    resumeJob();
     loadQuota();
     loadModelConfig();
     // Every full page load reflects the true current staging_filename (baked
@@ -1782,12 +1784,13 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     if (res.status === 401) return "GitHub rejected the token (401) — it's invalid or expired, so it's been cleared from this browser. See the banner in the sidebar to get a new one.";
     if (res.status === 403) return `GitHub returned 403 — the token likely lacks 'workflow' scope. ${{body.message || ""}}`;
     if (res.status === 404) return "GitHub returned 404 — check the token has 'workflow' scope and that all four workflow files are committed to the main branch.";
+    if (res.status === 422) return `GitHub rejected the request (422): ${{body.message || ""}}. Usually the workflow file on main does not accept one of the inputs this page sent.`;
     return `GitHub API returned ${{res.status}}: ${{body.message || "Unknown error"}}.`;
   }}
 
   // ── Lock/unlock Approve + Regenerate + Discard while a workflow run is
   // in flight, or while this page's known staging_filename may be stale
-  // (a regenerate can rename the file — see startPolling; approve/discard
+  // (a regenerate can rename the file — see pollJob; approve/discard
   // both remove it entirely). Only a full page reload can safely
   // re-establish current state, so unlocking happens via reload, not a
   // timer.
@@ -1979,6 +1982,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     showOverlay("loading", "🔄 Triggering regeneration...",
       "GitHub Actions will regenerate the post with your prompt. This takes ~5 minutes. This page will reload itself automatically once the new version is live."
     );
+    const knownRuns = await snapshotRunIds(REGENERATE_WF);
     const res = await triggerWorkflow(REGENERATE_WF, {{
       prompt: prompt,
       staging_filename: STAGING_FILE,
@@ -1986,9 +1990,9 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }});
     if (!res) {{ hideOverlay(); unlockButtons(); return; }}
     if (res.status === 204) {{
-      startPolling();
+      await startJob("regenerate", REGENERATE_WF, knownRuns);
       showOverlay("regen-queued", "⏳ Regeneration queued!",
-        "This page checks every 15s for up to 10 min and reloads itself the moment the new version is live — you can close this dialog and it'll keep watching.",
+        "This page follows the GitHub run, reloads itself the moment the new version is live, and tells you if the run fails. It keeps watching if you close this dialog or reload the page.",
         `https://github.com/${{REPO}}/actions/workflows/${{REGENERATE_WF}}`
       );
     }} else {{
@@ -2016,6 +2020,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     showOverlay("loading", "Redrafting " + label + "...",
       "Gemini is rewriting just this section from the issue as it already stands. Takes about a minute."
     );
+    const knownRuns = await snapshotRunIds(REDRAFT_WF);
     const res = await triggerWorkflow(REDRAFT_WF, {{
       staging_filename: STAGING_FILE,
       section: section,
@@ -2024,9 +2029,9 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     }});
     if (!res) {{ hideOverlay(); return; }}
     if (res.status === 204) {{
-      startPolling();
+      await startJob("redraft", REDRAFT_WF, knownRuns);
       showOverlay("regen-queued", "Redraft queued",
-        "This page checks every 15s and reloads once the new version is live. Every other section stays exactly as it is.",
+        "This page follows the GitHub run, reloads once the new version is live, and tells you if it fails. Every other section stays exactly as it is.",
         `https://github.com/${{REPO}}/actions/workflows/${{REDRAFT_WF}}`
       );
     }} else {{
@@ -2122,48 +2127,184 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     document.getElementById("overlay").classList.remove("show");
   }}
 
-  // ── Auto-refresh polling after regeneration ─────────────────────
-  // Polls the freshly-pushed preview.html itself (not the iframe) and, once
-  // it sees the regen badge, does a FULL page reload — not just an iframe
-  // refresh. Regeneration renames the staging file (new date-stamped
-  // filename) essentially every time, so only a real reload of this parent
-  // page picks up the new STAGING_FILE constant baked in server-side.
-  // Refreshing just the iframe would leave Approve pointed at a filename
-  // that's already been deleted.
-  let pollInterval;
-  function startPolling() {{
-    if (pollInterval) return; // already watching — don't stack intervals
-    let checks = 0;
-    pollInterval = setInterval(async () => {{
-      checks++;
-      if (checks > 40) {{
-        clearInterval(pollInterval);
-        pollInterval = null;
-        lockButtons(
-          `Regeneration is taking longer than 10 minutes or may have failed. ` +
-          `<a href="https://github.com/${{REPO}}/actions/workflows/${{REGENERATE_WF}}" target="_blank">Check the Actions tab</a>, ` +
-          `then reload once you've confirmed it finished.`
-        );
-        showToast("Stopped auto-checking — see the sidebar for what to do next.", "error");
+  // ── Tracking a dispatched workflow (regenerate / redraft) ───────
+  // The old poller decided a job was finished by looking for the text
+  // "Regenerated with custom prompt" in the live page. A redraft never writes
+  // that text, so a redraft either watched for ten minutes and then locked the
+  // page, or (after any earlier regenerate, whose badge is still in the page)
+  // "succeeded" on the first check and reloaded onto the OLD content. It also
+  // had no idea whether GitHub's run had failed, and forgot everything on reload.
+  //
+  // Now: every preview.html carries its run id in <meta name="preview-run">.
+  // A job is DONE when the live page's run id differs from the one that was
+  // live at dispatch time (that is the only proof that matters: the new page is
+  // actually being served). A job FAILED when the GitHub run itself ends in
+  // anything but success, which we read from the Actions API with the same
+  // token that dispatched it. The job lives in localStorage, so closing or
+  // reloading the page resumes the watch instead of losing it.
+  const PAGE_RUN_ID = "{run_id}";
+  const JOB_KEY = "blog_pending_job";
+  const JOB_POLL_MS = 10000;
+  const JOB_MAX_MS = 25 * 60 * 1000;     // dispatched, never finished
+  const PAGES_WAIT_MS = 8 * 60 * 1000;   // run succeeded, Pages still serving the old page
+  let jobTimer = null;
+  let jobBusy = false;
+
+  function readJob() {{
+    try {{
+      const j = JSON.parse(localStorage.getItem(JOB_KEY) || "null");
+      if (j && j.wf && j.t0) return j;
+    }} catch (e) {{}}
+    return null;
+  }}
+  function writeJob(j) {{ try {{ localStorage.setItem(JOB_KEY, JSON.stringify(j)); }} catch (e) {{}} }}
+  function clearJob() {{ try {{ localStorage.removeItem(JOB_KEY); }} catch (e) {{}} }}
+
+  async function ghGet(path) {{
+    const pat = loadPAT();
+    if (!pat) return null;
+    try {{
+      const res = await fetch(GITHUB_API + "/repos/" + REPO + path, {{
+        cache: "no-store",
+        headers: {{ "Authorization": "Bearer " + pat,
+                   "Accept": "application/vnd.github+json",
+                   "X-GitHub-Api-Version": "2022-11-28" }}
+      }});
+      return res.ok ? await res.json() : null;
+    }} catch (e) {{ return null; }}
+  }}
+
+  async function snapshotRunIds(wf) {{
+    const d = await ghGet("/actions/workflows/" + wf + "/runs?event=workflow_dispatch&per_page=10");
+    return ((d && d.workflow_runs) || []).map(function (r) {{ return r.id; }});
+  }}
+
+  async function livePageRunId() {{
+    try {{
+      const r = await fetch("/blog/staging/preview.html?nocache=" + Date.now(), {{ cache: "no-store" }});
+      if (!r.ok) return null;
+      const m = (await r.text()).match(/name="preview-run" content="([^"]*)"/);
+      return m ? m[1] : null;
+    }} catch (e) {{ return null; }}
+  }}
+
+  async function failedStepName(runId) {{
+    const d = await ghGet("/actions/runs/" + runId + "/jobs");
+    try {{
+      for (const jb of d.jobs) {{
+        for (const s of (jb.steps || [])) {{ if (s.conclusion === "failure") return s.name; }}
+      }}
+    }} catch (e) {{}}
+    return "";
+  }}
+
+  function jobLabel(j) {{ return j.kind === "redraft" ? "Redraft" : "Regeneration"; }}
+  function fmtElapsed(ms) {{
+    const s = Math.floor(ms / 1000);
+    return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  }}
+
+  function stopJobPolling() {{ if (jobTimer) clearInterval(jobTimer); jobTimer = null; }}
+
+  function failJob(title, body) {{
+    stopJobPolling();
+    clearJob();
+    unlockButtons();
+    showOverlay("error", title, body);
+  }}
+
+  async function startJob(kind, wf, known) {{
+    const baseRun = (await livePageRunId()) || PAGE_RUN_ID;
+    const j = {{ kind: kind, wf: wf, t0: Date.now(), known: known || [],
+                baseRun: baseRun, runId: 0, doneAt: 0 }};
+    writeJob(j);
+    lockButtons(jobLabel(j) + " starting… Approve, Regenerate and Discard are locked until it finishes.");
+    startJobPolling();
+  }}
+
+  function startJobPolling() {{
+    if (jobTimer) return;
+    pollJob();
+    jobTimer = setInterval(pollJob, JOB_POLL_MS);
+  }}
+
+  // Called on every page load: pick up a job started before a reload/close.
+  function resumeJob() {{
+    const j = readJob();
+    if (!j) return;
+    if (PAGE_RUN_ID !== j.baseRun) {{ clearJob(); return; }}   // this page IS the result
+    if (Date.now() - j.t0 > JOB_MAX_MS + 60000) {{ clearJob(); return; }}
+    lockButtons("Resuming: still watching the " + jobLabel(j).toLowerCase() + " you started.");
+    startJobPolling();
+  }}
+
+  async function pollJob() {{
+    if (jobBusy) return;
+    jobBusy = true;
+    try {{
+      const j = readJob();
+      if (!j) {{ stopJobPolling(); return; }}
+      const age = Date.now() - j.t0;
+
+      // 1. Is the new page being served? The only proof that matters.
+      const live = await livePageRunId();
+      if (live && live !== j.baseRun) {{
+        stopJobPolling();
+        clearJob();
+        showToast("New version is live. Reloading…", "success");
+        setTimeout(forceRefresh, 800);
         return;
       }}
-      try {{
-        const r = await fetch(`/blog/staging/preview.html?nocache=${{Date.now()}}`, {{ cache: "no-store" }});
-        const text = await r.text();
-        if (text.includes("🔄 Regenerated with custom prompt")) {{
-          clearInterval(pollInterval);
-          pollInterval = null;
-          showToast("✅ New version ready! Reloading page…", "success");
-          // forceRefresh, not location.reload. This branch is reached because
-          // a cache-busted fetch proved a NEW page exists — reloading the
-          // same URL can still be served the old one from cache, which lands
-          // you back on the previous run's timestamp having been told the new
-          // version was ready.
-          setTimeout(forceRefresh, 1200);
+
+      // 2. Find our run (the first one that did not exist before we dispatched).
+      if (!j.runId) {{
+        const d = await ghGet("/actions/workflows/" + j.wf + "/runs?event=workflow_dispatch&per_page=10");
+        const runs = (d && d.workflow_runs) || [];
+        const mine = runs.filter(function (r) {{ return j.known.indexOf(r.id) < 0; }})
+                         .sort(function (a, b) {{ return new Date(a.created_at) - new Date(b.created_at); }})[0];
+        if (mine) {{ j.runId = mine.id; writeJob(j); }}
+      }}
+
+      // 3. Ask GitHub how that run is doing.
+      let state = j.runId ? "running" : "waiting for GitHub to start it";
+      if (j.runId) {{
+        const r = await ghGet("/actions/runs/" + j.runId);
+        if (r) {{
+          if (r.status === "queued") state = "queued behind another run";
+          if (r.status === "completed") {{
+            if (r.conclusion === "success") {{
+              if (!j.doneAt) {{ j.doneAt = Date.now(); writeJob(j); }}
+              state = "finished, waiting for GitHub Pages to publish";
+            }} else {{
+              const step = await failedStepName(j.runId);
+              failJob(jobLabel(j) + " failed",
+                "GitHub reports the run ended as <b>" + r.conclusion + "</b>" +
+                (step ? " at the step <b>" + step + "</b>" : "") +
+                ". Your current draft should be unchanged. " +
+                '<a href="' + r.html_url + '" target="_blank">Open the run log</a> to see why, then try again.');
+              return;
+            }}
+          }}
         }}
-      }} catch (e) {{}}
-    }}, 15000);
+      }}
+
+      if (j.doneAt && Date.now() - j.doneAt > PAGES_WAIT_MS) {{
+        failJob("Finished, but the new page is not showing yet",
+          "The run succeeded; GitHub Pages is slow to publish it. Wait a minute, then press Force Refresh.");
+        return;
+      }}
+      if (age > JOB_MAX_MS) {{
+        failJob(jobLabel(j) + " is taking too long",
+          'No result after 25 minutes. <a href="https://github.com/' + REPO + '/actions/workflows/' + j.wf +
+          '" target="_blank">Check the Actions tab</a>, then reload this page.');
+        return;
+      }}
+      lockButtons(jobLabel(j) + ": " + state + " (" + fmtElapsed(age) + "). Buttons stay locked until it finishes.");
+    }} finally {{
+      jobBusy = false;
+    }}
   }}
+
 </script>
 
 </body>
