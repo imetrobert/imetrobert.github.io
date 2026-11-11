@@ -1,0 +1,60 @@
+name: Model Scout (find the best working free Gemini model)
+
+# Weekly, and on demand from the approval page ("Test for new models now").
+# Tests newer Gemini models (a tiny search-grounded probe, then one full trial
+# issue graded for completeness) and records the ones that pass in
+# blog/model-config.json. The blog then leads with the best PROVEN model.
+# It also re-tests the current leader and demotes it if it stopped working.
+# It never touches an issue, a staging draft or a published post.
+# See scripts/model_scout.py.
+
+on:
+  schedule:
+    - cron: '30 12 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Same group as the rest of the pipeline: never overlaps a generation, redraft
+# or publish, so the shared request ledger and config are not raced.
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -r scripts/requirements.txt
+          pip3 install beautifulsoup4 lxml
+
+      - name: Run the model scout
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 scripts/model_scout.py
+
+      - name: Commit the result
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Model Scout"
+          git add blog/model-config.json blog/staging/usage.json
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Model scout: update proven models — $(date +%Y-%m-%d)"
+            bash scripts/git_push_retry.sh
+          fi

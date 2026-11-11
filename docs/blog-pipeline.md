@@ -114,6 +114,18 @@ other section and the preview URL survive.
 
 ### Adopting a new Gemini model without a code change
 
+> **Superseded 2026-11-11 by the model scout.** Models are no longer adopted by hand. The leader
+> lock to `gemini-2.5-flash` is gone; instead `utils.resolve_model_order()` only ever leads with a
+> PROVEN model: the baseline plus models `scripts/model_scout.py` has qualified (probe: callable
+> on the free tier and search-grounded; trial: a full issue passes a completeness gate). Weekly
+> `model-scout.yml` also re-tests the leader and demotes it if it stops working; rejected models
+> are retried after 14 days (probe failures) or 30 days (poor issue). Models under 200 daily
+> requests (e.g. `gemini-3.8-flash`: 20) and Lite/Pro models never lead. The preview page shows
+> scout status and offers Pin / Back to Auto / "Test for new models now". Tests:
+> `python3 scripts/test_model_scout.py` (offline). The text below is the older design and
+> background; the discovery/limit-prompt UI it describes is dormant because `available` stays empty.
+
+
 `blog/model-config.json` holds the model order and per-model daily limits.
 `gemini.py` reads it via `load_model_config()`; `MODELS_TO_TRY` and
 `MODEL_DAILY_LIMITS` are only the fallback for a repo with no config yet. The

@@ -64,8 +64,11 @@ Non-negotiables (full reasoning in `docs/blog-pipeline.md`):
 - Run scripts from the repo root (`python3 scripts/xxx.py`), never `cd scripts`.
 - CSS classes `.roberts-take`, `.roberts-header`, `.roberts-body` are load-bearing for
   `inject_take.py`; do not rename them.
-- Monthly generation must be search-grounded; no silent ungrounded retry. Gemini model order:
-  `gemini-2.5-flash` always leads (`blog/model-config.json` cannot override).
+- Monthly generation must be search-grounded; no silent ungrounded retry. Only PROVEN models
+  may lead: the baseline (`gemini-2.5-flash`, `-flash-lite`, `gemini-2.0-flash`) plus whatever
+  `scripts/model_scout.py` has qualified in `blog/model-config.json` (weekly `model-scout.yml`,
+  or "Test for new models now" on the preview page). Best proven model leads automatically;
+  "Pin" on the preview page overrides. Never make an unproven model lead.
 - Never index `/blog/staging/` (robots.txt Disallow AND `noindex` meta on every page there).
 - Share links always use the post permalink, never `latest.html`.
 - No emoji on visitor-facing pages (inline SVG icon sprite instead).

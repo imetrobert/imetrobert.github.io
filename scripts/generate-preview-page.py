@@ -847,6 +847,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
                     onclick="dismissNewModel()">Hide this one</button>
           </div>
         </div>
+        <div id="model-scout" style="font-size:0.66rem;line-height:1.5;margin-top:0.5rem;"></div>
         <div id="model-status" style="font-size:0.66rem;color:#94a3b8;margin-top:0.4rem;"></div>
         <div style="font-size:0.65rem;color:#64748b;line-height:1.45;margin-top:0.45rem;">
           Counts only runs from this blog. Any other app using the same API key
@@ -1245,7 +1246,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       if (res.ok) cfg = await res.json();
     }} catch (e) {{ /* no config yet — the run falls back to built-in defaults */ }}
     MODEL_CFG = cfg;
-    const order = (cfg.order && cfg.order.length) ? cfg.order : ["(built-in default)"];
+    const order = effectiveOrder(cfg);
     leader.textContent = order[0].replace("gemini-", "");
     fallbacks.textContent = order.length > 1
       ? "falls back to " + order.slice(1).map(m => m.replace("gemini-", "")).join(", ")
@@ -1263,18 +1264,18 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         const name = document.createElement("span");
         name.style.fontFamily = "ui-monospace,monospace";
         name.textContent = m.replace("gemini-", "");
-        if (m !== LEADER_LOCK) {{ row.appendChild(name); chain.appendChild(row); return; }}
         const btn = document.createElement("button");
         btn.className = "btn btn-secondary";
         btn.style.cssText = "padding:0.1rem 0.5rem;font-size:0.62rem;min-height:0;";
-        btn.textContent = "Lead";
-        btn.title = "Make " + m + " the leading model";
-        btn.onclick = function () {{ promoteModel(m, btn); }};
+        btn.textContent = "Pin";
+        btn.title = "Force " + m + " to lead (stays until you choose Back to Auto)";
+        btn.onclick = function () {{ pinModel(m, btn); }};
         row.appendChild(name); row.appendChild(btn);
         chain.appendChild(row);
       }});
     }}
 
+    renderScout(cfg);
     const fresh = (cfg.available || []).filter(m => !(cfg.dismissed || []).includes(m));
     const box = document.getElementById("model-new");
     if (fresh.length) {{
@@ -1317,31 +1318,36 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     const url = `${{GITHUB_API}}/repos/${{REPO}}/contents/${{MODEL_CONFIG_PATH}}`;
     const headers = {{ "Authorization": `Bearer ${{pat}}`,
                       "Accept": "application/vnd.github+json" }};
-    let sha = null;
-    try {{
-      const cur = await fetch(url + "?ref=main", {{ headers, cache: "no-store" }});
-      if (cur.ok) sha = (await cur.json()).sha;
-      else if (cur.status !== 404) {{
-        showToast(`Could not read the config (${{cur.status}}).`, "error");
-        return false;
-      }}
-    }} catch (e) {{ showToast("Network error reading the config.", "error"); return false; }}
+    // The SHA is read immediately before the write. If the scout or a workflow
+    // committed in between, GitHub answers 409/422; re-read and try once more
+    // instead of telling the reviewer the save failed.
+    for (let attempt = 0; attempt < 3; attempt++) {{
+      let sha = null;
+      try {{
+        const cur = await fetch(url + "?ref=main", {{ headers, cache: "no-store" }});
+        if (cur.ok) sha = (await cur.json()).sha;
+        else if (cur.status !== 404) {{
+          showToast(`Could not read the config (${{cur.status}}).`, "error");
+          return false;
+        }}
+      }} catch (e) {{ showToast("Network error reading the config.", "error"); return false; }}
 
-    const body = {{
-      message: message,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(cfg, null, 2)))),
-      branch: "main"
-    }};
-    if (sha) body.sha = sha;
-    try {{
-      const res = await fetch(url, {{ method: "PUT", headers, body: JSON.stringify(body) }});
-      if (!res.ok) {{
+      const body = {{
+        message: message,
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(cfg, null, 2)))),
+        branch: "main"
+      }};
+      if (sha) body.sha = sha;
+      try {{
+        const res = await fetch(url, {{ method: "PUT", headers, body: JSON.stringify(body) }});
+        if (res.ok) return true;
+        if ((res.status === 409 || res.status === 422) && attempt < 2) continue;
         const t = await res.text();
         showToast(`Write failed (${{res.status}}). ${{t.slice(0, 120)}}`, "error");
         return false;
-      }}
-      return true;
-    }} catch (e) {{ showToast("Network error writing the config.", "error"); return false; }}
+      }} catch (e) {{ showToast("Network error writing the config.", "error"); return false; }}
+    }}
+    return false;
   }}
 
   // ── Limit-lookup prompt ────────────────────────────────────────
@@ -1538,6 +1544,106 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   // adoption that did not work out — a model with no free-tier quota 429s on
   // every request, and before this the only remedy was editing the config file
   // by hand.
+  // ── Model scout: automatic best-free-model selection ────────────
+  // scripts/model_scout.py (weekly, or "Test now") probes and trial-generates
+  // with newer models and records the ones that PASS in blog/model-config.json.
+  // The pipeline leads with the best proven model. Nothing here adopts an
+  // unproven model; the only manual controls are Pin (force a proven model to
+  // lead) and Auto (hand the choice back to the scout).
+  const SCOUT_WF = "model-scout.yml";
+  const BASELINE_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+
+  function provenModels(cfg) {{
+    return Object.keys(cfg.qualified || {{}}).concat(BASELINE_MODELS);
+  }}
+
+  function effectiveOrder(cfg) {{
+    const order = (cfg.order && cfg.order.length) ? cfg.order.slice() : [];
+    if (cfg.mode === "pinned" && cfg.pinned && provenModels(cfg).indexOf(cfg.pinned) >= 0) {{
+      return [cfg.pinned].concat(order.filter(function (m) {{ return m !== cfg.pinned; }}));
+    }}
+    return order.length ? order : ["(built-in default)"];
+  }}
+
+  function scoutLine(parent, text, color) {{
+    const d = document.createElement("div");
+    d.textContent = text;
+    if (color) d.style.color = color;
+    parent.appendChild(d);
+    return d;
+  }}
+
+  function renderScout(cfg) {{
+    const box = document.getElementById("model-scout");
+    if (!box) return;
+    box.innerHTML = "";
+    const pinned = cfg.mode === "pinned" && cfg.pinned;
+    scoutLine(box, pinned ? "Pinned: " + cfg.pinned + " leads (manual)."
+                          : "Auto: the best proven free model leads.", pinned ? "#fbbf24" : "#86efac");
+    if (pinned) {{
+      const b = document.createElement("button");
+      b.className = "btn btn-secondary";
+      b.style.cssText = "padding:0.1rem 0.5rem;font-size:0.62rem;min-height:0;margin:0.2rem 0;";
+      b.textContent = "Back to Auto";
+      b.onclick = function () {{ setModelMode("auto", "", b); }};
+      box.appendChild(b);
+    }}
+    const q = cfg.qualified || {{}};
+    Object.keys(q).forEach(function (m) {{
+      scoutLine(box, "Proven: " + m + " (verified " + String(q[m].verified || q[m].at || "").slice(0, 10) + ")", "#86efac");
+    }});
+    const rej = cfg.rejected || {{}};
+    Object.keys(rej).slice(-3).forEach(function (m) {{
+      scoutLine(box, "Not usable: " + m + " — " + (rej[m].reason || "failed") +
+                " (retests after " + String(rej[m].retry_after || "").slice(0, 10) + ")", "#fca5a5");
+    }});
+    const sc = cfg.scout || {{}};
+    scoutLine(box, sc.last_run ? "Last scout: " + String(sc.last_run).slice(0, 10) : "Scout has not run yet.", "#94a3b8");
+    const t = document.createElement("button");
+    t.className = "btn btn-secondary";
+    t.style.cssText = "padding:0.15rem 0.6rem;font-size:0.64rem;min-height:0;margin-top:0.3rem;";
+    t.textContent = "Test for new models now";
+    t.onclick = function () {{ runScout(t); }};
+    box.appendChild(t);
+  }}
+
+  async function runScout(btn) {{
+    btn.disabled = true;
+    const res = await triggerWorkflow(SCOUT_WF, {{}});
+    btn.disabled = false;
+    if (!res) return;
+    if (res.status === 204) {{
+      document.getElementById("model-status").textContent =
+        "Scout started. It takes a few minutes; reload this page afterwards to see the result.";
+      showToast("Model scout started.", "success");
+    }} else {{
+      const body = await res.json().catch(function () {{ return {{}}; }});
+      showToast(apiErrorMessage(res, body), "error");
+    }}
+  }}
+
+  async function setModelMode(mode, model, btn) {{
+    const cfg = MODEL_CFG || {{}};
+    if (mode === "pinned" && provenModels(cfg).indexOf(model) < 0) {{
+      showToast("Only proven models can be pinned.", "error");
+      return;
+    }}
+    if (btn) btn.disabled = true;
+    const next = Object.assign({{}}, cfg, {{ mode: mode, pinned: mode === "pinned" ? model : "" }});
+    const ok = await writeModelConfig(next, mode === "pinned"
+      ? "Pin " + model + " as leading model (set from the approval page)"
+      : "Model selection back to Auto (set from the approval page)");
+    if (btn) btn.disabled = false;
+    if (ok) {{
+      MODEL_CFG = next;
+      document.getElementById("model-status").textContent = "Saved. Takes effect on the next generation.";
+      showToast(mode === "pinned" ? model + " pinned." : "Auto selection restored.", "success");
+      loadModelConfig();
+    }}
+  }}
+
+  function pinModel(model, btn) {{ setModelMode("pinned", model, btn); }}
+
   async function promoteModel(model, btn) {{
     if (model !== LEADER_LOCK) {{
       showToast("Leading is locked to " + LEADER_LOCK + ".", "error");
