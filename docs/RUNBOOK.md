@@ -10,7 +10,7 @@ For routine upkeep without an AI agent. Everything is done in the GitHub web UI.
 If no email arrives by the 2nd: GitHub > Actions > "Generate Monthly AI Blog Post" > Run workflow. Turn on `force_run` and set `coverage_month` to the month that just ended.
 
 ## The two things that expire (put both in your calendar)
-- **GitHub token used by the preview page** (stored in your browser as "blog_preview_pat"). If buttons say 401 or "token rejected", create a new fine-grained token: GitHub > Settings > Developer settings > Fine-grained tokens, repository imetrobert.github.io only, permissions Actions: read and write, Contents: read and write. Paste it into the box on the preview page. Choose the longest expiry allowed.
+- **GitHub token used by the preview page** (stored in your browser as "blog_preview_pat"). If buttons say 401 or "token rejected", create a new token as described in BLOG_PREVIEW_SETUP.md (classic token with the `repo` and `workflow` scopes). A fine-grained token also works if limited to imetrobert.github.io with Actions: read and write and Contents: read and write. Paste it into the box on the preview page. Choose the longest expiry allowed.
 - **Gemini API key** (repo secret `GEMINI_API_KEY`). If a run fails with 403, replace it: Repo > Settings > Secrets and variables > Actions.
 
 ## When something looks wrong
