@@ -53,5 +53,13 @@
     },
     "requests": 3,
     "tokens": 81515
+  },
+  "2026-11-13": {
+    "models": {
+      "gemini-2.5-flash": 12,
+      "gemini-2.5-flash-lite": 4
+    },
+    "requests": 16,
+    "tokens": 320813
   }
 }
