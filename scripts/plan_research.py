@@ -250,7 +250,7 @@ def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
     return kept
 
 
-def research_plan_changes(api_key, month_year, today=None, log=print, call=None, pause=25):
+def research_plan_changes(api_key, month_year, today=None, log=print, call=None, pause=65):
     """Returns a list of verified findings (possibly empty). Never raises for a
     single vendor failing: the issue can still be written from the others."""
     if call is None:
@@ -258,6 +258,16 @@ def research_plan_changes(api_key, month_year, today=None, log=print, call=None,
     today = today or datetime.now()
     today_str = today.strftime("%B %d, %Y")
     import time
+    # Lite models answer these in prose and ignore the line format, so a busy
+    # leader must not hand the research to one: better no list from a vendor
+    # than a list nobody can parse. (None = let the caller's fake decide, in tests.)
+    models = None
+    if call is None or getattr(call, "__name__", "") == "_call_gemini":
+        try:
+            from utils import resolve_model_order
+            models = [m for m in resolve_model_order() if "lite" not in m.lower()] or None
+        except Exception:
+            models = None
     findings = []
     made = 0
     for v in VENDORS:
@@ -270,14 +280,15 @@ def research_plan_changes(api_key, month_year, today=None, log=print, call=None,
             if use_pages and not v.get("pages"):
                 continue
             # A fetched release-notes page is tens of thousands of tokens, and the
-            # free tier counts tokens per MINUTE: back-to-back requests drew 429s.
+            # free tier counts tokens per MINUTE: requests 25 s apart still drew
+            # 429s and fell back to a lite model. A full minute apart they do not.
             if made and pause:
                 time.sleep(pause)
             made += 1
             try:
                 res = call(api_key, build_prompt(v, month_year, today_str, pages=use_pages), max_output_tokens=8192,
                            temperature=0.2, use_search=True, min_chars=4, require_grounding=True,
-                           read_urls=use_pages)
+                           read_urls=use_pages, **({"models": models} if models else {}))
             except Exception as e:  # one vendor or one method down must not stop the issue
                 log(f"    {label}: request failed: {str(e)[:160]}")
                 continue
