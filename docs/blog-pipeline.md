@@ -20,6 +20,50 @@ under `blog/` or `scripts/`.
   a past one), that's a prompt/generation change in `scripts/generate-blog.py`
   or `scripts/renderer.py`, not a content edit.
 
+### Audience and focus since the December 2026 issue (read this first)
+
+Until the November 2026 issue the briefing was written for executives at mid-to-large
+Canadian organizations. From the December 2026 issue (covering November) it is written for
+**owners and small teams of Canadian small businesses** who pay for a low-cost AI plan
+(ChatGPT, Claude, Gemini, Microsoft 365 Copilot), and it feeds leads to the free feasibility
+check on biz.aiwithrobert.com. Name, URLs, issue numbers and the archive are unchanged.
+
+What changed, and where:
+
+- **Section headers and inline labels did NOT change** (`KEY AI DEVELOPMENTS`,
+  `STRATEGIC READ`, `OWNER`, `ONE QUESTION FOR YOUR LEADERSHIP TEAM`...). The parser, the
+  redraft workflow and the Model Scout gate still key on them. Only their **meaning in the
+  prompt** (`gemini.py`) and their **titles on the page** (`renderer.py`) changed:
+
+  | Header in the text | Title on the page | Now carries |
+  |---|---|---|
+  | `EXECUTIVE SUMMARY` | This Month in Three Lines | 3 conclusions for an owner |
+  | `KEY AI DEVELOPMENTS` | New in Your AI Subscription | 5-6 changes to the low-cost plans (at least 4), top 3 with "What it means for a small business" and badges Usefulness / Usable / Worth trying |
+  | `CANADIAN SPOTLIGHT` | The Canadian Angle | 3 items: household brands serving small business, one regulator or program item, Canadian availability |
+  | `STRATEGIC ACTIONS FOR THIS MONTH` | Worth Trying This Month | **3** use-case teasers, `OWNER` shown as "Who" |
+  | `ONE QUESTION FOR YOUR LEADERSHIP TEAM` | One question for your business | one question for an owner |
+
+- **Tease, do not teach.** The prompt forbids set-up steps, prompt wording and workarounds,
+  and forbids any offer or mention of Robert's services. The page adds ONE call to action at
+  the end: `utils.feasibility_cta_html()` (inline styles, marker `<!-- feasibility-cta -->`),
+  linked with `utm_campaign=issue-YYYY-MM`. To change its wording edit that function, then
+  run `python3 scripts/add_feasibility_cta.py` to refresh every published post (idempotent;
+  archive posts use `utm_campaign=archive-<post date>`; redirect stubs are skipped).
+- **Plan claims are the main risk.** The prompt says to state a plan tier, a price or Canadian
+  availability only when the source does, and otherwise to write "check whether your plan has
+  it". Read those claims on the preview page before approving.
+- **One-time transition note.** `_transition_note()` in `gemini.py` asks for a short
+  explanation at the top of From Robert's Desk only when the coverage month is
+  `_TRANSITION_COVERAGE_MONTH` ("November 2026"). It never fires for any other issue.
+- `BRAND_TAGLINE` in `utils.py`, the blog index title/description and `llms.txt` text in
+  `blog_index.py`, and the homepage `#blog` blurb carry the new positioning. The blog index
+  and `llms.txt` only change when the next issue is published.
+- Model Scout's completeness gate asks for at least 3 actions (was 4).
+
+Sections written below this one that describe executives, five actions or the old page
+titles describe how the rules came about; where they disagree with this section, this
+section wins.
+
 ### The issue structure is a three-file contract
 
 `gemini.py` emits plain text under ALL-CAPS section headers → `parser.py`

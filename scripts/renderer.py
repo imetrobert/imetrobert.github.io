@@ -10,7 +10,7 @@ from html import escape as escape_html
 from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
 from linkedin_hint import LINKEDIN_HINT
-from utils import (BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR,
+from utils import (BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR, feasibility_cta_html,
                    is_government_entity, is_recognised_publication, is_newswire,
                    is_first_party_newsroom, uses_stock_phrase,
                    household_canadian_brands, is_household_canadian_brand)
@@ -409,7 +409,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             dev_cards += (
                 f'<div class="dev-card dev-card-major">'
                 f'  <div class="dev-header">{date_html}{company_html}'
-                f'<span class="dev-tier">Major story</span></div>'
+                f'<span class="dev-tier">Top change</span></div>'
                 f'  <p class="dev-body">{d["body"]}</p>'
                 f'  {_build_strategic_read(d)}'
                 f'  {_build_rating_row(d)}'
@@ -443,7 +443,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
 
         article_parts.append(
             f'<div class="section">'
-            f'<h2 class="section-title">Key AI Developments This Month</h2>'
+            f'<h2 class="section-title">New in Your AI Subscription</h2>'
             f'<div class="dev-grid">{dev_cards}</div>'
             f'</div>'
         )
@@ -474,7 +474,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             )
         article_parts.append(
             f'<div class="section canada-section">'
-            f'<div class="canada-header"><span class="canada-label">Canadian Spotlight</span></div>'
+            f'<div class="canada-header"><span class="canada-label">The Canadian Angle</span></div>'
             f'<h2 class="section-title canada-title">What\'s Happening in Canada</h2>'
             f'<ul class="spot-list">{spot_cards}</ul>'
             f'</div>'
@@ -482,7 +482,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     elif canadian_spot and len(canadian_spot) > 60:
         article_parts.append(
             f'<div class="section canada-section">'
-            f'<div class="canada-header"><span class="canada-label">Canadian Spotlight</span></div>'
+            f'<div class="canada-header"><span class="canada-label">The Canadian Angle</span></div>'
             f'<h2 class="section-title canada-title">What\'s Happening in Canada</h2>'
             f'<p>{canadian_spot}</p>'
             f'</div>'
@@ -496,7 +496,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
 
     if actions:
         action_cards = ""
-        for i, a in enumerate(actions[:5]):
+        for i, a in enumerate(actions[:5]):  # the spec asks for 3; older-format text may carry 5
             owner_html = ""
             if a.get("owner"):
                 rationale = (
@@ -505,7 +505,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                 )
                 owner_html = (
                     f'<div class="action-owner">'
-                    f'<span class="action-owner-label">Owner</span>'
+                    f'<span class="action-owner-label">Who</span>'
                     f'<span class="action-owner-role">{a["owner"]}</span>'
                     f'{rationale}'
                     f'</div>'
@@ -522,7 +522,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
             )
         article_parts.append(
             f'<div class="section actions-section">'
-            f'<h2 class="section-title">Strategic Actions for This Month</h2>'
+            f'<h2 class="section-title">Worth Trying This Month</h2>'
             f'<div class="actions-grid">{action_cards}</div>'
             f'</div>'
         )
@@ -596,12 +596,12 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
 
     faq_candidates = [
         (
-            f"What AI developments matter most for Canadian businesses in {coverage_month_year}?",
+            f"What changed in low-cost AI plans for small Canadian businesses in {coverage_month_year}?",
             _join([f'{d["company"]}: {d["body"]}' if d.get("company") else d["body"]
                    for d in developments[:3]]),
         ),
         (
-            "What should Canadian executives do about AI right now?",
+            "What can a small Canadian business try with AI right now?",
             _join(action_bodies[:3]),
         ),
         (
@@ -615,7 +615,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
                    for i in spotlight_items[:3]]),
         ),
         (
-            f"What should Canadian executives expect from AI over the next year?",
+            f"What should small Canadian businesses expect from AI over the next year?",
             _join([f'{p["horizon"]}: {p["body"]}' for p in predictions]),
         ),
     ]
@@ -643,6 +643,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
     if closing_question:
         article_parts.append(_build_question_section(closing_question))
 
+    # The one call to action on the page (see utils.feasibility_cta_html).
+    article_parts.append(feasibility_cta_html('issue-' + labels['issue_date'].strftime('%Y-%m')))
     article_parts.append(_build_survey_cta())
 
     article_html = "\n".join(article_parts)
@@ -1207,7 +1209,7 @@ def _build_summary_section(summary_points):
     points_html = "".join(f'<li>{p}</li>' for p in summary_points)
     return (
         f'<div class="section summary-section">'
-        f'<h2 class="summary-label">Executive Summary</h2>'
+        f'<h2 class="summary-label">This Month in Three Lines</h2>'
         f'<ul class="summary-list">{points_html}</ul>'
         f'</div>'
     )
@@ -1236,7 +1238,7 @@ def _build_predictions_section(predictions):
 def _build_question_section(closing_question):
     return (
         f'<div class="section question-section">'
-        f'<h2 class="question-label">One question for your leadership team</h2>'
+        f'<h2 class="question-label">One question for your business</h2>'
         f'<p class="question-body">{closing_question}</p>'
         f'</div>'
     )
@@ -1326,7 +1328,7 @@ def _build_strategic_read(d):
         return ""
     return (
         f'<div class="dev-read">'
-        f'<span class="dev-read-label">Strategic read</span>'
+        f'<span class="dev-read-label">What it means for a small business</span>'
         f'<p>{escape_html(text, quote=False)}</p>'
         f'</div>'
     )
@@ -1357,9 +1359,9 @@ def _badge(label, value, extra=""):
 
 def _build_rating_row(d):
     badges = (
-        _badge("Strategic importance", d.get("importance", ""))
-        + _badge("Time horizon", d.get("horizon", ""))
-        + _badge("Executive attention", d.get("attention", ""))
+        _badge("Usefulness", d.get("importance", ""))
+        + _badge("Usable", d.get("horizon", ""))
+        + _badge("Worth trying", d.get("attention", ""))
     )
     if not badges:
         return ""
@@ -1405,7 +1407,7 @@ def _build_roberts_desk(raw_text):
         '<div class="roberts-header">'
         '<img src="https://imetrobert.github.io/profile.jpg" alt="Robert Simon">'
         '<div>'
-        '<div class="roberts-label">Executive Perspective</div>'
+        '<div class="roberts-label">Robert&#39;s Perspective</div>'
         '<h2 class="roberts-name">From Robert&#39;s Desk</h2>'
         '</div>'
         '</div>'
@@ -1416,7 +1418,7 @@ def _build_roberts_desk(raw_text):
             '<div class="roberts-placeholder">'
             '<strong><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg> '
             'Write this section before publishing.</strong><br><br>'
-            'What surprised you this month? What do executives keep getting wrong about it? '
+            'What surprised you this month? What do small business owners keep getting wrong about it? '
             'What is overhyped, what can wait, and what will matter six months from now? '
             '300-450 words in your own voice. This is the section people subscribe for — '
             'it is also the E-E-A-T signal that separates this from an aggregator.'
