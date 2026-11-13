@@ -52,10 +52,21 @@ What changed, and where:
 - **Plan claims are the main risk.** The prompt says to state a plan tier, a price or Canadian
   availability only when the source does, and otherwise to write "check whether your plan has
   it". Read those claims on the preview page before approving.
-- **Sources for plan changes.** The first trial lost every development to third-party blogs
-  summarising the vendors. The spec now names the only acceptable sources (the vendor's own post,
-  the vendor's dated release notes, a major outlet), and `utils.is_documentation_source()` no
-  longer rejects "release notes" / "changelog" (help-centre how-to pages are still rejected).
+- **Plan changes are researched first (`scripts/plan_research.py`).** Asked for a whole issue
+  in one request, the model cited real plan changes to resellers and training-company blogs, and
+  the source allowlist deleted them (three trials kept 0, 2 and 1 of six items; naming the
+  acceptable sources in the prompt did not help, because the source name is text the model
+  types). Now `gemini.prepare_plan_block()` runs one search-grounded request per vendor (a second
+  one, restricted to the vendor's own sites, when the first yields nothing), and a finding is kept
+  only when Google's grounding record for that request shows the search landed on the vendor's
+  own site or a listed outlet. The Source name printed on the page comes from that record
+  (`VENDORS[...]["own"]` and `OUTLETS` map domains to names). The verified list is put in the
+  prompt as "VERIFIED PLAN CHANGES" and the model may report no other change to the four
+  products. Costs 4 to 8 extra Gemini requests per generation; the Model Scout reuses one
+  research pass for all its candidates. To see what the search finds without changing anything:
+  Actions > "Plan research test (prints only)". To add a vendor domain or an outlet, edit the
+  two tables at the top of `plan_research.py`. `utils.is_documentation_source()` no longer rejects
+  "release notes" / "changelog" (help-centre how-to pages are still rejected).
 - **One-time transition note.** `_transition_note()` in `gemini.py` asks for a short
   explanation at the top of From Robert's Desk only when the coverage month is
   `_TRANSITION_COVERAGE_MONTH` ("November 2026"). It never fires for any other issue.

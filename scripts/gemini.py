@@ -12,6 +12,38 @@ from utils import (clean_ai_content, STOCK_VOICE_PHRASES, CANADIAN_HOUSEHOLD_BRA
                    resolve_model_order)
 
 
+_PLAN_CACHE = {}
+
+
+def prepare_plan_block(api_key, month_year, today=None, reuse=False):
+    """Research the month's plan changes and put the verified list where the
+    prompt builders pick it up (_PLAN_BLOCK).
+
+    Plan changes are researched first, one vendor at a time, and only those
+    whose search really landed on the vendor's site or a major outlet are
+    handed to the issue prompt (see plan_research.py for why). A failure here
+    must never stop the issue: the prompt then simply runs without the list.
+    reuse=True lets the Model Scout grade several models against ONE research
+    pass instead of spending 4-8 requests per candidate."""
+    global _PLAN_BLOCK
+    if reuse and month_year in _PLAN_CACHE:
+        _PLAN_BLOCK = _PLAN_CACHE[month_year]
+        return _PLAN_BLOCK
+    _PLAN_BLOCK = ""
+    try:
+        from plan_research import research_plan_changes, prompt_block
+        _findings = research_plan_changes(api_key, month_year, today or datetime.now())
+        _PLAN_BLOCK = prompt_block(_findings, month_year)
+        if not _findings:
+            print("  PLAN RESEARCH: nothing verified. The issue is written without the "
+                  "verified list, so 'New in Your AI Subscription' may come out thin. "
+                  "Regenerating later often finds more.")
+    except Exception as _e:
+        print(f"  PLAN RESEARCH failed and was skipped: {str(_e)[:200]}")
+    _PLAN_CACHE[month_year] = _PLAN_BLOCK
+    return _PLAN_BLOCK
+
+
 def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
     # coverage_date lets a regeneration stay locked to the ORIGINAL month
     # being reported on (e.g. regenerating a June 30 post on July 2nd should
@@ -23,6 +55,8 @@ def generate_blog_with_gemini(api_key, topic=None, coverage_date=None):
     is_backfill  = coverage_date is not None and (
         coverage_date.year, coverage_date.month
     ) != (datetime.now().year, datetime.now().month)
+
+    prepare_plan_block(api_key, month_year, datetime.now())
 
     if topic:
         prompt = _build_custom_prompt(topic, month_year, prev_month, is_backfill, datetime.now())
@@ -665,6 +699,11 @@ length. This note overrides "Open on the observation itself" for this issue.
 """
 
 
+# Set by generate_blog_with_gemini() for the run in progress; empty otherwise
+# (single-section redrafts, tests), which leaves the prompt as it was.
+_PLAN_BLOCK = ""
+
+
 def _shared_rules_block(month_year, prev_month, is_backfill=False, today=None):
     today_str = (today or datetime.now()).strftime('%B %d, %Y')
     # Drawn from the one list in utils.py rather than retyped here, so the
@@ -833,6 +872,7 @@ Second sentence: what it means for a small Canadian business. Third sentence: wh
 
 {_SPEC_EXECUTIVE_SUMMARY}
 
+{_PLAN_BLOCK}
 KEY AI DEVELOPMENTS (exactly 5 or 6 items — not more, not fewer):
 On the page this section is titled "New in your AI subscription". It reports what
 changed in {month_year} in the low-cost AI plans a small business actually buys:

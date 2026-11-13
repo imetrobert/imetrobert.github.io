@@ -274,6 +274,7 @@ def research_plan_changes(api_key, month_year, today=None, log=print, call=None)
             except Exception as e:
                 log(f"    second request failed: {str(e)[:200]}")
         findings += got
+    findings = tidy(findings)
     by = {}
     for f in findings:
         by.setdefault(f["vendor"], 0)
@@ -281,6 +282,29 @@ def research_plan_changes(api_key, month_year, today=None, log=print, call=None)
     log(f"PLAN RESEARCH RESULT: {len(findings)} verified change(s) "
         f"({', '.join(f'{k} {n}' for k, n in by.items()) or 'none'}).")
     return findings
+
+
+def tidy(findings, per_vendor=3):
+    """Drop citation markers, fragments and repeats; keep the best-evidenced
+    three per vendor (a line Google tied to the vendor's page outranks one that
+    only shares the request with it)."""
+    out, seen, count = [], set(), {}
+    order = sorted(findings, key=lambda f: (0 if f["matched"] == "line" else 1, 0 if f["source_kind"] == "own" else 1))
+    for f in order:
+        what = re.sub(r"\[cite[^\]]*\]?", "", f["what"]).strip()
+        what = re.sub(r"\s+", " ", what).strip(" |")
+        if len(what.split()) < 6:
+            continue
+        key = (f["vendor"], re.sub(r"[^a-z0-9]", "", what.lower())[:50])
+        if key in seen or count.get(f["vendor"], 0) >= per_vendor:
+            continue
+        seen.add(key)
+        count[f["vendor"]] = count.get(f["vendor"], 0) + 1
+        g = dict(f, what=what, title=re.sub(r"\[cite[^\]]*\]?", "", f["title"]).strip(" |") or f["product"])
+        out.append(g)
+    # Back in vendor order so no vendor crowds the top of the list.
+    out.sort(key=lambda f: [v["name"] for v in VENDORS].index(f["vendor"]))
+    return out
 
 
 def prompt_block(findings, month_year):
