@@ -1,16 +1,21 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>No post pending — Robert Simon</title>
+<title>Blog generation failed — Robert Simon</title>
 <meta name="robots" content="noindex, nofollow">
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 560px; margin: 5rem auto; padding: 0 1.5rem; line-height: 1.7; color: #1e293b; text-align: center; }
-  h1 { color: #2563eb; font-size: 1.4rem; }
-  a.btn { display: inline-block; margin-top: 1.5rem; background: linear-gradient(135deg, #2563eb, #06b6d4); color: white; text-decoration: none; padding: 0.7rem 1.5rem; border-radius: 25px; font-weight: 600; font-size: 0.9rem; }
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 640px; margin: 4rem auto; padding: 0 1.5rem; line-height: 1.7; color: #1e293b; }
+  h1 { color: #dc2626; font-size: 1.5rem; }
+  code { background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
+  a { color: #2563eb; }
+  .steps { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem 1.5rem; }
 </style></head>
 <body>
-<h1>✅ Nothing pending review right now</h1>
-<p>There's no draft waiting for approval at the moment.</p>
-<p>The next draft generates automatically on <strong>November 30, 2026</strong> and will appear here for review.</p>
-<a href="https://www.imetrobert.com/blog/" class="btn">View the live blog →</a>
+<h1>⚠️ This month's blog generation failed</h1>
+<p>The scheduled <code>monthly-blog.yml</code> run on <strong>2026-11-13</strong> did not complete — no draft was generated this time.</p>
+<p><a href="https://github.com/imetrobert/imetrobert.github.io/actions/runs/43420859098" target="_blank">View the failed run and logs on GitHub →</a></p>
+<div class="steps">
+  <p><strong>Likely causes:</strong> Gemini API daily quota exhausted, an invalid or rotated <code>GEMINI_API_KEY</code> secret, or a transient network error.</p>
+  <p><strong>To retry:</strong> go to <strong>Actions → Generate Monthly AI Blog Post → Run workflow</strong>, check <strong>Force run</strong>, and run it again. This page will be replaced automatically once generation succeeds.</p>
+</div>
 </body></html>
