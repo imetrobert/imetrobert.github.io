@@ -203,6 +203,7 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                 continue
 
             _src_list = []
+            _grounding = {"chunks": [], "supports": [], "queries": []}
             if require_grounding:
                 _gm = candidate.get('groundingMetadata') or {}
                 _queries = len(_gm.get('webSearchQueries') or [])
@@ -228,6 +229,17 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                     _name = _w.get('title') or _w.get('uri')
                     if _name and _name not in _src_list:
                         _src_list.append(_name)
+                # Kept whole for plan_research.py, which decides what to trust
+                # from WHERE the search actually landed, not from the source
+                # name the model types.
+                _grounding = {
+                    "chunks": [{"title": (c.get('web') or {}).get('title') or "",
+                                "uri": (c.get('web') or {}).get('uri') or ""} for c in _chunks],
+                    "supports": [{"text": ((sp.get('segment') or {}).get('text') or ""),
+                                  "chunks": list(sp.get('groundingChunkIndices') or [])}
+                                 for sp in (_gm.get('groundingSupports') or [])],
+                    "queries": list(_gm.get('webSearchQueries') or []),
+                }
 
             # Thinking models spend part of maxOutputTokens on reasoning before
             # they write the answer. Logged so a cut-off answer is explainable.
@@ -280,7 +292,8 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                       f"strategic reads, the Desk, the predictions — flattens into "
                       f"restated news. Read those sections closely. This fires "
                       f"whether lite is the configured leader or a fallback.")
-            return {"content": cleaned, "model": model, "sources": _src_list}
+            return {"content": cleaned, "model": model, "sources": _src_list,
+                    "grounding": _grounding}
 
         except requests.exceptions.Timeout:
             print(f"  Timeout on {model}.")
