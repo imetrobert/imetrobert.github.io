@@ -52,6 +52,10 @@ What changed, and where:
 - **Plan claims are the main risk.** The prompt says to state a plan tier, a price or Canadian
   availability only when the source does, and otherwise to write "check whether your plan has
   it". Read those claims on the preview page before approving.
+- **Sources for plan changes.** The first trial lost every development to third-party blogs
+  summarising the vendors. The spec now names the only acceptable sources (the vendor's own post,
+  the vendor's dated release notes, a major outlet), and `utils.is_documentation_source()` no
+  longer rejects "release notes" / "changelog" (help-centre how-to pages are still rejected).
 - **One-time transition note.** `_transition_note()` in `gemini.py` asks for a short
   explanation at the top of From Robert's Desk only when the coverage month is
   `_TRANSITION_COVERAGE_MONTH` ("November 2026"). It never fires for any other issue.
