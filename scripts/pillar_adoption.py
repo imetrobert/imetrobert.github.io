@@ -45,7 +45,13 @@ def _issue_meta(path, source):
     title = _text(h1.group(1)) if h1 else base
     m = re.match(r"(\d{4})-(\d{2})-(\d{2})", base)
     date = datetime(int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else datetime.min
-    label = re.search(r"(%s)\s+(\d{4})" % "|".join(MONTHS), title)
+    # The issue badge names the issue ("Issue #13 • September 2026"). It comes
+    # first because newer posts carry a topical headline with no month in it,
+    # and the file date is the day BEFORE the issue month (an Aug 31 file is the
+    # September issue), which listed two issues under the same month.
+    badge = re.search(r'class="issue-badge"[^>]*>(.*?)<', source, re.S)
+    label = (re.search(r"(%s)\s+(\d{4})" % "|".join(MONTHS), _text(badge.group(1))) if badge else None) \
+        or re.search(r"(%s)\s+(\d{4})" % "|".join(MONTHS), title)
     return {
         "title": title,
         "url": f"{BASE}/blog/posts/{base}",
