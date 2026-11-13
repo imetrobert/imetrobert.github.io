@@ -1,0 +1,34 @@
+name: Plan research test (prints only)
+
+# Runs scripts/plan_research.py and prints what the per-vendor search finds for
+# a month. Changes nothing in the repository. Uses 4 Gemini requests.
+on:
+  workflow_dispatch:
+    inputs:
+      month:
+        description: 'Coverage month (e.g. October)'
+        required: true
+        default: 'October'
+      year:
+        description: 'Coverage year'
+        required: true
+        default: '2026'
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests --quiet
+      - name: Research plan changes
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MONTH: ${{ inputs.month }}
+          YEAR: ${{ inputs.year }}
+        run: python3 scripts/plan_research.py --month "$MONTH" --year "$YEAR"

@@ -1,0 +1,273 @@
+#!/usr/bin/env python3
+"""
+plan_research.py
+Research step for the "New in Your AI Subscription" section (issues from
+December 2026 on).
+
+WHY THIS EXISTS. Asked in one request for a whole issue, the model reported real
+plan changes but cited them to whatever page its search happened to surface:
+resellers, agencies, training companies. The source allowlist deleted them, and
+three trial issues kept 0, 2 and 1 of six items. Telling it which sources to use
+did not help, because the source name is text the model types.
+
+WHAT IT DOES. One small search-grounded request PER VENDOR ("what changed in
+ChatGPT plans in <month>?"). Each finding is kept only if Google's own grounding
+record for that request shows the search landed on the vendor's site or on a
+major outlet. The Source shown on the page then comes from that record, not from
+the model. The verified findings are handed to the issue prompt as the only
+plan changes it may report.
+
+Run by generate-blog.py before the main request. Standalone, for a look at what
+the search returns (prints everything, changes nothing):
+    python3 scripts/plan_research.py --month October --year 2026
+"""
+import argparse
+import os
+import re
+import sys
+from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# name: what the reader calls it. own: domains that are the vendor's own newsroom,
+# blog or dated release notes, mapped to the Source name printed on the page.
+VENDORS = [
+    {"name": "OpenAI", "product": "ChatGPT",
+     "plans": "ChatGPT Plus, ChatGPT Business (formerly Team), ChatGPT Go",
+     "own": {"openai.com": "OpenAI", "help.openai.com": "OpenAI Release Notes",
+             "chatgpt.com": "OpenAI"}},
+    {"name": "Anthropic", "product": "Claude",
+     "plans": "Claude Pro, Claude Max, Claude Team",
+     "own": {"anthropic.com": "Anthropic", "claude.com": "Anthropic",
+             "claude.ai": "Anthropic", "support.anthropic.com": "Anthropic Release Notes",
+             "support.claude.com": "Anthropic Release Notes"}},
+    {"name": "Google", "product": "Gemini",
+     "plans": "Google AI Pro, Gemini in Google Workspace (Business plans)",
+     "own": {"blog.google": "Google", "googleblog.com": "Google Workspace Updates",
+             "workspace.google.com": "Google Workspace", "gemini.google": "Google",
+             "gemini.google.com": "Google", "support.google.com": "Google Release Notes",
+             "google.com": "Google"}},
+    {"name": "Microsoft", "product": "Microsoft 365 Copilot",
+     "plans": "Microsoft 365 Copilot for business, Copilot in Microsoft 365 Personal and Family, Copilot Pro",
+     "own": {"microsoft.com": "Microsoft", "techcommunity.microsoft.com": "Microsoft Tech Community",
+             "blogs.microsoft.com": "Microsoft", "support.microsoft.com": "Microsoft Release Notes"}},
+]
+
+# Outlets that report product news. Domain -> the name the allowlist knows.
+OUTLETS = {
+    "theverge.com": "The Verge", "techcrunch.com": "TechCrunch", "arstechnica.com": "Ars Technica",
+    "wired.com": "Wired", "cnbc.com": "CNBC", "reuters.com": "Reuters", "bloomberg.com": "Bloomberg",
+    "axios.com": "Axios", "theregister.com": "The Register", "businessinsider.com": "Business Insider",
+    "betakit.com": "BetaKit", "thelogic.co": "The Logic", "theglobeandmail.com": "Globe and Mail",
+    "financialpost.com": "Financial Post", "cbc.ca": "CBC", "zdnet.com": "ZDNet",
+    "engadget.com": "Engadget", "venturebeat.com": "VentureBeat", "9to5google.com": "9to5Google",
+    "9to5mac.com": "9to5Mac", "macrumors.com": "MacRumors", "pcmag.com": "PCMag",
+    "cnet.com": "CNET", "theinformation.com": "The Information", "forbes.com": "Forbes",
+    "wsj.com": "Wall Street Journal", "nytimes.com": "New York Times", "ft.com": "Financial Times",
+    "bbc.com": "BBC", "bbc.co.uk": "BBC", "apnews.com": "AP", "computerworld.com": "Computerworld",
+    "tomsguide.com": "Tom's Guide", "androidauthority.com": "Android Authority",
+    "windowscentral.com": "Windows Central", "itworldcanada.com": "IT World Canada",
+}
+
+MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August",
+          "September", "October", "November", "December"]
+
+
+def _domain(title_or_uri):
+    """Grounding chunks carry the site as their title ("openai.com"); the uri is
+    a Google redirect. Fall back to the uri host only when the title is not a host."""
+    t = (title_or_uri or "").strip().lower()
+    t = re.sub(r"^https?://", "", t).split("/")[0]
+    t = re.sub(r"^www\.", "", t)
+    return t if re.fullmatch(r"[a-z0-9.-]+\.[a-z]{2,}", t) else ""
+
+
+def _lookup(domain, table):
+    """Longest suffix match, so help.openai.com beats openai.com."""
+    best = None
+    for d, name in table.items():
+        if domain == d or domain.endswith("." + d):
+            if best is None or len(d) > len(best[0]):
+                best = (d, name)
+    return best[1] if best else None
+
+
+def classify(domain, vendor):
+    """('own'|'outlet'|None, Source name)."""
+    name = _lookup(domain, vendor["own"])
+    if name:
+        return "own", name
+    name = _lookup(domain, OUTLETS)
+    if name:
+        return "outlet", name
+    return None, None
+
+
+def build_prompt(vendor, month_year, today_str):
+    return f"""Use Google Search. Today is {today_str}.
+
+List the changes {vendor['name']} announced in {month_year} to {vendor['product']} on its low-cost paid plans ({vendor['plans']}): new features, new connections to other tools (email, calendar, files, spreadsheets, accounting, e-commerce), changes to usage limits or price, and availability in Canada.
+
+Search {vendor['name']}'s own site first (its news or blog, and its dated release notes), then major technology outlets (The Verge, TechCrunch, Ars Technica, CNBC, Reuters). Ignore resellers, agencies, consultancies, training companies and personal blogs.
+
+Rules:
+- Only changes announced in {month_year}. Nothing earlier, nothing after {today_str}. If you are not sure of the day, leave the item out.
+- Only things a non-technical owner of a small business could use. No API-only, developer-only or enterprise-only changes, no research papers, no funding news.
+- State the plan or tier ONLY if the page you found states it; otherwise write "not stated".
+- If you find nothing that qualifies, reply with the single line: NONE
+
+Reply with one line per change, most useful to a small business first, at most 5 lines, in EXACTLY this form and nothing else:
+CHANGE | [Month Day] | [product and plan, or "not stated"] | [what changed, one plain sentence] | [name of the site you read it on] | [exact title of that page]"""
+
+
+def _tokens(s):
+    return set(re.findall(r"[a-z0-9]{4,}", (s or "").lower()))
+
+
+def _supporting_domains(line, grounding):
+    """Domains of the pages Google says support this line of the answer."""
+    lt = _tokens(line)
+    out = []
+    for sp in grounding.get("supports") or []:
+        st = _tokens(sp.get("text"))
+        if not st or not lt:
+            continue
+        if len(st & lt) / max(1, min(len(st), len(lt))) >= 0.6:
+            for i in sp.get("chunks") or []:
+                ch = (grounding.get("chunks") or [])
+                if 0 <= i < len(ch):
+                    d = _domain(ch[i].get("title")) or _domain(ch[i].get("uri"))
+                    if d and d not in out:
+                        out.append(d)
+    return out
+
+
+def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
+    month = month_year.split()[0]
+    call_domains = []
+    for ch in grounding.get("chunks") or []:
+        d = _domain(ch.get("title")) or _domain(ch.get("uri"))
+        if d and d not in call_domains:
+            call_domains.append(d)
+    kept = []
+    for raw in (text or "").splitlines():
+        line = raw.strip().lstrip("-*• ").strip()
+        if not line.upper().startswith("CHANGE"):
+            continue
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) < 6:
+            log(f"    skipped (wrong shape): {line[:100]}")
+            continue
+        _, date, plan, what, stated_site, title = parts[:6]
+        m = re.match(r"(%s)\s+(\d{1,2})\b" % "|".join(MONTHS), date)
+        if not m or m.group(1) != month:
+            log(f"    skipped (date '{date}' is not a day in {month}): {what[:70]}")
+            continue
+        if today is not None:
+            try:
+                if datetime(int(month_year.split()[1]), MONTHS.index(month) + 1, int(m.group(2))) > today:
+                    log(f"    skipped (dated after today): {what[:70]}")
+                    continue
+            except ValueError:
+                log(f"    skipped (impossible date '{date}'): {what[:70]}")
+                continue
+        # Where did the search really land for THIS line? Vendor's own site wins.
+        doms = _supporting_domains(line, grounding)
+        how = "line"
+        if not doms:
+            doms, how = call_domains, "call"
+        source = None
+        for want in ("own", "outlet"):
+            for d in doms:
+                kind, name = classify(d, vendor)
+                if kind == want:
+                    source = (name, d, kind)
+                    break
+            if source:
+                break
+        if not source:
+            log(f"    REJECTED (search landed on {', '.join(doms) or 'nothing'}; model said '{stated_site}'): {what[:70]}")
+            continue
+        kept.append({"vendor": vendor["name"], "product": vendor["product"], "date": f"{m.group(1)} {int(m.group(2))}",
+                     "plan": plan, "what": what, "source": source[0], "domain": source[1],
+                     "source_kind": source[2], "matched": how, "title": title})
+        log(f"    KEPT [{source[0]} via {source[1]}, {how}-level]: {date}: {what[:80]}")
+    return kept
+
+
+def research_plan_changes(api_key, month_year, today=None, log=print, call=None):
+    """Returns a list of verified findings (possibly empty). Never raises for a
+    single vendor failing: the issue can still be written from the others."""
+    if call is None:
+        from gemini import _call_gemini as call
+    today = today or datetime.now()
+    today_str = today.strftime("%B %d, %Y")
+    findings = []
+    for v in VENDORS:
+        log(f"PLAN RESEARCH: {v['name']} ({v['product']})")
+        try:
+            res = call(api_key, build_prompt(v, month_year, today_str), max_output_tokens=4096,
+                       temperature=0.2, use_search=True, min_chars=4, require_grounding=True)
+        except Exception as e:  # one vendor down must not stop the issue
+            log(f"    request failed: {str(e)[:200]}")
+            continue
+        g = res.get("grounding") or {}
+        doms = []
+        for ch in g.get("chunks") or []:
+            d = _domain(ch.get("title")) or _domain(ch.get("uri"))
+            if d and d not in doms:
+                doms.append(d)
+        log(f"    search landed on: {', '.join(doms) or '(no pages recorded)'}; "
+            f"{len(g.get('supports') or [])} supported passage(s); {len(g.get('queries') or [])} queries")
+        findings += parse_findings(res.get("content") or "", v, g, month_year, today, log)
+    by = {}
+    for f in findings:
+        by.setdefault(f["vendor"], 0)
+        by[f["vendor"]] += 1
+    log(f"PLAN RESEARCH RESULT: {len(findings)} verified change(s) "
+        f"({', '.join(f'{k} {n}' for k, n in by.items()) or 'none'}).")
+    return findings
+
+
+def prompt_block(findings, month_year):
+    """Text added to the issue prompt. Empty string when nothing was verified,
+    which leaves the prompt exactly as it was."""
+    if not findings:
+        return ""
+    lines = [f"{i+1}. {f['date']} | {f['vendor']} | {f['product']} ({f['plan']}) | {f['what']} | Source: {f['source']} | {f['title']}"
+             for i, f in enumerate(findings)]
+    return f"""
+VERIFIED PLAN CHANGES FOR {month_year.upper()} — researched separately, one vendor at a time, and
+each one checked against the page the search actually landed on. For KEY AI DEVELOPMENTS:
+- Every item about ChatGPT, Claude, Gemini or Microsoft 365 Copilot MUST be one of these. Do not
+  add any other change to those four products, however sure you are of it: it will be deleted.
+- Use between 4 and 6 of them when that many are listed (all of them when fewer), choosing the
+  most useful to a small business, and keep the three most useful first.
+- Copy the date, the company and the text after "Source:" EXACTLY as written here, as the item's
+  date, [Company] and Source line (Source: [name] | [title]).
+- Rewrite the description in your own words to fit the format; add nothing the line does not say
+  about plan, price or Canadian availability.
+- If fewer than 4 are listed, fill the remaining slots (up to 5 in total) with other AI company
+  news that meets the source rules below.
+- Build the HEADLINE from one of these.
+
+""" + "\n".join(lines) + "\n"
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--month", required=True)
+    ap.add_argument("--year", required=True)
+    a = ap.parse_args()
+    key = os.environ.get("GEMINI_API_KEY", "")
+    if not key:
+        print("GEMINI_API_KEY is not set."); return 1
+    my = f"{a.month} {a.year}"
+    f = research_plan_changes(key, my)
+    print("\n----- block that would be added to the issue prompt -----")
+    print(prompt_block(f, my) or "(nothing verified: the prompt would be unchanged)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
