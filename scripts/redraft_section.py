@@ -101,7 +101,7 @@ SECTION_BLOCKS = {
 # avoid. The question text must match renderer.py's faq_candidates verbatim.
 FAQ_FED_BY = {
     "LOOKING AHEAD: THREE PREDICTIONS": {
-        "question": "What should Canadian executives expect from AI over the next year?",
+        "question": "What should small Canadian businesses expect from AI over the next year?",
         "answer":   lambda v: faq_join([f'{p["horizon"]}: {p["body"]}' for p in v]),
     },
 }

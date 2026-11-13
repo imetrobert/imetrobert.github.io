@@ -207,7 +207,7 @@ def score_issue(content):
             sections.get("ONE QUESTION FOR YOUR LEADERSHIP TEAM", "")) else 0
     except Exception:
         checks["question"] = 0
-    minimums = {"developments": 5, "spotlight": 2, "actions": 4,
+    minimums = {"developments": 5, "spotlight": 2, "actions": 3,
                 "predictions": 3, "desk_words": 250, "question": 1}
     for key, need in minimums.items():
         if checks[key] < need:

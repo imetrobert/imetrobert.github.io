@@ -78,8 +78,14 @@ Non-negotiables (full reasoning in `docs/blog-pipeline.md`):
   (daily 09:00 UTC, generates on the last day of the month) and `keepalive.yml`.
   `redraft-section.yml`'s section choice list is hand-maintained.
 
+Since the December 2026 issue the briefing is written for small Canadian businesses (what the
+low-cost AI plans can do) and ends with one feasibility-check call to action. Section headers in
+the text are unchanged; page titles and prompt meaning changed. Read "Audience and focus since
+the December 2026 issue" at the top of `docs/blog-pipeline.md` before touching the prompt.
+
 Sections in `docs/blog-pipeline.md`:
 
+- Audience and focus since the December 2026 issue (read this first)
 - The issue structure is a three-file contract
 - `From Robert's Desk` — the one section that must be Robert's
 - Redrafting one section (`scripts/redraft_section.py`)

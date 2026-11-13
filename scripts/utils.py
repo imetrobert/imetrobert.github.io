@@ -24,7 +24,7 @@ from datetime import datetime
 # ---------------------------------------------------------------------------
 BRAND         = "Practical AI for Canadian Business"
 BRAND_SHORT   = "Practical AI Canada"
-BRAND_TAGLINE = "The month's AI developments, and what to do about them"
+BRAND_TAGLINE = "What your AI subscription can do now, and what to try next"
 AUTHOR        = "Robert Simon"
 
 
@@ -1030,3 +1030,44 @@ def is_meta_commentary(text):
         if re.search(t, text, re.IGNORECASE):
             return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# Feasibility-check call to action.
+#
+# Since the December 2026 issue the briefing is written for small businesses and
+# every issue ends with ONE soft call to action: the free feasibility check on
+# biz.aiwithrobert.com. It is built here, with inline styles, so the same block
+# works in new posts (renderer.py) and in posts published before the CSS knew
+# about it (scripts/add_feasibility_cta.py patches those). The marker comment is
+# what makes the patch idempotent. The prompt forbids the model from writing any
+# offer of its own, so this block is the only one on the page.
+# ---------------------------------------------------------------------------
+FEASIBILITY_CTA_MARKER = "<!-- feasibility-cta -->"
+FEASIBILITY_URL = "https://biz.aiwithrobert.com/"
+
+
+def feasibility_cta_html(campaign=""):
+    """The end-of-issue call to action. `campaign` (for example the post date)
+    is passed in the link so a lead can be traced to the issue it came from."""
+    camp = re.sub(r"[^A-Za-z0-9_-]+", "-", str(campaign or "blog")).strip("-") or "blog"
+    url = (f"{FEASIBILITY_URL}?utm_source=imetrobert-blog&amp;utm_medium=article"
+           f"&amp;utm_campaign={camp}#feas-check")
+    return (
+        f'{FEASIBILITY_CTA_MARKER}'
+        '<div class="section feasibility-cta" style="background:#11304c;color:#ffffff;'
+        'border-radius:16px;padding:1.75rem;margin-top:1.5rem;">'
+        '<h2 style="font-size:1.2rem;font-weight:700;color:#ffffff;margin:0 0 0.6rem;'
+        'line-height:1.35;">Can the AI plan you already pay for do this in your business?</h2>'
+        '<p style="font-size:0.95rem;line-height:1.7;color:rgba(255,255,255,0.92);'
+        'margin:0 0 1.1rem;">It depends on which plan you have and how your business works. '
+        'The free feasibility check takes about two minutes: name your plan and up to three '
+        'things you would like it to do, and see a Yes, Partly or No for each one on screen.</p>'
+        f'<a href="{url}" style="display:inline-block;background:#c9a227;color:#11304c;'
+        'font-weight:700;font-size:0.95rem;padding:0.7rem 1.5rem;border-radius:25px;'
+        'text-decoration:none;">Get a free feasibility check</a>'
+        '<p style="font-size:0.8rem;line-height:1.6;color:rgba(255,255,255,0.75);'
+        'margin:1rem 0 0;">From AI with Robert for Business, Robert Simon&#39;s service for '
+        'small businesses and professional practices.</p>'
+        '</div>'
+    )

@@ -913,7 +913,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         <span class="prompt-chip" onclick="setRedraftGuidance('Make it more contrarian. Say the thing most people in the room would not say, and back it up.')">More contrarian</span>
         <span class="prompt-chip" onclick="setRedraftGuidance('Lead with the governance and change-management angle rather than the technology.')">Governance angle</span>
         <span class="prompt-chip" onclick="setRedraftGuidance('Ground this more in what actually happens inside a large enterprise — procurement friction, legal review capacity, the gap between a pilot and a deployment.')">More enterprise reality</span>
-        <span class="prompt-chip" onclick="setRedraftGuidance('Too abstract. Tie it to a specific decision an executive has to make this quarter.')">Make it concrete</span>
+        <span class="prompt-chip" onclick="setRedraftGuidance('Too abstract. Tie it to a specific decision a small business owner has to make this month.')">Make it concrete</span>
         <span class="prompt-chip" onclick="setRedraftGuidance('Pick a completely different angle from the current draft. Same section, new argument.')">Different angle</span>
       </div>
       <textarea id="redraft-guidance" class="prompt-area" rows="4"
@@ -948,7 +948,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
       paragraphs with a blank line. Clearing this box entirely keeps the draft
       below as-is.</p>
       <textarea id="take-input" class="prompt-area" rows="16"
-        placeholder="What surprised you this month? What do executives keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">{desk_draft_attr}</textarea>
+        placeholder="What surprised you this month? What do small business owners keep getting wrong? What is overhyped, what can wait, and what will matter six months from now?">{desk_draft_attr}</textarea>
       <div class="take-meta">
         <span id="take-count">0 words</span>
         <span id="take-saved" class="take-saved"></span>

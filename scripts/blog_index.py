@@ -236,8 +236,8 @@ def create_blog_index_html(posts):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <title>{BRAND} | Monthly AI Briefing for Canadian Executives | {AUTHOR}</title>
-    <meta name="description" content="{BRAND}. Each month: what happened in AI, what it means for Canadian organizations, and the specific actions to take — with an owner, an effort estimate and a business impact for each. By {AUTHOR}, Montreal.">
+    <title>{BRAND} | What Low-Cost AI Plans Can Do for Small Business | {AUTHOR}</title>
+    <meta name="description" content="{BRAND}. Each month: what is new in ChatGPT, Claude, Gemini and Microsoft 365 Copilot plans, what it means for a small Canadian business, and use cases worth trying. By {AUTHOR}, Montreal.">
     <meta name="keywords" content="AI blog Canada, Canadian AI insights, AI news for Canadians, artificial intelligence Canada, AI strategy Canada, Montreal AI expert, Canadian business AI, AI adoption Canada, digital transformation Canada">
     <meta name="author" content="Robert Simon">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
@@ -251,14 +251,14 @@ def create_blog_index_html(posts):
     <link rel="alternate" type="application/rss+xml" title="{BRAND} — RSS Feed" href="https://www.imetrobert.com/blog/feed.xml">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.imetrobert.com/blog/">
-    <meta property="og:title" content="{BRAND} | Monthly AI Briefing for Canadian Executives">
-    <meta property="og:description" content="{BRAND_TAGLINE}. Written for Canadian executives by {AUTHOR}.">
+    <meta property="og:title" content="{BRAND} | What Low-Cost AI Plans Can Do for Small Business">
+    <meta property="og:description" content="{BRAND_TAGLINE}. Written for small Canadian businesses by {AUTHOR}.">
     <meta property="og:image" content="https://www.imetrobert.com/blog/og-blog.jpg">
     <meta property="og:site_name" content="{BRAND}">
     <meta property="og:locale" content="en_CA">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{BRAND} | {AUTHOR}">
-    <meta name="twitter:description" content="{BRAND_TAGLINE}. Written for Canadian executives by {AUTHOR}.">
+    <meta name="twitter:description" content="{BRAND_TAGLINE}. Written for small Canadian businesses by {AUTHOR}.">
     <meta name="twitter:image" content="https://www.imetrobert.com/blog/og-blog.jpg">
     <meta name="twitter:creator" content="@thedigitalrobert">
     <script type="application/ld+json">
@@ -566,11 +566,13 @@ def create_llms_txt(posts):
     lines = [
         f"# {BRAND} — by {AUTHOR}",
         "",
-        "> Monthly AI intelligence written for Canadian business leaders by Robert",
+        "> Monthly AI briefing written for small Canadian businesses by Robert",
         "> Simon, a Montreal-based AI thought leader and digital transformation",
-        "> expert with 25+ years in digital. Each issue covers the month's major AI",
-        "> developments, what is happening in Canada specifically, Canadian AI",
-        "> adoption data, and concrete actions for executives.",
+        "> expert with 25+ years in digital. Since December 2026 each issue covers",
+        "> what is new in the low-cost AI plans (ChatGPT, Claude, Gemini, Microsoft",
+        "> 365 Copilot), what it means for a small business, the Canadian angle and",
+        "> use cases worth trying. Issues before December 2026 were written for",
+        "> executives at larger Canadian organizations and remain available.",
         "",
         "Content here may be quoted and cited. Please attribute to Robert Simon",
         "and link to the source URL of the issue you are quoting.",
