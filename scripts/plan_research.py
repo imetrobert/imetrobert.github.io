@@ -179,6 +179,7 @@ def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
         d = _domain(ch.get("title")) or _domain(ch.get("uri"))
         if d and d not in call_domains:
             call_domains.append(d)
+    pages_read = [d for d in (_domain(u.get("url")) for u in (grounding.get("urls") or []) if u.get("ok")) if d]
     kept = []
     seen_any = False
     for raw in (text or "").splitlines():
@@ -214,15 +215,22 @@ def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
         how = "line"
         if not doms:
             doms, how = call_domains, "call"
-        source = None
-        for want in ("own", "outlet"):
-            for d in doms:
-                kind, name = classify(d, vendor)
-                if kind == want:
-                    source = (name, d, kind)
-                    break
-            if source:
-                break
+
+        def pick(domains):
+            for want in ("own", "outlet"):
+                for d in domains:
+                    kind, name = classify(d, vendor)
+                    if kind == want:
+                        return (name, d, kind)
+            return None
+
+        source = pick(doms)
+        if not source and how == "line" and pages_read:
+            # Google's per-line record only covers the SEARCH part of a request.
+            # When the model also fetched the vendor's own release notes, a line
+            # can come from those and still be tied only to a search result. The
+            # fetched page is then the evidence, at request level.
+            source, how = pick(pages_read), "call"
         if not source:
             log(f"    REJECTED (search landed on {', '.join(doms) or 'nothing'}; model said '{stated_site}'): {what[:70]}")
             continue
@@ -242,14 +250,16 @@ def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
     return kept
 
 
-def research_plan_changes(api_key, month_year, today=None, log=print, call=None):
+def research_plan_changes(api_key, month_year, today=None, log=print, call=None, pause=25):
     """Returns a list of verified findings (possibly empty). Never raises for a
     single vendor failing: the issue can still be written from the others."""
     if call is None:
         from gemini import _call_gemini as call
     today = today or datetime.now()
     today_str = today.strftime("%B %d, %Y")
+    import time
     findings = []
+    made = 0
     for v in VENDORS:
         log(f"PLAN RESEARCH: {v['name']} ({v['product']})")
         got = []
@@ -259,8 +269,13 @@ def research_plan_changes(api_key, month_year, today=None, log=print, call=None)
         for label, use_pages in (("release-notes pages", True), ("search only", False)):
             if use_pages and not v.get("pages"):
                 continue
+            # A fetched release-notes page is tens of thousands of tokens, and the
+            # free tier counts tokens per MINUTE: back-to-back requests drew 429s.
+            if made and pause:
+                time.sleep(pause)
+            made += 1
             try:
-                res = call(api_key, build_prompt(v, month_year, today_str, pages=use_pages), max_output_tokens=4096,
+                res = call(api_key, build_prompt(v, month_year, today_str, pages=use_pages), max_output_tokens=8192,
                            temperature=0.2, use_search=True, min_chars=4, require_grounding=True,
                            read_urls=use_pages)
             except Exception as e:  # one vendor or one method down must not stop the issue
