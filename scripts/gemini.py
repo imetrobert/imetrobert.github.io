@@ -109,7 +109,7 @@ def _tokens_used(response):
 
 def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                  use_search=True, min_chars=200, reject_truncated=False,
-                 require_grounding=False, models=None):
+                 require_grounding=False, models=None, read_urls=False):
     """Post a prompt, walking the model fallback list. Returns {content, model}.
 
     Shared by the monthly generation and the single-section redraft so both get
@@ -132,6 +132,11 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
     }
     if use_search:
         payload["tools"] = [{"google_search": {}}]
+        if read_urls:
+            # URL context: the model fetches the pages named in the prompt
+            # (plan_research.py gives it each vendor's own release notes) and
+            # the response records which URLs it really retrieved.
+            payload["tools"] = [{"url_context": {}}, {"google_search": {}}]
 
     # Which models, in what order. `models` is an explicit list (used by
     # model_scout.py to test ONE model). Otherwise the order comes from
@@ -237,7 +242,7 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                 continue
 
             _src_list = []
-            _grounding = {"chunks": [], "supports": [], "queries": []}
+            _grounding = {"chunks": [], "supports": [], "queries": [], "urls": []}
             if require_grounding:
                 _gm = candidate.get('groundingMetadata') or {}
                 _queries = len(_gm.get('webSearchQueries') or [])
@@ -246,8 +251,14 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                 # Any of these shows search ran; Google only attaches the block
                 # when it did, so a differently shaped one on a newer model
                 # must not read as "ungrounded".
+                _um = (candidate.get('urlContextMetadata') or candidate.get('url_context_metadata') or {})
+                _urls = [{"url": u.get('retrievedUrl') or u.get('retrieved_url') or "",
+                          "ok": "SUCCESS" in str(u.get('urlRetrievalStatus') or u.get('url_retrieval_status') or "")}
+                         for u in (_um.get('urlMetadata') or _um.get('url_metadata') or [])]
+                _read = [u for u in _urls if u["ok"]]
+                # A page the model actually fetched is live evidence too.
                 _searched = (_queries or _sources or _gm.get('searchEntryPoint')
-                             or _gm.get('groundingSupports'))
+                             or _gm.get('groundingSupports') or _read)
                 if not _searched:
                     # A 200 with the search tool attached is not proof it was
                     # used: the model may simply answer from memory.
@@ -257,7 +268,8 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                           f"this month's news.")
                     continue
                 print(f"  Grounded: {_queries} search quer{'y' if _queries == 1 else 'ies'}, "
-                      f"{_sources} source(s).")
+                      f"{_sources} source(s)"
+                      + (f", {len(_read)} of {len(_urls)} named page(s) read." if _urls else "."))
                 for _c in _chunks:
                     _w = _c.get('web') or {}
                     _name = _w.get('title') or _w.get('uri')
@@ -273,6 +285,7 @@ def _call_gemini(api_key, prompt, max_output_tokens, temperature=0.55,
                                   "chunks": list(sp.get('groundingChunkIndices') or [])}
                                  for sp in (_gm.get('groundingSupports') or [])],
                     "queries": list(_gm.get('webSearchQueries') or []),
+                    "urls": _urls,
                 }
 
             # Thinking models spend part of maxOutputTokens on reasoning before
