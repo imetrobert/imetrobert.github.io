@@ -169,15 +169,23 @@ def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
         if d and d not in call_domains:
             call_domains.append(d)
     kept = []
+    seen_any = False
     for raw in (text or "").splitlines():
-        line = raw.strip().lstrip("-*• ").strip()
+        # Tolerate markdown, numbering and [brackets] copied from the template.
+        line = re.sub(r"^[\s\-\*\d\.\)\u2022`>#]+", "", raw).replace("**", "").strip()
         if not line.upper().startswith("CHANGE"):
             continue
-        parts = [p.strip() for p in line.split("|")]
-        if len(parts) < 6:
-            log(f"    skipped (wrong shape): {line[:100]}")
+        seen_any = True
+        parts = [p.strip().strip("[]").strip() for p in line.split("|")]
+        if len(parts) < 4 or not parts[3]:
+            log(f"    skipped (wrong shape, {len(parts)} fields): {line[:160]}")
             continue
+        # The site and page title are optional: neither is trusted anyway, the
+        # source comes from the search record below.
+        parts += ["", ""]
         _, date, plan, what, stated_site, title = parts[:6]
+        if "what changed" in what.lower() and "sentence" in what.lower():
+            continue  # the model echoed the template line
         m = re.match(r"(%s)\s+(\d{1,2})\b" % "|".join(MONTHS), date)
         if not m or m.group(1) != month:
             log(f"    skipped (date '{date}' is not a day in {month}): {what[:70]}")
@@ -212,12 +220,14 @@ def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
         # when the site it named is the source being credited; otherwise use a
         # plain description, which is what the "search for this article" link needs.
         same_site = _tokens(stated_site) & _tokens(source[0] + " " + source[1])
-        if not same_site:
+        if not same_site or not title:
             title = f"{vendor['product']}: {what.rstrip('.')}"[:110]
         kept.append({"vendor": vendor["name"], "product": vendor["product"], "date": f"{m.group(1)} {int(m.group(2))}",
                      "plan": plan, "what": what, "source": source[0], "domain": source[1],
                      "source_kind": source[2], "matched": how, "title": title})
         log(f"    KEPT [{source[0]} via {source[1]}, {how}-level]: {date}: {what[:80]}")
+    if not seen_any:
+        log(f"    no CHANGE lines in the reply. It began: {(text or '').strip()[:300]!r}")
     return kept
 
 
