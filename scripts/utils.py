@@ -597,8 +597,13 @@ _NEWSWIRE_NAMES = {
 _DOC_SURFACES = (
     "help center", "help centre", "helpcenter", "support center",
     "support centre", "knowledge base", "documentation", "docs",
-    "developer guide", "dev guide", "api reference", "release notes",
-    "changelog", "microsoft learn", "faq",
+    "developer guide", "dev guide", "api reference",
+    "microsoft learn", "faq",
+    # "release notes" and "changelog" were here until the December 2026 issue.
+    # They came out when the briefing moved to covering what changes in the
+    # low-cost AI plans: a vendor's release notes are DATED and are often the
+    # only place a feature change is announced, which makes them the primary
+    # source for exactly the items the issue now exists to report.
     # "Google AI for Developers" is ai.google.dev — the developer docs portal,
     # not a newsroom. It passed every test because it carries Google's name.
     # "<X> for Developers" is a documentation portal by convention.
@@ -616,6 +621,10 @@ def is_documentation_source(source_name):
         return False
     name = re.sub(r'[^a-z0-9 ]+', ' ', source_name.lower())
     name = re.sub(r'\s+', ' ', name).strip()
+    # Dated release notes are an announcement even when they are hosted on a
+    # help centre ("OpenAI Help Center release notes").
+    if re.search(r'\b(release notes|changelog|what s new)\b', name):
+        return False
     return any(re.search(r'\b' + re.escape(k) + r'\b', name) for k in _DOC_SURFACES)
 
 

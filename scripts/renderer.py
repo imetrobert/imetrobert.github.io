@@ -635,7 +635,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         )
         article_parts.append(
             f'<div class="section faq-section">'
-            f'<h2 class="section-title">Questions Canadian Leaders Are Asking</h2>'
+            f'<h2 class="section-title">Questions Small Business Owners Are Asking</h2>'
             f'<div class="faq-list">{faq_html}</div>'
             f'</div>'
         )
