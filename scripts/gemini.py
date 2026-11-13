@@ -805,6 +805,7 @@ Name the single most useful change of {month_year} for a small Canadian business
 State the actual product and the actual capability. "Claude Pro can now work inside Excel files: what it means for a small bookkeeping practice" works. "AI Insights for {month_year}", "Key AI developments", "The month in AI" and any other generic phrasing are useless here and must never be used — a title with no topic in it cannot be retrieved for a topic.
 No colon-free clickbait, no questions, no "you won't believe". Plain declarative. Do not include the month name — it is added automatically.
 Write the headline on ONE line directly under the HEADLINE header, with no quotes around it.
+Build the headline ONLY from a KEY AI DEVELOPMENTS item whose source is the vendor's own post or release notes, or a major outlet. A headline about an item that is later deleted for its source leaves the issue promising a story it does not contain.
 
 INTRODUCTION (3 sentences maximum):
 CRITICAL: The first sentence MUST contain the specific claim you made in the
@@ -843,14 +844,14 @@ HOW TO SEARCH FOR THESE ITEMS. Read this before searching; it is the difference 
 
 A roundup is a LEAD, NOT A SOURCE. If a newsletter or aggregator ("ThursdAI", "Analytics Vidhya", a weekly AI digest) surfaces a story, that is useful — it told you the event exists. Do not discard it and do not cite it. Follow it through: find the announcement or the article it was summarising, and cite THAT. Every story in a roundup came from somewhere, and that somewhere is your source.
 
-Search per product, not per month. One search for "AI news {month_year}" returns roundups, because roundups are what match that query — which is exactly how earlier issues ended up citing aggregators. Instead run a separate search for each plan, for example:
-  - "ChatGPT new feature {month_year}", "ChatGPT Plus", "ChatGPT Business", OpenAI announcements
-  - "Claude new feature {month_year}", "Claude Pro", Anthropic announcements
-  - "Gemini new feature {month_year}", "Google Workspace Gemini", "Google AI Pro", Google announcements
-  - "Microsoft 365 Copilot new feature {month_year}", Microsoft 365 announcements
-  - price, usage-limit and plan changes for each of the four
-  - availability in Canada, and connections to tools small businesses use (Outlook, Gmail, Excel, Google Sheets, QuickBooks, Shopify)
-Aim for 5-6 items spanning at least THREE of the four vendors. The vendor's own announcement post is the natural source for a feature launch; a news outlet reporting it is equally good.
+Search the VENDORS' OWN SITES and the major outlets, not the open web. A general query such as "ChatGPT new feature {month_year}" returns resellers, agencies and training companies summarising the vendor, and every item cited to one of those is deleted. Two trial issues lost most of this section that way. Restrict each search to a site that is an acceptable source, for example:
+  - "site:openai.com {month_year} ChatGPT", "site:help.openai.com ChatGPT release notes"
+  - "site:anthropic.com/news Claude {month_year}", "site:support.anthropic.com release notes"
+  - "site:blog.google Gemini {month_year}", "site:workspaceupdates.googleblog.com Gemini {month_year}"
+  - "site:microsoft.com Microsoft 365 Copilot {month_year}", "site:techcommunity.microsoft.com Copilot what's new {month_year}"
+  - "site:theverge.com ChatGPT OR Claude OR Gemini OR Copilot {month_year}", and the same for techcrunch.com, arstechnica.com, cnbc.com, reuters.com, betakit.com
+Then, for each change you found, run one more search for price, usage-limit or Canadian-availability details on the same sites.
+Aim for 5-6 items spanning at least THREE of the four vendors. Before you write an item, check its source against the list below; if it is not on the list, search the vendor's site for the same change and cite that, or drop the item and use another. It is better to hand in five items you can source properly than six of which three will be deleted.
 
 WHERE THE SOURCE MUST COME FROM — the first trial of this format lost EVERY item in this section, because each one was cited to a third-party blog that had summarised the vendor ("Allianze Technologies", "The Oxford AI School", "Jetstream BLOG"). Those are deleted automatically. For a change to one of the four plans there are only three acceptable kinds of source:
   1. The vendor's own announcement. Write the Source name as the vendor's own publication: "OpenAI", "Anthropic", "Google", "Google Workspace Updates", "Microsoft", "Microsoft 365 Blog". The headline after the bar is the title of the vendor's own post.
