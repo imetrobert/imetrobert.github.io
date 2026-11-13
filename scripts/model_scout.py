@@ -223,10 +223,14 @@ def score_issue(content):
 def trial(api_key, model):
     """Generate a full issue with ONLY this model and grade it."""
     try:
-        from gemini import _call_gemini, _build_monthly_prompt
+        from gemini import _call_gemini, _build_monthly_prompt, prepare_plan_block
         today = datetime.now()
         month_year = today.strftime("%B %Y")
         prev_month = (today.replace(day=1) - timedelta(days=1)).strftime("%B %Y")
+        # The same research pass the monthly run does, once per scout run:
+        # without the verified list most plan-change items lose their source
+        # and every candidate would fail the developments count.
+        prepare_plan_block(api_key, month_year, today, reuse=True)
         prompt = _build_monthly_prompt(month_year, prev_month, False, today)
         result = _call_gemini(api_key, prompt, max_output_tokens=8192, temperature=0.55,
                               use_search=True, min_chars=200, require_grounding=True,

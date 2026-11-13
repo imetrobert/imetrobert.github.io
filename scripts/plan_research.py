@@ -35,22 +35,30 @@ VENDORS = [
     {"name": "OpenAI", "product": "ChatGPT",
      "plans": "ChatGPT Plus, ChatGPT Business (formerly Team), ChatGPT Go",
      "own": {"openai.com": "OpenAI", "help.openai.com": "OpenAI Release Notes",
-             "chatgpt.com": "OpenAI"}},
+             "chatgpt.com": "OpenAI"},
+     "hints": ["OpenAI ChatGPT release notes {month_year}", "help.openai.com ChatGPT release notes",
+               "openai.com news ChatGPT {month_year}"]},
     {"name": "Anthropic", "product": "Claude",
      "plans": "Claude Pro, Claude Max, Claude Team",
      "own": {"anthropic.com": "Anthropic", "claude.com": "Anthropic",
              "claude.ai": "Anthropic", "support.anthropic.com": "Anthropic Release Notes",
-             "support.claude.com": "Anthropic Release Notes"}},
+             "support.claude.com": "Anthropic Release Notes"},
+     "hints": ["Claude release notes {month_year} support.claude.com", "anthropic.com news Claude {month_year}",
+               "claude.com blog {month_year}"]},
     {"name": "Google", "product": "Gemini",
      "plans": "Google AI Pro, Gemini in Google Workspace (Business plans)",
      "own": {"blog.google": "Google", "googleblog.com": "Google Workspace Updates",
              "workspace.google.com": "Google Workspace", "gemini.google": "Google",
              "gemini.google.com": "Google", "support.google.com": "Google Release Notes",
-             "google.com": "Google"}},
+             "google.com": "Google"},
+     "hints": ["Google Workspace Updates blog Gemini {month_year}", "workspaceupdates.googleblog.com Gemini weekly recap {month_year}",
+               "blog.google Gemini app new features {month_year}", "Gemini Drop {month_year} blog.google"]},
     {"name": "Microsoft", "product": "Microsoft 365 Copilot",
      "plans": "Microsoft 365 Copilot for business, Copilot in Microsoft 365 Personal and Family, Copilot Pro",
      "own": {"microsoft.com": "Microsoft", "techcommunity.microsoft.com": "Microsoft Tech Community",
-             "blogs.microsoft.com": "Microsoft", "support.microsoft.com": "Microsoft Release Notes"}},
+             "blogs.microsoft.com": "Microsoft", "support.microsoft.com": "Microsoft Release Notes"},
+     "hints": ["What's new in Microsoft 365 Copilot {month_year} techcommunity.microsoft.com",
+               "Microsoft 365 Blog Copilot {month_year}", "Microsoft 365 Copilot release notes {month_year} learn.microsoft.com"]},
 ]
 
 # Outlets that report product news. Domain -> the name the allowlist knows.
@@ -103,8 +111,19 @@ def classify(domain, vendor):
     return None, None
 
 
-def build_prompt(vendor, month_year, today_str):
+def build_prompt(vendor, month_year, today_str, strict=False):
+    hints = "\n".join(f'  - "{h.format(month_year=month_year)}"' for h in vendor.get("hints", []))
+    own = ", ".join(sorted(vendor["own"]))
+    focus = (f"""
+This is a second attempt: the first search only reached third-party sites, which cannot be used.
+This time read ONLY pages on {vendor['name']}'s own sites ({own}). Open the monthly "what's new" or
+release-notes page for {month_year} and list what it says. Do not use any other site.
+""" if strict else "")
     return f"""Use Google Search. Today is {today_str}.
+{focus}
+Run these searches (and others like them) so that you are reading {vendor['name']}'s own pages:
+{hints}
+
 
 List the changes {vendor['name']} announced in {month_year} to {vendor['product']} on its low-cost paid plans ({vendor['plans']}): new features, new connections to other tools (email, calendar, files, spreadsheets, accounting, e-commerce), changes to usage limits or price, and availability in Canada.
 
@@ -150,15 +169,23 @@ def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
         if d and d not in call_domains:
             call_domains.append(d)
     kept = []
+    seen_any = False
     for raw in (text or "").splitlines():
-        line = raw.strip().lstrip("-*• ").strip()
+        # Tolerate markdown, numbering and [brackets] copied from the template.
+        line = re.sub(r"^[\s\-\*\d\.\)\u2022`>#]+", "", raw).replace("**", "").strip()
         if not line.upper().startswith("CHANGE"):
             continue
-        parts = [p.strip() for p in line.split("|")]
-        if len(parts) < 6:
-            log(f"    skipped (wrong shape): {line[:100]}")
+        seen_any = True
+        parts = [p.strip().strip("[]").strip() for p in line.split("|")]
+        if len(parts) < 4 or not parts[3]:
+            log(f"    skipped (wrong shape, {len(parts)} fields): {line[:160]}")
             continue
+        # The site and page title are optional: neither is trusted anyway, the
+        # source comes from the search record below.
+        parts += ["", ""]
         _, date, plan, what, stated_site, title = parts[:6]
+        if "what changed" in what.lower() and "sentence" in what.lower():
+            continue  # the model echoed the template line
         m = re.match(r"(%s)\s+(\d{1,2})\b" % "|".join(MONTHS), date)
         if not m or m.group(1) != month:
             log(f"    skipped (date '{date}' is not a day in {month}): {what[:70]}")
@@ -188,10 +215,19 @@ def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
         if not source:
             log(f"    REJECTED (search landed on {', '.join(doms) or 'nothing'}; model said '{stated_site}'): {what[:70]}")
             continue
+        # The page title the model typed belongs to whatever page it was reading,
+        # which is often not the one the search record points to. Keep it only
+        # when the site it named is the source being credited; otherwise use a
+        # plain description, which is what the "search for this article" link needs.
+        same_site = _tokens(stated_site) & _tokens(source[0] + " " + source[1])
+        if not same_site or not title:
+            title = f"{vendor['product']}: {what.rstrip('.')}"[:110]
         kept.append({"vendor": vendor["name"], "product": vendor["product"], "date": f"{m.group(1)} {int(m.group(2))}",
                      "plan": plan, "what": what, "source": source[0], "domain": source[1],
                      "source_kind": source[2], "matched": how, "title": title})
         log(f"    KEPT [{source[0]} via {source[1]}, {how}-level]: {date}: {what[:80]}")
+    if not seen_any:
+        log(f"    no CHANGE lines in the reply. It began: {(text or '').strip()[:300]!r}")
     return kept
 
 
@@ -219,7 +255,26 @@ def research_plan_changes(api_key, month_year, today=None, log=print, call=None)
                 doms.append(d)
         log(f"    search landed on: {', '.join(doms) or '(no pages recorded)'}; "
             f"{len(g.get('supports') or [])} supported passage(s); {len(g.get('queries') or [])} queries")
-        findings += parse_findings(res.get("content") or "", v, g, month_year, today, log)
+        got = parse_findings(res.get("content") or "", v, g, month_year, today, log)
+        if not got:
+            # Nothing usable: the search stayed on third-party sites. One more
+            # request, told to read only the vendor's own pages.
+            log(f"    nothing verified for {v['name']}; second attempt on its own sites only")
+            try:
+                res = call(api_key, build_prompt(v, month_year, today_str, strict=True), max_output_tokens=4096,
+                           temperature=0.2, use_search=True, min_chars=4, require_grounding=True)
+                g = res.get("grounding") or {}
+                doms = []
+                for ch in g.get("chunks") or []:
+                    d = _domain(ch.get("title")) or _domain(ch.get("uri"))
+                    if d and d not in doms:
+                        doms.append(d)
+                log(f"    second search landed on: {', '.join(doms) or '(no pages recorded)'}")
+                got = parse_findings(res.get("content") or "", v, g, month_year, today, log)
+            except Exception as e:
+                log(f"    second request failed: {str(e)[:200]}")
+        findings += got
+    findings = tidy(findings)
     by = {}
     for f in findings:
         by.setdefault(f["vendor"], 0)
@@ -227,6 +282,29 @@ def research_plan_changes(api_key, month_year, today=None, log=print, call=None)
     log(f"PLAN RESEARCH RESULT: {len(findings)} verified change(s) "
         f"({', '.join(f'{k} {n}' for k, n in by.items()) or 'none'}).")
     return findings
+
+
+def tidy(findings, per_vendor=3):
+    """Drop citation markers, fragments and repeats; keep the best-evidenced
+    three per vendor (a line Google tied to the vendor's page outranks one that
+    only shares the request with it)."""
+    out, seen, count = [], set(), {}
+    order = sorted(findings, key=lambda f: (0 if f["matched"] == "line" else 1, 0 if f["source_kind"] == "own" else 1))
+    for f in order:
+        what = re.sub(r"\[cite[^\]]*\]?", "", f["what"]).strip()
+        what = re.sub(r"\s+", " ", what).strip(" |")
+        if len(what.split()) < 6:
+            continue
+        key = (f["vendor"], re.sub(r"[^a-z0-9]", "", what.lower())[:50])
+        if key in seen or count.get(f["vendor"], 0) >= per_vendor:
+            continue
+        seen.add(key)
+        count[f["vendor"]] = count.get(f["vendor"], 0) + 1
+        g = dict(f, what=what, title=re.sub(r"\[cite[^\]]*\]?", "", f["title"]).strip(" |") or f["product"])
+        out.append(g)
+    # Back in vendor order so no vendor crowds the top of the list.
+    out.sort(key=lambda f: [v["name"] for v in VENDORS].index(f["vendor"]))
+    return out
 
 
 def prompt_block(findings, month_year):
