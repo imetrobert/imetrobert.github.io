@@ -1,0 +1,30 @@
+name: Blog health report
+
+# Prints a compact, paste-able report in the run summary (recent failures with plain explanations, recent runs of every
+# blog workflow, model order, usage, what is staged). From a phone: Actions > Blog health report > Run workflow, open the
+# run, copy the summary, paste it into any chat to investigate with very few tokens.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 12 * * 1'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip3 install -r scripts/requirements.txt
+      - name: Health report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/diagnose.py > report.txt
+          cat report.txt
+          { echo '## Blog health report'; echo '```'; cat report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

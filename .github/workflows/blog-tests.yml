@@ -1,0 +1,32 @@
+name: Blog tests
+
+# Offline tests (no Gemini, no secrets): the section redraft path with a stubbed model, and the model scout.
+# Runs on every push that touches the pipeline and weekly, so drift (a changed section format, a renderer change that
+# breaks a block) shows up as a red run instead of as a bad issue on the 1st.
+on:
+  push:
+    branches: [main]
+    paths: ['scripts/**', '.github/workflows/redraft-section.yml', 'blog/posts/**']
+  schedule:
+    - cron: '23 10 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -r scripts/requirements.txt
+          pip3 install beautifulsoup4 lxml
+      - name: Redraft path, quality gates, rollback, run log
+        run: python3 -W ignore scripts/test_pipeline.py
+      - name: Model scout
+        run: python3 scripts/test_model_scout.py

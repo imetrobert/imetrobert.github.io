@@ -122,6 +122,10 @@ jobs:
             bash scripts/git_push_retry.sh
           fi
 
+      - name: Save the run log (always, even after a failure)
+        if: always()
+        run: bash scripts/commit_runlog.sh
+
       - name: Summary
         run: |
           echo "## Section redrafted" >> $GITHUB_STEP_SUMMARY
