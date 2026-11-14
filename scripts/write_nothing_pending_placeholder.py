@@ -41,6 +41,7 @@ def build_html(next_date):
 <p>There's no draft waiting for approval at the moment.</p>
 <p>The next draft generates automatically on <strong>{next_date}</strong> and will appear here for review.</p>
 <a href="https://www.imetrobert.com/blog/" class="btn">View the live blog →</a>
+<br><a href="/blog/staging/health.html" class="btn" style="background:#0f172a;">Pipeline health and run log →</a>
 </body></html>
 """
 

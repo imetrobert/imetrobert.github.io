@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline health — Robert Simon</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#f1f5f9;color:#1e293b;line-height:1.55}
+  header{background:#0f172a;color:#fff;padding:0.8rem 1rem;display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap}
+  header strong{font-size:1rem}
+  header a{color:#bae6fd;font-size:0.85rem;text-decoration:none;margin-left:auto}
+  main{max-width:760px;margin:0 auto;padding:1rem}
+  h2{font-size:1rem;margin:1.4rem 0 0.5rem}
+  .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:0.8rem 1rem;margin-bottom:0.6rem}
+  .banner{border-radius:12px;padding:0.9rem 1rem;font-size:0.92rem}
+  .banner.ok{background:#ecfdf5;border:1px solid #86efac;color:#14532d}
+  .banner.bad{background:#fef2f2;border:1px solid #fca5a5;color:#7f1d1d}
+  .banner.wait{background:#f8fafc;border:1px solid #cbd5e1;color:#475569}
+  .row{display:flex;gap:0.5rem;align-items:baseline;flex-wrap:wrap}
+  .code{font:600 0.72rem/1 ui-monospace,Menlo,monospace;padding:0.2rem 0.45rem;border-radius:6px;background:#e2e8f0}
+  .code.failed{background:#fee2e2;color:#991b1b}.code.ok{background:#dcfce7;color:#166534}
+  .muted{color:#64748b;font-size:0.8rem}
+  .next{font-size:0.86rem;margin:0.25rem 0 0}
+  button,.btn{font:600 0.85rem system-ui;border:0;border-radius:10px;padding:0.6rem 0.9rem;background:#2563eb;color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
+  button.sec,.btn.sec{background:#fff;color:#1e3a8a;border:1px solid #cbd5e1}
+  button:disabled{opacity:.55}
+  .actions{display:flex;gap:0.5rem;flex-wrap:wrap}
+  #msg{font-size:0.85rem;margin-top:0.5rem;min-height:1.2rem}
+  details summary{cursor:pointer}
+  pre{white-space:pre-wrap;word-break:break-word;font-size:0.74rem;background:#f8fafc;padding:0.5rem;border-radius:8px;margin:0.4rem 0 0}
+</style></head>
+<body>
+<header><strong>Blog pipeline health</strong><a href="/blog/staging/preview.html">&larr; Back to the review page</a></header>
+<main>
+  <div id="banner" class="banner wait">Loading the run log...</div>
+
+  <h2>Do something</h2>
+  <div class="card">
+    <div class="actions">
+      <button id="b-health" onclick="run('blog-health.yml','Health report')">Run health report</button>
+      <button id="b-tests" class="sec" onclick="run('blog-tests.yml','Tests')">Run tests</button>
+      <button id="b-scout" class="sec" onclick="run('model-scout.yml','Model scout')">Test for new models</button>
+    </div>
+    <div id="msg" class="muted"></div>
+    <p class="muted" style="margin:0.4rem 0 0">Uses the GitHub token saved on the review page (same browser). The health report appears under Actions; open the run and copy its summary into any chat to investigate with very few tokens.</p>
+  </div>
+
+  <h2>Latest run of each workflow</h2>
+  <div id="wf" class="card muted">Loading...</div>
+
+  <h2>Recent pipeline events</h2>
+  <div id="events"></div>
+
+  <h2>Guides and raw data</h2>
+  <div class="card actions">
+    <a class="btn sec" target="_blank" rel="noopener" href="https://github.com/imetrobert/imetrobert.github.io/blob/main/docs/DIAGNOSE.md">How to diagnose</a>
+    <a class="btn sec" target="_blank" rel="noopener" href="https://github.com/imetrobert/imetrobert.github.io/actions">All Actions runs</a>
+    <a class="btn sec" target="_blank" rel="noopener" href="/blog/staging/run-log.json">Raw run log</a>
+  </div>
+</main>
+<script>
+const REPO = "imetrobert/imetrobert.github.io", API = "https://api.github.com";
+const WFS = [["monthly-blog.yml","Monthly generation"],["redraft-section.yml","Section redraft"],["regenerate-blog.yml","Regenerate issue"],
+  ["approve-blog.yml","Approve / publish"],["discard-blog.yml","Discard"],["model-scout.yml","Model scout"],["blog-tests.yml","Blog tests"],["blog-health.yml","Health report"]];
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const when = iso => iso ? new Date(iso).toLocaleString("en-CA", {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"}) : "";
+
+async function loadLog() {
+  const b = document.getElementById("banner"), ev = document.getElementById("events");
+  let log = [];
+  try {
+    const r = await fetch("/blog/staging/run-log.json?t=" + Date.now(), {cache: "no-store"});
+    if (r.ok) log = await r.json();
+  } catch (e) {}
+  if (!Array.isArray(log) || !log.length) {
+    b.className = "banner wait"; b.textContent = "No pipeline events recorded yet. They appear here after the next redraft, regeneration or monthly run.";
+    ev.innerHTML = ""; return;
+  }
+  const last = log[log.length - 1], lastFail = [...log].reverse().find(e => e.status === "failed");
+  if (last.status === "failed") {
+    b.className = "banner bad";
+    b.innerHTML = "<strong>The last run failed: " + esc(last.code) + "</strong><br>" + esc(last.message) + "<br><strong>Next step:</strong> " + esc(last.next);
+  } else {
+    b.className = "banner ok";
+    b.innerHTML = "<strong>The last run succeeded</strong> (" + esc(last.kind) + ", " + esc(when(last.at)) + ")." +
+      (lastFail ? "<br><span class='muted'>Most recent earlier failure: " + esc(lastFail.code) + ", " + esc(when(lastFail.at)) + ".</span>" : "");
+  }
+  ev.innerHTML = [...log].reverse().slice(0, 20).map(e =>
+    "<div class='card'><div class='row'><span class='code " + esc(e.status) + "'>" + esc(e.code) + "</span><strong>" + esc(e.kind) +
+    (e.section ? " &middot; " + esc(e.section) : "") + "</strong><span class='muted'>" + esc(when(e.at)) + "</span>" +
+    (e.run ? " <a class='muted' target='_blank' rel='noopener' href='https://github.com/" + REPO + "/actions/runs/" + esc(e.run) + "'>run</a>" : "") + "</div>" +
+    (e.status === "failed" ? "<p class='next'>" + esc(e.message) + " <strong>Next:</strong> " + esc(e.next) + "</p>" : "") +
+    (e.detail ? "<details><summary class='muted'>Details</summary><pre>" + esc(e.detail) + "</pre></details>" : "") + "</div>").join("");
+}
+
+async function loadWorkflows() {
+  const box = document.getElementById("wf");
+  const rows = await Promise.all(WFS.map(async ([f, label]) => {
+    try {
+      const r = await fetch(API + "/repos/" + REPO + "/actions/workflows/" + f + "/runs?per_page=1");
+      const j = await r.json(), run = (j.workflow_runs || [])[0];
+      if (!run) return "<div class='row'><strong>" + esc(label) + "</strong><span class='muted'>never run</span></div>";
+      const st = run.status !== "completed" ? "running" : run.conclusion;
+      const cls = st === "success" ? "ok" : st === "running" ? "" : "failed";
+      return "<div class='row' style='margin:0.25rem 0'><span class='code " + cls + "'>" + esc(st) + "</span><strong>" + esc(label) + "</strong><span class='muted'>" +
+        esc(when(run.created_at)) + "</span> <a class='muted' target='_blank' rel='noopener' href='" + esc(run.html_url) + "'>open</a></div>";
+    } catch (e) { return ""; }
+  }));
+  box.className = "card"; box.innerHTML = rows.join("") || "Could not reach GitHub just now.";
+}
+
+async function run(wf, label) {
+  const pat = localStorage.getItem("blog_preview_pat"), msg = document.getElementById("msg");
+  if (!pat) { msg.textContent = "No GitHub token saved in this browser yet. Open the review page, save the token there once, then come back."; return; }
+  const btn = event.target; btn.disabled = true; msg.textContent = "Starting " + label + "...";
+  try {
+    const r = await fetch(API + "/repos/" + REPO + "/actions/workflows/" + wf + "/dispatches", {method: "POST",
+      headers: {"Authorization": "Bearer " + pat, "Accept": "application/vnd.github+json", "Content-Type": "application/json", "X-GitHub-Api-Version": "2022-11-28"},
+      body: JSON.stringify({ref: "main"})});
+    msg.textContent = r.status === 204 ? label + " started. Give it a minute, then reload this page or open Actions." :
+      r.status === 401 ? "GitHub rejected the saved token. Save a new one on the review page." : "GitHub said " + r.status + ". Try again or start it from the Actions tab.";
+  } catch (e) { msg.textContent = "Could not reach GitHub. Check your connection."; }
+  btn.disabled = false; setTimeout(loadWorkflows, 5000);
+}
+loadLog(); loadWorkflows();
+</script>
+</body></html>
