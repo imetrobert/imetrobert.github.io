@@ -727,6 +727,9 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
     <a href="https://www.imetrobert.com/blog/" class="btn btn-outline" target="_blank">
       🌐 Live Blog
     </a>
+    <a href="/blog/staging/health.html" class="btn btn-outline">
+      🩺 Pipeline health
+    </a>
     <button class="btn btn-outline" onclick="openStagingPost()">
       ↗ Open Full Post
     </button>
