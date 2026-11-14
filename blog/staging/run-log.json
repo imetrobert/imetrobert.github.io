@@ -1,0 +1,13 @@
+[
+ {
+  "at": "2026-11-14T14:36:12Z",
+  "run": "43605024625",
+  "kind": "regenerate",
+  "status": "ok",
+  "code": "OK",
+  "message": "Finished normally.",
+  "next": "",
+  "detail": "generated staging for October 2026",
+  "month": "October 2026"
+ }
+]
