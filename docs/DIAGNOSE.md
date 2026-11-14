@@ -134,3 +134,6 @@ edits and say whether rebuild-blog-index.yml needs to be run. Report:
 
 Token tips: paste the report, not screenshots of logs; name the file and function; ask for "exact old/new text" instead of whole files; run the offline tests
 (seconds, no Gemini) before asking Gemini to do anything again.
+
+## Look-like-bugs: "Commit the result" failed with a usage.json conflict
+Two workflows finished at the same time and both wrote blog/staging/usage.json. Since 2026-11-14 scripts/git_push_retry.sh merges that file itself (scripts/merge_usage.py keeps the larger counts). If you still see it, the Gemini work was done but its result (e.g. model-config.json) was not saved: run the workflow again.
