@@ -232,6 +232,18 @@ class RunLog(Base):
             what, _ = runlog.explain(code)
             self.assertTrue(what)
 
+    def test_official_body_items_must_cite_the_body(self):
+        import parser as P
+        mk = lambda org, src: {"org": org, "body": "x" * 40, "source_name": src, "source_url": ""}
+        items = [mk("Quebec's Commission d'acces a l'information", "PolicyFirst AI"),
+                 mk("Quebec's Commission d'acces a l'information", "Commission d'acces a l'information du Quebec"),
+                 mk("Office of the Privacy Commissioner of Canada", "Office of the Privacy Commissioner of Canada"),
+                 mk("Shopify", "The Globe and Mail")]
+        kept = P._drop_low_quality_sourced(items, "org")
+        self.assertEqual([i["source_name"] for i in kept],
+                         ["Commission d'acces a l'information du Quebec",
+                          "Office of the Privacy Commissioner of Canada", "The Globe and Mail"])
+
     def test_classify(self):
         self.assertEqual(runlog.classify(Exception("HTTP 429 resource_exhausted")), "QUOTA_EXHAUSTED")
         self.assertEqual(runlog.classify("model gemini-x is not found for API version"), "MODEL_UNAVAILABLE")
