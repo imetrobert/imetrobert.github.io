@@ -31,6 +31,7 @@ def build_html(next_date):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>No post pending — Robert Simon</title>
 <meta name="robots" content="noindex, nofollow">
+<script src="/blog/staging/gate.js"></script>
 <style>
   body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 560px; margin: 5rem auto; padding: 0 1.5rem; line-height: 1.7; color: #1e293b; text-align: center; }}
   h1 {{ color: #2563eb; font-size: 1.4rem; }}

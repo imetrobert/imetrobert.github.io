@@ -251,6 +251,7 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
   <meta name="preview-run" content="{run_id}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
+  <script src="/blog/staging/gate.js"></script>
   <!-- GitHub Pages serves this with a ten-minute max-age and no way to override
        the header, so a browser will happily show a stale approval screen. These
        help where they are honoured; the staleness check in JS is what actually
