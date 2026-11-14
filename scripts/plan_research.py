@@ -36,6 +36,7 @@ VENDORS = [
      "plans": "ChatGPT Plus, ChatGPT Business (formerly Team), ChatGPT Go",
      "own": {"openai.com": "OpenAI", "help.openai.com": "OpenAI Release Notes",
              "chatgpt.com": "OpenAI"},
+     "pages": ["https://help.openai.com/en/articles/6825453-chatgpt-release-notes"],
      "hints": ["OpenAI ChatGPT release notes {month_year}", "help.openai.com ChatGPT release notes",
                "openai.com news ChatGPT {month_year}"]},
     {"name": "Anthropic", "product": "Claude",
@@ -43,20 +44,25 @@ VENDORS = [
      "own": {"anthropic.com": "Anthropic", "claude.com": "Anthropic",
              "claude.ai": "Anthropic", "support.anthropic.com": "Anthropic Release Notes",
              "support.claude.com": "Anthropic Release Notes"},
+     "pages": ["https://support.claude.com/en/articles/12138966-release-notes"],
      "hints": ["Claude release notes {month_year} support.claude.com", "anthropic.com news Claude {month_year}",
                "claude.com blog {month_year}"]},
     {"name": "Google", "product": "Gemini",
      "plans": "Google AI Pro, Gemini in Google Workspace (Business plans)",
      "own": {"blog.google": "Google", "googleblog.com": "Google Workspace Updates",
-             "workspace.google.com": "Google Workspace", "gemini.google": "Google",
+             "gemini.google": "Google Gemini Release Notes",
+             "workspace.google.com": "Google Workspace",
              "gemini.google.com": "Google", "support.google.com": "Google Release Notes",
              "google.com": "Google"},
+     "pages": ["https://gemini.google/release-notes/", "https://workspaceupdates.googleblog.com/"],
      "hints": ["Google Workspace Updates blog Gemini {month_year}", "workspaceupdates.googleblog.com Gemini weekly recap {month_year}",
                "blog.google Gemini app new features {month_year}", "Gemini Drop {month_year} blog.google"]},
     {"name": "Microsoft", "product": "Microsoft 365 Copilot",
      "plans": "Microsoft 365 Copilot for business, Copilot in Microsoft 365 Personal and Family, Copilot Pro",
      "own": {"microsoft.com": "Microsoft", "techcommunity.microsoft.com": "Microsoft Tech Community",
+             "learn.microsoft.com": "Microsoft 365 Copilot Release Notes",
              "blogs.microsoft.com": "Microsoft", "support.microsoft.com": "Microsoft Release Notes"},
+     "pages": ["https://learn.microsoft.com/en-us/microsoft-365/copilot/release-notes?tabs=all"],
      "hints": ["What's new in Microsoft 365 Copilot {month_year} techcommunity.microsoft.com",
                "Microsoft 365 Blog Copilot {month_year}", "Microsoft 365 Copilot release notes {month_year} learn.microsoft.com"]},
 ]
@@ -111,20 +117,21 @@ def classify(domain, vendor):
     return None, None
 
 
-def build_prompt(vendor, month_year, today_str, strict=False):
+def build_prompt(vendor, month_year, today_str, pages=False):
     hints = "\n".join(f'  - "{h.format(month_year=month_year)}"' for h in vendor.get("hints", []))
-    own = ", ".join(sorted(vendor["own"]))
-    focus = (f"""
-This is a second attempt: the first search only reached third-party sites, which cannot be used.
-This time read ONLY pages on {vendor['name']}'s own sites ({own}). Open the monthly "what's new" or
-release-notes page for {month_year} and list what it says. Do not use any other site.
-""" if strict else "")
-    return f"""Use Google Search. Today is {today_str}.
-{focus}
-Run these searches (and others like them) so that you are reading {vendor['name']}'s own pages:
+    if pages:
+        urls = "\n".join(f"  - {u}" for u in vendor.get("pages", []))
+        lead = f"""Read these pages first. They are {vendor['name']}'s own dated release notes:
+{urls}
+Take the entries dated in {month_year} from them. Then use Google Search only to fill gaps, on {vendor['name']}'s own sites or major technology outlets.
+"""
+    else:
+        lead = f"""Run these searches (and others like them) so that you are reading {vendor['name']}'s own pages:
 {hints}
+"""
+    return f"""Use Google Search. Today is {today_str}.
 
-
+{lead}
 List the changes {vendor['name']} announced in {month_year} to {vendor['product']} on its low-cost paid plans ({vendor['plans']}): new features, new connections to other tools (email, calendar, files, spreadsheets, accounting, e-commerce), changes to usage limits or price, and availability in Canada.
 
 Search {vendor['name']}'s own site first (its news or blog, and its dated release notes), then major technology outlets (The Verge, TechCrunch, Ars Technica, CNBC, Reuters). Ignore resellers, agencies, consultancies, training companies and personal blogs.
@@ -164,10 +171,15 @@ def _supporting_domains(line, grounding):
 def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
     month = month_year.split()[0]
     call_domains = []
+    for u in grounding.get("urls") or []:  # pages the model really fetched
+        d = _domain(u.get("url")) if u.get("ok") else ""
+        if d and d not in call_domains:
+            call_domains.append(d)
     for ch in grounding.get("chunks") or []:
         d = _domain(ch.get("title")) or _domain(ch.get("uri"))
         if d and d not in call_domains:
             call_domains.append(d)
+    pages_read = [d for d in (_domain(u.get("url")) for u in (grounding.get("urls") or []) if u.get("ok")) if d]
     kept = []
     seen_any = False
     for raw in (text or "").splitlines():
@@ -203,15 +215,22 @@ def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
         how = "line"
         if not doms:
             doms, how = call_domains, "call"
-        source = None
-        for want in ("own", "outlet"):
-            for d in doms:
-                kind, name = classify(d, vendor)
-                if kind == want:
-                    source = (name, d, kind)
-                    break
-            if source:
-                break
+
+        def pick(domains):
+            for want in ("own", "outlet"):
+                for d in domains:
+                    kind, name = classify(d, vendor)
+                    if kind == want:
+                        return (name, d, kind)
+            return None
+
+        source = pick(doms)
+        if not source and how == "line" and pages_read:
+            # Google's per-line record only covers the SEARCH part of a request.
+            # When the model also fetched the vendor's own release notes, a line
+            # can come from those and still be tied only to a search result. The
+            # fetched page is then the evidence, at request level.
+            source, how = pick(pages_read), "call"
         if not source:
             log(f"    REJECTED (search landed on {', '.join(doms) or 'nothing'}; model said '{stated_site}'): {what[:70]}")
             continue
@@ -231,48 +250,61 @@ def parse_findings(text, vendor, grounding, month_year, today=None, log=print):
     return kept
 
 
-def research_plan_changes(api_key, month_year, today=None, log=print, call=None):
+def research_plan_changes(api_key, month_year, today=None, log=print, call=None, pause=65):
     """Returns a list of verified findings (possibly empty). Never raises for a
     single vendor failing: the issue can still be written from the others."""
     if call is None:
         from gemini import _call_gemini as call
     today = today or datetime.now()
     today_str = today.strftime("%B %d, %Y")
+    import time
+    # Lite models answer these in prose and ignore the line format, so a busy
+    # leader must not hand the research to one: better no list from a vendor
+    # than a list nobody can parse. (None = let the caller's fake decide, in tests.)
+    models = None
+    if call is None or getattr(call, "__name__", "") == "_call_gemini":
+        try:
+            from utils import resolve_model_order
+            models = [m for m in resolve_model_order() if "lite" not in m.lower()] or None
+        except Exception:
+            models = None
     findings = []
+    made = 0
     for v in VENDORS:
         log(f"PLAN RESEARCH: {v['name']} ({v['product']})")
-        try:
-            res = call(api_key, build_prompt(v, month_year, today_str), max_output_tokens=4096,
-                       temperature=0.2, use_search=True, min_chars=4, require_grounding=True)
-        except Exception as e:  # one vendor down must not stop the issue
-            log(f"    request failed: {str(e)[:200]}")
-            continue
-        g = res.get("grounding") or {}
-        doms = []
-        for ch in g.get("chunks") or []:
-            d = _domain(ch.get("title")) or _domain(ch.get("uri"))
-            if d and d not in doms:
-                doms.append(d)
-        log(f"    search landed on: {', '.join(doms) or '(no pages recorded)'}; "
-            f"{len(g.get('supports') or [])} supported passage(s); {len(g.get('queries') or [])} queries")
-        got = parse_findings(res.get("content") or "", v, g, month_year, today, log)
-        if not got:
-            # Nothing usable: the search stayed on third-party sites. One more
-            # request, told to read only the vendor's own pages.
-            log(f"    nothing verified for {v['name']}; second attempt on its own sites only")
+        got = []
+        # First the vendor's own release-notes pages (the model fetches them and
+        # the response records that it did); if that yields nothing, a plain
+        # search of the vendor's sites and the outlets.
+        for label, use_pages in (("release-notes pages", True), ("search only", False)):
+            if use_pages and not v.get("pages"):
+                continue
+            # A fetched release-notes page is tens of thousands of tokens, and the
+            # free tier counts tokens per MINUTE: requests 25 s apart still drew
+            # 429s and fell back to a lite model. A full minute apart they do not.
+            if made and pause:
+                time.sleep(pause)
+            made += 1
             try:
-                res = call(api_key, build_prompt(v, month_year, today_str, strict=True), max_output_tokens=4096,
-                           temperature=0.2, use_search=True, min_chars=4, require_grounding=True)
-                g = res.get("grounding") or {}
-                doms = []
-                for ch in g.get("chunks") or []:
-                    d = _domain(ch.get("title")) or _domain(ch.get("uri"))
-                    if d and d not in doms:
-                        doms.append(d)
-                log(f"    second search landed on: {', '.join(doms) or '(no pages recorded)'}")
-                got = parse_findings(res.get("content") or "", v, g, month_year, today, log)
-            except Exception as e:
-                log(f"    second request failed: {str(e)[:200]}")
+                res = call(api_key, build_prompt(v, month_year, today_str, pages=use_pages), max_output_tokens=8192,
+                           temperature=0.2, use_search=True, min_chars=4, require_grounding=True,
+                           read_urls=use_pages, **({"models": models} if models else {}))
+            except Exception as e:  # one vendor or one method down must not stop the issue
+                log(f"    {label}: request failed: {str(e)[:160]}")
+                continue
+            g = res.get("grounding") or {}
+            doms = []
+            for ch in g.get("chunks") or []:
+                d = _domain(ch.get("title")) or _domain(ch.get("uri"))
+                if d and d not in doms:
+                    doms.append(d)
+            read = [u["url"] for u in (g.get("urls") or []) if u.get("ok")]
+            log(f"    {label}: search landed on {', '.join(doms) or '(nothing)'}; "
+                f"pages read: {', '.join(read) or '(none)'}; {len(g.get('supports') or [])} supported passage(s)")
+            got = parse_findings(res.get("content") or "", v, g, month_year, today, log)
+            if got:
+                break
+            log(f"    {label}: nothing verified for {v['name']}")
         findings += got
     findings = tidy(findings)
     by = {}
