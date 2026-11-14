@@ -251,6 +251,7 @@ jobs:
           mkdir -p blog/staging
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           FAIL_DATE="$(date -u +%Y-%m-%d)"
+          REASON="$(python3 scripts/runlog.py last 2>/dev/null || echo "No reason was recorded; open the failed run and read the last lines of the failing step.")"
           cat > blog/staging/preview.html <<HTML
           <!DOCTYPE html>
           <html lang="en"><head><meta charset="UTF-8">
@@ -268,6 +269,7 @@ jobs:
           <h1>⚠️ This month's blog generation failed</h1>
           <p>The scheduled <code>monthly-blog.yml</code> run on <strong>$FAIL_DATE</strong> did not complete — no draft was generated this time.</p>
           <p><a href="$RUN_URL" target="_blank">View the failed run and logs on GitHub →</a></p>
+          <p><strong>What happened:</strong> $REASON</p>
           <div class="steps">
             <p><strong>Likely causes:</strong> Gemini API daily quota exhausted, an invalid or rotated <code>GEMINI_API_KEY</code> secret, or a transient network error.</p>
             <p><strong>To retry:</strong> go to <strong>Actions → Generate Monthly AI Blog Post → Run workflow</strong>, check <strong>Force run</strong>, and run it again. This page will be replaced automatically once generation succeeds.</p>
@@ -276,7 +278,7 @@ jobs:
           HTML
           git config --local user.email "action@github.com"
           git config --local user.name "Blog Generator"
-          git add blog/staging/preview.html
+          git add blog/staging/preview.html blog/staging/run-log.json 2>/dev/null || git add blog/staging/preview.html
           if git diff --staged --quiet; then
             echo "Nothing to commit"
           else

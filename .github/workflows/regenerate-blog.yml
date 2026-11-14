@@ -154,6 +154,10 @@ jobs:
             echo "Pushed regenerated post"
           fi
 
+      - name: Save the run log (always, even after a failure)
+        if: always()
+        run: bash scripts/commit_runlog.sh
+
       - name: Summary
         run: |
           echo "## 🔄 Blog Post Regenerated!" >> $GITHUB_STEP_SUMMARY

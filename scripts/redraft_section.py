@@ -79,12 +79,12 @@ SECTION_BLOCKS = {
     },
     "EXECUTIVE SUMMARY": {
         "block_class": "summary-section",
-        "parse":       lambda t: (parse_list_items(t, min_length=25)[:3] or None),
+        "parse":       lambda t: ((lambda items: items[:3] if len(items) >= 3 else None)(parse_list_items(t, min_length=25))),
         "render":      lambda v: _build_summary_section(v),
     },
     "LOOKING AHEAD: THREE PREDICTIONS": {
         "block_class": "pred-section",
-        "parse":       lambda t: (parse_predictions(t) or None),
+        "parse":       lambda t: ((lambda items: items if len(items) == 3 else None)(parse_predictions(t))),
         "render":      lambda v: _build_predictions_section(v),
     },
     "ONE QUESTION FOR YOUR LEADERSHIP TEAM": {
@@ -163,55 +163,165 @@ def find_block(html, block_class):
     return None
 
 
+# ---------------------------------------------------------------------------
+# Quality gates. A redraft is applied only if it passes all of these; otherwise the issue is left
+# exactly as it was and the failure is explained (runlog.py) and retried once with the reason.
+# ---------------------------------------------------------------------------
+MAX_ATTEMPTS = 2
+SIMILARITY_LIMIT = 0.80      # word-sequence similarity to the CURRENT text above which a draft counts as unchanged
+MIN_WORDS = {
+    "FROM ROBERTS DESK": 200,
+    "EXECUTIVE SUMMARY": 30,                       # spec: exactly 3 items of up to 25 words
+    "LOOKING AHEAD: THREE PREDICTIONS": 36,        # spec: three horizons, 1-2 sentences each
+    "ONE QUESTION FOR YOUR LEADERSHIP TEAM": 10,   # spec: one question
+}
+# Structural junk is rejected anywhere in the text; conversational openers only at the start (first-person
+# prose in the Desk can legitimately say "I can't" or "sure," mid-sentence).
+_JUNK_ANYWHERE = (
+    "constraint checklist", "confidence score", "no invented specifics", "opinionated language used",
+    "as an ai language model", "```", "<div", "</", "**", "[source", "(source:", "http://", "https://",
+)
+_JUNK_OPENERS = ("sure", "certainly", "here is", "here's", "here are", "okay", "of course", "i cannot", "i can't",
+                 "i'm sorry", "i am sorry", "as an ai")
+
+
+def block_text(html_fragment):
+    """Plain text of a rendered block, for comparing old and new."""
+    t = re.sub(r'<(script|style)\b.*?</\1>', ' ', html_fragment, flags=re.S | re.I)
+    t = re.sub(r'<[^>]+>', ' ', t)
+    t = re.sub(r'&[a-z#0-9]+;', ' ', t)
+    return re.sub(r'\s+', ' ', t).strip()
+
+
+def similarity(a, b):
+    """0..1 similarity of two texts by word sequence (1 = identical)."""
+    import difflib
+    wa, wb = a.lower().split(), b.lower().split()
+    if not wa or not wb:
+        return 0.0
+    return difflib.SequenceMatcher(None, wa, wb, autojunk=False).ratio()
+
+
+def check_text(section, text, old_text):
+    """Return (code, reason) if the model's raw text must be rejected, else (None, '')."""
+    t = (text or "").strip()
+    low = t.lower()
+    for marker in _JUNK_ANYWHERE:
+        if marker in low:
+            return "JUNK_OUTPUT", f"it contains '{marker.strip()}', which belongs to notes or chat, not the section"
+    for opener in _JUNK_OPENERS:
+        if low.startswith(opener):
+            return "JUNK_OUTPUT", f"it opens like a chat reply ('{opener}...') instead of the section itself"
+    if len(t.split()) < MIN_WORDS.get(section, 12):
+        return "TOO_SHORT", f"only {len(t.split())} words; this section needs at least {MIN_WORDS.get(section, 12)}"
+    if old_text and similarity(t, old_text) >= SIMILARITY_LIMIT:
+        return "TOO_SIMILAR", "it repeats the current text almost word for word; write a clearly different angle"
+    return None, ""
+
+
+def verify_written(path, before_html, after_html, cfg, new_block_text):
+    """Re-read the file after writing. Returns a list of problems (empty = fine)."""
+    problems = []
+    with open(path, encoding="utf-8") as f:
+        on_disk = f.read()
+    if on_disk != after_html:
+        problems.append("file on disk differs from what was just written")
+    if len(_DIV_TOKEN.findall(on_disk)) % 2 != 0 or \
+       on_disk.lower().count("<div") != on_disk.lower().count("</div"):
+        problems.append("div tags are no longer balanced")
+    span = find_block(on_disk, cfg["block_class"])
+    if not span:
+        problems.append(f".{cfg['block_class']} block missing after the edit")
+    elif block_text(on_disk[span[0]:span[1]]) != new_block_text:
+        problems.append("the block on disk is not the new draft")
+    for cls in ("share-row", "faq-section"):
+        if find_block(before_html, cls) and not find_block(on_disk, cls):
+            problems.append(f"the {cls} block disappeared")
+    if before_html.count("application/ld+json") != on_disk.count("application/ld+json"):
+        problems.append("the structured-data (JSON-LD) blocks changed count")
+    return problems
+
+
 def redraft(path, section, guidance="", month_year=None):
+    import runlog
+    kind = "redraft"
+    base = os.path.basename(path)
+
     if section not in SECTION_BLOCKS:
-        print(f"  '{section}' is not redraftable. Choose one of: "
-              f"{', '.join(SECTION_BLOCKS)}")
+        runlog.fail(kind, "SECTION_NOT_REDRAFTABLE", f"'{section}'. Choose one of: {', '.join(SECTION_BLOCKS)}",
+                    section=section, file=base)
         return False
 
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        print("  GEMINI_API_KEY is not set.")
+    if not os.getenv("GEMINI_API_KEY"):
+        runlog.fail(kind, "NO_API_KEY", "GEMINI_API_KEY is empty in this run", section=section, file=base)
         return False
+    api_key = os.getenv("GEMINI_API_KEY")
 
     with open(path, encoding="utf-8") as f:
         html = f.read()
 
-    cfg  = SECTION_BLOCKS[section]
+    cfg = SECTION_BLOCKS[section]
     span = find_block(html, cfg["block_class"])
     if not span:
-        print(f"  No .{cfg['block_class']} block in {os.path.basename(path)} — "
-              f"nothing to replace, leaving the file untouched.")
+        runlog.fail(kind, "BLOCK_NOT_FOUND", f"no .{cfg['block_class']} block in {base}", section=section, file=base)
         return False
 
     issue_text = extract_issue_text(html)
     if len(issue_text) < 300:
-        print("  Could not read the issue body to use as context.")
+        runlog.fail(kind, "UNEXPECTED", "could not read the issue body to use as context (under 300 characters)",
+                    section=section, file=base)
         return False
 
+    old_text = block_text(html[span[0]:span[1]])
     label = REDRAFTABLE_SECTIONS[section]["label"]
     print(f"  Redrafting '{label}'"
           + (f" with guidance: {guidance.strip()[:90]}" if guidance.strip() else " (no guidance)"))
 
-    text, model = generate_section_redraft(
-        api_key, section, issue_text, guidance=guidance, month_year=month_year
-    )
-    text = clean_ai_content(text)
+    parsed, text, model, last = None, "", "", ("FORMAT_MISMATCH", "")
+    note = ""
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        print(f"  Attempt {attempt}/{MAX_ATTEMPTS}")
+        try:
+            text, model = generate_section_redraft(
+                api_key, section, issue_text, guidance=guidance, month_year=month_year, retry_note=note
+            )
+        except Exception as e:
+            code = runlog.classify(e)
+            last = (code, str(e))
+            print(f"  The model call failed ({code}): {str(e)[:200]}")
+            # A key problem or a missing grounded answer will not improve on a second try.
+            if code in ("API_KEY_REJECTED", "NO_API_KEY", "UNGROUNDED_REJECTED") or attempt == MAX_ATTEMPTS:
+                break
+            note = ""
+            continue
+        text = clean_ai_content(text)
+        code, reason = check_text(section, text, old_text)
+        if code:
+            last = (code, reason)
+            print(f"  Rejected by the quality check: {reason}.")
+            note = reason
+            continue
+        parsed = cfg["parse"](text)
+        if not parsed:
+            last = ("FORMAT_MISMATCH", f"{len(text)} characters returned that do not fit the format '{label}' requires")
+            print(f"  Rejected: {last[1]}.")
+            note = last[1] + ". Follow the format in the specification exactly."
+            continue
+        break
 
-    parsed = cfg["parse"](text)
     if not parsed:
-        print(f"  The redraft did not match the format '{label}' requires "
-              f"({len(text)} chars returned). Leaving the issue unchanged.")
+        runlog.fail(kind, last[0], last[1], section=section, file=base, model=model)
+        print("  The issue is unchanged.")
         return False
 
     new_block = cfg["render"](parsed)
     start, end = span
-    html = html[:start] + new_block + html[end:]
+    new_html = html[:start] + new_block + html[end:]
 
     # Keep the FAQ and its schema in step with the section they quote.
     faq = FAQ_FED_BY.get(section)
     if faq:
-        html, changed = update_faq(html, faq["question"], faq["answer"](parsed))
+        new_html, changed = update_faq(new_html, faq["question"], faq["answer"](parsed))
         if changed == 2:
             print("  FAQ answer and FAQPage schema refreshed to match.")
         elif changed:
@@ -221,8 +331,21 @@ def redraft(path, section, guidance="", month_year=None):
             print("  Note: this issue has no FAQ entry for that section; nothing to sync.")
 
     with open(path, "w", encoding="utf-8") as f:
-        f.write(html)
+        f.write(new_html)
 
+    new_block_text = block_text(new_block)
+    problems = verify_written(path, html, new_html, cfg, new_block_text)
+    if problems:
+        with open(path, "w", encoding="utf-8") as f:      # roll back: a half-good edit must not stay
+            f.write(html)
+        runlog.fail(kind, "VERIFY_FAILED", "; ".join(problems), section=section, file=base, model=model)
+        print("  The edit was rolled back; the issue is unchanged.")
+        return False
+
+    sim = similarity(new_block_text, old_text)
+    runlog.ok(kind, f"'{label}' redrafted by {model} ({len(text.split())} words, "
+                    f"{round((1 - sim) * 100)}% different from before).",
+              section=section, file=base, model=model, words=len(text.split()))
     print(f"  '{label}' redrafted by {model} ({len(text.split())} words).")
     return True
 

@@ -46,6 +46,8 @@ def main():
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         print("ERROR: GEMINI_API_KEY not set.")
+        import runlog
+        runlog.fail("monthly" if args.output == "posts" else "regenerate", "NO_API_KEY", "GEMINI_API_KEY not set")
         sys.exit(1)
 
     coverage_date = None
@@ -105,11 +107,18 @@ def main():
             print("Staging mode — blog/index.html NOT updated (production unchanged)")
 
         print("SUCCESS.")
+        import runlog
+        runlog.ok("monthly" if args.output == "posts" else "regenerate",
+                  f"generated {args.output} for {args.coverage_month or 'current month'}",
+                  month=args.coverage_month or "")
 
     except Exception as e:
         print(f"FAILED: {e}")
         import traceback
         traceback.print_exc()
+        import runlog
+        runlog.fail("monthly" if args.output == "posts" else "regenerate", runlog.classify(e), str(e),
+                    month=args.coverage_month or "")
         sys.exit(1)
 
 

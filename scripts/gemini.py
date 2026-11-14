@@ -386,7 +386,7 @@ REDRAFTABLE_SECTIONS = {
 }
 
 
-def generate_section_redraft(api_key, section, issue_text, guidance="", month_year=None):
+def generate_section_redraft(api_key, section, issue_text, guidance="", month_year=None, retry_note=""):
     """Rewrite ONE section, returning just that section's plain text.
 
     With a direction from Robert the call is SEARCH-GROUNDED: he may point at a
@@ -436,6 +436,13 @@ RESEARCH RULES — these apply because Robert gave a direction, and they overrid
         "sharpening judgment, not reporting news."
     )
 
+    if retry_note:
+        # A previous attempt in this same run was rejected by the quality checks. Say why, without
+        # turning an ungrounded redraft into a grounded one (that is decided by `guidance` alone).
+        guidance_block += (
+            "\nYOUR PREVIOUS ATTEMPT WAS REJECTED: " + retry_note.strip() + "\n"
+            "Write a different, complete draft that fixes this. Output only the section text.\n"
+        )
     prompt = f"""You are rewriting ONE section of Robert Simon's monthly newsletter, Practical AI for Canadian Business. Robert is an independent AI thought leader in Montreal. His voice is direct, opinionated and grounded in business outcomes. He does not hedge.
 
 {month_line}
