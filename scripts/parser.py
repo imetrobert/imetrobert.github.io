@@ -11,6 +11,8 @@ from utils import (
     is_episode_or_newsletter_item,
     is_acceptable_source,
     is_documentation_source,
+    is_official_body,
+    is_official_publisher,
     is_low_quality_source,
     is_government_entity,
     is_meta_commentary,
@@ -517,6 +519,18 @@ def _drop_low_quality_sourced(items, label_key, strict=False):
             print(f"  source-quality: dropping '{who}' — cited to '{source}', which is "
                   f"not a known publication, a government body, or its own newsroom. "
                   f"Unverifiable sources cannot carry a reported development.")
+            continue
+
+        # Spotlight items about an official body (a regulator, ministry or
+        # commission) must cite that body. A consultancy writing about Law 25
+        # guidance is not the source for it, yet a run printed it under the
+        # Commission d'acces a l'information's name. Applies in both modes,
+        # because the blocklist above cannot see a plausible-looking blog.
+        if source and is_official_body(item.get(label_key, '')) and not is_official_publisher(source):
+            print(f"  attribution: dropping '{who}' - credited to an official body but "
+                  f"cited to '{source}', which is not that body's own page. Official "
+                  f"bodies publish their own announcements; a third party's write-up "
+                  f"is not the source.")
             continue
 
         kept.append(item)

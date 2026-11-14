@@ -956,6 +956,31 @@ def is_acceptable_source(source_name, subject=""):
     return name in subject or subject.split()[0] in name
 
 
+_OFFICIAL_BODY_RE = re.compile(
+    r"\b(commission|commissioner|commissaire|ministry|minist[eè]re|osfi|ised|crtc|"
+    r"competition bureau|bank of canada|statistics canada|statistique canada|"
+    r"office of the|superintendent|treasury board|government of|gouvernement)\b", re.I)
+_OFFICIAL_PUBLISHER_RE = re.compile(
+    r"(canada\.ca|gc\.ca|gouv\.qc|quebec\.ca|\bcai\b|commission d.acc|privacy commissioner|"
+    r"commissariat|\bosfi\b|\bised\b|\bcrtc\b|competition bureau|bank of canada|"
+    r"statistics canada|statistique canada|treasury board|government of|gouvernement|"
+    r"ministry|minist[eè]re|\boffice of the\b|superintendent|innovation, science)", re.I)
+
+
+def is_official_body(org):
+    """True when an item is ABOUT a regulator, ministry or similar official body."""
+    if not org:
+        return False
+    return is_government_entity(org) or bool(_OFFICIAL_BODY_RE.search(org))
+
+
+def is_official_publisher(source_name):
+    """True when the citation is an official body's own page or release."""
+    if not source_name:
+        return False
+    return is_government_entity(source_name) or bool(_OFFICIAL_PUBLISHER_RE.search(source_name))
+
+
 def is_government_entity(company):
     if not company:
         return False
