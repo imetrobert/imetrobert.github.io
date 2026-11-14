@@ -20,5 +20,16 @@
   "next": "",
   "detail": "generated staging for October 2026",
   "month": "October 2026"
+ },
+ {
+  "at": "2026-11-14T15:12:56Z",
+  "run": "43607762199",
+  "kind": "regenerate",
+  "status": "failed",
+  "code": "UNGROUNDED_REJECTED",
+  "message": "No Gemini model returned an answer backed by live web search, so nothing was changed (on purpose).",
+  "next": "Run again later. Text written without search presents old news as current.",
+  "detail": "All Gemini models failed to produce a search-grounded answer. Nothing was staged or changed, on purpose: text written without live search presents old releases as current news. Try again later; if it keeps happening, check the log lines above for 429, 400 and UNGROUNDED.",
+  "month": "October 2026"
  }
 ]
