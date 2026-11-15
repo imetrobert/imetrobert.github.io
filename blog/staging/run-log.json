@@ -82,5 +82,16 @@
   "message": "Finished normally.",
   "next": "",
   "detail": "LinkedIn draft ready for 2026-11-02-ottawa-commits-16b-to-cohere-for-sovereign-ai-what-it-means-for.html"
+ },
+ {
+  "at": "2026-11-15T15:10:58Z",
+  "run": "43727812786",
+  "kind": "regenerate",
+  "status": "ok",
+  "code": "OK",
+  "message": "Finished normally.",
+  "next": "",
+  "detail": "generated staging for September 2026",
+  "month": "September 2026"
  }
 ]
