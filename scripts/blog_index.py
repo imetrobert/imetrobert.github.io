@@ -308,7 +308,7 @@ def create_blog_index_html(posts):
     <style>
         body {{ font-family: Inter, sans-serif; background: linear-gradient(160deg, #f0f4ff 0%, #e8eef8 100%); margin: 0; padding: 0; }}
         .container {{ max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }}
-        header {{ background: linear-gradient(135deg, #2563eb 0%, #1a7fb5 50%, #06b6d4 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 2.5rem; border-radius: 20px; }}
+        header {{ background: linear-gradient(135deg, #11304c 0%, #1f3b4d 50%, #8a6d0b 100%); color: white; padding: 4rem 0; text-align: center; margin-bottom: 2.5rem; border-radius: 20px; }}
         h1 {{ font-size: 2.8rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.02em; }}
         .nav-bar {{ background: white; padding: 1rem 0; box-shadow: 0 1px 3px rgb(0 0 0 / 0.08); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e2e8f0; }}
         .nav-content {{ max-width: 900px; margin: 0 auto; padding: 0 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.6rem; }}
@@ -316,8 +316,8 @@ def create_blog_index_html(posts):
         .nav-brand img {{ width: 28px; height: 28px; border-radius: 9px; }}
         .nav-brand span {{ font-weight: 800; font-size: 0.9rem; color: #0f172a; letter-spacing: -0.01em; }}
         .brand-logo {{ width: 76px; height: 76px; display: block; margin: 0 auto 1.25rem; padding: 7px; box-sizing: content-box; background: rgba(255,255,255,0.96); border-radius: 23px; box-shadow: 0 10px 26px rgba(15,23,42,0.25); }}
-        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.4rem 1rem; font-size: 0.8rem; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #06b6d4); }}
-        .latest-post-section {{ background: linear-gradient(135deg, #2563eb 0%, #1a7fb5 50%, #06b6d4 100%); color: white; padding: 2.5rem; border-radius: 20px; margin-bottom: 2rem; box-shadow: 0 8px 32px rgb(37 99 235 / 0.2); }}
+        .nav-link {{ color: white; text-decoration: none; font-weight: 600; padding: 0.4rem 1rem; font-size: 0.8rem; border-radius: 20px; background: linear-gradient(135deg, #11304c, #8a6d0b); }}
+        .latest-post-section {{ background: linear-gradient(135deg, #11304c 0%, #1f3b4d 50%, #8a6d0b 100%); color: white; padding: 2.5rem; border-radius: 20px; margin-bottom: 2rem; box-shadow: 0 8px 32px rgb(37 99 235 / 0.2); }}
         .latest-badge {{ background: rgba(255,255,255,0.2); color: white; padding: 0.3rem 0.9rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }}
         .latest-post-title {{ font-size: 1.7rem; font-weight: 800; margin-bottom: 0.875rem; letter-spacing: -0.01em; }}
         .read-latest-btn {{ background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.35); padding: 0.65rem 1.5rem; border-radius: 25px; text-decoration: none; display: inline-block; transition: all 0.25s; font-weight: 600; font-size: 0.875rem; }}
@@ -325,9 +325,9 @@ def create_blog_index_html(posts):
         .older-posts-section {{ background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 4px 16px rgb(0 0 0 / 0.06); border: 1px solid #e2e8f0; }}
         .older-posts-title {{ font-size: 0.8rem; font-weight: 700; margin-bottom: 1.25rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }}
         .older-post-item {{ border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 0.65rem; transition: all 0.2s; }}
-        .older-post-item:hover {{ border-color: #2563eb; box-shadow: 0 4px 12px rgb(37 99 235 / 0.08); }}
+        .older-post-item:hover {{ border-color: #11304c; box-shadow: 0 4px 12px rgb(37 99 235 / 0.08); }}
         .older-post-link {{ display: block; padding: 1rem 1.25rem; text-decoration: none; color: inherit; }}
-        .older-post-title {{ font-size: 0.95rem; font-weight: 600; color: #2563eb; margin-bottom: 0.25rem; }}
+        .older-post-title {{ font-size: 0.95rem; font-weight: 600; color: #11304c; margin-bottom: 0.25rem; }}
         .older-post-covering {{ font-weight: 400; color: #64748b; }}
         .older-post-date {{ font-size: 0.78rem; color: #94a3b8; }}
         .no-posts-message {{ text-align: center; padding: 2rem; color: #94a3b8; }}
@@ -350,7 +350,7 @@ def create_blog_index_html(posts):
         .older-post-link {{ flex: 1; min-width: 0; }}
         .older-post-share {{ display: flex; gap: 0.3rem; flex-shrink: 0; }}
         .mini-btn {{ display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; text-decoration: none; transition: color 0.2s, border-color 0.2s, background 0.2s; font-size: 0.85rem; }}
-        .mini-btn:hover {{ color: #2563eb; border-color: #2563eb; }}
+        .mini-btn:hover {{ color: #11304c; border-color: #11304c; }}
         .mini-btn.copied {{ background: #16a34a; border-color: #16a34a; color: white; }}
         @media (max-width: 640px) {{
             h1 {{ font-size: 2rem; }}

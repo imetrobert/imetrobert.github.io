@@ -32,7 +32,7 @@ OUT = "blog/canadian-ai-pulse.html"
 CANONICAL = f"{BASE}/blog/canadian-ai-pulse.html"
 CONFIG = "data/survey.json"
 
-BLUE, CYAN = "#2563eb", "#06b6d4"
+BLUE, CYAN = "#11304c", "#8a6d0b"
 
 
 def load():
@@ -215,13 +215,13 @@ def build_page(cfg, waves):
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root {{ --blue:#2563eb; --cyan:#06b6d4; --navy:#0f172a; --gray:#475569; --gray-light:#94a3b8; --surface:#f8fafc; --border:#e2e8f0; --white:#fff; }}
+:root {{ --blue:#11304c; --cyan:#8a6d0b; --navy:#0f172a; --gray:#475569; --gray-light:#94a3b8; --surface:#f8fafc; --border:#e2e8f0; --white:#fff; }}
 *,*::before,*::after {{ margin:0; padding:0; box-sizing:border-box; }}
 body {{ font-family:'Inter',-apple-system,sans-serif; background:linear-gradient(160deg,#f0f4ff 0%,#e8eef8 100%); color:var(--navy); line-height:1.6; -webkit-font-smoothing:antialiased; }}
 .nav-bar {{ background:var(--white); padding:0.875rem 0; border-bottom:1px solid var(--border); }}
 .nav-content {{ max-width:900px; margin:0 auto; padding:0 1.5rem; }}
 .nav-link {{ color:var(--white); text-decoration:none; font-weight:600; padding:0.4rem 1rem; font-size:0.8rem; border-radius:20px; background:linear-gradient(135deg,var(--blue),var(--cyan)); }}
-.header {{ background:linear-gradient(135deg,var(--blue) 0%,#1a7fb5 50%,var(--cyan) 100%); color:var(--white); padding:3.5rem 0 3rem; text-align:center; }}
+.header {{ background:linear-gradient(135deg,var(--blue) 0%,#1f3b4d 50%,var(--cyan) 100%); color:var(--white); padding:3.5rem 0 3rem; text-align:center; }}
 .header-content {{ max-width:780px; margin:0 auto; padding:0 1.5rem; }}
 .brand-logo {{ width:76px; height:76px; display:block; margin:0 auto 1.5rem; padding:7px; box-sizing:content-box; background:rgba(255,255,255,0.96); border-radius:23px; box-shadow:0 10px 26px rgba(15,23,42,0.25); }}
 .header h1 {{ font-size:clamp(1.6rem,4.5vw,2.3rem); font-weight:800; line-height:1.2; margin-bottom:0.6rem; }}

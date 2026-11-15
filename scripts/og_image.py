@@ -19,9 +19,9 @@ from PIL import Image, ImageDraw, ImageFont
 WIDTH, HEIGHT = 1200, 630          # LinkedIn/OG large-card spec (1.91:1)
 
 # Site palette, same stops as the header gradient and the brand mark.
-C0 = (37, 99, 235)                 # #2563eb
-C1 = (26, 127, 181)                # #1a7fb5
-C2 = (6, 182, 212)                 # #06b6d4
+C0 = (17, 48, 76)                  # #11304c navy
+C1 = (31, 59, 77)                  # #1f3b4d
+C2 = (138, 109, 11)                # #8a6d0b dark gold
 
 _FONT_DIRS = (
     "/usr/share/fonts/truetype/liberation/LiberationSans-{}.ttf",
