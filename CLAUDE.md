@@ -74,6 +74,8 @@ Non-negotiables (full reasoning in `docs/blog-pipeline.md`):
   `scripts/model_scout.py` has qualified in `blog/model-config.json` (weekly `model-scout.yml`,
   or "Test for new models now" on the preview page). Best proven model leads automatically;
   "Pin" on the preview page overrides. Never make an unproven model lead.
+- Rollback + rerun of the latest issue: button on the "nothing pending" page -> `rollback-blog.yml` / `scripts/rollback_post.py`
+  (see "Rolling back a published issue" in `docs/blog-pipeline.md`). Do not hand-delete a published post; use this.
 - Never index `/blog/staging/` (robots.txt Disallow AND `noindex` meta on every page there).
 - Share links always use the post permalink, never `latest.html`.
 - No emoji on visitor-facing pages (inline SVG icon sprite instead).
