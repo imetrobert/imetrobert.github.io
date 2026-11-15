@@ -25,6 +25,8 @@ monthly run writes one entry with a code, what happened, the next step and a det
 | TOO_SIMILAR | New draft almost identical to the current one; not applied | Add a direction saying what angle to take |
 | VERIFY_FAILED | Edit written but the post-write check failed; rolled back automatically | Nothing changed; open the run, read which check failed |
 | BLOCK_NOT_FOUND | Section not found in the staged page | Page layout changed; regenerate the issue |
+| LINKEDIN_REJECTED | The LinkedIn draft broke a rule twice (format, length, link in post, invented "my analytics" claim, "Robert" in his own comment); no draft saved | Run **Redraft LinkedIn post** again; the DETAIL line names the rule (`parse()` in scripts/linkedin_post.py) |
+| ROLLBACK_REFUSED | Rollback refused on purpose, nothing changed | DETAIL says why: not the newest issue, a draft is in staging (approve/discard it first), or no earlier issue would remain |
 | SECTION_NOT_REDRAFTABLE | Only 4 judgment sections can be redrafted | Regenerate the whole issue for the reported sections |
 
 The full wording lives in `scripts/runlog.py` (CATALOGUE). `python3 scripts/runlog.py explain <CODE>` prints one.
@@ -39,9 +41,25 @@ The full wording lives in `scripts/runlog.py` (CATALOGUE). `python3 scripts/runl
 - **Funky model output**: the weaker lite models flatten the judgment sections. The log line "LITE MODEL" says when one answered.
 - **A 429 on the first model with almost no requests today** usually means that model has no free quota on this key. Weekly Model Scout demotes it.
 
+## Rollback and LinkedIn features: what they do, and what looks like a bug (they are not)
+- **Rollback** (button on the "Nothing pending" page, `rollback-blog.yml`, `scripts/rollback_post.py`): turns the newest issue into a redirect to /blog/,
+  rebuilds index/feed/llms.txt/sitemap/adoption page, undoes that approval's survey wave, then the page offers **Rerun <month>** (same coverage month).
+  Full description: docs/blog-pipeline.md "Rolling back a published issue and rerunning it". Tests: `scripts/test_rollback.py`.
+  - The rollback button is missing: it only appears once an issue is published and the page was rewritten by an approve/discard or rollback run.
+  - "Refused": see ROLLBACK_REFUSED above. Approve or discard a waiting draft first.
+  - After a rollback the old URL stays a redirect even after the replacement publishes (the new issue has a new filename). Intended.
+  - The Rerun button runs `monthly-blog.yml` with force_run; the draft appears on the review page in a few minutes like any monthly run.
+- **LinkedIn draft** (shown on the "Nothing pending" page after an approve; `scripts/linkedin_post.py`, `linkedin-post.yml`, data in `blog/staging/linkedin.json`):
+  built only from the issue's text, written for small-business owners (the Business site audience; the WHO READS IT block in `build_prompt`).
+  - No draft shown after a publish: Gemini failed or was rate limited (the approve still succeeded). Run **Redraft LinkedIn post** with the post filename and blank comments.
+  - A draft for an older issue is never shown (it must match the newest published issue); a rollback deletes the draft.
+  - "Rewrite with my comments" takes about 2 minutes; the page polls for the new version. If it never changes, open the **LinkedIn draft** row on the health page.
+  - To change the audience, tone or rules edit `build_prompt` / `parse` in `scripts/linkedin_post.py`; `scripts/test_linkedin.py` checks the audience block is present.
+  - The model's "thinking" shares the output budget; it is set to 8000 tokens. A reply cut off at MAX_TOKENS is rejected.
+
 ## Step 3: tests (run before and after any code change)
 `python3 -W ignore scripts/test_pipeline.py` (redraft path with a stubbed Gemini: good drafts, junk, too short, copies, malformed, retries,
-rollback, run log) and `python3 scripts/test_model_scout.py`. Both are offline and take seconds. The **Blog tests** workflow runs them
+rollback, run log), `python3 -W ignore scripts/test_rollback.py`, `python3 -W ignore scripts/test_linkedin.py` and `python3 scripts/test_model_scout.py`. Both are offline and take seconds. The **Blog tests** workflow runs them
 on every push to `scripts/` and every Monday; a red run means something drifted.
 
 ## Which file for what (only open the range you need; `grep -n "def name"`)
@@ -51,7 +69,8 @@ on every push to `scripts/` and every Monday; a red run means something drifted.
 - Model order and scouting: `utils.resolve_model_order`, `scripts/model_scout.py`, `blog/model-config.json`
 - Vendor research for "New in Your AI Subscription": `scripts/plan_research.py`
 - Review page: `scripts/generate-preview-page.py`
-- Workflows: `.github/workflows/` (redraft-section, regenerate-blog, monthly-blog, approve-blog, discard-blog, model-scout, blog-tests, blog-health)
+- Rollback: `scripts/rollback_post.py`; LinkedIn draft: `scripts/linkedin_post.py`; the "Nothing pending" page: `scripts/write_nothing_pending_placeholder.py`
+- Workflows: `.github/workflows/` (redraft-section, regenerate-blog, monthly-blog, approve-blog, discard-blog, rollback-blog, linkedin-post, model-scout, blog-tests, blog-health)
 
 ## Changing a section list
 The redraftable sections live in `gemini.REDRAFTABLE_SECTIONS` AND the hand-kept choice list in `redraft-section.yml`; `test_pipeline.py`
@@ -129,6 +148,22 @@ reload itself"). Check the report for the latest run conclusion of the workflow 
 After approving, the published post or blog index looks wrong. Read docs/blog-pipeline.md headings "Sharing" and "Previous Issues" rules, then grep
 scripts/blog_index.py and scripts/regenerate_sitemap.py for the specific problem. Share links must use the post permalink, never latest.html. Give exact
 edits and say whether rebuild-blog-index.yml needs to be run. Report:
+[paste]
+```
+
+**The LinkedIn draft is missing, wrong or off-audience**
+```
+LinkedIn draft problem on the blog. Read docs/DIAGNOSE.md section "Rollback and LinkedIn features", then only scripts/linkedin_post.py (build_prompt and
+parse). Health report / run log line below. Give exact old/new text for one file and run: python3 -W ignore scripts/test_linkedin.py. Do not change the
+rules that stop invented data or links in the post. Report:
+[paste]
+```
+
+**A rollback was refused, or the page looks wrong after one**
+```
+Blog rollback problem. Read docs/DIAGNOSE.md section "Rollback and LinkedIn features", then only scripts/rollback_post.py and the run log line below.
+Tell me why it was refused or what is left over (old URL, index, sitemap, survey page), and the smallest fix as exact old/new text.
+Test: python3 -W ignore scripts/test_rollback.py. Report:
 [paste]
 ```
 

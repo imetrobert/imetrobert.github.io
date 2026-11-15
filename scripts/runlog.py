@@ -78,6 +78,12 @@ CATALOGUE = {
     "SECTION_NOT_REDRAFTABLE": (
         "That section cannot be redrafted by itself.",
         "Only the four judgment sections can. Reported sections come back only by regenerating the whole issue."),
+    "LINKEDIN_REJECTED": (
+        "The LinkedIn draft broke a rule (wrong format, too short or long, a link in the post, or an invented claim about Robert's own data) twice in a row, so no draft was saved.",
+        "Run 'Redraft LinkedIn post' again (a different draft usually passes). If it repeats, read the rule named in the DETAIL line in scripts/linkedin_post.py (parse)."),
+    "ROLLBACK_REFUSED": (
+        "The rollback was refused on purpose and nothing was changed.",
+        "The DETAIL line says why: not the newest issue, a draft is waiting in staging (approve or discard it first), or no earlier issue would remain."),
     "UNEXPECTED": (
         "Something unexpected went wrong.",
         "Open the failing step in the run log; the last lines name the error. Nothing was changed if the step is the redraft."),
