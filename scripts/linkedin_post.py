@@ -144,7 +144,7 @@ def generate(filename, feedback="", call=None):
         key = os.environ.get("GEMINI_API_KEY", "")
         if not key:
             raise RuntimeError("GEMINI_API_KEY is not set")
-        call = lambda p: _call_gemini(key, p, 1800, temperature=0.8, use_search=False, min_chars=300)["content"]
+        call = lambda p: _call_gemini(key, p, 8000, temperature=0.8, use_search=False, min_chars=300, reject_truncated=True)["content"]
     raw, post, comment = None, None, None
     last_err = None
     for _ in range(2):                           # one retry on a bad format
