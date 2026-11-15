@@ -56,10 +56,13 @@ The full wording lives in `scripts/runlog.py` (CATALOGUE). `python3 scripts/runl
   - "Rewrite with my comments" takes about 2 minutes; the page polls for the new version. If it never changes, open the **LinkedIn draft** row on the health page.
   - To change the audience, tone or rules edit `build_prompt` / `parse` in `scripts/linkedin_post.py`; `scripts/test_linkedin.py` checks the audience block is present.
   - The model's "thinking" shares the output budget; it is set to 8000 tokens. A reply cut off at MAX_TOKENS is rejected.
+- **Promo kit** (card under the LinkedIn draft; `scripts/promo_kit.py`, `promo-kit.yml`, data in `blog/staging/promo.json`; built automatically after each approve, or tap "Build the promo kit"): 3 other opening lines, a Quebec-French version of the post, and 3 follow-up posts (days 8, 15, 22 after publishing, each with an "Add reminder to my calendar" button that downloads a calendar event). Each follow-up links to the matching Business service page; the `TARGETS` table in `promo_kit.py` mirrors `aiwithrobert-biz/scripts/pages_data.py` (update both if a page is added). Links are added by the program, never the model, and carry `utm_source=linkedin&utm_campaign=issue-YYYY-MM-dN` (French: `-fr`), which the Business site saves on the lead and the toolkit's "Lead sources" screen groups.
+  - Card missing or "Build the promo kit" shown: the build failed or has not run (the approve still succeeded). Run **Promo kit** with the post filename; error code PROMO_REJECTED means a rule was broken twice (the DETAIL line names it).
+- **Reply helper** (card "Reply to a comment"; `scripts/reply_helper.py`, `reply-helper.yml`, `blog/staging/reply.json`): paste a LinkedIn comment, get 3 reply options in about 2 minutes. Same error code.
 
 ## Step 3: tests (run before and after any code change)
 `python3 -W ignore scripts/test_pipeline.py` (redraft path with a stubbed Gemini: good drafts, junk, too short, copies, malformed, retries,
-rollback, run log), `python3 -W ignore scripts/test_rollback.py`, `python3 -W ignore scripts/test_linkedin.py` and `python3 scripts/test_model_scout.py`. Both are offline and take seconds. The **Blog tests** workflow runs them
+rollback, run log), `python3 -W ignore scripts/test_rollback.py`, `python3 -W ignore scripts/test_linkedin.py`, `python3 -W ignore scripts/test_promo.py` and `python3 scripts/test_model_scout.py`. Both are offline and take seconds. The **Blog tests** workflow runs them
 on every push to `scripts/` and every Monday; a red run means something drifted.
 
 ## Which file for what (only open the range you need; `grep -n "def name"`)

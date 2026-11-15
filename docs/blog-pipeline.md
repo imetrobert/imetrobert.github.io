@@ -746,6 +746,9 @@ shows a **Roll back <issue>** button once an issue is published. It fires `rollb
 - Tests: `python3 -W ignore scripts/test_rollback.py` (also run by the Blog tests workflow).
 - The button only appears after approve/discard rewrites the placeholder; the page is also rewritten by this feature's PR.
 
+## Promo kit and reply helper
+After the main LinkedIn draft, `approve-blog.yml` runs `scripts/promo_kit.py` (continue-on-error): 3 alternative hooks, a Quebec-French post, and 3 follow-up posts (days 8/15/22) written from the issue only, each mapped to one Business-site page from `TARGETS`. Links are built in code with `utm_source=linkedin` and `utm_campaign=issue-YYYY-MM[-dN|-fr]`. The page shows them under the LinkedIn card with copy buttons and calendar reminders (a one-event .ics built in `write_nothing_pending_placeholder._ics`). `scripts/reply_helper.py` drafts 3 replies to a pasted comment. Tests: `scripts/test_promo.py`. Rollback deletes `promo.json` and `reply.json`.
+
 ## LinkedIn promotion draft
 
 When an issue is approved, `approve-blog.yml` runs `scripts/linkedin_post.py` (continue-on-error, so it can never block a

@@ -78,6 +78,7 @@ Non-negotiables (full reasoning in `docs/blog-pipeline.md`):
   (see "Rolling back a published issue" in `docs/blog-pipeline.md`). Do not hand-delete a published post; use this.
 - LinkedIn promotion draft after each publish (shown on the "nothing pending" page, redraft from comments): `scripts/linkedin_post.py` /
   `linkedin-post.yml`; audience = the Business site's small-business owners. See `docs/DIAGNOSE.md` "Rollback and LinkedIn features".
+- Promo kit (hook options, French post, 3 follow-up posts linked to Business service pages, calendar reminders) and the comment Reply helper sit under the LinkedIn card: `scripts/promo_kit.py` / `promo-kit.yml`, `scripts/reply_helper.py` / `reply-helper.yml`; `TARGETS` mirrors the Business site pages.
 - Never index `/blog/staging/` (robots.txt Disallow AND `noindex` meta on every page there).
 - Share links always use the post permalink, never `latest.html`.
 - No emoji on visitor-facing pages (inline SVG icon sprite instead).

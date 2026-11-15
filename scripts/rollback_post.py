@@ -33,7 +33,7 @@ STAGING = "blog/staging"
 SURVEY = "data/survey.json"
 SURVEY_PAGE = "blog/canadian-ai-pulse.html"
 HOME = "https://www.imetrobert.com/blog/"
-KEEP_IN_STAGING = {"linkedin.json", "preview.html", "health.html", "preview-sample.html", "gate.js",
+KEEP_IN_STAGING = {"linkedin.json", "promo.json", "reply.json", "preview.html", "health.html", "preview-sample.html", "gate.js",
                    "run-log.json", "usage.json"}
 MONTHS = ["January", "February", "March", "April", "May", "June", "July",
           "August", "September", "October", "November", "December"]
@@ -162,8 +162,9 @@ def rollback(filename):
     print(f"  Blog index rebuilt with {len(posts)} posts.")
     subprocess.run([sys.executable, "scripts/regenerate_sitemap.py"], check=True)
 
-    if os.path.exists("blog/staging/linkedin.json"):
-        os.remove("blog/staging/linkedin.json")   # its issue is gone
+    for gone in ("linkedin.json", "promo.json", "reply.json"):
+        if os.path.exists("blog/staging/" + gone):
+            os.remove("blog/staging/" + gone)   # their issue is gone
     from write_nothing_pending_placeholder import write_page
     write_page(rolled_back=(label, cov_month, cov_year))
     print(f"  Rerun page written: {cov_month} {cov_year} (issue {label}).")
