@@ -1081,6 +1081,25 @@ FEASIBILITY_CTA_MARKER = "<!-- feasibility-cta -->"
 FEASIBILITY_URL = "https://biz.aiwithrobert.com/"
 
 
+RELATED_PAGES = [
+    ("Getting more from the AI subscriptions you already pay for", "https://biz.aiwithrobert.com/articles/get-more-from-your-ai-subscriptions/"),
+    ("ChatGPT, Gemini or Copilot: which fits a small business", "https://biz.aiwithrobert.com/articles/chatgpt-vs-gemini-vs-copilot-small-business/"),
+    ("Where AI can save a small business time (AI consulting in Montreal)", "https://biz.aiwithrobert.com/services/ai-consulting-small-business-montreal/"),
+]
+
+
+def related_pages_html(campaign=""):
+    """Three plain links to Business-site pages just before the call to action (SEO and a second path in).
+    The campaign ends in -related so the lead's saved source shows the visit came from this block."""
+    camp = re.sub(r"[^A-Za-z0-9_-]+", "-", str(campaign or "blog")).strip("-") or "blog"
+    items = "".join(
+        f'<li style="margin:0.35rem 0;"><a href="{u}?utm_source=imetrobert-blog&amp;utm_medium=article&amp;utm_campaign={camp}-related">{t}</a></li>'
+        for t, u in RELATED_PAGES)
+    return ('<div class="section related-pages" style="margin-top:1.5rem;">'
+            '<h2 style="font-size:1.05rem;margin:0 0 0.4rem;">Related reading for small businesses</h2>'
+            f'<ul style="padding-left:1.2rem;margin:0;">{items}</ul></div>')
+
+
 def feasibility_cta_html(campaign=""):
     """The end-of-issue call to action. `campaign` (for example the post date)
     is passed in the link so a lead can be traced to the issue it came from."""

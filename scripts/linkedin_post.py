@@ -40,7 +40,7 @@ def issue_text(path):
     h1 = soup.find("h1")
     title = h1.get_text(" ", strip=True) if h1 else ""
     art = soup.find("div", class_="article-content") or soup
-    for cls in ("share-row", "survey-cta", "faq-section", "feasibility-cta"):
+    for cls in ("share-row", "survey-cta", "faq-section", "feasibility-cta", "related-pages"):
         for el in art.find_all(class_=cls):
             el.decompose()
     for el in art.find_all(["script", "style"]):

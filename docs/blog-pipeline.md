@@ -757,3 +757,6 @@ the page polls `linkedin.json` until the new version lands. Plain text only (Lin
 body, no emoji. A draft for an older issue is not shown, and rollback deletes it. The first draft for an already-published
 issue can be made by running **Redraft LinkedIn post** with the post filename and blank comments.
 Tests: `python3 -W ignore scripts/test_linkedin.py`. Failures appear in the run log as kind `linkedin`.
+
+## Related reading block
+Every new issue gets `utils.related_pages_html()` (three Business-site links, `RELATED_PAGES`) just before the feasibility CTA; links carry `utm_campaign=issue-YYYY-MM-related`. The LinkedIn text builder ignores it (`related-pages` is stripped in `linkedin_post.issue_text`). Past issues do not have it.
