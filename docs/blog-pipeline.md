@@ -745,3 +745,15 @@ shows a **Roll back <issue>** button once an issue is published. It fires `rollb
   coverage month (a December issue always reruns November, whatever today's date). "From Robert's Desk" starts blank.
 - Tests: `python3 -W ignore scripts/test_rollback.py` (also run by the Blog tests workflow).
 - The button only appears after approve/discard rewrites the placeholder; the page is also rewritten by this feature's PR.
+
+## LinkedIn promotion draft
+
+When an issue is approved, `approve-blog.yml` runs `scripts/linkedin_post.py` (continue-on-error, so it can never block a
+publish). It drafts a LinkedIn post and a separate first comment (with the permalink and `utm_source=linkedin`) from the
+issue's own text only, with no search and no outside facts, and saves `blog/staging/linkedin.json`. The "nothing pending"
+page (`write_nothing_pending_placeholder.py`) shows it with Copy buttons, an Open LinkedIn link and a comments box.
+"Rewrite with my comments" fires `linkedin-post.yml` (same script with the comments; the previous draft is sent along) and
+the page polls `linkedin.json` until the new version lands. Plain text only (LinkedIn ignores markdown), no link in the post
+body, no emoji. A draft for an older issue is not shown, and rollback deletes it. The first draft for an already-published
+issue can be made by running **Redraft LinkedIn post** with the post filename and blank comments.
+Tests: `python3 -W ignore scripts/test_linkedin.py`. Failures appear in the run log as kind `linkedin`.

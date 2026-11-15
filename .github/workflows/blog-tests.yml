@@ -32,3 +32,5 @@ jobs:
         run: python3 scripts/test_model_scout.py
       - name: Rollback
         run: python3 -W ignore scripts/test_rollback.py
+      - name: LinkedIn draft
+        run: python3 -W ignore scripts/test_linkedin.py

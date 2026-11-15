@@ -10,6 +10,8 @@ generate-preview-page.py unconditionally overwrites this file the next
 time a real draft is generated, so this placeholder is self-clearing.
 """
 
+import html as _html
+import json
 import os
 import sys
 from datetime import date, timedelta
@@ -39,6 +41,32 @@ function savePat() {
   if (v.length < 20) { say("That does not look like a token.", true); return; }
   localStorage.setItem("blog_preview_pat", v); $("patbox").style.display = "none"; say("Token saved. Tap the button again.");
 }
+async function copyBox(id, btn) {
+  const t = $(id).value;
+  try { await navigator.clipboard.writeText(t); }
+  catch (e) { const el = $(id); el.focus(); el.select(); el.setSelectionRange(0, 999999); document.execCommand("copy"); }
+  const old = btn.textContent; btn.textContent = "Copied"; setTimeout(() => { btn.textContent = old; }, 1800);
+}
+async function redoLinkedIn(file) {
+  const fb = $("li-feedback").value.trim();
+  if (fb.length < 5) { say("Write what to change first (for example: shorter, punchier hook, mention pricing).", true); return; }
+  const was = $("li-card").dataset.gen;
+  await run("linkedin-post.yml", {post_filename: file, feedback: fb}, "Rewriting. The new version appears here in about 2 minutes.");
+  if ($("msg").style.color === "rgb(185, 28, 28)") return;
+  for (let i = 0; i < 40; i++) {
+    await new Promise(r => setTimeout(r, 8000));
+    try {
+      const r = await fetch("/blog/staging/linkedin.json?t=" + Date.now(), {cache: "no-store"});
+      const d = await r.json();
+      if (d.generated_at && d.generated_at !== was) {
+        $("li-post").value = d.post; $("li-comment").value = d.first_comment;
+        $("li-card").dataset.gen = d.generated_at; $("li-feedback").value = "";
+        say("New version ready below. Copy it, or add more comments."); return;
+      }
+    } catch (e) {}
+  }
+  say("Still working. Refresh this page in a minute.", true);
+}
 async function run(wf, inputs, okText) {
   const pat = localStorage.getItem("blog_preview_pat");
   if (!pat) { $("patbox").style.display = "block"; say("Add your GitHub token first.", true); return; }
@@ -61,6 +89,9 @@ _STYLE = """
   a.btn, button.btn { display: inline-block; margin-top: 1.2rem; background: linear-gradient(135deg, #2563eb, #06b6d4); color: white; text-decoration: none; padding: 0.7rem 1.5rem; border-radius: 25px; font-weight: 600; font-size: 0.9rem; border: 0; cursor: pointer; font-family: inherit; }
   button.warn { background: #b45309; }
   .card { margin-top: 2rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 10px; text-align: left; font-size: 0.85rem; }
+  .li textarea { width: 100%; box-sizing: border-box; font: 16px/1.5 -apple-system, sans-serif; padding: 0.7rem; border: 1px solid #cbd5e1; border-radius: 8px; }
+  .li h2 { font-size: 1.05rem; margin: 0 0 0.3rem; color: #0a66c2; } .li small { color: #64748b; }
+  button.li-btn { background: #0a66c2; margin: 0.4rem 0.4rem 0 0; padding: 0.55rem 1.1rem; }
   #msg { margin-top: 1rem; font-size: 0.85rem; min-height: 1.2rem; }
   #patbox { display: none; margin-top: 1rem; } #patbox input { width: 80%; padding: 0.5rem; font-size: 16px; }
 """
@@ -96,7 +127,27 @@ def latest_issue():
         return None
 
 
-def build_html(next_date, latest=None):
+def linkedin_card(d):
+    e = _html.escape
+    post, comment = e(d.get("post", "")), e(d.get("first_comment", ""))
+    n = len(d.get("post", ""))
+    return f"""<div class="card li" id="li-card" data-gen="{e(d.get('generated_at', ''))}">
+<h2>LinkedIn post for {e(d.get('title', 'this issue'))}</h2>
+<small>Ready to paste. Post it first, then add the comment below as your first comment (LinkedIn shows posts without a link to more people). <span id="li-count">{n} characters</span>.</small>
+<textarea id="li-post" rows="14" readonly>{post}</textarea>
+<button class="btn li-btn" onclick="copyBox('li-post', this)">Copy post</button>
+<a class="btn li-btn" href="https://www.linkedin.com/feed/" target="_blank" rel="noopener">Open LinkedIn</a>
+<p style="margin:1rem 0 0.2rem;"><strong>First comment (with the link)</strong></p>
+<textarea id="li-comment" rows="4" readonly>{comment}</textarea>
+<button class="btn li-btn" onclick="copyBox('li-comment', this)">Copy comment</button>
+<p style="margin:1.2rem 0 0.2rem;"><strong>Not quite right? Tell me what to change</strong></p>
+<textarea id="li-feedback" rows="3" placeholder="e.g. Punchier hook, shorter, lead with the pricing change, less formal"></textarea>
+<button class="btn li-btn" onclick="redoLinkedIn('{e(d.get('post_file', ''))}')">Rewrite with my comments</button>
+</div>
+"""
+
+
+def build_html(next_date, latest=None, linkedin=None):
     head = _HEAD % {"title": "No post pending", "style": _STYLE}
     body = f"""<h1>Nothing pending review right now</h1>
 <p>There's no draft waiting for approval at the moment.</p>
@@ -104,6 +155,8 @@ def build_html(next_date, latest=None):
 <a href="https://www.imetrobert.com/blog/" class="btn">View the live blog</a>
 <br><a href="/blog/staging/health.html" class="btn" style="background:#0f172a;">Pipeline health and run log</a>
 """
+    if linkedin:
+        body += linkedin_card(linkedin)
     if latest:
         fn, label = latest
         body += f"""<div class="card"><strong>Found a big fault in the published issue?</strong><br>
@@ -136,7 +189,16 @@ def write_page(rolled_back=None):
     if rolled_back:
         html = build_rolled_back_html(*rolled_back)
     else:
-        html = build_html(next_generation_date(), latest_issue())
+        latest = latest_issue()
+        li = None
+        try:
+            with open("blog/staging/linkedin.json", encoding="utf-8") as f:
+                li = json.load(f)
+            if not latest or li.get("post_file") != latest[0]:
+                li = None                      # a draft for an older issue is not shown
+        except Exception:
+            li = None
+        html = build_html(next_generation_date(), latest, li)
     with open("blog/staging/preview.html", "w", encoding="utf-8") as f:
         f.write(html)
 
