@@ -1,0 +1,39 @@
+{
+ "post_file": "2026-11-02-ottawa-commits-16b-to-cohere-for-sovereign-ai-what-it-means-for.html",
+ "title": "Ottawa commits $1.6B to Cohere for sovereign AI: what it means for Canadian data control",
+ "published": "2026-11-02",
+ "hooks": [
+  "Major banks just blocked third-party AI from client data. What's accessing your customer info? The clock is ticking on AI security.",
+  "\"Black October\" revealed AI cyberattacks are already costing businesses big. Your AI vendors need a security check, now.",
+  "Your customers are now sending AI agents to your business. Is your website ready to speak to machines too?"
+ ],
+ "french": {
+  "post": "Vos clients envoient déjà des assistants IA à votre entreprise, pas seulement des humains. Votre site web est-il prêt à leur parler?\n\nLes grandes banques canadiennes ont récemment bloqué l'accès d'outils IA tiers à leurs données clients sensibles. Ce signal clair pour votre PME : vérifiez d'urgence quels outils IA accèdent à vos infos clients. La question est : qui a accès?\n\nLes cyberattaques contre les systèmes IA sont une menace réelle, causant des coûts élevés et des fuites de données pour des entreprises. La sécurité de vos fournisseurs IA n'est plus une option; elle est vitale pour protéger vos profits et la confiance de vos clients.\n\nBonne nouvelle pour les entreprises canadiennes : l'important investissement d'Ottawa dans Cohere, une entreprise IA d'ici, ouvre la voie à des options locales plus sécurisées pour vos données sensibles. De quoi rassurer votre équipe, surtout avec la Loi 25 du Québec.\n\nMais voici la révolution silencieuse : vos clients confient de plus en plus à des assistants IA personnels des tâches comme comparer des prix, négocier ou remplir des formulaires. Si votre site ou vos processus en ligne sont compliqués pour ces \"assistants numériques\", ces clients enverront leurs agents ailleurs.\n\nVotre présence en ligne doit désormais servir deux publics : vos clients humains, qui apprécient des expériences claires, et les machines qu'ils envoient, qui exigent des données structurées et des chemins automatisés fluides. L'objectif : que votre entreprise soit la plus facile à gérer pour les deux.\n\nQuelle interaction en ligne vos clients ont-ils avec votre entreprise qu'un assistant IA trouverait, selon vous, déroutante?\n\n#PME #IApourEntreprises #IAcanadienne #Confidentialité #Productivité #Loi25",
+  "first_comment": "J'ai préparé une analyse plus détaillée de ces enjeux dans le dernier numéro de ma lettre d'information (en anglais). J'espère que cela vous apportera des pistes concrètes pour votre entreprise.\nhttps://biz.aiwithrobert.com/fr/?utm_source=linkedin&utm_medium=social&utm_campaign=issue-2026-11-fr#feas-check",
+  "link": "https://biz.aiwithrobert.com/fr/?utm_source=linkedin&utm_medium=social&utm_campaign=issue-2026-11-fr#feas-check"
+ },
+ "drip": [
+  {
+   "day": 8,
+   "page": "agents",
+   "post": "Is your client data truly safe when you use AI? Canadian banks are tightening security, and you should too.\n\nSeveral major Canadian banks recently blocked or limited third-party AI agents from their platforms. This isn't just for big players; it's a clear signal about protecting sensitive client financial information. For any business handling client data, especially with Quebec's Law 25, this is critical.\n\nThese \"agents\" might be built into the AI tools you pay for. They can access and process information without you fully realizing it. It's time to check what your AI tools are doing behind the scenes with your sensitive client data.\n\nWhat steps are you taking to ensure your AI tools aren't sharing client information unknowingly?\n#AIDataSecurity #CanadianBusiness #DataPrivacy #QuebecLaw25 #SmallBusinessAI",
+   "comment": "This issue of the newsletter dives deeper into how these autonomous agents are changing the digital landscape and what it means for your business's front door. I share more on ensuring your systems are ready for them.\nhttps://biz.aiwithrobert.com/services/ai-agents-for-small-teams/?utm_source=linkedin&utm_medium=social&utm_campaign=issue-2026-11-d1",
+   "link": "https://biz.aiwithrobert.com/services/ai-agents-for-small-teams/?utm_source=linkedin&utm_medium=social&utm_campaign=issue-2026-11-d1"
+  },
+  {
+   "day": 15,
+   "page": "platforms",
+   "post": "\"Black October\" showed AI tools aren't immune to cyber-attacks. How secure are the AI platforms your business uses?\n\nRecent incidents, dubbed \"Black October,\" highlighted systemic credential abuse across AI developer platforms. This isn't a theoretical risk; it's a live campaign leading to direct financial loss and data exposure for businesses. Even if you're just using a ChatGPT or Claude plan, your supply chain for AI tools needs scrutiny.\n\nYou're already paying for AI to save time on quotes or customer emails. Don't let unexpected security gaps turn those savings into costs. It's crucial to review the security practices of your AI vendors.\n\nHave you asked your AI tool providers about their security attestations or penetration test results?\n#AISecurity #Cybersecurity #SmallBusinessTech #DataProtection #AIForBusiness",
+   "comment": "On my platforms page, I outline critical considerations for selecting and setting up AI tools securely, going beyond just features to focus on robust protection. You'll find practical advice there.\nhttps://biz.aiwithrobert.com/services/chatgpt-gemini-copilot-consulting/?utm_source=linkedin&utm_medium=social&utm_campaign=issue-2026-11-d2",
+   "link": "https://biz.aiwithrobert.com/services/chatgpt-gemini-copilot-consulting/?utm_source=linkedin&utm_medium=social&utm_campaign=issue-2026-11-d2"
+  },
+  {
+   "day": 22,
+   "page": "automation",
+   "post": "Using AI for content? It's a time-saver, but human oversight is non-negotiable for accuracy and your brand.\n\nMany businesses are already using AI tools to draft customer emails, reports, or social media posts, saving valuable hours. But even the best AI needs a human touch. Google's updated content guidance emphasizes the importance of human oversight and fact-checking for all public-facing material.\n\nThis isn't just about search rankings; it's about maintaining trust with your clients. An AI can generate text quickly, but only you can ensure it reflects your brand's voice, values, and accurate information.\n\nWhat's your process for human review before AI-generated content goes live?\n#AICopywriting #ContentStrategy #SmallBizMarketing #HumanInTheLoop #Productivity",
+   "comment": "My automation page explores how to effectively integrate AI into your daily workflows for tasks like content generation, while keeping essential human oversight. Discover how to streamline without sacrificing quality.\nhttps://biz.aiwithrobert.com/services/workflow-automation-small-business/?utm_source=linkedin&utm_medium=social&utm_campaign=issue-2026-11-d3",
+   "link": "https://biz.aiwithrobert.com/services/workflow-automation-small-business/?utm_source=linkedin&utm_medium=social&utm_campaign=issue-2026-11-d3"
+  }
+ ],
+ "generated_at": "2026-11-15T15:30:22+00:00"
+}

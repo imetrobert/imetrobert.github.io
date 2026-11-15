@@ -107,5 +107,15 @@
   "file": "2026-11-15-chatgpt-business-can-now-connect-to-box-dropbox-and-sharepoint-what.html",
   "model": "gemini-2.5-flash",
   "words": 55
+ },
+ {
+  "at": "2026-11-15T15:30:22Z",
+  "run": "43730166761",
+  "kind": "promo",
+  "status": "ok",
+  "code": "OK",
+  "message": "Finished normally.",
+  "next": "",
+  "detail": "Promo kit ready for 2026-11-02-ottawa-commits-16b-to-cohere-for-sovereign-ai-what-it-means-for.html"
  }
 ]
