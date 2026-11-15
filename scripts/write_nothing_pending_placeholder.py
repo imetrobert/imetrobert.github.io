@@ -67,6 +67,38 @@ async function redoLinkedIn(file) {
   }
   say("Still working. Refresh this page in a minute.", true);
 }
+async function pollJson(path, key, was, apply, doneText) {
+  for (let i = 0; i < 45; i++) {
+    await new Promise(r => setTimeout(r, 8000));
+    try {
+      const r = await fetch(path + "?t=" + Date.now(), {cache: "no-store"});
+      const d = await r.json();
+      if (d.generated_at && d.generated_at !== was) { apply(d); say(doneText); return; }
+    } catch (e) {}
+  }
+  say("Still working. Refresh this page in a minute.", true);
+}
+async function buildPromo(file) {
+  const was = ($("pk-card") || {dataset: {}}).dataset.gen || "";
+  await run("promo-kit.yml", {post_filename: file}, "Building. Refresh this page in about 3 minutes.");
+}
+async function askReply(file) {
+  const c = $("rp-comment").value.trim();
+  if (c.length < 3) { say("Paste the comment you want to answer first.", true); return; }
+  const was = $("rp-card").dataset.gen || "";
+  await run("reply-helper.yml", {comment: c, post_filename: file}, "Drafting replies. They appear below in about 2 minutes.");
+  if ($("msg").style.color === "rgb(185, 28, 28)") return;
+  await pollJson("/blog/staging/reply.json", "reply", was, d => {
+    $("rp-card").dataset.gen = d.generated_at;
+    d.replies.forEach((t, i) => { $("rp-" + (i + 1)).value = t; });
+  }, "Three reply options are ready below.");
+}
+function addReminder(btn) {
+  const b = new Blob([btn.dataset.ics], {type: "text/calendar"});
+  const u = URL.createObjectURL(b); const a = document.createElement("a");
+  a.href = u; a.download = "linkedin-post.ics"; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(u); a.remove(); }, 2000);
+}
 async function run(wf, inputs, okText) {
   const pat = localStorage.getItem("blog_preview_pat");
   if (!pat) { $("patbox").style.display = "block"; say("Add your GitHub token first.", true); return; }
@@ -92,6 +124,9 @@ _STYLE = """
   .li textarea { width: 100%; box-sizing: border-box; font: 16px/1.5 -apple-system, sans-serif; padding: 0.7rem; border: 1px solid #cbd5e1; border-radius: 8px; }
   .li h2 { font-size: 1.05rem; margin: 0 0 0.3rem; color: #0a66c2; } .li small { color: #64748b; }
   button.li-btn { background: #0a66c2; margin: 0.4rem 0.4rem 0 0; padding: 0.55rem 1.1rem; }
+  .pk textarea, .rp textarea { width: 100%; box-sizing: border-box; font: 16px/1.5 -apple-system, sans-serif; padding: 0.7rem; border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 0.3rem; }
+  .pk h2, .rp h2 { font-size: 1.05rem; margin: 0 0 0.3rem; color: #0a66c2; } .pk h3 { font-size: 0.95rem; margin: 1.3rem 0 0.1rem; } .pk small, .rp small { color: #64748b; }
+  .pk button.li-btn, .rp button.li-btn { background: #0a66c2; margin: 0.4rem 0.4rem 0 0; padding: 0.55rem 1.1rem; }
   #msg { margin-top: 1rem; font-size: 0.85rem; min-height: 1.2rem; }
   #patbox { display: none; margin-top: 1rem; } #patbox input { width: 80%; padding: 0.5rem; font-size: 16px; }
 """
@@ -147,7 +182,68 @@ def linkedin_card(d):
 """
 
 
-def build_html(next_date, latest=None, linkedin=None):
+
+def _ics(day_iso, offset, n, title):
+    """A one-event calendar file (09:00 local, 15-minute alert) that iOS offers to add to Calendar."""
+    from datetime import date, timedelta
+    try:
+        d = date.fromisoformat(day_iso) + timedelta(days=offset)
+    except Exception:
+        return ""
+    stamp = d.strftime("%Y%m%d")
+    return "\r\n".join([
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//imetrobert blog//EN", "BEGIN:VEVENT",
+        f"UID:linkedin-{day_iso}-{n}@imetrobert.com", f"DTSTAMP:{stamp}T090000",
+        f"DTSTART:{stamp}T090000", f"DTEND:{stamp}T091500",
+        f"SUMMARY:Post LinkedIn follow-up {n}: {title[:60]}",
+        "DESCRIPTION:Open https://www.imetrobert.com/blog/staging/preview.html and copy follow-up post " + str(n) + ".",
+        "BEGIN:VALARM", "TRIGGER:-PT0M", "ACTION:DISPLAY", "DESCRIPTION:Post the LinkedIn follow-up", "END:VALARM",
+        "END:VEVENT", "END:VCALENDAR", ""])
+
+
+def _box(id_, text, rows):
+    return f'<textarea id="{id_}" rows="{rows}" readonly>{_html.escape(text)}</textarea><button class="btn li-btn" onclick="copyBox(\'{id_}\', this)">Copy</button>'
+
+
+def promo_card(p):
+    e = _html.escape
+    out = [f'<div class="card pk" id="pk-card" data-gen="{e(p.get("generated_at", ""))}"><h2>More promotion for this issue</h2>'
+           '<small>Hook options for the main post, a French version, and three follow-up posts over the next weeks. Each follow-up links to the matching page on the Business site.</small>']
+    out.append('<h3>Other opening lines for the main post</h3><small>Replace the first line of the post above with one of these.</small>')
+    for i, h in enumerate(p.get("hooks", []), 1):
+        out.append(_box(f"pk-h{i}", h, 2))
+    fr = p.get("french") or {}
+    if fr:
+        out.append('<h3>French version (Quebec)</h3>' + _box("pk-fr", fr.get("post", ""), 12)
+                   + '<p style="margin:0.8rem 0 0;"><strong>French first comment (with the link)</strong></p>' + _box("pk-frc", fr.get("first_comment", ""), 4))
+    for n, d in enumerate(p.get("drip", []), 1):
+        ics = _ics(p.get("published", ""), d.get("day", 0), n, p.get("title", ""))
+        rem = f'<button class="btn li-btn" data-ics="{e(ics)}" onclick="addReminder(this)">Add reminder to my calendar</button>' if ics else ""
+        out.append(f'<h3>Follow-up {n}: post around day {d.get("day")} after publishing</h3>'
+                   + _box(f"pk-p{n}", d.get("post", ""), 10)
+                   + '<p style="margin:0.8rem 0 0;"><strong>First comment (with the link)</strong></p>' + _box(f"pk-c{n}", d.get("comment", ""), 4) + rem)
+    out.append(f'<p style="margin-top:1.4rem;"><button class="btn li-btn" onclick="buildPromo(\'{e(p.get("post_file", ""))}\')">Redo all of this</button></p></div>')
+    return "\n".join(out)
+
+
+def promo_missing_card(filename):
+    e = _html.escape
+    return (f'<div class="card pk"><h2>More promotion for this issue</h2><small>Hook options, a French version and three follow-up posts with calendar reminders. Takes about 3 minutes to build.</small><br>'
+            f'<button class="btn li-btn" onclick="buildPromo(\'{e(filename)}\')">Build the promo kit</button></div>')
+
+
+def reply_card(r, filename):
+    e = _html.escape
+    reps = (r or {}).get("replies", ["", "", ""])
+    boxes = "".join(f'<p style="margin:0.8rem 0 0;"><strong>Option {i}</strong></p>' + _box(f"rp-{i}", reps[i - 1] if i <= len(reps) else "", 3) for i in (1, 2, 3))
+    return f"""<div class="card rp" id="rp-card" data-gen="{e((r or {}).get('generated_at', ''))}"><h2>Reply to a comment</h2>
+<small>Paste a comment someone left on your LinkedIn post. You get three reply options in your voice.</small>
+<textarea id="rp-comment" rows="3" placeholder="Paste their comment here" style="background:#fff;">{e((r or {}).get('comment', ''))}</textarea>
+<button class="btn li-btn" onclick="askReply('{e(filename)}')">Draft replies</button>
+{boxes}</div>
+"""
+
+def build_html(next_date, latest=None, linkedin=None, promo=None, reply=None):
     head = _HEAD % {"title": "No post pending", "style": _STYLE}
     body = f"""<h1>Nothing pending review right now</h1>
 <p>There's no draft waiting for approval at the moment.</p>
@@ -157,6 +253,8 @@ def build_html(next_date, latest=None, linkedin=None):
 """
     if linkedin:
         body += linkedin_card(linkedin)
+        body += promo_card(promo) if promo else promo_missing_card(linkedin.get("post_file", ""))
+        body += reply_card(reply, linkedin.get("post_file", ""))
     if latest:
         fn, label = latest
         body += f"""<div class="card"><strong>Found a big fault in the published issue?</strong><br>
@@ -198,7 +296,18 @@ def write_page(rolled_back=None):
                 li = None                      # a draft for an older issue is not shown
         except Exception:
             li = None
-        html = build_html(next_generation_date(), latest, li)
+        promo = reply = None
+        for name in ("promo", "reply"):
+            try:
+                with open(f"blog/staging/{name}.json", encoding="utf-8") as f:
+                    d = json.load(f)
+                if name == "promo" and li and d.get("post_file") == li.get("post_file"):
+                    promo = d
+                if name == "reply":
+                    reply = d
+            except Exception:
+                pass
+        html = build_html(next_generation_date(), latest, li, promo, reply)
     with open("blog/staging/preview.html", "w", encoding="utf-8") as f:
         f.write(html)
 

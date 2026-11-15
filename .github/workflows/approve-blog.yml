@@ -116,6 +116,13 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python3 scripts/linkedin_post.py "${{ github.event.inputs.staging_filename }}"
 
+      # After the main LinkedIn draft: hook options, French version, 3 follow-up posts. Same rule: never blocks a publish.
+      - name: Build the promo kit
+        continue-on-error: true
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 scripts/promo_kit.py "${{ github.event.inputs.staging_filename }}"
+
       - name: Record survey wave from the preview page
         env:
           SURVEY_WAVE: ${{ github.event.inputs.survey_wave }}

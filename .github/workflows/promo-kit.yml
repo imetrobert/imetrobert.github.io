@@ -1,0 +1,53 @@
+name: Promo kit
+
+# Builds the extra promotion for the newest published issue: 3 hook options, a French version of the
+# LinkedIn post and 3 follow-up posts linked to Business service pages. Runs after approve-blog.yml
+# (via the page button or by hand). Writes blog/staging/promo.json. See scripts/promo_kit.py.
+on:
+  workflow_dispatch:
+    inputs:
+      post_filename:
+        description: 'Published post filename (must be in blog/posts/ and match blog/staging/linkedin.json)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
+jobs:
+  promo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+          pip install beautifulsoup4 lxml
+      - name: Build the promo kit
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          POST: ${{ github.event.inputs.post_filename }}
+        run: python3 scripts/promo_kit.py "$POST"
+      - name: Commit and push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Blog Promo Kit"
+          git add blog/staging/
+          if git diff --staged --quiet; then echo "No changes"; else
+            git commit -m "Promo kit updated"
+            bash scripts/git_push_retry.sh
+          fi
+      - name: Save the run log (always, even after a failure)
+        if: always()
+        run: bash scripts/commit_runlog.sh

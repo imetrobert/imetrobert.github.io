@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import runlog  # noqa: E402
 
 WORKFLOWS = ["monthly-blog.yml", "redraft-section.yml", "regenerate-blog.yml", "approve-blog.yml",
-             "discard-blog.yml", "rollback-blog.yml", "linkedin-post.yml", "model-scout.yml", "plan-research-test.yml"]
+             "discard-blog.yml", "rollback-blog.yml", "linkedin-post.yml", "promo-kit.yml", "reply-helper.yml", "model-scout.yml", "plan-research-test.yml"]
 
 
 def sh(cmd):

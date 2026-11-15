@@ -1,0 +1,58 @@
+name: Reply helper
+
+# Fired from the "nothing pending" page: drafts three reply options to a LinkedIn comment.
+# Writes blog/staging/reply.json. See scripts/reply_helper.py.
+on:
+  workflow_dispatch:
+    inputs:
+      comment:
+        description: 'The comment someone left on the LinkedIn post'
+        required: true
+        type: string
+      post_filename:
+        description: 'Published post filename (context for the reply)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+          pip install beautifulsoup4 lxml
+      - name: Draft replies
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          COMMENT: ${{ github.event.inputs.comment }}
+          POST: ${{ github.event.inputs.post_filename }}
+        run: python3 scripts/reply_helper.py "$COMMENT" "$POST"
+      - name: Commit and push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Blog Reply Helper"
+          git add blog/staging/
+          if git diff --staged --quiet; then echo "No changes"; else
+            git commit -m "Reply options drafted"
+            bash scripts/git_push_retry.sh
+          fi
+      - name: Save the run log (always, even after a failure)
+        if: always()
+        run: bash scripts/commit_runlog.sh

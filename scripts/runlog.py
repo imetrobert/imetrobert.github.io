@@ -81,6 +81,9 @@ CATALOGUE = {
     "LINKEDIN_REJECTED": (
         "The LinkedIn draft broke a rule (wrong format, too short or long, a link in the post, or an invented claim about Robert's own data) twice in a row, so no draft was saved.",
         "Run 'Redraft LinkedIn post' again (a different draft usually passes). If it repeats, read the rule named in the DETAIL line in scripts/linkedin_post.py (parse)."),
+    "PROMO_REJECTED": (
+        "The promo kit (hook options, French version or follow-up posts) or a comment reply broke a rule twice in a row, so nothing was saved.",
+        "Run 'Promo kit' (or 'Reply helper') again; a different draft usually passes. If it repeats, the DETAIL line names the rule; see scripts/promo_kit.py (_clean_post, parse_drip)."),
     "ROLLBACK_REFUSED": (
         "The rollback was refused on purpose and nothing was changed.",
         "The DETAIL line says why: not the newest issue, a draft is waiting in staging (approve or discard it first), or no earlier issue would remain."),
