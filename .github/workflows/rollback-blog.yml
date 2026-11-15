@@ -1,0 +1,68 @@
+name: Roll back latest blog issue
+
+# Fired from the "nothing pending" page (blog/staging/preview.html). Takes the newest
+# published issue offline (its URL becomes a redirect to /blog/), undoes the survey wave
+# its approval recorded, rebuilds every derived page, and puts a "Rerun this month?" page
+# in the review area. See scripts/rollback_post.py and docs/blog-pipeline.md.
+on:
+  workflow_dispatch:
+    inputs:
+      post_filename:
+        description: 'Published post filename to roll back (must be the newest issue)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0   # the survey undo reads the publish commit from history
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+          pip install beautifulsoup4 lxml
+
+      - name: Roll back
+        env:
+          POST: ${{ github.event.inputs.post_filename }}
+        run: python3 scripts/rollback_post.py "$POST"
+
+      - name: Commit and push
+        env:
+          POST: ${{ github.event.inputs.post_filename }}
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Blog Publisher"
+          git add .
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Rollback: $POST taken offline | redirect stub, indexes rebuilt"
+            bash scripts/git_push_retry.sh
+          fi
+
+      - name: Summary
+        env:
+          POST: ${{ github.event.inputs.post_filename }}
+        run: |
+          echo "## Issue rolled back" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**File:** $POST (now a redirect to the blog home)." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Open the review page: it now offers to rerun the same month." >> $GITHUB_STEP_SUMMARY

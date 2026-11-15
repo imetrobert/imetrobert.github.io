@@ -728,3 +728,20 @@ Other things that are deliberate:
   `blog/posts/YYYY-MM-DD-*.html` file directly is fine since nothing
   regenerates already-published posts automatically.
 
+
+## Rolling back a published issue and rerunning it
+
+For when an issue is approved and a big fault shows up afterwards. The "nothing pending" page (blog/staging/preview.html)
+shows a **Roll back <issue>** button once an issue is published. It fires `rollback-blog.yml` -> `scripts/rollback_post.py`:
+
+- The post's URL becomes a noindex redirect stub to /blog/ (shared links land on the blog home). The stub is skipped by the
+  index, feed, llms.txt and sitemap because those scripts skip noindex meta-refresh pages by what they are. It stays a stub
+  after the replacement publishes (the new issue has a new filename).
+- `latest.html` points at the newest remaining issue; index, feed, llms.txt, adoption page and sitemap are rebuilt.
+- The survey wave(s) the approval recorded are undone by comparing `data/survey.json` in the post's first commit with its
+  parent (replaced waves are restored). If no waves remain, the Canadian AI Pulse page is deleted.
+- It refuses unless the file is the newest published issue, no draft is waiting in staging, and an earlier issue remains.
+- The review page then shows **Rerun <month>**, which fires `monthly-blog.yml` with `force_run=true` and the issue's own
+  coverage month (a December issue always reruns November, whatever today's date). "From Robert's Desk" starts blank.
+- Tests: `python3 -W ignore scripts/test_rollback.py` (also run by the Blog tests workflow).
+- The button only appears after approve/discard rewrites the placeholder; the page is also rewritten by this feature's PR.
