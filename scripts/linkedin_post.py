@@ -86,6 +86,20 @@ FIRST COMMENT:
 <the comment>"""
 
 
+def fix_hashtags(post):
+    """The model call strips a leading '#' from a line (markdown-header cleanup), which eats the first
+    hashtag of the hashtag line. Put it back."""
+    lines = post.split("\n")
+    for i in range(len(lines) - 1, -1, -1):
+        if not lines[i].strip():
+            continue
+        toks = lines[i].split()
+        if len(toks) >= 2 and all(t.startswith("#") for t in toks[1:]) and not toks[0].startswith("#"):
+            lines[i] = " ".join(["#" + toks[0]] + toks[1:])
+        break
+    return "\n".join(lines)
+
+
 def parse(raw, link):
     raw = (raw or "").replace("\r", "").strip()
     m = re.search(r"POST:\s*(.*?)\s*FIRST COMMENT:\s*(.*)\Z", raw, re.S | re.I)
@@ -93,8 +107,9 @@ def parse(raw, link):
         raise ValueError("model reply did not follow the POST / FIRST COMMENT format")
     post, comment = m.group(1).strip(), m.group(2).strip()
     post = re.sub(r"\*\*|__", "", post)
-    if len(post) < 400:
-        raise ValueError(f"post is too short ({len(post)} characters)")
+    post = fix_hashtags(post)
+    if len(post) < 800:
+        raise ValueError(f"post is too short ({len(post)} characters; the target is 900 to 1,400)")
     if len(post) > 2200:
         raise ValueError(f"post is too long ({len(post)} characters)")
     if "http" in post.lower():
