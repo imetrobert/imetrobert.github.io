@@ -107,6 +107,15 @@ jobs:
       - name: Replace preview page with a "nothing pending" placeholder
         run: python3 scripts/write_nothing_pending_placeholder.py
 
+      # LinkedIn promotion draft, waiting on the "nothing pending" page the moment the issue is live.
+      # Rewrites preview.html (so it runs after the placeholder step). Never blocks a publish: a Gemini
+      # hiccup just means the page shows no draft, and the failure is in the run log.
+      - name: Draft the LinkedIn post
+        continue-on-error: true
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 scripts/linkedin_post.py "${{ github.event.inputs.staging_filename }}"
+
       - name: Record survey wave from the preview page
         env:
           SURVEY_WAVE: ${{ github.event.inputs.survey_wave }}

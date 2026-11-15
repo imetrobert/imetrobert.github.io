@@ -1,0 +1,66 @@
+name: Redraft LinkedIn post
+
+# Fired from the "nothing pending" page: rewrites the LinkedIn promotion for the newest
+# published issue using Robert's comments. Writes blog/staging/linkedin.json and refreshes
+# blog/staging/preview.html. See scripts/linkedin_post.py.
+on:
+  workflow_dispatch:
+    inputs:
+      post_filename:
+        description: 'Published post filename (must be in blog/posts/)'
+        required: true
+        type: string
+      feedback:
+        description: 'What to change (blank is not allowed from the page)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
+jobs:
+  linkedin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+          pip install beautifulsoup4 lxml
+
+      - name: Redraft
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          POST: ${{ github.event.inputs.post_filename }}
+          FEEDBACK: ${{ github.event.inputs.feedback }}
+        run: python3 scripts/linkedin_post.py "$POST" "$FEEDBACK"
+
+      - name: Commit and push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Blog LinkedIn Drafter"
+          git add blog/staging/
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "LinkedIn draft updated"
+            bash scripts/git_push_retry.sh
+          fi
+
+      - name: Save the run log (always, even after a failure)
+        if: always()
+        run: bash scripts/commit_runlog.sh
