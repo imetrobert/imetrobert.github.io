@@ -158,7 +158,8 @@ def latest_issue():
             return None
         label, _, _ = coverage_of(os.path.join("blog/posts", issues[0]))
         return issues[0], label
-    except Exception:
+    except Exception as e:
+        print(f"WARNING: could not read the published issues, so the rollback and LinkedIn cards are left out: {e}")
         return None
 
 
