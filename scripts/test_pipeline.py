@@ -232,6 +232,15 @@ class RunLog(Base):
             what, _ = runlog.explain(code)
             self.assertTrue(what)
 
+    def test_related_pages_block_sits_before_the_cta(self):
+        import utils
+        h = utils.related_pages_html("issue-2026-12")
+        self.assertEqual(h.count("<a "), 3)
+        self.assertIn("utm_campaign=issue-2026-12-related", h)
+        self.assertTrue(all(u.startswith("https://biz.aiwithrobert.com/") for _, u in utils.RELATED_PAGES))
+        src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "renderer.py"), encoding="utf-8").read()
+        self.assertLess(src.index("related_pages_html('issue-'"), src.index("feasibility_cta_html('issue-'"))
+
     def test_official_body_items_must_cite_the_body(self):
         import parser as P
         mk = lambda org, src: {"org": org, "body": "x" * 40, "source_name": src, "source_url": ""}

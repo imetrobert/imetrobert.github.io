@@ -10,7 +10,7 @@ from html import escape as escape_html
 from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
 from linkedin_hint import LINKEDIN_HINT
-from utils import (BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR, feasibility_cta_html,
+from utils import (BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR, feasibility_cta_html, related_pages_html,
                    is_government_entity, is_recognised_publication, is_newswire,
                    is_first_party_newsroom, uses_stock_phrase,
                    household_canadian_brands, is_household_canadian_brand)
@@ -644,6 +644,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         article_parts.append(_build_question_section(closing_question))
 
     # The one call to action on the page (see utils.feasibility_cta_html).
+    article_parts.append(related_pages_html('issue-' + labels['issue_date'].strftime('%Y-%m')))
     article_parts.append(feasibility_cta_html('issue-' + labels['issue_date'].strftime('%Y-%m')))
     article_parts.append(_build_survey_cta())
 
