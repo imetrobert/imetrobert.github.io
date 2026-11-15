@@ -93,5 +93,19 @@
   "next": "",
   "detail": "generated staging for September 2026",
   "month": "September 2026"
+ },
+ {
+  "at": "2026-11-15T15:11:40Z",
+  "run": "43728475210",
+  "kind": "redraft",
+  "status": "ok",
+  "code": "OK",
+  "message": "Finished normally.",
+  "next": "",
+  "detail": "'Executive Summary' redrafted by gemini-2.5-flash (55 words, 78% different from before).",
+  "section": "EXECUTIVE SUMMARY",
+  "file": "2026-11-15-chatgpt-business-can-now-connect-to-box-dropbox-and-sharepoint-what.html",
+  "model": "gemini-2.5-flash",
+  "words": 55
  }
 ]

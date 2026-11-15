@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="preview-run" content="43727812786">
+  <meta name="preview-run" content="43728475210">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <script src="/blog/staging/gate.js"></script>
@@ -823,7 +823,7 @@ Many firms buy the subscription but never change the process. They keep the old 
     <div class="preview-toolbar">
       <div>
         <h2>Post Preview — October 2026 <span style="font-weight:400;opacity:0.6;">(covers September)</span></h2>
-        <div class="preview-meta">Generated November 15, 2026 at 10:10 AM EST</div>
+        <div class="preview-meta">Generated November 15, 2026 at 10:11 AM EST</div>
         <div class="preview-meta">Staging file: 2026-11-15-chatgpt-business-can-now-connect-to-box-dropbox-and-sharepoint-what.html</div>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
@@ -884,7 +884,7 @@ Many firms buy the subscription but never change the process. They keep the old 
   document.addEventListener("DOMContentLoaded", () => {
     loadPAT();
     loadLastPrompt();
-    const runId = "43727812786";
+    const runId = "43728475210";
     if (runId && runId !== "0") {
       const row = document.getElementById("gen-info");
       const val = document.getElementById("gen-run");
@@ -922,14 +922,14 @@ Many firms buy the subscription but never change the process. They keep the old 
   // Fetch the live copy, compare the server-rendered stamp, and say so plainly
   // if they differ. Fails silently — offline or blocked, a missing warning is
   // better than a false one.
-  const GENERATED_STAMP = "November 15, 2026 at 10:10 AM EST";
+  const GENERATED_STAMP = "November 15, 2026 at 10:11 AM EST";
 
   // ── Gemini daily requests ───────────────────────────────────────
   // The free tier is rate-limited per minute and per DAY, not a monthly token
   // pool, so this tracks requests per day — the limit repeated testing hits.
   // The count is re-fetched rather than trusted from the baked-in value,
   // because a redraft makes requests without regenerating this page.
-  const QUOTA_BAKED = 8;
+  const QUOTA_BAKED = 9;
   const QUOTA_LIMIT_KEY = "blog_preview_quota_limit";
 
   // Google resets these quotas at midnight Pacific, so the bucket to read is
@@ -2039,7 +2039,7 @@ Many firms buy the subscription but never change the process. They keep the old 
   // anything but success, which we read from the Actions API with the same
   // token that dispatched it. The job lives in localStorage, so closing or
   // reloading the page resumes the watch instead of losing it.
-  const PAGE_RUN_ID = "43727812786";
+  const PAGE_RUN_ID = "43728475210";
   const JOB_KEY = "blog_pending_job";
   const JOB_POLL_MS = 10000;
   const JOB_MAX_MS = 25 * 60 * 1000;     // dispatched, never finished
