@@ -73,13 +73,13 @@ POST RULES
 - 900 to 1,400 characters. Plain text only: no markdown, no asterisks, no bullet symbols other than a hyphen.
 - Line 1 is a hook of at most 150 characters that makes a small-business owner stop scrolling: a concrete tension, surprising fact from the issue, or a sharp question. No "Excited to share" or "I'm thrilled".
 - Then short paragraphs of one or two sentences with a blank line between them. Give 2 or 3 genuinely useful takeaways from the issue, stated plainly. Tease; do not retell the whole issue.
-- Speak to small-business owners. First person ("I") is fine for opinion; never invent a personal story, client, meeting or result.
+- Speak to small-business owners. First person ("I") is fine for opinion. NEVER claim data, research, analytics, surveys, clients, results or experience of Robert's own ("my analytics show", "my clients", "I've seen", "we found"); every fact must come from the issue and be framed as what the issue reports, not as Robert's own measurement.
 - End with one specific question that invites owners to answer from their own week (for example, which repetitive task eats most of their time).
 - Then a blank line and 3 to 5 relevant hashtags on one line, chosen for this audience (for example #SmallBusiness, #AI, #Montreal, #ChatGPT, #Productivity). No emoji.
 - Do NOT put a link in the post. Do not say "link in comments".
 
 FIRST COMMENT RULES
-- Two short sentences at most, inviting people to read the full issue, ending with this exact link on its own line: {link}
+- Written BY Robert in the first person ("I"), never about him: do not write "Robert" or "he". Two short sentences at most, inviting people to read the full issue this month, ending with this exact link on its own line: {link}
 
 OUTPUT FORMAT, exactly, with these two labels and nothing before or after:
 POST:
@@ -116,6 +116,10 @@ def parse(raw, link):
         raise ValueError(f"post is too long ({len(post)} characters)")
     if "http" in post.lower():
         raise ValueError("post contains a link; the link belongs in the first comment")
+    if re.search(r"\b(my|our) (analytics|clients?|customers|data|research|surveys?|findings|numbers|team's data)\b|\bI(?:'ve| have) seen\b|\bwe (?:found|measured|saw)\b", post, re.I):
+        raise ValueError("post claims Robert's own data, clients or experience; every fact must come from the issue")
+    if re.search(r"\bRobert\b", comment):
+        raise ValueError("first comment refers to Robert in the third person; it must be written by him in the first person")
     if link not in comment:
         comment = (comment + "\n" + link).strip()
     return post, comment

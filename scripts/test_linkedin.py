@@ -15,7 +15,9 @@ good = "POST:\n" + ("Most small businesses overpay for AI.\n\nHere is why that m
 post, comment = lp.parse(good, link)
 check("parses post and comment", post.startswith("Most small") and link in comment)
 check("restores a stripped first hashtag", lp.fix_hashtags("Body\n\nAI #CanadianBusiness #SovereignAI").endswith("#AI #CanadianBusiness #SovereignAI"))
-for name, bad in (("rejects wrong format", "just text"),
+for name, bad in (("rejects invented own data", good.replace("Here is why", "My analytics show that Here is why")),
+                  ("rejects third-person comment", good.replace("Full issue here:", "See what Robert recommends:")),
+                  ("rejects wrong format", "just text"),
                   ("rejects link in post", good.replace("Here is why", "see https://x.com Here is why")),
                   ("rejects too short", "POST:\nshort\nFIRST COMMENT:\nhi")):
     try: lp.parse(bad, link); check(name, False)
