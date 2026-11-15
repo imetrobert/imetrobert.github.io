@@ -32,6 +32,11 @@ jobs:
         with:
           python-version: '3.11'
 
+      # The placeholder page reads the published issues with BeautifulSoup. Without it the LinkedIn, promo and
+      # rollback cards silently vanish after a discard (found 2026-11-15).
+      - name: Install dependencies
+        run: pip install beautifulsoup4 lxml
+
       - name: Validate staging file exists
         run: |
           STAGING_PATH="blog/staging/${{ github.event.inputs.staging_filename }}"
