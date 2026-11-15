@@ -96,8 +96,8 @@ def build_page(rows):
 </script>
 <style>
 body{{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;margin:0;background:#f1f5f9;color:#0f172a;line-height:1.65}}
-.w{{max-width:760px;margin:0 auto;padding:1.5rem 1.2rem 4rem}} a{{color:#2563eb}}
-h1{{font-size:1.6rem;line-height:1.25;margin:1rem 0 .5rem}} .lead{{border-left:3px solid #06b6d4;padding-left:1rem;margin:1rem 0 1.5rem}}
+.w{{max-width:760px;margin:0 auto;padding:1.5rem 1.2rem 4rem}} a{{color:#11304c}}
+h1{{font-size:1.6rem;line-height:1.25;margin:1rem 0 .5rem}} .lead{{border-left:3px solid #8a6d0b;padding-left:1rem;margin:1rem 0 1.5rem}}
 .g{{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:1rem 1.25rem;margin:0 0 1rem}} .g h3{{margin:0 0 .5rem;font-size:1.05rem}}
 .g ul{{padding-left:1.1rem;margin:0}} .g li{{margin:.6rem 0;font-size:.92rem}} .s{{display:block;font-size:.75rem}}
 .i{{font-size:.78rem;display:block;margin-top:.4rem}}

@@ -97,3 +97,6 @@ One mark for the whole site: an "AI" monogram whose spark — the dot over the
 - Icon paths are absolute (`/favicon.svg`), so they resolve the same from the
   homepage and from `/blog/posts/`. Don't make them relative.
 
+
+## Blog colours (since 2026-11-15)
+The blog (issues, index, adoption, survey and plan-changes pages) uses the Business brand: navy #11304c (was blue #2563eb), dark gold #8a6d0b (was cyan #06b6d4; chosen over bright gold #c9a227 so white text stays readable), darker navy #0b2237, gradient midpoint #1f3b4d. The generators carry the new values; `scripts/rebrand_blog.py` (idempotent) recoloured the older pages. The personal homepage (index.html, css/style.css) and the internal review pages keep the old look on purpose. Social images made before this date stay blue.
