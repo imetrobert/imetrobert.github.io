@@ -880,9 +880,10 @@ def build_preview_html(staging_filename: str, month_year: str, run_id: str, rege
         <div class="pat-missing-banner">
           <strong>🔑 No token found on this browser</strong>
           <span>Needed to trigger GitHub Actions from this page. This happens after clearing your cache, or on a new browser or device — nothing's wrong, you just need to add one again.</span>
-          <a href="https://github.com/settings/tokens/new?scopes=workflow&description=Blog+Preview+Approval" target="_blank" class="btn">
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" class="btn">
             🔗 Create a token on GitHub
           </a>
+          <span style="display:block;margin-top:0.5rem;font-size:0.85rem;">Only the imetrobert.github.io repo; set Actions and Contents to Read and write. Then delete the old one: <a href="https://github.com/settings/personal-access-tokens" target="_blank">fine-grained list</a> or <a href="https://github.com/settings/tokens" target="_blank">classic list</a>.</span>
         </div>
       </div>
       <input
