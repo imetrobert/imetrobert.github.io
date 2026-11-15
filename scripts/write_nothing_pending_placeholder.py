@@ -108,7 +108,14 @@ def build_html(next_date, latest=None):
         fn, label = latest
         body += f"""<div class="card"><strong>Found a big fault in the published issue?</strong><br>
 Roll back <strong>{label}</strong>: it disappears from the blog, the feed, the sitemap and the AI summaries, and any shared link goes to the blog home. You then get a button to rerun the same month.<br>
-<button class="btn warn" onclick="if (confirm('Roll back the {label} issue? It will be taken offline now.')) run('rollback-blog.yml', {{post_filename: '{fn}'}}, 'Rollback started. Refresh this page in about two minutes.')">Roll back {label}</button></div>
+<button id="rb-open" class="btn warn" onclick="document.getElementById('rb-confirm').style.display='block'; this.style.display='none'">Roll back {label}</button>
+<div id="rb-confirm" style="display:none; margin-top:1rem; padding:0.9rem; border:2px solid #b45309; border-radius:10px; background:#fffbeb;">
+<strong>Are you sure?</strong><br>
+The <strong>{label}</strong> issue will disappear from your blog right away. Anyone opening a shared link will land on the blog home. The review page will then open again so you can regenerate this issue.<br>
+<button class="btn warn" onclick="run('rollback-blog.yml', {{post_filename: '{fn}'}}, 'Rollback started. Refresh this page in about two minutes.')">Yes, roll back {label}</button>
+<button class="btn" style="background:#64748b;" onclick="document.getElementById('rb-confirm').style.display='none'; document.getElementById('rb-open').style.display='inline-block'">Cancel</button>
+</div>
+</div>
 """
     return head + body + _TAIL % {"js": _JS % {"repo": REPO}}
 
