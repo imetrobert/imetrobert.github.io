@@ -240,6 +240,28 @@ class RunLog(Base):
         self.assertTrue(all(u.startswith("https://biz.aiwithrobert.com/") for _, u in utils.RELATED_PAGES))
         src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "renderer.py"), encoding="utf-8").read()
         self.assertLess(src.index("related_pages_html('issue-'"), src.index("feasibility_cta_html('issue-'"))
+    def test_plans_page_lists_subscription_items_only_when_present(self):
+        import pillar_plans
+        cwd = os.getcwd()
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "blog", "posts"))
+        os.chdir(d)
+        try:
+            open("blog/posts/2026-12-02-x.html", "w", encoding="utf-8").write(
+                '<html><body><h1>Dec</h1><span class="issue-badge">Issue #16 &bull; December 2026</span>'
+                '<div class="section"><h2 class="section-title">New in Your AI Subscription</h2><div class="dev-grid">'
+                '<div class="dev-card"><div class="dev-header"><span class="dev-date">Nov 12</span><span class="dev-company">OpenAI</span></div>'
+                '<p class="dev-body">ChatGPT Business adds file connectors.</p><div class="dev-source"><a href="https://x.test/a">OpenAI Help</a></div></div>'
+                '</div></div></body></html>')
+            open("blog/posts/2026-11-02-old.html", "w", encoding="utf-8").write("<html><body><h1>Old issue</h1></body></html>")
+            self.assertEqual(pillar_plans.write_plans_page(), "blog/ai-plan-changes.html")
+            html = open("blog/ai-plan-changes.html", encoding="utf-8").read()
+            self.assertIn("file connectors", html)
+            self.assertIn("utm_campaign=plans-page", html)
+            os.remove("blog/posts/2026-12-02-x.html")
+            self.assertIsNone(pillar_plans.write_plans_page())
+        finally:
+            os.chdir(cwd)
 
     def test_official_body_items_must_cite_the_body(self):
         import parser as P
