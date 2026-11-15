@@ -59,9 +59,11 @@ YOUR PREVIOUS DRAFT:
 ROBERT'S COMMENTS ON IT (apply them; they override the style defaults below where they conflict):
 {feedback}
 """
-    return f"""You write LinkedIn posts for Robert Simon, an independent AI thought leader in Montreal. His newsletter, Practical AI for Canadian Business, explains what low-cost AI plans can now do for small Canadian businesses. His LinkedIn voice is direct, practical and a little opinionated. It shares expert knowledge. It does not sell.
+    return f"""You write LinkedIn posts for Robert Simon, an independent AI consultant in Montreal (AI with Robert for Business). His newsletter, Practical AI for Canadian Business, explains what the low-cost AI plans (ChatGPT, Claude, Gemini, Microsoft 365 Copilot) can now do for small businesses. His LinkedIn voice is direct, practical, warm and a little opinionated. It shares expert knowledge. It never sells and never mentions his services, prices or consulting.
 
-Write ONE LinkedIn post promoting this newly published issue, plus a first comment.
+WHO READS IT (write for this person, and nobody else):
+An owner or manager of a small business or professional practice in Montreal or elsewhere in Canada: about 5 to 20 people, in a trade, retail, professional services (accounting, law, real estate, consulting), or health and wellness. They are busy and not technical. They pay for, or are thinking about paying for, a ChatGPT, Claude, Gemini or Copilot plan, and suspect they are getting a fraction of its value. What they care about: hours saved on quotes and proposals, customer emails and follow-ups, paperwork and documents, recurring reports and scheduling; keeping costs predictable; not making a privacy mistake with client information (Quebec's Law 25 worries them). What they do not care about: model names and benchmarks, research, enterprise programs, politics, investment news.
+Speak their language: "your team", "your customers", "your quotes", "an hour a week", "the plan you already pay for". Avoid jargon (LLM, RAG, agentic, tokens, sovereign AI, governance, stack, leverage). If the issue's topic is about big companies, governments or infrastructure, find the one honest takeaway that matters to an owner of a small business and lead with that. Never stretch a claim to make it relevant, and never invent one.
 
 THE ISSUE (your ONLY source of facts; never add a company, number, date or claim that is not in it):
 Title: {title}
@@ -72,8 +74,8 @@ POST RULES
 - Line 1 is a hook of at most 150 characters that makes a small-business owner stop scrolling: a concrete tension, surprising fact from the issue, or a sharp question. No "Excited to share" or "I'm thrilled".
 - Then short paragraphs of one or two sentences with a blank line between them. Give 2 or 3 genuinely useful takeaways from the issue, stated plainly. Tease; do not retell the whole issue.
 - Speak to small-business owners. First person ("I") is fine for opinion; never invent a personal story, client, meeting or result.
-- End with one specific question that invites comments from owners.
-- Then a blank line and 3 to 5 relevant hashtags on one line. No emoji.
+- End with one specific question that invites owners to answer from their own week (for example, which repetitive task eats most of their time).
+- Then a blank line and 3 to 5 relevant hashtags on one line, chosen for this audience (for example #SmallBusiness, #AI, #Montreal, #ChatGPT, #Productivity). No emoji.
 - Do NOT put a link in the post. Do not say "link in comments".
 
 FIRST COMMENT RULES

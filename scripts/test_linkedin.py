@@ -29,6 +29,7 @@ calls = []
 def fake(prompt): calls.append(prompt); return good
 d = lp.generate("2026-12-03-x.html", call=fake)
 check("first draft saved", os.path.exists("blog/staging/linkedin.json") and d["post"])
+check("prompt carries the Business-site audience", all(k in calls[0] for k in ("5 to 20 people", "Law 25", "never mentions his services", "quotes")))
 check("first draft has no revise block", "ROBERT'S COMMENTS" not in calls[0])
 d2 = lp.generate("2026-12-03-x.html", "make the hook punchier", call=fake)
 check("redraft sends previous post and comments", "make the hook punchier" in calls[1] and "YOUR PREVIOUS DRAFT" in calls[1])
