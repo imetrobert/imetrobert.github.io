@@ -201,7 +201,7 @@ def main(argv):
         print(f"LinkedIn draft failed: {e}")
         if runlog:
             try:
-                runlog.fail(kind, runlog.classify(e), detail=str(e))
+                runlog.fail(kind, "LINKEDIN_REJECTED" if isinstance(e, ValueError) else runlog.classify(e), detail=str(e))
             except Exception:
                 pass
         return 1

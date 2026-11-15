@@ -53,7 +53,7 @@ need.
 ## Something went wrong? Read `docs/DIAGNOSE.md` first
 Run Actions > **Blog health report** (or `python3 scripts/diagnose.py`) and paste the summary: failures come with a plain
 error code and next step from `blog/staging/run-log.json`. Tests: `python3 -W ignore scripts/test_pipeline.py` and
-`python3 scripts/test_model_scout.py` (workflow **Blog tests** runs them on every push to `scripts/` and weekly).
+`python3 scripts/test_model_scout.py`, `scripts/test_rollback.py`, `scripts/test_linkedin.py` (workflow **Blog tests** runs them on every push to `scripts/` and weekly).
 
 ## `blog/` — generated, never hand-edit
 
@@ -76,6 +76,8 @@ Non-negotiables (full reasoning in `docs/blog-pipeline.md`):
   "Pin" on the preview page overrides. Never make an unproven model lead.
 - Rollback + rerun of the latest issue: button on the "nothing pending" page -> `rollback-blog.yml` / `scripts/rollback_post.py`
   (see "Rolling back a published issue" in `docs/blog-pipeline.md`). Do not hand-delete a published post; use this.
+- LinkedIn promotion draft after each publish (shown on the "nothing pending" page, redraft from comments): `scripts/linkedin_post.py` /
+  `linkedin-post.yml`; audience = the Business site's small-business owners. See `docs/DIAGNOSE.md` "Rollback and LinkedIn features".
 - Never index `/blog/staging/` (robots.txt Disallow AND `noindex` meta on every page there).
 - Share links always use the post permalink, never `latest.html`.
 - No emoji on visitor-facing pages (inline SVG icon sprite instead).

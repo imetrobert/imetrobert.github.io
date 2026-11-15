@@ -178,4 +178,9 @@ if __name__ == "__main__":
         rollback(os.path.basename(sys.argv[1]))
     except RollbackError as e:
         print(f"ERROR: {e}")
+        try:
+            import runlog
+            runlog.fail("rollback", "ROLLBACK_REFUSED", detail=str(e))
+        except Exception:
+            pass
         sys.exit(1)
