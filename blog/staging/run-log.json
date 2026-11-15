@@ -62,5 +62,15 @@
   "message": "Something unexpected went wrong.",
   "next": "Open the failing step in the run log; the last lines name the error. Nothing was changed if the step is the redraft.",
   "detail": "model reply did not follow the POST / FIRST COMMENT format"
+ },
+ {
+  "at": "2026-11-15T04:12:24Z",
+  "run": "43675690846",
+  "kind": "linkedin",
+  "status": "ok",
+  "code": "OK",
+  "message": "Finished normally.",
+  "next": "",
+  "detail": "LinkedIn draft ready for 2026-11-02-ottawa-commits-16b-to-cohere-for-sovereign-ai-what-it-means-for.html"
  }
 ]
