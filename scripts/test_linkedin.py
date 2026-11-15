@@ -11,9 +11,10 @@ def check(name, ok):
     if not ok: fails.append(name)
 
 link = lp.permalink("2026-12-03-x.html")
-good = "POST:\n" + ("Most small businesses overpay for AI.\n\nHere is why that matters for you. " * 12) + "\n\nWhat do you pay for today?\n\n#AI #SmallBusiness\nFIRST COMMENT:\nFull issue here:\n" + link
+good = "POST:\n" + ("Most small businesses overpay for AI.\n\nHere is why that matters for you. " * 14) + "\n\nWhat do you pay for today?\n\n#AI #SmallBusiness\nFIRST COMMENT:\nFull issue here:\n" + link
 post, comment = lp.parse(good, link)
 check("parses post and comment", post.startswith("Most small") and link in comment)
+check("restores a stripped first hashtag", lp.fix_hashtags("Body\n\nAI #CanadianBusiness #SovereignAI").endswith("#AI #CanadianBusiness #SovereignAI"))
 for name, bad in (("rejects wrong format", "just text"),
                   ("rejects link in post", good.replace("Here is why", "see https://x.com Here is why")),
                   ("rejects too short", "POST:\nshort\nFIRST COMMENT:\nhi")):
