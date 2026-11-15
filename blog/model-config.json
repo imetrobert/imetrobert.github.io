@@ -31,6 +31,11 @@
   "pinned": "",
   "qualified": {},
   "rejected": {
+    "gemini-3.5-flash": {
+      "at": "2026-11-15T15:00:58Z",
+      "reason": "429: no free-tier quota (or rate limited) on this project",
+      "retry_after": "2026-11-29T15:00:58Z"
+    },
     "gemini-3.6-flash": {
       "at": "2026-11-14T03:02:23Z",
       "reason": "429: no free-tier quota (or rate limited) on this project",
@@ -43,10 +48,11 @@
     }
   },
   "scout": {
-    "last_run": "2026-11-14T03:02:23Z",
+    "last_run": "2026-11-15T15:00:58Z",
     "log": [
       "2026-11-14 gemini-3.7-flash: rejected at probe (429: no free-tier quota (or rate limited) on this project)",
-      "2026-11-14 gemini-3.6-flash: rejected at probe (429: no free-tier quota (or rate limited) on this project)"
+      "2026-11-14 gemini-3.6-flash: rejected at probe (429: no free-tier quota (or rate limited) on this project)",
+      "2026-11-15 gemini-3.5-flash: rejected at probe (429: no free-tier quota (or rate limited) on this project)"
     ]
   }
 }
