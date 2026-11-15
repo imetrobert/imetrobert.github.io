@@ -591,6 +591,8 @@ def create_llms_txt(posts):
         f"- [{BRAND}](https://www.imetrobert.com/blog/): index of every issue",
         "- [RSS feed](https://www.imetrobert.com/blog/feed.xml): machine-readable issue list with dates",
         "- [Canadian AI adoption statistics](https://www.imetrobert.com/blog/canadian-ai-adoption.html): every adoption figure reported across the issues, by month, with sources",
+        *(["- [What changed in AI plans](https://www.imetrobert.com/blog/ai-plan-changes.html): ChatGPT, Claude, Gemini and Copilot plan changes reported in the issues, with sources"]
+          if os.path.exists("blog/ai-plan-changes.html") else []),
         "",
         "## Issues",
         "",
@@ -709,6 +711,13 @@ def update_blog_index():
         write_pillar()
     except Exception as e:
         print(f"Pillar page skipped ({e})")
+
+    # Evergreen plan-changes page (items from "New in Your AI Subscription"); writes nothing until one exists.
+    try:
+        from pillar_plans import write_plans_page
+        write_plans_page()
+    except Exception as e:
+        print(f"Plans page skipped ({e})")
 
     # Survey results. Writes nothing until a wave exists in data/survey.json,
     # so there is never a results page describing data not yet collected.

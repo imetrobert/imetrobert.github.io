@@ -48,6 +48,8 @@ entries = [
 ]
 # Evergreen pillar. High priority on purpose: unlike a dated issue it does not
 # decay, and it is the page most likely to answer a standing question.
+if os.path.exists("blog/ai-plan-changes.html"):
+    entries.append((f"{BASE_URL}/blog/ai-plan-changes.html", today, "0.8"))
 if os.path.exists("blog/canadian-ai-adoption.html"):
     entries.append((f"{BASE_URL}/blog/canadian-ai-adoption.html", today, "0.85"))
 # Original survey data: the only page here nobody else can publish, so it gets

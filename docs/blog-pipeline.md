@@ -763,3 +763,5 @@ Tests: `python3 -W ignore scripts/test_linkedin.py`. Failures appear in the run 
 
 ## Related reading block
 Every new issue gets `utils.related_pages_html()` (three Business-site links, `RELATED_PAGES`) just before the feasibility CTA; links carry `utm_campaign=issue-YYYY-MM-related`. The LinkedIn text builder ignores it (`related-pages` is stripped in `linkedin_post.issue_text`). Past issues do not have it.
+## Plan-changes page
+`scripts/pillar_plans.py` (called from `blog_index.update_blog_index`, failures only logged) writes `blog/ai-plan-changes.html` from every "New in Your AI Subscription" card in the published issues, newest first, with source and a feasibility-check button (`utm_campaign=plans-page`). It writes nothing until an issue has that section (December 2026 onward); it is in the sitemap and llms.txt only when the file exists. Test: `test_plans_page_lists_subscription_items_only_when_present` in `scripts/test_pipeline.py`.
