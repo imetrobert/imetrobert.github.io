@@ -48,7 +48,7 @@
     }
   },
   "scout": {
-    "last_run": "2026-11-15T15:00:58Z",
+    "last_run": "2026-11-16T22:24:49Z",
     "log": [
       "2026-11-14 gemini-3.7-flash: rejected at probe (429: no free-tier quota (or rate limited) on this project)",
       "2026-11-14 gemini-3.6-flash: rejected at probe (429: no free-tier quota (or rate limited) on this project)",
