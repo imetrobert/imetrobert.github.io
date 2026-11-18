@@ -10,7 +10,7 @@ from html import escape as escape_html
 from urllib.parse import quote
 from utils import clean_filename, estimate_reading_time, get_issue_number, get_issue_labels
 from linkedin_hint import LINKEDIN_HINT
-from utils import (BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR, feasibility_cta_html, related_pages_html,
+from utils import (BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR, publisher_jsonld, feasibility_cta_html, related_pages_html,
                    is_government_entity, is_recognised_publication, is_newswire,
                    is_first_party_newsroom, uses_stock_phrase,
                    household_canadian_brands, is_household_canadian_brand)
@@ -670,8 +670,8 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/blog/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="/blog/apple-touch-icon.png">
     <title>{seo_title}</title>
     <meta name="description" content="{meta_desc_html}">
     <meta name="keywords" content="AI Canada {issue_month_year}, Canadian AI news, artificial intelligence Canada, AI business strategy Canada, AI adoption Canada, Montreal AI, Canadian digital transformation, AI news for Canadians, AI insights {issue_month_year}, {coverage_month_year} AI recap">
@@ -728,12 +728,7 @@ def create_html_blog_post(content, title, excerpt, coverage_date=None, is_draft=
         "sameAs": ["https://linkedin.com/in/thedigitalrobert"],
         "address": {{"@type": "PostalAddress", "addressLocality": "Montreal", "addressRegion": "QC", "addressCountry": "CA"}}
       }},
-      "publisher": {{
-        "@type": "Person",
-        "name": "Robert Simon",
-        "url": "https://www.imetrobert.com",
-        "logo": {{"@type": "ImageObject", "url": "https://www.imetrobert.com/blog/logo-512.png", "width": 512, "height": 512}}
-      }},
+      "publisher": {publisher_jsonld()},
       "mainEntityOfPage": {{"@type": "WebPage", "@id": {json.dumps(canonical)}}},
       "url": {json.dumps(canonical)},
       "image": {json.dumps(og_image)},

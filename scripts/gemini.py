@@ -6,7 +6,7 @@ Gemini API integration and prompt construction for the monthly blog generator.
 import time
 import requests
 from datetime import datetime, timedelta
-from utils import (clean_ai_content, STOCK_VOICE_PHRASES, CANADIAN_HOUSEHOLD_BRANDS,
+from utils import (BRAND, clean_ai_content, STOCK_VOICE_PHRASES, CANADIAN_HOUSEHOLD_BRANDS,
                    record_gemini_request, requests_today, load_model_config,
                    save_model_config, new_models_available,
                    resolve_model_order)
@@ -443,7 +443,7 @@ RESEARCH RULES — these apply because Robert gave a direction, and they overrid
             "\nYOUR PREVIOUS ATTEMPT WAS REJECTED: " + retry_note.strip() + "\n"
             "Write a different, complete draft that fixes this. Output only the section text.\n"
         )
-    prompt = f"""You are rewriting ONE section of Robert Simon's monthly newsletter, Practical AI for Canadian Business. Robert is an independent AI thought leader in Montreal. His voice is direct, opinionated and grounded in business outcomes. He does not hedge.
+    prompt = f"""You are rewriting ONE section of Robert Simon's monthly newsletter, {BRAND}. Robert is an independent AI thought leader in Montreal. His voice is direct, opinionated and grounded in business outcomes. He does not hedge.
 
 {month_line}
 {_EDITORIAL_PREAMBLE}
@@ -505,7 +505,7 @@ def _strip_section_header(text, section):
 
 def _build_monthly_prompt(month_year, prev_month, is_backfill=False, today=None):
     rules = _shared_rules_block(month_year, prev_month, is_backfill, today)
-    return f"""You are writing Practical AI for Canadian Business, the monthly AI briefing for small Canadian businesses by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation and now helps small businesses and professional practices get real work out of the AI subscriptions they already pay for. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
+    return f"""You are writing {BRAND}, the monthly AI briefing for small Canadian businesses by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation and now helps small businesses and professional practices get real work out of the AI subscriptions they already pay for. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
 
 AUDIENCE
 Owners and small teams (1 to 20 people) of Canadian small businesses and professional practices: accountants, advisors, clinics, trades, agencies, shops, consultants. Most already pay about $30 a month per person for ChatGPT, Claude, Gemini or Microsoft 365 Copilot, or are deciding whether to. They have no IT department and no time. They do not care about the AI industry; they care about what their subscription can now do for their own work. Write in plain language, define any term a non-technical owner would not know, and respect their time. Readers from larger organizations still read this: the Canadian section and Robert's own section keep the wider context for them.
@@ -515,7 +515,7 @@ Owners and small teams (1 to 20 people) of Canadian small businesses and profess
 
 def _build_custom_prompt(topic, month_year, prev_month, is_backfill=False, today=None):
     rules = _shared_rules_block(month_year, prev_month, is_backfill, today)
-    return f"""You are writing Practical AI for Canadian Business, the monthly AI briefing for small Canadian businesses by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation and now helps small businesses and professional practices get real work out of the AI subscriptions they already pay for. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
+    return f"""You are writing {BRAND}, the monthly AI briefing for small Canadian businesses by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation and now helps small businesses and professional practices get real work out of the AI subscriptions they already pay for. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
 
 AUDIENCE
 Owners and small teams (1 to 20 people) of Canadian small businesses and professional practices: accountants, advisors, clinics, trades, agencies, shops, consultants. Most already pay about $30 a month per person for ChatGPT, Claude, Gemini or Microsoft 365 Copilot, or are deciding whether to. They have no IT department and no time. They do not care about the AI industry; they care about what their subscription can now do for their own work. Write in plain language, define any term a non-technical owner would not know, and respect their time. Readers from larger organizations still read this: the Canadian section and Robert's own section keep the wider context for them.

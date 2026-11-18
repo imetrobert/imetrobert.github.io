@@ -85,7 +85,8 @@ def build_page(rows):
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/blog/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/blog/apple-touch-icon.png">
 <title>What changed in ChatGPT, Claude, Gemini and Copilot plans | Robert Simon</title>
 <meta name="description" content="What the ChatGPT, Claude, Gemini and Microsoft 365 Copilot plans gained or changed, month by month, with sources. Written for small businesses.">
 <meta name="author" content="Robert Simon">

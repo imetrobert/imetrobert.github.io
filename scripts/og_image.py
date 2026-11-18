@@ -67,8 +67,8 @@ def _decor(img):
     img.alpha_composite(layer)
 
 
-def build_og_image(out_path, issue_label, headline="Practical AI",
-                   subhead="for Canadian Business"):
+def build_og_image(out_path, issue_label, headline="AI with Robert",
+                   subhead="for Business"):
     """Render the card. `issue_label` fills the badge, e.g. 'AUGUST 2026'."""
     img = _gradient().convert("RGBA")
     _decor(img)
@@ -93,9 +93,9 @@ def build_og_image(out_path, issue_label, headline="Practical AI",
     d.line([80, 306, 480, 306], fill=(255, 255, 255, 150), width=2)
 
     f_body = _font(26)
-    d.text((80, 334), "Monthly AI intelligence for Canadian", font=f_body,
+    d.text((80, 334), "Monthly AI briefing for Canadian", font=f_body,
            fill=(255, 255, 255, 225))
-    d.text((80, 371), "leaders — from Montreal", font=f_body,
+    d.text((80, 371), "small businesses — from Montreal", font=f_body,
            fill=(255, 255, 255, 225))
 
     d.text((80, 440), "Robert Simon", font=_font(30, bold=True),

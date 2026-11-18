@@ -11,7 +11,7 @@ from html import escape as escape_html
 from urllib.parse import quote
 from xml.sax.saxutils import escape as escape_xml
 from bs4 import BeautifulSoup
-from utils import BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR
+from utils import BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR, publisher_jsonld
 
 SITE = "https://www.imetrobert.com"
 
@@ -234,8 +234,8 @@ def create_blog_index_html(posts):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/blog/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="/blog/apple-touch-icon.png">
     <title>{BRAND} | What Low-Cost AI Plans Can Do for Small Business | {AUTHOR}</title>
     <meta name="description" content="{BRAND}. Each month: what is new in ChatGPT, Claude, Gemini and Microsoft 365 Copilot plans, what it means for a small Canadian business, and use cases worth trying. By {AUTHOR}, Montreal.">
     <meta name="keywords" content="AI blog Canada, Canadian AI insights, AI news for Canadians, artificial intelligence Canada, AI strategy Canada, Montreal AI expert, Canadian business AI, AI adoption Canada, digital transformation Canada">
@@ -279,12 +279,7 @@ def create_blog_index_html(posts):
         "sameAs": ["https://linkedin.com/in/thedigitalrobert"],
         "address": {{"@type": "PostalAddress", "addressLocality": "Montreal", "addressRegion": "QC", "addressCountry": "CA"}}
       }},
-      "publisher": {{
-        "@type": "Person",
-        "name": "Robert Simon",
-        "url": "https://www.imetrobert.com",
-        "logo": {{"@type": "ImageObject", "url": "https://www.imetrobert.com/blog/logo-512.png", "width": 512, "height": 512}}
-      }},
+      "publisher": {publisher_jsonld()},
       "isAccessibleForFree": true
     }}
     </script>
