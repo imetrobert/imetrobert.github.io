@@ -18,7 +18,7 @@ from utils import BRAND, BRAND_SHORT, PUBLISHER_ID, PUBLISHER_NAME, PUBLISHER_UR
 
 OLD_NAMES = ("AI Insights for Canadian Business", "Practical AI for Canadian Business", "Practical AI Canada", "AI Insights Blog", "AI Insights",
              "AI News for Canadians")
-ICON_OLD = '<link rel="icon" type="image/svg+xml" href="/favicon.svg">'
+ICON_OLD = "<link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\">"
 ICON_NEW = '<link rel="icon" type="image/png" sizes="32x32" href="/blog/favicon-32x32.png">'
 APPLE_OLD = '<link rel="apple-touch-icon" href="/apple-touch-icon.png">'
 APPLE_NEW = '<link rel="apple-touch-icon" href="/blog/apple-touch-icon.png">'
