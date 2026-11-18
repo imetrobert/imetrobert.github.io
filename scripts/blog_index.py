@@ -401,7 +401,7 @@ def create_blog_index_html(posts):
             <img src="/blog/logo.svg" class="brand-logo" alt="{BRAND}" width="76" height="76">
             <h1>{BRAND}</h1>
             <p>{BRAND_TAGLINE}</p>
-            <p class="blog-tagline">by Robert Simon &mdash; Montreal, QC</p>
+            <p class="blog-tagline">by <a href="https://www.imetrobert.com/" style="color:inherit;text-decoration:underline;">Robert Simon</a> &mdash; Montreal, QC</p>
         </header>
         <section class="latest-post-section">
             <div class="latest-badge">Latest Issue</div>
