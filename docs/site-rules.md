@@ -82,6 +82,8 @@ Two marks live in this repo (changed 2026-11-17):
   aiwithrobert-biz repo (its `logo.svg` source and favicon set): `blog/logo.svg` (header 76px, nav 22px), `blog/logo-512.png` (schema logo),
   `blog/favicon-16x16.png`, `blog/favicon-32x32.png`, `blog/apple-touch-icon.png`. `scripts/renderer.py`, `blog_index.py`, `pillar_*.py` and
   `survey.py` carry the `<link rel="icon">` tags and the `.brand-logo` / `.brand-icon` CSS. If the Business logo changes, re-copy those files from that repo.
+- The homepage's two blog entry points are also Business-branded (navy + gold, Business logo): the "The Briefing" pill in the contact bar (`.blog-entry-cta`) and the Featured `#blog` section
+  (overrides at the end of `css/style.css`). Everything else on the homepage keeps the personal blue look.
 
 ## Blog colours (since 2026-11-15)
 The blog (issues, index, adoption, survey and plan-changes pages) uses the Business brand: navy #11304c (was blue #2563eb), dark gold #8a6d0b (was cyan #06b6d4; chosen over bright gold #c9a227 so white text stays readable), darker navy #0b2237, gradient midpoint #1f3b4d. The generators carry the new values; `scripts/rebrand_blog.py` (idempotent) recoloured the older pages. The personal homepage (index.html, css/style.css) and the internal review pages keep the old look on purpose. Social images made before this date stay blue.
