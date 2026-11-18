@@ -11,7 +11,7 @@ from html import escape as escape_html
 from urllib.parse import quote
 from xml.sax.saxutils import escape as escape_xml
 from bs4 import BeautifulSoup
-from utils import BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR, publisher_jsonld
+from utils import BRAND, BRAND_SHORT, BRAND_TAGLINE, AUTHOR, publisher_jsonld, feasibility_cta_html
 
 SITE = "https://www.imetrobert.com"
 
@@ -430,6 +430,7 @@ def create_blog_index_html(posts):
             <h3 class="older-posts-title">Previous Issues</h3>
             <div class="older-posts-grid">{older_html}</div>
         </section>
+        {feasibility_cta_html('blog-home')}
     </div>
     <script>
       // Share behaviour for the hero card and every archive row. One delegated

@@ -23,7 +23,7 @@ import os
 import re
 from datetime import datetime
 
-from utils import BRAND
+from utils import BRAND, feasibility_cta_html
 
 BASE = "https://www.imetrobert.com"
 OUT = "blog/canadian-ai-adoption.html"
@@ -317,6 +317,7 @@ h2.sec::before {{ content:''; position:absolute; left:0; top:0.15rem; bottom:0.1
   {groups if groups else '<p>No figures recorded yet.</p>'}
   <h2 class="sec">Questions about this data</h2>
   {faq_html}
+  {feasibility_cta_html('adoption-page')}
   <p class="updated">Regenerated automatically with each new issue. Last updated {generated}.</p>
 </div></div>
 </body>
