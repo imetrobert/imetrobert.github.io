@@ -150,8 +150,8 @@ def build_page(cfg, waves):
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/blog/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/blog/apple-touch-icon.png">
 <title>{H.escape(cfg['survey_name'])}: original survey data on Canadian AI adoption | Robert Simon</title>
 <meta name="description" content="{H.escape(lead)} Original reader survey data from {BRAND}, with methodology and sample size.">
 <meta name="author" content="Robert Simon">

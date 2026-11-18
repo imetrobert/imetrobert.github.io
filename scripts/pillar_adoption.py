@@ -166,8 +166,8 @@ def build_page(rows):
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/blog/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/blog/apple-touch-icon.png">
 <title>Canadian AI adoption statistics, tracked monthly | Robert Simon</title>
 <meta name="description" content="Every Canadian AI adoption figure tracked in {BRAND}, by month, with the source for each and a link to the issue it was reported in.">
 <meta name="author" content="Robert Simon">

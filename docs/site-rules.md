@@ -72,31 +72,16 @@ Emoji were replaced with an inline SVG icon set. **Don't reintroduce emoji into
 
 ## Brand mark
 
-One mark for the whole site: an "AI" monogram whose spark — the dot over the
-"i" — is a maple leaf, in the site's blue → cyan palette. It replaced the older
-`RS` monogram favicon (still in git history if it's ever wanted back).
+Two marks live in this repo (changed 2026-11-17):
 
-- `favicon.svg` (root) — **the site-wide favicon**, linked from the homepage,
-  the blog index and every post. Simplified cut of the logo: no texture, flat
-  white ink, heavier strokes, scaled up so it survives at 16px.
-- `apple-touch-icon.png` (root, 180px) — for platforms that won't take SVG.
-- `blog/logo.svg` — the detailed mark (with neural texture), used at 76px in
-  the blog header and 22-28px in the nav. **Deliberately a separate file** from
-  `favicon.svg` so the small size can be tuned without compromising the large
-  one — edit both if the shape changes. `blog/logo-512.png` is its raster copy.
-- Regenerate the rasters after any SVG edit:
-  `python3 -c "import cairosvg; cairosvg.svg2png(url='favicon.svg',
-  write_to='apple-touch-icon.png', output_width=180, output_height=180)"`
-- The leaf is drawn as a right half and mirrored with `<use transform="scale(-1,1)">`,
-  so it stays symmetric — edit the one path, not two.
-- Where it's wired in: `scripts/blog_index.py` (blog index) and
-  `scripts/renderer.py` (posts) carry the `<link rel="icon">` tags, the
-  `.brand-logo` / `.brand-icon` CSS, and the markup — so new posts inherit the
-  brand automatically. Already-published posts under `blog/posts/` were
-  backfilled by hand and keep their own copy of that CSS.
-- Icon paths are absolute (`/favicon.svg`), so they resolve the same from the
-  homepage and from `/blog/posts/`. Don't make them relative.
-
+- **The personal homepage (index.html)** keeps the "AI" monogram with the maple-leaf spark: `favicon.svg` (root, flat, site-wide favicon of the
+  homepage) and `apple-touch-icon.png` (root, 180px). Regenerate the raster after any SVG edit:
+  `python3 -c "import cairosvg; cairosvg.svg2png(url='favicon.svg', write_to='apple-touch-icon.png', output_width=180, output_height=180)"`.
+  Icon paths are absolute (`/favicon.svg`), so they resolve from any depth.
+- **The blog (everything under `/blog/`)** uses the AI with Robert for Business logo (bulb + speech bubble, navy and gold), copied from the
+  aiwithrobert-biz repo (its `logo.svg` source and favicon set): `blog/logo.svg` (header 76px, nav 22px), `blog/logo-512.png` (schema logo),
+  `blog/favicon-16x16.png`, `blog/favicon-32x32.png`, `blog/apple-touch-icon.png`. `scripts/renderer.py`, `blog_index.py`, `pillar_*.py` and
+  `survey.py` carry the `<link rel="icon">` tags and the `.brand-logo` / `.brand-icon` CSS. If the Business logo changes, re-copy those files from that repo.
 
 ## Blog colours (since 2026-11-15)
 The blog (issues, index, adoption, survey and plan-changes pages) uses the Business brand: navy #11304c (was blue #2563eb), dark gold #8a6d0b (was cyan #06b6d4; chosen over bright gold #c9a227 so white text stays readable), darker navy #0b2237, gradient midpoint #1f3b4d. The generators carry the new values; `scripts/rebrand_blog.py` (idempotent) recoloured the older pages. The personal homepage (index.html, css/style.css) and the internal review pages keep the old look on purpose. Social images made before this date stay blue.

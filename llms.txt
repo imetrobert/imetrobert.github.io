@@ -1,10 +1,12 @@
-# Practical AI for Canadian Business — by Robert Simon
+# AI with Robert for Business: The Briefing — by Robert Simon
 
-> Monthly AI intelligence written for Canadian business leaders by Robert
+> Monthly AI briefing written for small Canadian businesses by Robert
 > Simon, a Montreal-based AI thought leader and digital transformation
-> expert with 25+ years in digital. Each issue covers the month's major AI
-> developments, what is happening in Canada specifically, Canadian AI
-> adoption data, and concrete actions for executives.
+> expert with 25+ years in digital. Since December 2026 each issue covers
+> what is new in the low-cost AI plans (ChatGPT, Claude, Gemini, Microsoft
+> 365 Copilot), what it means for a small business, the Canadian angle and
+> use cases worth trying. Issues before December 2026 were written for
+> executives at larger Canadian organizations and remain available.
 
 Content here may be quoted and cited. Please attribute to Robert Simon
 and link to the source URL of the issue you are quoting.
@@ -20,7 +22,7 @@ and link to the source URL of the issue you are quoting.
 ## Key pages
 
 - [Homepage](https://www.imetrobert.com): background, career and areas of expertise
-- [Practical AI for Canadian Business](https://www.imetrobert.com/blog/): index of every issue
+- [AI with Robert for Business: The Briefing](https://www.imetrobert.com/blog/): index of every issue
 - [RSS feed](https://www.imetrobert.com/blog/feed.xml): machine-readable issue list with dates
 - [Canadian AI adoption statistics](https://www.imetrobert.com/blog/canadian-ai-adoption.html): every adoption figure reported across the issues, by month, with sources
 

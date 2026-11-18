@@ -668,29 +668,23 @@ Details worth knowing before changing it:
 
 ### Brand — one definition in `utils.py`
 
-`BRAND` ("Practical AI for Canadian Business"), `BRAND_SHORT`
-("Practical AI Canada"), `BRAND_TAGLINE` and `AUTHOR` live in `utils.py` and are
-imported by every generator. **Never hardcode the publication name.**
+Since 2026-11-17 the blog is published by the Business brand. `BRAND` ("AI with Robert for Business: The Briefing"), `BRAND_SHORT`
+("AI with Robert for Business"), `BRAND_TAGLINE`, `AUTHOR` and the publisher constants (`PUBLISHER_NAME`, `PUBLISHER_ID` =
+`https://biz.aiwithrobert.com/#business`, `PARENT_ID` = the hub's organization id, `publisher_jsonld()`) live in `utils.py` and are imported
+by every generator. **Never hardcode the publication name.** The blog stays at www.imetrobert.com/blog/ (moving it to the Business domain
+was considered and deferred: GitHub Pages has no real redirects). The personal homepage (index.html, css/style.css, /favicon.svg) keeps its own look.
 
-Before this existed the publication answered to four names across its own
-surfaces — "AI Insights for Canadian Business" in the feed and post nav,
-"AI Insights Blog" in the h1 and breadcrumbs, "AI News for Canadians | Monthly
-AI Insights Blog" in the index title, and "Robert Simon - AI Innovation" as
-`og:site_name` on every share. Nothing enforced agreement, so they drifted one
-edit at a time.
-
-- `BRAND_SHORT` is a space alias, not a second brand — nav bars, breadcrumbs and
-  the post SEO title, where 34 characters does not fit. The post SEO title is
-  already past Google's ~60-character cut, so the short form there buys the
-  headline room rather than protecting the brand.
-- The social card (`og_image.py`) sets the name as a two-line lockup:
-  `headline="Practical AI"` over `subhead="for Canadian Business"`.
-- **The archive was deliberately not backfilled.** Posts under `blog/posts/`
-  keep the old name in their nav and `og:site_name`; only new issues carry the
-  new one. `blog/index.html`, `feed.xml`, `llms.txt`, `sitemap.xml` and the
-  pillar page are all regenerated, so those flipped on the next run. Some old
-  issues also contain the old name inside their own body copy — that is
-  historical text, not branding, and is correct to leave.
+- `BRAND_SHORT` is a space alias, not a second brand (nav bars, breadcrumbs, the post SEO title).
+- Logo and icons for blog pages are the Business logo: `blog/logo.svg`, `blog/logo-512.png`, `blog/favicon-16x16.png`, `blog/favicon-32x32.png`,
+  `blog/apple-touch-icon.png` (copied from the aiwithrobert-biz repo; `blog/og-blog.jpg` is that site's share card). Pages link `/blog/favicon-32x32.png`,
+  not `/favicon.svg`. The social card (`og_image.py`) is the lockup `headline="AI with Robert"` over `subhead="for Business"`.
+- Issues, the index and the pillar pages name AI with Robert for Business as schema.org `publisher` (Organization, same `@id` as the Business site);
+  Robert Simon stays the `author` (Person, same `@id` as everywhere else).
+- Prompts (`gemini.py`, `linkedin_post.py`) use `{BRAND}`; the LinkedIn promo audience is unchanged (the Business site's small-business owners).
+- **The archive WAS re-branded** (reverse of the earlier rule) by `scripts/rebrand_blog_biz.py` (idempotent): favicon links, `og:site_name`, the nav
+  name, the logo alt text, the breadcrumb and the publisher in the JSON-LD. Issue titles, headlines and body copy are historical text and were left alone.
+  Run it again after any change to `BRAND`, `BRAND_SHORT` or the publisher.
+- Traffic tags stay `imetrobert-blog/...` so the toolkit's "Where leads come from" keeps working.
 
 ### Sharing — always the permalink, never `latest.html`
 

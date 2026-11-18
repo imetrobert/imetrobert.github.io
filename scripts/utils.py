@@ -22,10 +22,26 @@ from datetime import datetime
 # characters and does not fit a nav bar or a breadcrumb on a phone; it is a
 # space-constrained alias, not a second brand.
 # ---------------------------------------------------------------------------
-BRAND         = "Practical AI for Canadian Business"
-BRAND_SHORT   = "Practical AI Canada"
+BRAND         = "AI with Robert for Business: The Briefing"
+BRAND_SHORT   = "AI with Robert for Business"
 BRAND_TAGLINE = "What your AI subscription can do now, and what to try next"
 AUTHOR        = "Robert Simon"
+
+# The blog is published by the Business brand (since 2026-11-17). The Organization @id is the one on
+# biz.aiwithrobert.com, so search and AI engines join the blog to that site; the parent is the hub.
+PUBLISHER_NAME = "AI with Robert for Business"
+PUBLISHER_ID   = "https://biz.aiwithrobert.com/#business"
+PUBLISHER_URL  = "https://biz.aiwithrobert.com/"
+PARENT_ID      = "https://aiwithrobert.com/#organization"
+
+
+def publisher_jsonld(indent="      "):
+    """The schema.org publisher object (Organization) used by every issue, the index and the pillar pages."""
+    pad = indent + "  "
+    return (
+        '{\n' + pad + '"@type": "Organization",\n' + pad + '"@id": "%s",\n' % PUBLISHER_ID + pad + '"name": "%s",\n' % PUBLISHER_NAME
+        + pad + '"url": "%s",\n' % PUBLISHER_URL + pad + '"parentOrganization": {"@id": "%s"},\n' % PARENT_ID
+        + pad + '"logo": {"@type": "ImageObject", "url": "https://www.imetrobert.com/blog/logo-512.png", "width": 512, "height": 512}\n' + indent + '}')
 
 
 # ---------------------------------------------------------------------------
