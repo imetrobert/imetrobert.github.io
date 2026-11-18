@@ -60,6 +60,23 @@ The full wording lives in `scripts/runlog.py` (CATALOGUE). `python3 scripts/runl
   - Card missing or "Build the promo kit" shown: the build failed or has not run (the approve still succeeded). Run **Promo kit** with the post filename; error code PROMO_REJECTED means a rule was broken twice (the DETAIL line names it).
 - **Reply helper** (card "Reply to a comment"; `scripts/reply_helper.py`, `reply-helper.yml`, `blog/staging/reply.json`): paste a LinkedIn comment, get 3 reply options in about 2 minutes. Same error code.
 
+## After the Business rebrand: what the first new issue should look like (checklist for the Dec 1 2026 run)
+
+The blog became "AI with Robert for Business: The Briefing" on 2026-11-17 (see "Brand" in docs/blog-pipeline.md). Offline tests pass, but the first live issue
+is the real test. After the issue is staged (preview page) and again after Approve, check:
+
+1. Preview page: the issue header shows the Business bulb-and-speech-bubble logo, navy and gold colours and the name above. Nothing says "Practical AI" or "AI Insights".
+2. The issue's browser tab icon is the Business logo (file `/blog/favicon-32x32.png`), not the old "AI" tile.
+3. Social card: open `https://www.imetrobert.com/blog/og/<the issue file name>.jpg`. It must show the pale-blue card with the Business logo, the month in a navy badge and
+   "AI with Robert / for Business / The Briefing". A blue gradient card means `scripts/og_image.py` fell back or an old file is cached (LinkedIn caches previews: use LinkedIn Post Inspector).
+4. The end-of-issue box is the navy "Get a free feasibility check" button; its link must contain `utm_source=imetrobert-blog&utm_campaign=issue-YYYY-MM#feas-check`.
+5. `blog/index.html`: the latest-issue card shows the new issue; the header says the new name; the byline "Robert Simon" links to imetrobert.com; a feasibility-check box sits under Previous Issues.
+6. The Business site's "The Briefing" section (biz.aiwithrobert.com, #insights) names the new issue after its daily sync (09:41 UTC) or after Actions > "Sync insights" > Run workflow in imetrobert/aiwithrobert-biz.
+7. LinkedIn draft and promo kit on the nothing-pending page mention the new name, not "Practical AI".
+
+If any of 1 to 4 is wrong on a new issue only, the cause is in code: `scripts/utils.py` (BRAND, BRAND_SHORT, publisher_jsonld), `renderer.py`, `og_image.py`. If it is wrong on OLD issues only, run
+`python3 scripts/rebrand_blog_biz.py` (safe to repeat; never touches post bodies), then regenerate the index and the social cards (docs/blog-pipeline.md "Brand").
+
 ## Step 3: tests (run before and after any code change)
 `python3 -W ignore scripts/test_pipeline.py` (redraft path with a stubbed Gemini: good drafts, junk, too short, copies, malformed, retries,
 rollback, run log), `python3 -W ignore scripts/test_rollback.py`, `python3 -W ignore scripts/test_linkedin.py`, `python3 -W ignore scripts/test_promo.py` and `python3 scripts/test_model_scout.py`. Both are offline and take seconds. The **Blog tests** workflow runs them
