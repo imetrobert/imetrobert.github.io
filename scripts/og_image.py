@@ -22,6 +22,11 @@ WIDTH, HEIGHT = 1200, 630          # LinkedIn/OG large-card spec (1.91:1)
 C0 = (17, 48, 76)                  # #11304c navy
 C1 = (31, 59, 77)                  # #1f3b4d
 C2 = (138, 109, 11)                # #8a6d0b dark gold
+BG = (239, 246, 255)               # #eff6ff, the Business share-card ground
+NAVY = C0
+GOLD = (201, 162, 39)              # #c9a227
+GOLD_TEXT = C2
+GREY = (75, 85, 99)
 
 _FONT_DIRS = (
     "/usr/share/fonts/truetype/liberation/LiberationSans-{}.ttf",
@@ -69,47 +74,34 @@ def _decor(img):
 
 def build_og_image(out_path, issue_label, headline="AI with Robert",
                    subhead="for Business"):
-    """Render the card. `issue_label` fills the badge, e.g. 'AUGUST 2026'."""
-    img = _gradient().convert("RGBA")
-    _decor(img)
+    """Render the card in the Business site's share-card style: pale blue ground, the Business logo
+    on the left, navy and gold text on the right. `issue_label` fills the badge, e.g. 'AUGUST 2026'."""
+    img = Image.new("RGBA", (WIDTH, HEIGHT), BG + (255,))
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    logo = Image.open(os.path.join(here, "blog", "logo-512.png")).convert("RGBA")
+    logo = logo.resize((380, 380), Image.LANCZOS)
+    img.alpha_composite(logo, (95, 125))
     d = ImageDraw.Draw(img)
+    x = 540
 
-    # --- badge: the pill that used to be empty ---------------------------
     label = (issue_label or "").upper().strip()
     if label:
         f_badge = _font(21, bold=True)
-        # Pillow has no letter-spacing, so space the glyphs manually — at this
-        # size the tracking is what makes it read as a label, not a word.
         spaced = " ".join(label)
         tw = d.textlength(spaced, font=f_badge)
-        pad_x, pad_y, x0, y0 = 22, 11, 80, 74
-        d.rounded_rectangle([x0, y0, x0 + tw + pad_x * 2, y0 + 21 + pad_y * 2],
-                            radius=24, fill=(255, 255, 255, 235))
-        d.text((x0 + pad_x, y0 + pad_y - 2), spaced, font=f_badge, fill=C0)
+        pad_x, pad_y, y0 = 22, 11, 118
+        d.rounded_rectangle([x, y0, x + tw + pad_x * 2, y0 + 21 + pad_y * 2], radius=24, fill=NAVY)
+        d.text((x + pad_x, y0 + pad_y - 2), spaced, font=f_badge, fill=GOLD)
 
-    # --- masthead --------------------------------------------------------
-    d.text((80, 143), headline, font=_font(78, bold=True), fill=(255, 255, 255))
-    d.text((80, 238), subhead, font=_font(40, bold=True), fill=(255, 255, 255))
-    d.line([80, 306, 480, 306], fill=(255, 255, 255, 150), width=2)
-
-    f_body = _font(26)
-    d.text((80, 334), "Monthly AI briefing for Canadian", font=f_body,
-           fill=(255, 255, 255, 225))
-    d.text((80, 371), "small businesses — from Montreal", font=f_body,
-           fill=(255, 255, 255, 225))
-
-    d.text((80, 440), "Robert Simon", font=_font(30, bold=True),
-           fill=(255, 255, 255))
-    d.text((80, 487), "AI Thought Leader   •   Montreal, QC", font=_font(24),
-           fill=(255, 255, 255, 225))
-
-    f_dom = _font(26)
-    dom = "imetrobert.com"
-    d.text((WIDTH - 80 - d.textlength(dom, font=f_dom), 570), dom, font=f_dom,
-           fill=(255, 255, 255, 235))
+    d.text((x, 195), headline, font=_font(78, bold=True), fill=NAVY)
+    d.text((x, 295), subhead, font=_font(48, bold=True), fill=GOLD_TEXT)
+    d.text((x, 365), "The Briefing", font=_font(34, bold=True), fill=NAVY)
+    d.text((x, 420), "What your AI plan can do now,", font=_font(26), fill=GREY)
+    d.text((x, 455), "and what to try next", font=_font(26), fill=GREY)
+    d.text((x, 520), "by Robert Simon   \u2022   imetrobert.com/blog", font=_font(24), fill=GREY)
 
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
-    img.convert("RGB").save(out_path, "JPEG", quality=88, optimize=True)
+    img.convert("RGB").save(out_path, "JPEG", quality=90, optimize=True)
     return out_path
 
 
