@@ -90,7 +90,8 @@
         '<input id="awr-e" type="email" autocomplete="username" autocapitalize="off" autocorrect="off" placeholder="Email" style="width:100%;padding:.6rem;margin-bottom:.5rem;border:1px solid #cbd5e1;border-radius:8px;font-size:16px">' +
         '<input id="awr-p" type="password" autocomplete="current-password" placeholder="Password" style="width:100%;padding:.6rem;margin-bottom:.6rem;border:1px solid #cbd5e1;border-radius:8px;font-size:16px">' +
         '<button id="awr-go" type="submit" style="width:100%;padding:.65rem;border:0;border-radius:10px;background:#2563eb;color:#fff;font:600 15px system-ui">Sign in</button>' +
-        '<p id="awr-m" role="status" style="margin:.7rem 0 0;color:#b91c1c;font-size:.85rem;min-height:1.2em"></p></form>';
+        '<p id="awr-m" role="status" style="margin:.7rem 0 0;color:#b91c1c;font-size:.85rem;min-height:1.2em"></p>' +
+        '<p style="margin:.4rem 0 0;color:#64748b;font-size:.8rem">Need an account or access? Email <a href="mailto:robert@imetrobert.com?subject=Access%20request%3A%20Blog%20review%20pages&body=Hi%20Robert%2C%0A%0AI%20would%20like%20an%20account%20or%20access%20to%20Blog%20review%20pages%20%28https%3A%2F%2Fwww.imetrobert.com%2Fblog%2Fstaging%2F%29.%0A%0AMy%20name%3A%20%0AMy%20email%20address%3A%20%0A%0AThank%20you" style="color:#2563eb">robert@imetrobert.com</a> and Robert will send you a link to register.</p></form>';
       document.body.appendChild(g);
       g.querySelector("form").onsubmit = function (ev) {
         ev.preventDefault();
