@@ -1,5 +1,21 @@
 # Blog pipeline — detailed rules (moved verbatim from CLAUDE.md)
 
+**Index: this file is long (about 750 lines). Do not read it whole. Find the section with `grep -n "^##" docs/blog-pipeline.md`, then read only that range.**
+
+| If the task is about | Read the section |
+|---|---|
+| Audience, topics, what to cover | Audience and focus since the December 2026 issue |
+| Post layout, files a post is made of | The issue structure is a three-file contract |
+| The "From Robert's Desk" section | `From Robert's Desk` |
+| Rewriting one section | Redrafting one section |
+| Changing the Gemini model | Adopting a new Gemini model without a code change; Gemini quota |
+| Approval page behaviour | The approval page must never reload itself; Preview page tracks the real GitHub run |
+| Wrong headline, duplicated issue, bad dates | The headline sections; The model sometimes writes the issue twice; Dates |
+| Sources and brands | Sources, an allowlist; Canadian Spotlight; Brand |
+| Sharing and LinkedIn | Sharing; LinkedIn promotion draft; Promo kit and reply helper |
+| Undoing a published issue | Rolling back a published issue and rerunning it |
+
+
 Read only the subsection you are about to change: `grep -n '^### ' docs/blog-pipeline.md` for the list, then read that range.
 
 ## `blog/` — do NOT hand-edit posts
