@@ -50,6 +50,8 @@ JSON-LD blocks (Person/Blog/WebSite schemas, top of `<head>`) are already
 pretty-printed one field per line — safe to copy/paste just the field you
 need.
 
+Recipes for the usual homepage edits (phone, bio, awards, styling, images): `docs/common-edits.md` (open it first).
+
 ## Something went wrong? Read `docs/DIAGNOSE.md` first
 Run Actions > **Blog health report** (or `python3 scripts/diagnose.py`) and paste the summary: failures come with a plain
 error code and next step from `blog/staging/run-log.json`. Tests: `python3 -W ignore scripts/test_pipeline.py` and
