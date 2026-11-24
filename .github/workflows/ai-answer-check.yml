@@ -1,0 +1,47 @@
+name: AI answer check (is Robert named in AI answers?)
+
+# Monthly, and on demand. Asks Gemini (with Google Search) the questions clients would ask and records whether
+# aiwithrobert.com / imetrobert.com are named or cited in ops/ai-answer-log.json. Only Gemini is checked.
+# The weekly health check in aiwithrobert-root fails if no run happened in 45 days. See scripts/ai_answer_check.py.
+on:
+  schedule:
+    - cron: '17 14 3 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Same group as the rest of the pipeline: never overlaps a generation, so the shared Gemini request ledger is not raced.
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+      - name: Ask the questions
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 scripts/ai_answer_check.py
+      - name: Commit and push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "AI answer check"
+          git add ops/
+          if git diff --staged --quiet; then echo "No changes"; else
+            git commit -m "AI answer check: monthly results"
+            bash scripts/git_push_retry.sh
+          fi
