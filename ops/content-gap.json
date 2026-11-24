@@ -1,0 +1,27 @@
+{
+ "suggestions": [
+  {
+   "title": "Navigating Sovereign AI: Data Control for Canadian Small Businesses",
+   "question": "How does sovereign AI affect my small business data in Canada?",
+   "why": "This guide addresses the critical need for Canadian small businesses to understand and control their data when using AI, amidst national investments and growing security concerns.",
+   "outline": [
+    "What 'Sovereign AI' means for your business data",
+    "Understanding data residency and control with AI tools",
+    "Risks of third-party AI agents and data sharing",
+    "Practical steps for securing your business data with AI",
+    "Choosing AI tools that respect Canadian data principles"
+   ],
+   "link_to": "platforms",
+   "faq": [
+    "Does using a Canadian AI tool guarantee data security?",
+    "What questions should I ask AI vendors about data privacy?"
+   ],
+   "issue": "2026-11-02-ottawa-commits-16b-to-cohere-for-sovereign-ai-what-it-means-for.html",
+   "date": "2026-11-24",
+   "weak_questions": [
+    "free AI feasibility check for a small business in Canada",
+    "monthly briefing on what low-cost AI plans can do for small Canadian businesses"
+   ]
+  }
+ ]
+}
