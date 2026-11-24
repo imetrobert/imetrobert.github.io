@@ -1,0 +1,102 @@
+name: Ping IndexNow
+
+# WHY THIS EXISTS
+# ───────────────
+# Submitting the site to search engines is normally a waiting game: you publish,
+# then hope a crawler comes back. IndexNow inverts that — it tells participating
+# engines "this URL changed, come re-crawl it now" the moment a change ships.
+#
+# This matters specifically for AI answer engines. ChatGPT's search retrieval
+# leans heavily on Bing's index, and Bing is an IndexNow participant (so are
+# Yandex, Seznam and Naver). A page Bing hasn't indexed is a page ChatGPT
+# effectively cannot cite. Pinging on every content push is the fastest
+# supported way to close that gap.
+#
+# Auth is the key file at the site root (7c852e0791632d306ad4d568d2a1d191.txt).
+# The engine fetches it and checks the contents match the submitted key — so the
+# key file MUST stay published and MUST contain exactly the key, nothing else.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'sitemap.xml'
+      - 'llms.txt'
+      - 'blog/index.html'
+  # Publishing workflows commit with GITHUB_TOKEN, which does not trigger push
+  # workflows, so also run after the ones that change published posts.
+  workflow_run:
+    workflows: ["Approve blog", "Rollback blog", "Regenerate blog", "Rebuild blog index"]
+    types: [completed]
+  workflow_dispatch:
+
+# Never let two submissions race; a stale ping is worse than a skipped one.
+concurrency:
+  group: indexnow
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Submit changed URLs to IndexNow
+        run: |
+          set -euo pipefail
+
+          KEY="7c852e0791632d306ad4d568d2a1d191"
+          HOST="www.imetrobert.com"
+
+          # Confirm the key file is actually reachable before submitting: the
+          # engine fetches it to authenticate us, so a 404 means the submission
+          # is rejected anyway, and failing loudly here is far easier to
+          # diagnose than silent non-indexing weeks later.
+          #
+          # This job starts on push, but GitHub Pages needs a minute or three to
+          # publish that same commit — so we are racing our own deploy, and on
+          # the very first run the key file has never been served at all. Hence
+          # a real polling loop rather than curl --retry, which does not retry
+          # 404s (only 408/429/5xx) and would give up instantly here.
+          echo "Waiting for key file at https://${HOST}/${KEY}.txt ..."
+          PUBLISHED=""
+          for attempt in $(seq 1 20); do
+            PUBLISHED=$(curl -fsS "https://${HOST}/${KEY}.txt" 2>/dev/null || true)
+            if [ "$PUBLISHED" = "$KEY" ]; then
+              echo "Key file OK (attempt ${attempt})."
+              break
+            fi
+            echo "  attempt ${attempt}/20: not served yet, retrying in 15s"
+            sleep 15
+          done
+
+          if [ "$PUBLISHED" != "$KEY" ]; then
+            echo "::error::Key file never became available at https://${HOST}/${KEY}.txt"
+            echo "::error::after 5 minutes. Expected '${KEY}', last saw '${PUBLISHED}'."
+            echo "::error::Check that GitHub Pages published the file to the site root."
+            exit 1
+          fi
+
+          # Built with printf rather than a heredoc on purpose: this step is
+          # indented inside YAML, and an indented heredoc terminator does not
+          # close the heredoc (<<- strips tabs only, never spaces).
+          # Every URL in sitemap.xml (home, blog index, every post) plus llms.txt.
+          # python3 -c on one line, not a heredoc, to stay safe inside YAML indentation.
+          BODY=$(HOST="$HOST" KEY="$KEY" python3 -c 'import json,os,re;h=os.environ["HOST"];k=os.environ["KEY"];u=re.findall(r"<loc>([^<]+)</loc>",open("sitemap.xml",encoding="utf-8").read());u.append("https://%s/llms.txt"%h);print(json.dumps({"host":h,"key":k,"keyLocation":"https://%s/%s.txt"%(h,k),"urlList":u}))')
+
+          echo "Submitting to IndexNow..."
+          CODE=$(curl -sS -o /tmp/indexnow.out -w '%{http_code}' \
+            -X POST "https://api.indexnow.org/indexnow" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            --data "$BODY")
+
+          echo "HTTP $CODE"
+          cat /tmp/indexnow.out || true
+
+          # 200 = accepted, 202 = accepted but key still being validated.
+          case "$CODE" in
+            200|202) echo "IndexNow submission accepted." ;;
+            *) echo "::error::IndexNow rejected the submission (HTTP $CODE)"; exit 1 ;;
+          esac
