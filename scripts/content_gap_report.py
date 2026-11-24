@@ -87,7 +87,7 @@ def main():
         print("GEMINI_API_KEY is not set")
         return 1
     from gemini import _call_gemini
-    d = generate(lambda p: _call_gemini(key, p, 2000, temperature=0.6, use_search=False, min_chars=100)["content"])
+    d = generate(lambda p: _call_gemini(key, p, 8000, temperature=0.6, use_search=False, min_chars=100, reject_truncated=True)["content"])
     log = {"suggestions": []}
     if os.path.exists(OUT):
         try:
