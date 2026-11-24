@@ -63,7 +63,7 @@ def generate(comment, filename="", call=None):
         context = f"{title}\n{text[:3500]}"
     prompt = build_prompt(comment, context or "(none)")
     err = None
-    for _ in range(2):
+    for _ in range(3):
         raw = call(prompt)
         try:
             replies = parse(raw)
