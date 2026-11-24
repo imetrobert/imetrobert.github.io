@@ -199,7 +199,7 @@ def parse_drip(raw, filename):
 
 def _attempt(prompt, parse, call):
     err = None
-    for _ in range(2):
+    for _ in range(3):
         raw = call(prompt)
         try:
             return parse(raw)

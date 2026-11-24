@@ -152,7 +152,7 @@ def generate(filename, feedback="", call=None):
         call = lambda p: _call_gemini(key, p, 8000, temperature=0.8, use_search=False, min_chars=300, reject_truncated=True)["content"]
     raw, post, comment = None, None, None
     last_err = None
-    for _ in range(2):                           # one retry on a bad format
+    for _ in range(3):                           # two retries on a bad format
         raw = call(prompt)
         try:
             post, comment = parse(raw, link)
