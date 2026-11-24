@@ -44,6 +44,10 @@ TARGETS = {
                 "comparing ChatGPT, Gemini and Copilot for a small business"),
     "subs": ("articles", "get-more-from-your-ai-subscriptions", "tirer-plus-de-vos-abonnements-ia",
              "getting more from the AI subscriptions a business already pays for"),
+    "feasibility": ("articles", "free-ai-feasibility-check-small-business", "verification-faisabilite-ia-gratuite-petite-entreprise",
+                    "the free feasibility check: whether the AI plan a business already has can do a given job"),
+    "briefing": ("articles", "monthly-ai-briefing-small-canadian-businesses", "breve-mensuelle-ia-petites-entreprises-canadiennes",
+                 "The Briefing: a monthly issue on what low-cost AI plans can do for small Canadian businesses"),
 }
 
 OWN_DATA = re.compile(r"\b(my|our) (analytics|clients?|customers|data|research|surveys?|findings|numbers)\b|\bI(?:'ve| have) seen\b|\bwe (?:found|measured|saw)\b|\b(mes|nos) (clients?|donn[ée]es|analyses|sondages)\b|\bj'ai (?:vu|constat[ée])\b", re.I)
