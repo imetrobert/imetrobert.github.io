@@ -38,3 +38,5 @@ jobs:
         run: python3 -W ignore scripts/test_promo.py
       - name: AI answer check tests
         run: python3 scripts/test_ai_answer_check.py
+      - name: Content gap report tests
+        run: python3 scripts/test_content_gap_report.py
