@@ -195,6 +195,7 @@ def build_page(rows):
   "@type": "Article",
   "headline": "Canadian AI adoption statistics, tracked monthly",
   "description": "Every Canadian AI adoption figure tracked in {BRAND}, by month, with the source for each.",
+  "datePublished": "2026-11-17",
   "dateModified": "{datetime.now().strftime('%Y-%m-%d')}",
   "author": {{
     "@type": "Person",
