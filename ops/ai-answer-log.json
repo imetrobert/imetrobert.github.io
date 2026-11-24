@@ -1,0 +1,81 @@
+{
+ "runs": [
+  {
+   "date": "2026-11-24",
+   "results": [
+    {
+     "q": "AI tutor for seniors in Côte Saint-Luc, Montreal",
+     "named": true,
+     "cited": true,
+     "sources": [
+      "aiwithrobert.com",
+      "aiwithrobert.com",
+      "itcares.ca",
+      "itcares.ca",
+      "senior-tech.ca"
+     ]
+    },
+    {
+     "q": "AI training for small businesses in Montreal",
+     "named": true,
+     "cited": true,
+     "sources": [
+      "zenidata.ai",
+      "rushanet.com",
+      "aiwithrobert.com",
+      "itsabdulbuilds.com",
+      "fournia.net"
+     ]
+    },
+    {
+     "q": "who is Robert Simon, AI thought leader in Montreal",
+     "named": true,
+     "cited": true,
+     "sources": [
+      "aiwithrobert.com",
+      "aiwithrobert.com",
+      "imetrobert.com",
+      "imetrobert.com",
+      "mlarteka.com"
+     ]
+    },
+    {
+     "q": "free AI feasibility check for a small business in Canada",
+     "named": false,
+     "cited": false,
+     "sources": [
+      "answerflowai.net",
+      "genaicanada.ca",
+      "alexic.ca",
+      "alexic.ca",
+      "itf1rst.ca"
+     ]
+    },
+    {
+     "q": "formation en IA pour les aînés à Montréal",
+     "named": true,
+     "cited": true,
+     "sources": [
+      "aiwithrobert.com",
+      "danaipro.com",
+      "ivado.ca",
+      "umontreal.ca",
+      "akademia.ai"
+     ]
+    },
+    {
+     "q": "monthly briefing on what low-cost AI plans can do for small Canadian businesses",
+     "named": false,
+     "cited": false,
+     "sources": [
+      "ridegellconsulting.com",
+      "northboundadvisory.com",
+      "mila.quebec",
+      "omago.ai",
+      "theharrispoll.com"
+     ]
+    }
+   ]
+  }
+ ]
+}
