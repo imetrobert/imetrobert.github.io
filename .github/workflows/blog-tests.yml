@@ -36,3 +36,5 @@ jobs:
         run: python3 -W ignore scripts/test_linkedin.py
       - name: Promo kit and reply helper tests
         run: python3 -W ignore scripts/test_promo.py
+      - name: AI answer check tests
+        run: python3 scripts/test_ai_answer_check.py
