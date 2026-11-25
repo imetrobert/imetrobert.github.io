@@ -117,5 +117,16 @@
   "message": "Finished normally.",
   "next": "",
   "detail": "Promo kit ready for 2026-11-02-ottawa-commits-16b-to-cohere-for-sovereign-ai-what-it-means-for.html"
+ },
+ {
+  "at": "2026-11-25T13:12:16Z",
+  "run": "45619333132",
+  "kind": "regenerate",
+  "status": "ok",
+  "code": "OK",
+  "message": "Finished normally.",
+  "next": "",
+  "detail": "generated staging for November 2026",
+  "month": "November 2026"
  }
 ]
