@@ -510,6 +510,8 @@ def _build_monthly_prompt(month_year, prev_month, is_backfill=False, today=None)
 AUDIENCE
 Owners and small teams (1 to 20 people) of Canadian small businesses and professional practices: accountants, advisors, clinics, trades, agencies, shops, consultants. Most already pay about $30 a month per person for ChatGPT, Claude, Gemini or Microsoft 365 Copilot, or are deciding whether to. They have no IT department and no time. They do not care about the AI industry; they care about what their subscription can now do for their own work. Write in plain language, define any term a non-technical owner would not know, and respect their time. Readers from larger organizations still read this: the Canadian section and Robert's own section keep the wider context for them.
 
+THE STEP THIS ISSUE SERVES: these readers already believe AI can help and already use prompts. What they lack is the step from a one-off prompt to a workflow: a job they run the same way every week, with a trigger, an input, an output and a person who checks it. Let that lens shape what you choose to emphasise and how you frame each item, in plain words. Do not teach the steps and do not lecture; the point is that the reader starts to see their own recurring tasks as workflows.
+
 {rules}"""
 
 
@@ -519,6 +521,8 @@ def _build_custom_prompt(topic, month_year, prev_month, is_backfill=False, today
 
 AUDIENCE
 Owners and small teams (1 to 20 people) of Canadian small businesses and professional practices: accountants, advisors, clinics, trades, agencies, shops, consultants. Most already pay about $30 a month per person for ChatGPT, Claude, Gemini or Microsoft 365 Copilot, or are deciding whether to. They have no IT department and no time. They do not care about the AI industry; they care about what their subscription can now do for their own work. Write in plain language, define any term a non-technical owner would not know, and respect their time. Readers from larger organizations still read this: the Canadian section and Robert's own section keep the wider context for them.
+
+THE STEP THIS ISSUE SERVES: these readers already believe AI can help and already use prompts. What they lack is the step from a one-off prompt to a workflow: a job they run the same way every week, with a trigger, an input, an output and a person who checks it. Let that lens shape what you choose to emphasise and how you frame each item, in plain words. Do not teach the steps and do not lecture; the point is that the reader starts to see their own recurring tasks as workflows.
 
 CONTENT FOCUS DIRECTIVE:
 {topic}
@@ -650,7 +654,11 @@ the pattern behind the news, not the news.
 At least one paragraph must draw on how technology adoption really goes, applied to
 a small team: the tool gets bought and not used, the owner is the bottleneck,
 nobody writes down how the work is done, habit beats features, and the gap between
-a clever demo and a job that runs every week. Where it helps, contrast it with how
+a clever demo and a job that runs every week. At least one paragraph must also name the gap between prompting and a workflow:
+a good prompt gets a good answer once, while a workflow is the same job written
+down so it runs the same way every week, with a trigger, an output and someone who
+checks it. Say why owners stall at the prompt stage and what changes when they
+stop. Keep it general; no steps. Where it helps, contrast it with how
 large organizations get this wrong, because a small business can skip those
 mistakes. Obey the HARD CONSTRAINT above: patterns that are broadly true, never
 invented specifics, never a client story, never a named or implied employer.
@@ -1032,7 +1040,7 @@ CRITICAL TEASER RULE: Describe the job and the benefit, never the method. No ste
 Use this EXACT format — copy the label words precisely, including the
 capitalisation and the full stops (fixed labels; their meaning here is below):
 
-1. [Use case, 2 sentences. Starts with a strong verb, names a kind of small business and the specific weekly job, names the feature it relies on, and says what it saves or removes.] OWNER: [Who in a small business] — [one sentence: why this person and not the obvious alternative]. PRIORITY: [High or Medium or Low]. EFFORT: [Small or Medium or Large]. IMPACT: [Low or Medium or High].
+1. [Use case, 2 sentences. Starts with a strong verb, names a kind of small business and the specific recurring job, names the feature it relies on, names what sets it off ("every Friday", "each new client enquiry") and the finished output it produces, and says what it saves or removes.] OWNER: [Who in a small business] — [one sentence: why this person and not the obvious alternative]. PRIORITY: [High or Medium or Low]. EFFORT: [Small or Medium or Large]. IMPACT: [Low or Medium or High].
 
 What the labels mean here:
 - OWNER = who in a small business should try it.
@@ -1047,6 +1055,7 @@ Each use case must:
 - Name the specific feature or development it relies on
 - Include a time frame (this week / before month-end / before the busy season)
 - Be 2 sentences before the OWNER label
+- Describe a job that repeats (with its trigger and finished output), never a one-off task
 
 OWNER rules:
 - Pick from: Owner, Office manager, Bookkeeper, Practice manager, Whoever answers client email, Sales lead, Marketing lead, Operations lead, Front desk, Senior technician
