@@ -1034,6 +1034,14 @@ Then list every news event in CANADIAN SPOTLIGHT (by topic, one line each).
 Compare the two lists. If ANY topic appears in both lists — even described with different words — you MUST go back and replace the duplicate in CANADIAN SPOTLIGHT with a genuinely different Canadian news item before continuing.
 Only continue once every item across both sections is a unique, non-overlapping news event.
 
+NO REPETITION ACROSS THE ISSUE: a reader sees every section on one page, so the same story told twice makes the issue feel thin. Give each development ONE home. The lead feature may be the subject of at most TWO sections in the whole issue (its own item, plus at most one use case or one passing mention); every other section must be built on different material.
+- EXECUTIVE SUMMARY: three conclusions from three different items; do not restate the same feature three ways.
+- WORTH TRYING: three use cases that rely on three DIFFERENT features or developments, and at most one of them may rely on the lead feature.
+- FROM ROBERT'S DESK: argues the pattern behind the news with at most two named items and never re-explains what a feature does (the reader has just read it).
+- LOOKING AHEAD and ONE QUESTION: new ground only; no feature already described above may be re-described, and the question must not paraphrase a conclusion already drawn.
+- Do not reuse the same example, figure, phrase or business type in two sections.
+Before finishing, scan the whole issue for any sentence that tells the reader something an earlier section already told them, and replace it with something new or delete it.
+
 {_SPEC_ROBERTS_DESK}
 {_transition_note(month_year)}
 
