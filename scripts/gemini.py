@@ -512,6 +512,8 @@ Owners and small teams (1 to 20 people) of Canadian small businesses and profess
 
 THE STEP THIS ISSUE SERVES: these readers already believe AI can help and already use prompts. What they lack is the step from a one-off prompt to a workflow: a job they run the same way every week, with a trigger, an input, an output and a person who checks it. Let that lens shape what you choose to emphasise and how you frame each item, in plain words. Do not teach the steps and do not lecture; the point is that the reader starts to see their own recurring tasks as workflows.
 
+THE THREE REACTIONS EVERY ISSUE MUST EARN from the owner reading it: (1) "This is about me, I want to read it": open on a situation an owner recognises from their own week, never on industry news or a company announcement, and write headlines and openings in terms of the reader's work. (2) "These are exactly the things I want my subscription to do, but I would not know how to set it up": make each example vivid and specific enough that the reader pictures it in their own business and wants it, while leaving the setting up out (the teaser rule). Do not make it sound easy or trivial. (3) "I should get help with this": show honestly, without selling or naming any service, that going from wanting it to having it running every week is the hard part and where owners usually stall. Never write a sales line; the call to action after the issue does that.
+
 {rules}"""
 
 
@@ -523,6 +525,8 @@ AUDIENCE
 Owners and small teams (1 to 20 people) of Canadian small businesses and professional practices: accountants, advisors, clinics, trades, agencies, shops, consultants. Most already pay about $30 a month per person for ChatGPT, Claude, Gemini or Microsoft 365 Copilot, or are deciding whether to. They have no IT department and no time. They do not care about the AI industry; they care about what their subscription can now do for their own work. Write in plain language, define any term a non-technical owner would not know, and respect their time. Readers from larger organizations still read this: the Canadian section and Robert's own section keep the wider context for them.
 
 THE STEP THIS ISSUE SERVES: these readers already believe AI can help and already use prompts. What they lack is the step from a one-off prompt to a workflow: a job they run the same way every week, with a trigger, an input, an output and a person who checks it. Let that lens shape what you choose to emphasise and how you frame each item, in plain words. Do not teach the steps and do not lecture; the point is that the reader starts to see their own recurring tasks as workflows.
+
+THE THREE REACTIONS EVERY ISSUE MUST EARN from the owner reading it: (1) "This is about me, I want to read it": open on a situation an owner recognises from their own week, never on industry news or a company announcement, and write headlines and openings in terms of the reader's work. (2) "These are exactly the things I want my subscription to do, but I would not know how to set it up": make each example vivid and specific enough that the reader pictures it in their own business and wants it, while leaving the setting up out (the teaser rule). Do not make it sound easy or trivial. (3) "I should get help with this": show honestly, without selling or naming any service, that going from wanting it to having it running every week is the hard part and where owners usually stall. Never write a sales line; the call to action after the issue does that.
 
 CONTENT FOCUS DIRECTIVE:
 {topic}
@@ -658,7 +662,10 @@ a clever demo and a job that runs every week. At least one paragraph must also n
 a good prompt gets a good answer once, while a workflow is the same job written
 down so it runs the same way every week, with a trigger, an output and someone who
 checks it. Say why owners stall at the prompt stage and what changes when they
-stop. Keep it general; no steps. Where it helps, contrast it with how
+stop. Close the section on the honest point that knowing what you want is the
+easy part and getting it running every week without constant tinkering is where
+owners get stuck, so a second pair of eyes is worth having; no pitch, no service
+named, no steps. Where it helps, contrast it with how
 large organizations get this wrong, because a small business can skip those
 mistakes. Obey the HARD CONSTRAINT above: patterns that are broadly true, never
 invented specifics, never a client story, never a named or implied employer.
@@ -1056,6 +1063,7 @@ Each use case must:
 - Include a time frame (this week / before month-end / before the busy season)
 - Be 2 sentences before the OWNER label
 - Describe a job that repeats (with its trigger and finished output), never a one-off task
+- Be recognisable: an owner of that kind of business should think "that is my Tuesday". Prefer the dull, costly recurring chore over the clever trick, and say what the owner gets back (hours, fewer errors, no chasing)
 
 OWNER rules:
 - Pick from: Owner, Office manager, Bookkeeper, Practice manager, Whoever answers client email, Sales lead, Marketing lead, Operations lead, Front desk, Senior technician
