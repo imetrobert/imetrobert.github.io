@@ -128,5 +128,16 @@
   "next": "",
   "detail": "generated staging for November 2026",
   "month": "November 2026"
+ },
+ {
+  "at": "2026-11-25T13:26:01Z",
+  "run": "45622498272",
+  "kind": "regenerate",
+  "status": "ok",
+  "code": "OK",
+  "message": "Finished normally.",
+  "next": "",
+  "detail": "generated staging for November 2026",
+  "month": "November 2026"
  }
 ]
