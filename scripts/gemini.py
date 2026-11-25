@@ -443,7 +443,7 @@ RESEARCH RULES — these apply because Robert gave a direction, and they overrid
             "\nYOUR PREVIOUS ATTEMPT WAS REJECTED: " + retry_note.strip() + "\n"
             "Write a different, complete draft that fixes this. Output only the section text.\n"
         )
-    prompt = f"""You are rewriting ONE section of Robert Simon's monthly newsletter, {BRAND}. Robert is an independent AI thought leader in Montreal. His voice is direct, opinionated and grounded in business outcomes. He does not hedge.
+    prompt = f"""You are rewriting ONE section of Robert Simon's monthly newsletter, {BRAND}. Robert is an independent AI thought leader in Montreal. His voice is friendly, warm, practical and plain-spoken, like a helpful neighbour who knows AI. He is never formal or preachy.
 
 {month_line}
 {_EDITORIAL_PREAMBLE}
@@ -505,7 +505,7 @@ def _strip_section_header(text, section):
 
 def _build_monthly_prompt(month_year, prev_month, is_backfill=False, today=None):
     rules = _shared_rules_block(month_year, prev_month, is_backfill, today)
-    return f"""You are writing {BRAND}, the monthly AI briefing for small Canadian businesses by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation and now helps small businesses and professional practices get real work out of the AI subscriptions they already pay for. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
+    return f"""You are writing {BRAND}, the monthly AI briefing for small Canadian businesses by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation and now helps small businesses and professional practices get real work out of the AI subscriptions they already pay for. His voice is friendly, warm and practical: like a knowledgeable neighbour who happens to know AI and genuinely wants to help a fellow business owner. He is plain-spoken, encouraging and honest, never formal, preachy or lecturing, and he is grounded in everyday business outcomes. He never makes the reader feel behind.
 
 AUDIENCE
 Owners and small teams (1 to 20 people) of Canadian small businesses and professional practices: accountants, advisors, clinics, trades, agencies, shops, consultants. Most already pay about $30 a month per person for ChatGPT, Claude, Gemini or Microsoft 365 Copilot, or are deciding whether to. They have no IT department and no time. They do not care about the AI industry; they care about what their subscription can now do for their own work. Write in plain language, define any term a non-technical owner would not know, and respect their time. Readers from larger organizations still read this: the Canadian section and Robert's own section keep the wider context for them.
@@ -519,7 +519,7 @@ THE THREE REACTIONS EVERY ISSUE MUST EARN from the owner reading it: (1) "This i
 
 def _build_custom_prompt(topic, month_year, prev_month, is_backfill=False, today=None):
     rules = _shared_rules_block(month_year, prev_month, is_backfill, today)
-    return f"""You are writing {BRAND}, the monthly AI briefing for small Canadian businesses by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation and now helps small businesses and professional practices get real work out of the AI subscriptions they already pay for. His voice is direct, opinionated, and grounded in real business outcomes. He does not hedge. He calls things what they are.
+    return f"""You are writing {BRAND}, the monthly AI briefing for small Canadian businesses by Robert Simon — an independent AI thought leader based in Montreal, QC, Canada. Robert spent 25+ years in digital transformation and now helps small businesses and professional practices get real work out of the AI subscriptions they already pay for. His voice is friendly, warm and practical: like a knowledgeable neighbour who happens to know AI and genuinely wants to help a fellow business owner. He is plain-spoken, encouraging and honest, never formal, preachy or lecturing, and he is grounded in everyday business outcomes. He never makes the reader feel behind.
 
 AUDIENCE
 Owners and small teams (1 to 20 people) of Canadian small businesses and professional practices: accountants, advisors, clinics, trades, agencies, shops, consultants. Most already pay about $30 a month per person for ChatGPT, Claude, Gemini or Microsoft 365 Copilot, or are deciding whether to. They have no IT department and no time. They do not care about the AI industry; they care about what their subscription can now do for their own work. Write in plain language, define any term a non-technical owner would not know, and respect their time. Readers from larger organizations still read this: the Canadian section and Robert's own section keep the wider context for them.
@@ -578,10 +578,10 @@ VOICE AND EXPERIENCE:
 Robert writes from 25+ years of digital transformation, much of it watching large
 organizations buy technology and then fail to change how the work gets done. He
 now applies that to small teams. The first-person sections should sound like
-someone who has seen many technology roll-outs stall and knows why: specific about
-mechanism, unsentimental, willing to name the part nobody wants to discuss, and
-clear that a small business can move faster than a large one because it has no
-committees.
+someone who has seen many technology roll-outs stall and knows why, and who
+says so kindly: specific, honest about the part that is hard, reassuring that
+this is normal and fixable, and clear that a small business can move faster than
+a large one because it has no committees.
 
 BANNED OPENERS — do not use any of these, in any section:
 {_BANNED_OPENERS}
@@ -670,8 +670,8 @@ large organizations get this wrong, because a small business can skip those
 mistakes. Obey the HARD CONSTRAINT above: patterns that are broadly true, never
 invented specifics, never a client story, never a named or implied employer.
 
-Say at least one thing a cautious writer would leave out. Support it with reasoning
-in the same paragraph.
+Say at least one honest thing a cautious writer would leave out, kindly and with
+its reasoning in the same paragraph. Warm and straight, never harsh or preachy.
 
 Do not open with "This month". Do not open with a summary sentence. Open on the
 observation itself."""
@@ -758,7 +758,7 @@ WRITING RULES — follow these exactly:
 0. NEVER reuse wording from these instructions. Every example below shows the
    required FORM. The content is disposable and must not appear in your output.
    If a sentence you are about to write also appears in this prompt, rewrite it.
-1. Write as an active peer and practitioner — someone in the room, not observing from the outside. Use "What we're seeing on the ground" over "studies suggest." Be casually authoritative. Enthusiasm for technology is fine; uncritical hype is not.
+1. Write as an active peer and practitioner — someone in the room, not observing from the outside. Use "What we're seeing on the ground" over "studies suggest." Sound friendly, warm and relatable, never formal, stiff or authoritarian. Talk to ONE owner as "you", in everyday words, the way you would explain it over coffee. Be encouraging and reassuring, never alarming or overwhelming: one idea per sentence, no jargon (explain any tech word in plain language), no piling on of features or numbers. Enthusiasm is fine; uncritical hype is not.
 2. Maximum 22 words per sentence. Short sentences hit harder. Mix punchy 4-word sentences with longer conversational ones. Vary the rhythm deliberately.
 3. Start every section with a direct hook or a counter-intuitive observation. No warmup phrases, no formal introductions.
 4. Never use these words or phrases:
@@ -989,7 +989,7 @@ Rules:
 - Every item ends with Source: [Publication] | [Headline] — no URLs, no brackets around the headline
 - The word "Source" must always be preceded by a full stop, so ratings lines end with a full stop as shown
 - Every source is a PRIMARY source (the vendor's announcement, a major news outlet) — NEVER a newsletter or podcast
-- The small-business sentence must be specific: a kind of business and a job, not "businesses can be more productive"
+- The small-business sentence must be a real, relatable example: a kind of Canadian small business and an everyday job, told as a little scene ("a two-person bookkeeping office can now...", "a contractor who quotes jobs from the truck can..."), never "businesses can be more productive". EVERY item, including items 4 onward, carries such an example of what the change means in practice.
 - Do not rate everything High. If all three are High, you have not made a judgment. ATTENTION: Ignore is a legitimate and useful verdict on a feature that is loud but useless to a small team.
 - UNIQUENESS RULE: Every item must cover a distinct announcement.
 
