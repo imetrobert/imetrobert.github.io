@@ -88,5 +88,12 @@
     },
     "requests": 21,
     "tokens": 1420662
+  },
+  "2026-11-26": {
+    "models": {
+      "gemini-2.5-flash": 7
+    },
+    "requests": 7,
+    "tokens": 549843
   }
 }
