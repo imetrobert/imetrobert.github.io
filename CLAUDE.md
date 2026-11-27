@@ -8,7 +8,7 @@ read the right section below before editing.
 > `docs/` and are read on demand: `docs/blog-pipeline.md` (blog generation, approval page,
 > sourcing, dates, sharing) and `docs/site-rules.md` (SEO/AEO, never-index rules, icons,
 > brand mark). Use `grep -n '^##' docs/<file>` to find the section, then read only that range.
-> Scripts are big (`generate-preview-page.py` 101KB, `renderer.py` 80KB, `gemini.py` 61KB,
+> Scripts are big (`generate-preview-page.py` 112KB, `renderer.py` 80KB, `gemini.py` 81KB,
 > `parser.py` 47KB, `utils.py` 43KB, `blog_index.py` 37KB): grep for the function, never read
 > a whole file.
 

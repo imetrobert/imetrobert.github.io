@@ -1,7 +1,7 @@
 # Diagnosing the blog pipeline (start here when something goes wrong)
 
 Written for a chat with a small token budget and NO knowledge of this repo. Do not explore the repo. Do not read the big
-scripts (generate-preview-page.py 111 KB, renderer.py 80 KB, gemini.py 74 KB, parser.py 47 KB, utils.py 49 KB).
+scripts (generate-preview-page.py 112 KB, renderer.py 80 KB, gemini.py 81 KB, parser.py 47 KB, utils.py 49 KB).
 
 ## Step 1: get the report (30 seconds, from a phone)
 GitHub > imetrobert/imetrobert.github.io > Actions > **Blog health report** > Run workflow. Open the finished run, copy the
@@ -19,7 +19,7 @@ monthly run writes one entry with a code, what happened, the next step and a det
 | API_KEY_REJECTED | Google returned 403 | New key in Google AI Studio; replace secret GEMINI_API_KEY; run again |
 | NO_API_KEY | Secret missing in this run | Check repo secrets |
 | MODEL_UNAVAILABLE | Model 404/400 | Approval page: Back to Auto or pin another; Model Scout also repairs it |
-| UNGROUNDED_REJECTED | No search-backed answer; nothing changed on purpose | Run again later |
+| UNGROUNDED_REJECTED | No search-backed answer; nothing changed on purpose. Usually the free Gemini daily quota is spent (about 4 full runs a day; "429" in the job log) | Wait until after midnight Pacific (3 am Eastern) and run again: Actions > monthly-blog.yml > Run workflow (output staging, force_run on, coverage month). Never add an ungrounded fallback; the "ungrounded retry" wording in gemini.py comments means the same grounded request is retried |
 | ALL_MODELS_FAILED | Every model in the fallback list failed | Look for 429/500/503/timeout lines in the run; usually temporary |
 | JUNK_OUTPUT / TOO_SHORT / FORMAT_MISMATCH | Model returned notes, a stub or the wrong format; the issue was NOT changed (after one automatic retry) | Run again; add a specific direction; pin a stronger model |
 | TOO_SIMILAR | New draft almost identical to the current one; not applied | Add a direction saying what angle to take |
