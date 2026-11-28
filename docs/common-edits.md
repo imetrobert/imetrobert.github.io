@@ -2,6 +2,9 @@
 
 Two surfaces: the hand-edited homepage (`index.html` + `css/style.css`) and the generated blog (never hand-edit `blog/`, `sitemap.xml`, `feed.xml`, `llms.txt`). For blog problems go to `docs/DIAGNOSE.md` and `docs/RUNBOOK.md` instead.
 
+## Swap the homepage photo (profile.jpg)
+The portrait on the personal homepage is `profile.jpg` in the repo root, used by the `<img class="profile-image">` near line 218 of `index.html` (full address `https://imetrobert.github.io/profile.jpg`; no WebP copy and no workflow here). On GitHub: open the file, Upload files, upload the new photo with the SAME name, keep the proportions and stay under about 300 KB. Alt text is English text on that `<img>` in `index.html`. The blog's share image is a different file, `blog/og-blog.jpg`; the per-issue images in `blog/og/` are generated, never hand-edited.
+
 ## 1. Change the phone number or email
 Phone `514-250-8491` and email `robert@imetrobert.com` each appear in two places in `index.html`: the JSON-LD Person block near the top (`"email"`, `"telephone"`, about lines 68-69) and the `.contact-bar` in the body (about line 228). Find them with `grep -n "514-250-8491\|robert@imetrobert.com" index.html` and change every hit. Commit to `main`; Pages redeploys in about a minute.
 
