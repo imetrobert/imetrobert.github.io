@@ -50,6 +50,8 @@ JSON-LD blocks (Person/Blog/WebSite schemas, top of `<head>`) are already
 pretty-printed one field per line — safe to copy/paste just the field you
 need.
 
+Photo: the portrait is `profile.jpg` in the repo root (no WebP twin); upload a new one with the SAME file name; alt text is English text on the `<img class="profile-image">` in `index.html` (~line 218). Recipe: `docs/common-edits.md` "Swap the homepage photo".
+
 Recipes for the usual homepage edits (phone, bio, awards, styling, images): `docs/common-edits.md` (open it first).
 
 ## Something went wrong? Read `docs/DIAGNOSE.md` first
