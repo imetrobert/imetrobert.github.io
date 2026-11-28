@@ -38,7 +38,7 @@ Example: `grep -n 'id="story"' index.html` to jump straight to the bio text.
 
 - Phone `514-250-8491` and email `robert@imetrobert.com`: JSON-LD Person
   schema near the top of `<head>` (~line 67) **and** the `.contact-bar` div
-  in the body (~line 908). Update both.
+  in the body (~line 228). Update both; they are the only two places in the repo (`grep -n "514-250-8491\|robert@imetrobert.com" index.html`).
 - Awards list ("Webby Award Winner", "Bell Bravo Award", "Execution
   Excellence Award", "Boomerang Award"): only in the JSON-LD Person schema
   (`"award": [...]`) — not duplicated in visible body text currently.
