@@ -24,7 +24,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Add hint to published posts
         run: python3 scripts/add_linkedin_hint.py 2>&1 | tee /tmp/hint_output.txt
