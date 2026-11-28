@@ -30,7 +30,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       # The placeholder page reads the published issues with BeautifulSoup. Without it the LinkedIn, promo and
       # rollback cards silently vanish after a discard (found 2026-11-15).
